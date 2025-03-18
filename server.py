@@ -3,8 +3,11 @@ import threading
 import paramiko
 import sqlite3
 import os
+import time
 
 import ssh_input
+import util
+import bbsmenu
 
 # Paramikoのホストキーを読み込む
 host_key = paramiko.RSAKey(filename='test_rsa.key')
@@ -67,7 +70,6 @@ def handle_client(client, addr, host_key):
         results = cur.fetchall()
         if results:
             userdata = list(results[0])
-            print(userdata[2])
         else:
             userdata = "notid"  # 該当がない場合
             print("該当なし")
@@ -80,7 +82,7 @@ def handle_client(client, addr, host_key):
             for i in range(3):
                 chan.send("PASSWORD: ")
                 login_pass = ssh_input.hide_process_input(chan)
-                print("攻撃発生:login {}:{}".format(login_id, login_pass))
+                print("攻撃の可能性: login {}:{}".format(login_id, login_pass))
             chan.send("3回パスワードを間違えました。切断します。")
             transport.close()
 
@@ -96,34 +98,38 @@ def handle_client(client, addr, host_key):
             if passwordmisscount > 2:
                 chan.send("3回パスワードを間違えました。切断します。")
                 transport.close()
-                print(f"攻撃が発生している可能性があります: {addr}")
+                print("攻撃の可能性: {}", format(addr))
 
-        chan.send("""
---------------------------------\r\n
- Welcome BicliModel BBS Program\r\n
---------------------------------\r\n\n""")
+        # ログイン時刻記録
+        date = time.time()
+        bbsmenu.userupdate(dbname, userdata[0], 'lastlogin', date)
+        # ウェルカムメッセージを送信
+        sendm = util.txt_reads("welcome_message.txt")
+        for s in sendm:
+            chan.send(s+'\r')
 
+        # 本ループ開始
         while True:
-            chan.send("Menu(A,B,C,F,H,M,Q,T,U,W H=Help Q=QUit) >> ")
+            sendm = util.txt_read("top_prompt.txt")
+            # プロンプト表示
+            chan.send(sendm)
             input_buffer = ssh_input.process_input(chan)
 
+            # ヘルプメニュー表示
             if input_buffer == "H" or input_buffer == "h":
-                chan.send("""
-+++++ BBS Menu ++++++++++++++++++++++\r\n
-[B] 掲示板     | [A] 未読をすべて読む\r\n
-[C] チャット   | [H] ヘルプ\r\n
-[F] ファイル   | [T] 電報\r\n
-[M] メール     | [W] WHO\r\n
-               | [Q] 切断\r\n
-+++++++++++++++++++++++++++++++++++++\r\n
-"""
-                          )
+                sendm = util.txt_reads("bbsmenu.txt")
+                for s in sendm:
+                    chan.send(s + '\r')
+                    print(s)
 
-#            if len(input_buffer) == 0:
-#                print("クライアントが入力を終了しました。")
-#                break
-            if input_buffer == "Q" or input_buffer == "q":
-                chan.send("また遊びに来てくださいね!\r\n")
+            # 切断処理 (暫定)
+            if input_buffer == "E" or input_buffer == "e":
+                sendm = util.txt_reads("logoff_message.txt")
+                for s in sendm:
+                    chan.send(s + '\r')
+                    print(s)
+                date = time.time()
+                bbsmenu.userupdate(dbname, userdata[0], 'lastlogout', date)
                 break
 
     except Exception as e:
@@ -148,34 +154,9 @@ def main():
         client_thread.start()
 
 
-def make_user_database():
-    dbname = 'bbs.db'
-    conn = sqlite3.connect(dbname)
-    cur = conn.cursor()
-    cur.execute(
-        'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,name STRING,password TEXT,registdate DATE,level INT,lastlogin DATETIME,comment STRING,mail STRING)'
-    )
-    sysopname = input('Input Sysop name: ')
-    sysoppass = input('Input Sysop password: ')
-    cur.execute("INSERT INTO users(name,password,level) values(?,?,?);", (
-                sysopname, sysoppass, 5))
-
-    print(cur.fetchall())
-    # データベースへコミット
-    conn.commit()
-
-    # Query and display the contents of the "users" table
-    cur.execute("SELECT * FROM users;")
-    users = cur.fetchall()
-    for user in users:
-        print(user)
-
-    cur.close()
-    conn.close()
-
-
+# 初起動の場合はデータベース作成とsysop登録を実行
 if not os.path.isfile('bbs.db'):
-    make_user_database()
+    util.make_sysop_and_database(dbname)
 
 if __name__ == "__main__":
     main()

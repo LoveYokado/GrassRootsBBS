@@ -17,12 +17,12 @@ def txt_read(filename):
     return data
 
 
-def make_sysop_and_database():
-    dbname = 'bbs.db'
+def make_sysop_and_database(dbname):
     conn = sqlite3.connect(dbname)
     cur = conn.cursor()
+    # id,name,password,registdate,level,lastlogin,lastlogout,comment,mail
     cur.execute(
-        'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,name STRING,password TEXT,registdate DATE,level INT,lastlogin DATETIME,comment STRING,mail STRING)'
+        'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,name STRING,password TEXT,registdate INTEGER,level INT,lastlogin INTEGER,lastlogout INTEGER,comment STRING,mail STRING)'
     )
     sysopname = input('Input Sysop name: ')
     sysoppass = input('Input Sysop password: ')
