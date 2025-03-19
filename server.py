@@ -1,20 +1,20 @@
 import socket
 import threading
 import paramiko
-import sqlite3
 import os
 import time
 
 import ssh_input
 import util
-import bbsmenu
+from sqlite_tools import *
 
 # Paramikoのホストキーを読み込む
 host_key = paramiko.RSAKey(filename='test_rsa.key')
-
+USER_COLUMNS = ['name', 'password', 'registdate',
+                'level', 'lastlogin', 'lastlogout', 'comment', 'mail']
 bind_host = "0.0.0.0"
 bind_port = 50000
-dbname = "bbs.db"
+DBNAME = "bbs.db"
 
 
 class Server(paramiko.ServerInterface):
@@ -62,23 +62,11 @@ def handle_client(client, addr, host_key):
 
         login_id = ssh_input.process_input(chan)
         # ログインIDを元にユーザ情報を取得
-        conn = sqlite3.connect(dbname)
-        cur = conn.cursor()
-        sql = 'SELECT * FROM users WHERE name=?'
-        data = ("{}".format(login_id),)
-        cur.execute(sql, data)
-        results = cur.fetchall()
-        if results:
-            userdata = list(results[0])
-        else:
-            userdata = "notid"  # 該当がない場合
-            print("該当なし")
-
-        conn.close()
-        print(userdata)
+        results = sqlite_fetchall_idbasee(DBNAME, 'users', 'name', login_id)
+        print(results[0])
         passwordauth = False
         passwordmisscount = 0
-        if userdata == "notid":  # 該当IDがない場合は認証できないループへ
+        if results == "notdata":  # 該当IDがない場合は認証できないループへ
             for i in range(3):
                 chan.send("PASSWORD: ")
                 login_pass = ssh_input.hide_process_input(chan)
@@ -87,6 +75,7 @@ def handle_client(client, addr, host_key):
             transport.close()
 
         while not passwordauth:  # 該当IDのパスワードを検証
+            userdata = results[0]
             chan.send("PASSWORD: ")
             login_pass = ssh_input.hide_process_input(chan)
             print("login {}:{}".format(login_id, login_pass))
@@ -102,7 +91,8 @@ def handle_client(client, addr, host_key):
 
         # ログイン時刻記録
         date = time.time()
-        bbsmenu.userupdate(dbname, userdata[0], 'lastlogin', date)
+        sqlite_update_idbase(
+            DBNAME, 'users', USER_COLUMNS, userdata[0], 'lastlogin', date)
         # ウェルカムメッセージを送信
         sendm = util.txt_reads("welcome_message.txt")
         for s in sendm:
@@ -129,7 +119,8 @@ def handle_client(client, addr, host_key):
                     chan.send(s + '\r')
                     print(s)
                 date = time.time()
-                bbsmenu.userupdate(dbname, userdata[0], 'lastlogout', date)
+                sqlite_update_idbase(
+                    DBNAME, 'users', USER_COLUMNS, userdata[0], 'lastlogout', date)
                 break
 
     except Exception as e:
@@ -155,8 +146,8 @@ def main():
 
 
 # 初起動の場合はデータベース作成とsysop登録を実行
-if not os.path.isfile('bbs.db'):
-    util.make_sysop_and_database(dbname)
+if not os.path.isfile(DBNAME):
+    util.make_sysop_and_database(DBNAME)
 
 if __name__ == "__main__":
     main()
