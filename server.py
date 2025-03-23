@@ -62,8 +62,11 @@ def handle_client(client, addr, host_key):
 
         login_id = ssh_input.process_input(chan)
         # ログインIDを元にユーザ情報を取得
+        # [0]:id,[1]:name,[2]:password,[3]:registdate,[4]level,[5]:lastlogin,[6]:lastlogout,[7]:comment,[8]:mail
         results = sqlite_fetchall_idbasee(DBNAME, 'users', 'name', login_id)
-        print(results[0])
+        #IDからレベルを取得
+        userlevel=int(results[0][4])
+        print('userlevel='+str(userlevel))
         passwordauth = False
         passwordmisscount = 0
         if results == "notdata":  # 該当IDがない場合は認証できないループへ
