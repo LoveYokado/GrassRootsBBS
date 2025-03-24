@@ -30,9 +30,14 @@ def make_sysop_and_database(dbname):
                 sysopname, sysoppass, 5))
 
     print(cur.fetchall())
-    # データベースへコミット
-    conn.commit()
 
+    # 各メニューのユーザレベルごとの有効、ゲストアクセスの設定
+    cur.execute(
+        'CREATE TABLE server_pref(bbs INTEGER,chat INTEGER,mail INTEGER,telegram INTEGER,userpref INTEGER,who INTEGER,guest BOOLEAN)'
+    )
+    cur.execute("INSERT INTO server_pref(bbs,chat,mail,telegram,userpref,who,guest) values(0,1,1,1,1,1,true);")
+    # データベースへコミット
+    conn.commit
     # Query and display the contents of the "users" table
     cur.execute("SELECT * FROM users;")
     users = cur.fetchall()

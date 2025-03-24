@@ -6,6 +6,7 @@ import time
 
 import ssh_input
 import util
+import bbsmenu
 from sqlite_tools import *
 
 # Paramikoのホストキーを読み込む
@@ -114,6 +115,11 @@ def handle_client(client, addr, host_key):
                 for s in sendm:
                     chan.send(s + '\r')
                     print(s)
+
+            # サーバ設定メニュー表示
+            if input_buffer == "PREF" or input_buffer=="pref":
+                if userlevel==5:
+                    bbsmenu.server_pref()
 
             # 切断処理 (暫定)
             if input_buffer == "E" or input_buffer == "e":
