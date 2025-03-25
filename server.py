@@ -17,7 +17,6 @@ bind_host = "0.0.0.0"
 bind_port = 50000
 DBNAME = "bbs.db"
 
-
 class Server(paramiko.ServerInterface):
     def __init__(self):
         self.event = threading.Event()
