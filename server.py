@@ -64,10 +64,10 @@ def handle_client(client, addr, host_key):
         login_id = ssh_input.process_input(chan)
         # ログインIDを元にユーザ情報を取得
         # [0]:id,[1]:name,[2]:password,[3]:registdate,[4]level,[5]:lastlogin,[6]:lastlogout,[7]:comment,[8]:mail
-        results = sqlite_fetchall_idbasee(DBNAME, 'users', 'name', login_id)
-        #IDからレベルを取得
-        userlevel=int(results[0][4])
-        print('userlevel='+str(userlevel))
+        results = sqlite_fetchall_idbase(DBNAME, 'users', 'name', login_id)
+        # IDからレベルを取得
+#        userlevel = int(results[0][4])
+#        print('userlevel='+str(userlevel))
         passwordauth = False
         passwordmisscount = 0
         if results == "notdata":  # 該当IDがない場合は認証できないループへ
@@ -92,7 +92,7 @@ def handle_client(client, addr, host_key):
                 chan.send("3回パスワードを間違えました。切断します。")
                 transport.close()
                 print("攻撃の可能性: {}", format(addr))
-
+        userlevel = int(results[0][4])
         # ログイン時刻記録
         date = time.time()
         sqlite_update_idbase(
@@ -114,19 +114,16 @@ def handle_client(client, addr, host_key):
                 sendm = util.txt_reads("bbsmenu.txt")
                 for s in sendm:
                     chan.send(s + '\r')
-                    print(s)
 
             # サーバ設定メニュー表示
-            if input_buffer == "PREF" or input_buffer=="pref":
-                if userlevel==5:
-                    bbsmenu.server_pref()
+            if (input_buffer == "S" or input_buffer == "s") and userlevel == 5:
+                bbsmenu.server_pref(chan, DBNAME)
 
             # 切断処理 (暫定)
             if input_buffer == "E" or input_buffer == "e":
                 sendm = util.txt_reads("logoff_message.txt")
                 for s in sendm:
                     chan.send(s + '\r')
-                    print(s)
                 date = time.time()
                 sqlite_update_idbase(
                     DBNAME, 'users', USER_COLUMNS, userdata[0], 'lastlogout', date)

@@ -12,7 +12,7 @@ def sqlite_update_idbase(dbname, table, ALLOWED_COLUMNS, id, col, data):
     conn.close()
 
 
-def sqlite_fetchall_idbasee(dbname, table, key, keyword):
+def sqlite_fetchall_idbase(dbname, table, key, keyword):
     conn = sqlite3.connect(dbname)
     cur = conn.cursor()
     sql = f'SELECT * FROM {table} WHERE {key}=?'

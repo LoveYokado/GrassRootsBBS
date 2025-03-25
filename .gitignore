@@ -1,2 +1,7 @@
 bbs.db
 __pycache__/
+.venv/
+sqlite_check_table.py
+sqlite_create_db.py
+sqlite_create_table.py
+sqlite_data_insert.py

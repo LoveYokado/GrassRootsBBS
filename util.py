@@ -1,4 +1,5 @@
 import sqlite3
+import time
 
 
 def txt_reads(filename):
@@ -20,29 +21,38 @@ def txt_read(filename):
 def make_sysop_and_database(dbname):
     conn = sqlite3.connect(dbname)
     cur = conn.cursor()
-    # id,name,password,registdate,level,lastlogin,lastlogout,comment,mail
-    cur.execute(
-        'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,name STRING,password TEXT,registdate INTEGER,level INT,lastlogin INTEGER,lastlogout INTEGER,comment STRING,mail STRING)'
-    )
-    sysopname = input('Input Sysop name: ')
-    sysoppass = input('Input Sysop password: ')
-    cur.execute("INSERT INTO users(name,password,level) values(?,?,?);", (
-                sysopname, sysoppass, 5))
+    try:
+        # id,name,password,registdate,level,lastlogin,lastlogout,comment,mail
+        cur.execute(
+            'CREATE TABLE users(id INTEGER PRIMARY KEY AUTOINCREMENT,name STRING,password TEXT,registdate INTEGER,level INT,lastlogin INTEGER,lastlogout INTEGER,comment STRING,mail STRING)'
+        )
+        sysopname = input('Input Sysop name: ')
+        sysoppass = input('Input Sysop password: ')
+        registdate = int(time.time())
+        cur.execute("INSERT INTO users(name,password,level,registdate) values(?,?,?,?);", (
+            sysopname, sysoppass, 5, registdate))
 
-    print(cur.fetchall())
+        cur.execute("SELECT * FROM users;")
+        users = cur.fetchall()
+        for user in users:
+            print(user)
+        # 各メニューのユーザレベルごとの有効、ゲストアクセスの設定
+        cur.execute(
+            'CREATE TABLE server_pref(bbs INTEGER,chat INTEGER,mail INTEGER,telegram INTEGER,userpref INTEGER,who INTEGER,guest INTEGER)'
+        )
+        cur.execute(
+            "INSERT INTO server_pref(bbs,chat,mail,telegram,userpref,who,guest) values(0,1,1,1,1,1,0);")
+        # データベースへコミット
+        conn.commit()
+        # Query and display the contents of the "users" table
+        cur.execute("SELECT * FROM server_pref;")
+        serverprefs = cur.fetchall()
+        for server_pref in serverprefs:
+            print(server_pref)
+    except sqlite3.Error as e:
+        print(f"データベースエラー: {e}")
+        conn.rollback()
 
-    # 各メニューのユーザレベルごとの有効、ゲストアクセスの設定
-    cur.execute(
-        'CREATE TABLE server_pref(bbs INTEGER,chat INTEGER,mail INTEGER,telegram INTEGER,userpref INTEGER,who INTEGER,guest BOOLEAN)'
-    )
-    cur.execute("INSERT INTO server_pref(bbs,chat,mail,telegram,userpref,who,guest) values(0,1,1,1,1,1,true);")
-    # データベースへコミット
-    conn.commit
-    # Query and display the contents of the "users" table
-    cur.execute("SELECT * FROM users;")
-    users = cur.fetchall()
-    for user in users:
-        print(user)
-
-    cur.close()
-    conn.close()
+    finally:
+        cur.close()
+        conn.close()
