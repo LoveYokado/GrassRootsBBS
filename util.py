@@ -29,13 +29,19 @@ def make_sysop_and_database(dbname):
         sysopname = input('Input Sysop name: ')
         sysoppass = input('Input Sysop password: ')
         registdate = int(time.time())
+
+        # シスオペ登録
         cur.execute("INSERT INTO users(name,password,level,registdate) values(?,?,?,?);", (
             sysopname, sysoppass, 5, registdate))
 
+        # ゲスト登録
+        cur.execute(
+            "INSERT INTO users(name,password,level,registdate) values('GUEST','GUEST',0,0);")
         cur.execute("SELECT * FROM users;")
         users = cur.fetchall()
         for user in users:
             print(user)
+
         # 各メニューのユーザレベルごとの有効、ゲストアクセスの設定
         cur.execute(
             'CREATE TABLE server_pref(bbs INTEGER,chat INTEGER,mail INTEGER,telegram INTEGER,userpref INTEGER,who INTEGER,guest INTEGER)'

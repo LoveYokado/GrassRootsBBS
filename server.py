@@ -7,7 +7,7 @@ import time
 import ssh_input
 import util
 import bbsmenu
-from sqlite_tools import *
+import sqlite_tools
 
 # Paramikoのホストキーを読み込む
 host_key = paramiko.RSAKey(filename='test_rsa.key')
@@ -16,6 +16,7 @@ USER_COLUMNS = ['name', 'password', 'registdate',
 bind_host = "0.0.0.0"
 bind_port = 50000
 DBNAME = "bbs.db"
+
 
 class Server(paramiko.ServerInterface):
     def __init__(self):
@@ -40,6 +41,8 @@ class Server(paramiko.ServerInterface):
 
 def handle_client(client, addr, host_key):
     """メインの関数"""
+    server_prefs = sqlite_tools.read_server_pref(DBNAME)
+    print(server_prefs)
     print(f"接続を受け付けました: {addr}")
     try:
         transport = paramiko.Transport(client)
@@ -63,10 +66,8 @@ def handle_client(client, addr, host_key):
         login_id = ssh_input.process_input(chan)
         # ログインIDを元にユーザ情報を取得
         # [0]:id,[1]:name,[2]:password,[3]:registdate,[4]level,[5]:lastlogin,[6]:lastlogout,[7]:comment,[8]:mail
-        results = sqlite_fetchall_idbase(DBNAME, 'users', 'name', login_id)
-        # IDからレベルを取得
-#        userlevel = int(results[0][4])
-#        print('userlevel='+str(userlevel))
+        results = sqlite_tools.fetchall_idbase(
+            DBNAME, 'users', 'name', login_id)
         passwordauth = False
         passwordmisscount = 0
         if results == "notdata":  # 該当IDがない場合は認証できないループへ
@@ -91,11 +92,15 @@ def handle_client(client, addr, host_key):
                 chan.send("3回パスワードを間違えました。切断します。")
                 transport.close()
                 print("攻撃の可能性: {}", format(addr))
+
+        # IDからレベルを取得
         userlevel = int(results[0][4])
+
         # ログイン時刻記録
         date = time.time()
-        sqlite_update_idbase(
+        sqlite_tools.update_idbase(
             DBNAME, 'users', USER_COLUMNS, userdata[0], 'lastlogin', date)
+
         # ウェルカムメッセージを送信
         sendm = util.txt_reads("welcome_message.txt")
         for s in sendm:
@@ -117,6 +122,7 @@ def handle_client(client, addr, host_key):
             # サーバ設定メニュー表示
             if (input_buffer == "S" or input_buffer == "s") and userlevel == 5:
                 bbsmenu.server_pref(chan, DBNAME)
+                server_prefs = sqlite_tools.read_server_pref(DBNAME)
 
             # 切断処理 (暫定)
             if input_buffer == "E" or input_buffer == "e":
@@ -124,7 +130,7 @@ def handle_client(client, addr, host_key):
                 for s in sendm:
                     chan.send(s + '\r')
                 date = time.time()
-                sqlite_update_idbase(
+                sqlite_tools.update_idbase(
                     DBNAME, 'users', USER_COLUMNS, userdata[0], 'lastlogout', date)
                 break
 
