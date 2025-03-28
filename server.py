@@ -89,11 +89,11 @@ def handle_client(client, addr, host_key):
             if login_pass == userdata[2]:
                 break
             else:
-                passwordmisscount += 15
+                passwordmisscount += 1
             if passwordmisscount > 2:
                 chan.send("3回パスワードを間違えました。切断します。")
                 transport.close()
-                print("攻撃の可能性: {}", format(addr))
+                print(f"攻撃の可能性: {addr}")
 
         # IDからレベルを取得
         userlevel = int(results[0][4])
