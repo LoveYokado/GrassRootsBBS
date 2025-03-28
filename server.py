@@ -68,9 +68,12 @@ def handle_client(client, addr, host_key):
         # [0]:id,[1]:name,[2]:password,[3]:registdate,[4]level,[5]:lastlogin,[6]:lastlogout,[7]:comment,[8]:mail
         results = sqlite_tools.fetchall_idbase(
             DBNAME, 'users', 'name', login_id)
+        userdata = results[0]
+        print(userdata)
         passwordauth = False
         passwordmisscount = 0
-        if results == "notdata":  # 該当IDがない場合は認証できないループへ
+        # 該当IDがない、もしくはレベルが0場合は認証できないループへ
+        if results == "notdata" or userdata[4] == 0:
             for i in range(3):
                 chan.send("PASSWORD: ")
                 login_pass = ssh_input.hide_process_input(chan)
@@ -79,7 +82,6 @@ def handle_client(client, addr, host_key):
             transport.close()
 
         while not passwordauth:  # 該当IDのパスワードを検証
-            userdata = results[0]
             chan.send("PASSWORD: ")
             login_pass = ssh_input.hide_process_input(chan)
             print("login {}:{}".format(login_id, login_pass))
@@ -87,7 +89,7 @@ def handle_client(client, addr, host_key):
             if login_pass == userdata[2]:
                 break
             else:
-                passwordmisscount += 1
+                passwordmisscount += 15
             if passwordmisscount > 2:
                 chan.send("3回パスワードを間違えました。切断します。")
                 transport.close()
@@ -119,9 +121,9 @@ def handle_client(client, addr, host_key):
                 for s in sendm:
                     chan.send(s + '\r')
 
-            # サーバ設定メニュー表示
+            # シスオペメニュー表示
             if (input_buffer == "S" or input_buffer == "s") and userlevel == 5:
-                bbsmenu.server_pref(chan, DBNAME)
+                bbsmenu.sysop_menu(chan, DBNAME)
                 server_prefs = sqlite_tools.read_server_pref(DBNAME)
 
             # 切断処理 (暫定)

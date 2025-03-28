@@ -31,12 +31,13 @@ def make_sysop_and_database(dbname):
         registdate = int(time.time())
 
         # シスオペ登録
-        cur.execute("INSERT INTO users(name,password,level,registdate) values(?,?,?,?);", (
-            sysopname, sysoppass, 5, registdate))
+        cur.execute("INSERT INTO users(name,password,level,registdate,lastlogin,lastlogout,comment,mail) values(?,?,?,?,?,?,?,?);",
+                    (sysopname, sysoppass, 5, registdate, 0, 0, 'Sysop', 'sysop@sysop.com'),)
 
         # ゲスト登録
         cur.execute(
-            "INSERT INTO users(name,password,level,registdate) values('GUEST','GUEST',0,0);")
+            "INSERT INTO users(name,password,level,registdate,lastlogin,lastlogout,comment,mail) values(?,?,?,?,?,?,?,?);",
+            ("GUEST", "GUEST", 1, 1, 0, 0, 'Guest', 'guest@guest.com'),)
         cur.execute("SELECT * FROM users;")
         users = cur.fetchall()
         for user in users:
@@ -44,10 +45,10 @@ def make_sysop_and_database(dbname):
 
         # 各メニューのユーザレベルごとの有効、ゲストアクセスの設定
         cur.execute(
-            'CREATE TABLE server_pref(bbs INTEGER,chat INTEGER,mail INTEGER,telegram INTEGER,userpref INTEGER,who INTEGER,guest INTEGER)'
+            'CREATE TABLE server_pref(bbs INTEGER,chat INTEGER,mail INTEGER,telegram INTEGER,userpref INTEGER,who INTEGER)'
         )
         cur.execute(
-            "INSERT INTO server_pref(bbs,chat,mail,telegram,userpref,who,guest) values(0,1,1,1,1,1,0);")
+            "INSERT INTO server_pref(bbs,chat,mail,telegram,userpref,who) values(0,1,1,1,1,1);")
         # データベースへコミット
         conn.commit()
         # Query and display the contents of the "users" table
