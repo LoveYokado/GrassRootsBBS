@@ -16,6 +16,7 @@ USER_COLUMNS = ['name', 'password', 'registdate',
 bind_host = "0.0.0.0"
 bind_port = 50000
 DBNAME = "bbs.db"
+onlinemenbers = []
 
 
 class Server(paramiko.ServerInterface):
@@ -103,6 +104,9 @@ def handle_client(client, addr, host_key):
         sqlite_tools.update_idbase(
             DBNAME, 'users', USER_COLUMNS, userdata[0], 'lastlogin', date)
 
+        # オンラインメンバーに追加
+        onlinemenbers.append(login_id)
+
         # ウェルカムメッセージを送信
         sendm = util.txt_reads("welcome_message.txt")
         for s in sendm:
@@ -122,18 +126,35 @@ def handle_client(client, addr, host_key):
                 sendm = util.txt_reads("bbsmenu.txt")
                 for s in sendm:
                     chan.send(s + '\r')
-                print(sqlite_tools.read_server_pref(DBNAME))
 
             # シスオペメニュー表示
             if (input_buffer == "S" or input_buffer == "s") and userlevel == 5:
                 bbsmenu.sysop_menu(chan, DBNAME)
                 server_prefs = sqlite_tools.read_server_pref(DBNAME)
 
+            # オンラインメンバー一覧表示
+            if (input_buffer == "W" or input_buffer == "w") and userlevel >= who_lv:
+                chan.send("オンラインメンバー一覧\r\n")
+                chan.send("NAME            COMMENT\r\n")
+                chan.send(
+                    "-------------------------------------------------------------------\r\n")
+                for menber in onlinemenbers:
+                    results = sqlite_tools.fetchall_idbase(
+                        DBNAME, 'users', 'name', menber)
+                    if results != "notdata":
+                        comment = results[0][7]
+                        chan.send(f"{menber:<15} {comment} \r\n")
+                    else:
+                        chan.send(f"{menber:<15} {'no data'}\r\n")
+
             # 切断処理 (暫定)
             if input_buffer == "E" or input_buffer == "e":
                 sendm = util.txt_reads("logoff_message.txt")
                 for s in sendm:
                     chan.send(s + '\r')
+                # オンラインメンバーから削除
+                onlinemenbers.remove(login_id)
+                # ログアウト時刻記録
                 date = time.time()
                 sqlite_tools.update_idbase(
                     DBNAME, 'users', USER_COLUMNS, userdata[0], 'lastlogout', date)
