@@ -43,7 +43,7 @@ def make_sysop_and_database(dbname):
         for user in users:
             print(user)
 
-        # 各メニューのユーザレベルごとの有効、ゲストアクセスの設定
+        # 各メニューのユーザレベルごとの有効
         cur.execute(
             'CREATE TABLE server_pref(bbs INTEGER,chat INTEGER,mail INTEGER,telegram INTEGER,userpref INTEGER,who INTEGER)'
         )

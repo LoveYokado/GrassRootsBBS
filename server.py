@@ -114,12 +114,15 @@ def handle_client(client, addr, host_key):
             # プロンプト表示
             chan.send(sendm)
             input_buffer = ssh_input.process_input(chan)
-
+            # サーバ設定を読み込み
+            bbs_lv, chat_lv, mail_lv, telegram_lv, userpref_lv, who_lv = sqlite_tools.read_server_pref(
+                DBNAME)
             # ヘルプメニュー表示
             if input_buffer == "H" or input_buffer == "h":
                 sendm = util.txt_reads("bbsmenu.txt")
                 for s in sendm:
                     chan.send(s + '\r')
+                print(sqlite_tools.read_server_pref(DBNAME))
 
             # シスオペメニュー表示
             if (input_buffer == "S" or input_buffer == "s") and userlevel == 5:
