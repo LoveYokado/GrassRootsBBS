@@ -2,6 +2,82 @@ import ssh_input
 import util
 import sqlite3
 import datetime
+import sqlite_tools
+import time
+
+
+def telegram_send(chan, dbname, sender_name, online_members):
+    """
+    オンラインのメンバーにのみ電報を送信し、データベースに保存する。
+    """
+    chan.send("電報を送信します (オンラインメンバーのみ)\r\n")
+    chan.send("宛先ID: ")
+    recipient_name = ssh_input.process_input(chan)
+
+    if not recipient_name:
+        chan.send("宛先が入力されていません。\r\n")
+        return
+
+    # ここでオンラインチェック
+    if recipient_name not in online_members:
+        chan.send(f"ID '{recipient_name}' は現在オンラインではありません。\r\n")
+        return
+
+    # 自分自身には送れないようにする(テスト中は無効)
+    # if recipient_name == sender_name:
+    #    chan.send("自分自身に電報を送ることはできません。\r\n")
+    #    return
+
+    chan.send("電報メッセージ (最大100文字): ")
+    message = ssh_input.process_input(chan)
+
+    if not message:
+        chan.send("メッセージが入力されていません。\r\n")
+        return
+
+    # メッセージが長すぎる場合の処理（任意）
+    if len(message) > 100:
+        message = message[:100]
+        chan.send("メッセージが長すぎるため、100文字に切り詰めました。\r\n")
+
+    # 電報をデータベースに保存 (sqlite_tools.save_telegram が必要)
+    try:
+        current_timestamp = int(time.time())
+        # sqlite_tools に save_telegram(dbname, sender, recipient, message, timestamp) 関数を実装する想定
+        sqlite_tools.save_telegram(
+            dbname, sender_name, recipient_name, message, current_timestamp)
+        chan.send("電報を送信しました。\r\n")
+        # オプション: リアルタイム通知が必要なら、ここで受信側スレッドに通知する仕組みを追加
+    except Exception as e:
+        # サーバーログ
+        print(f"電報保存エラー (送信者: {sender_name}, 宛先: {recipient_name}): {e}")
+        chan.send("電報の送信中にエラーが発生しました。\r\n")
+
+
+def telegram_recieve(chan, dbname, username):
+    """受信している電報を表示する"""
+    results = sqlite_tools.load_telegram(dbname, username)
+    if results:
+        for result in results:
+            chan.send(
+                f"{result[1]}[{str(datetime.datetime.fromtimestamp(result[4]))}]: {result[3]}\r\n")
+
+
+def who_menu(chan, dbname, onlinemenbers):
+    """
+    単純にオンラインメンバー一覧を表示するだけ
+    """
+    chan.send("オンラインメンバー一覧\r\n")
+    chan.send("NAME            COMMENT\r\n")
+    chan.send(
+        "-------------------------------------------------------------------\r\n")
+    for menber in onlinemenbers:
+        results = sqlite_tools.fetchall_idbase(dbname, 'users', 'name', menber)
+        if results != "notdata":
+            comment = results[0][7]
+            chan.send(f"{menber:<15} {comment} \r\n")
+        else:
+            chan.send(f"{menber:<15} {'no data'}\r\n")
 
 
 def sysop_menu(chan, dbname):

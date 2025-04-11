@@ -114,10 +114,13 @@ def handle_client(client, addr, host_key):
 
         # 本ループ開始
         while True:
-            sendm = util.txt_read("top_prompt.txt")
+            util.prompt_handler(chan, DBNAME, login_id)
+
             # プロンプト表示
+            sendm = util.txt_read("top_prompt.txt")
             chan.send(sendm)
             input_buffer = ssh_input.process_input(chan)
+
             # サーバ設定を読み込み
             bbs_lv, chat_lv, mail_lv, telegram_lv, userpref_lv, who_lv = sqlite_tools.read_server_pref(
                 DBNAME)
@@ -134,19 +137,23 @@ def handle_client(client, addr, host_key):
 
             # オンラインメンバー一覧表示
             if (input_buffer == "W" or input_buffer == "w") and userlevel >= who_lv:
-                chan.send("オンラインメンバー一覧\r\n")
-                chan.send("NAME            COMMENT\r\n")
-                chan.send(
-                    "-------------------------------------------------------------------\r\n")
-                for menber in onlinemenbers:
-                    results = sqlite_tools.fetchall_idbase(
-                        DBNAME, 'users', 'name', menber)
-                    if results != "notdata":
-                        comment = results[0][7]
-                        chan.send(f"{menber:<15} {comment} \r\n")
-                    else:
-                        chan.send(f"{menber:<15} {'no data'}\r\n")
+                bbsmenu.who_menu(chan, DBNAME, onlinemenbers)
+                server_prefs = sqlite_tools.read_server_pref(DBNAME)
 
+            # 電報送信
+            if (input_buffer == "T" or input_buffer == "t" or input_buffer == "!") and userlevel >= telegram_lv:
+                bbsmenu.telegram_send(chan, DBNAME, login_id, onlinemenbers)
+                server_prefs = sqlite_tools.read_server_pref(DBNAME)
+
+            # メール送信
+            if (input_buffer == "M" or input_buffer == "m") and userlevel >= mail_lv:
+                bbsmenu.mail_send(chan, DBNAME, login_id, onlinemenbers)
+                server_prefs = sqlite_tools.read_server_pref(DBNAME)
+
+            # メール受信
+            if (input_buffer == "N" or input_buffer == "n") and userlevel >= mail_lv:
+                bbsmenu.mail_recieve(chan, DBNAME, login_id)
+                server_prefs = sqlite_tools.read_server_pref(DBNAME)
             # 切断処理 (暫定)
             if input_buffer == "E" or input_buffer == "e":
                 sendm = util.txt_reads("logoff_message.txt")
