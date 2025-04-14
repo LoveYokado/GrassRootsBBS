@@ -55,12 +55,24 @@ def telegram_send(chan, dbname, sender_name, online_members):
 
 
 def telegram_recieve(chan, dbname, username):
-    """受信している電報を表示する"""
-    results = sqlite_tools.load_telegram(dbname, username)
+    """受信している電報を表示すして、表示後に削除する"""
+    results = sqlite_tools.load_and_delete_telegrams(dbname, username)
     if results:
+        chan.send("電報が届きました。\r\n")
         for result in results:
-            chan.send(
-                f"{result[1]}[{str(datetime.datetime.fromtimestamp(result[4]))}]: {result[3]}\r\n")
+            # カラム順序: 0:id, 1:sender_name, 2:recipient_name, 3:message, 4:timestamp
+            sender = result[1]
+            message = result[3]
+            timestamp_val = result[4]
+            try:
+                dt_str = datetime.datetime.fromtimestamp(
+                    timestamp_val).strftime('%Y-%m-%d %H:%M:%S')
+            except (ValueError, OSError):
+                dt_str = "不明な日時"
+            # 表示形式を修正
+            chan.send(f"[{dt_str}] From:{sender}: {message}\r\n")
+    else:
+        pass
 
 
 def who_menu(chan, dbname, onlinemenbers):
@@ -85,104 +97,149 @@ def sysop_menu(chan, dbname):
     sendm = util.txt_reads("serverprefmenu.txt")
     for s in sendm:
         chan.send(s + '\r')
-        print(s)
-    chan.send("Server Preferences: ")
-    input_buffer = ssh_input.process_input(chan)
-    while input_buffer != "Q" and input_buffer != "q":
+
+    while True:
+        chan.send("Server Preferences: ")
+        input_buffer = ssh_input.process_input(chan)
+
+        if input_buffer is None:
+            print("sysop_menu:クライアント切断")
+            break
+        # input_buffer.lower() の呼び出し方を修正
+        if input_buffer.lower() == "q":  # () を追加
+            break
         if input_buffer == "":
             for s in sendm:
                 chan.send(s + '\r')
-                print(s)
+            continue
 
-        # 設定一覧表示
+        # --- 設定一覧表示 ---
         if input_buffer == "0":
-            conn = sqlite3.connect(dbname)
-            cur = conn.cursor()
-            cur.execute("SELECT * FROM server_pref;")
-            server_prefs = cur.fetchall()
-            conn.close()
-            if server_prefs:
+            server_prefs_list = sqlite_tools.read_server_pref(dbname)
+            if server_prefs_list:
+                pref_names = ['bbs', 'chat', 'mail',
+                              'telegram', 'userpref', 'who']
                 chan.send('サーバ設定一覧\r\n')
                 chan.send('-'*40+"\r\n")
                 chan.send('{:<20} {:<20}\r\n'.format('項目名', '値'))
                 chan.send('-'*40+"\r\n")
-
-                for server_pref in server_prefs:
-                    chan.send('{:<20} {:<20}\r\n'.format(
-                        'bbs', server_pref[0]))
-                    chan.send('{:<20} {:<20}\r\n'.format(
-                        'chat', server_pref[1]))
-                    chan.send('{:<20} {:<20}\r\n'.format(
-                        'mail', server_pref[2]))
-                    chan.send('{:<20} {:<20}\r\n'.format(
-                        'telegram', server_pref[3]))
-                    chan.send('{:<20} {:<20}\r\n'.format(
-                        'userpref', server_pref[4]))
-                    chan.send('{:<20} {:<20}\r\n'.format(
-                        'who', server_pref[5]))
-                    chan.send('-'*40+"\r\n")
+                for i, name in enumerate(pref_names):
+                    if i < len(server_prefs_list):
+                        chan.send('{:<20} {:<20}\r\n'.format(
+                            name, server_prefs_list[i]))
+                    else:
+                        chan.send('{:<20} {:<20}\r\n'.format(name, '(取得エラー)'))
+                # 区切り線のインデントを修正 (ループの外に出す)
+                chan.send('-'*40+"\r\n")
             else:
-                chan.send("設定がありません\r\n")
+                chan.send("設定がありません(または取得エラー)\r\n")
 
-        # 各BBSメニューのユーザレベルごとのパーミッション
-        if input_buffer == "1":
+        # --- 各BBSメニューのユーザレベルごとのパーミッション ---
+        elif input_buffer == "1":
             chan.send("各BBSメニューのユーザレベルごとのパーミッションを設定します\r\n")
             chan.send(
                 "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): ")
-            input_buffer = ssh_input.process_input(chan).lower()
+            # .lower() の呼び出し方を修正し、None チェックを後にする
+            menu_input = ssh_input.process_input(chan)
+            if menu_input is None:
+                break
+            menu_to_change = menu_input.lower()  # None でないことを確認してから lower()
+
             valid_menus = ['bbs', 'chat', 'mail',
                            'telegram', 'userpref', 'who']
-            if input_buffer not in valid_menus:
+            if menu_to_change not in valid_menus:
                 chan.send("有効なメニューを選択してください\r\n")
             else:
+                user_level = None
                 try:
-                    chan.send("0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n")
+                    chan.send(
+                        "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n")
                     chan.send("ユーザレベルを入力してください(0~5): ")
-                    user_level = int(ssh_input.process_input(chan))
-                    if user_level < 0 and user_level > 5:
+                    level_input = ssh_input.process_input(chan)
+                    if level_input is None:
+                        break
+                    user_level = int(level_input)
+
+                    # レベル範囲チェック (or を使用し、条件を修正)
+                    # user_level = int(ssh_input.process_input(chan)) # <-- この行は不要 (二重入力になる)
+                    # if user_level < 0 and user_level > 5: # <-- and ではなく or
+                    if user_level < 0 or user_level > 5:  # 修正
                         chan.send("ユーザレベルは0~5の範囲で入力してください\r\n")
-                        chan.send(
-                            "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n")
+                        user_level = None
                 except ValueError:
                     chan.send("ユーザレベルは0~5の整数で入力してください\r\n")
-                try:
-                    conn = sqlite3.connect(dbname)
-                    cur = conn.cursor()
-                    sql = f"UPDATE server_pref SET {input_buffer}=?"
-                    cur.execute(sql, (user_level,))
-                    conn.commit()
-                    chan.send(
-                        f"{input_buffer}メニューのユーザレベルを{user_level}に変更しました\r\n")
-                except sqlite3.Error as e:
-                    chan.send(f"データベースエラー: {e}\r\n")
-                finally:
-                    if conn:
-                        conn.close()
+                    user_level = None
 
-        # ユーザ情報変更メニュー
-        if input_buffer == "2":
+                if user_level is not None:
+                    try:
+                        sql = f"UPDATE server_pref SET {menu_to_change}=?"
+                        sqlite_tools.sqlite_execute_query(
+                            dbname, sql, (user_level,))  # タプルで渡す
+                        chan.send(
+                            f"{menu_to_change}メニューのユーザレベルを{user_level}に変更しました\r\n")
+                    except Exception as e:
+                        chan.send(f"データベース更新エラー: {e}\r\n")
+
+        # --- ユーザ情報変更メニュー ---
+        # !!! ここからインデントを修正 !!!
+        elif input_buffer == "2":  # elif を if/elif と同じレベルに修正
             sendm = util.txt_reads("useredit.txt")
             for s in sendm:
-                chan.send(s + '\r')
-                print(s)
+                chan.send(s+'\r')
             chan.send("選択してください: ")
-            input_buffer = ssh_input.process_input(chan)
-            # ユーザ一覧表示
-            if input_buffer == "1":
-                conn = sqlite3.connect(dbname)
-                cur = conn.cursor()
-                cursol = cur.execute("SELECT * FROM users")
-                users = cursol.fetchall()
-                chan.send(
-                    "ID    ユーザ名     レベル 登録日時             最終ログイン         コメント     メール\r\n")
-                for user in users:
-                    regdt = str(datetime.datetime.fromtimestamp(
-                        user[3]).strftime('%Y-%m-%d %H:%M:%S'))
-                    lastlogin = str(datetime.datetime.fromtimestamp(
-                        user[5]).strftime('%Y-%m-%d %H:%M:%S'))
-                    chan.send(
-                        f"{user[0]:<5} {user[1]:<12} {str(user[4]):<6} {regdt:<20} {lastlogin:<20} {user[7]:<12} {user[8]:<12}\r\n")
-                conn.close()
+            sub_input = ssh_input.process_input(chan)
+            if sub_input is None:
+                break
 
-        chan.send("Server Preferences: ")
-        input_buffer = ssh_input.process_input(chan)
+            # --- ユーザ一覧表示 ---
+            if sub_input == "1":
+                # !!! try ブロックに対応する except ブロックを追加 !!!
+                try:
+                    sql = "SELECT * FROM users ORDER BY id ASC"
+                    users = sqlite_tools.sqlite_execute_query(
+                        dbname, sql, fetch=True)
+
+                    if users:
+                        chan.send(
+                            "ID    ユーザ名     レベル 登録日時             最終ログイン         コメント     メール\r\n")
+                        chan.send(
+                            "------------------------------------------------------------------------------------------\r\n")
+                        for user in users:
+                            regdt_ts = user['registdate']
+                            lastlogin_ts = user['lastlogin']
+                            try:
+                                regdt_str = datetime.datetime.fromtimestamp(regdt_ts).strftime(
+                                    '%Y-%m-%d %H:%M:%S') if regdt_ts else 'N/A'
+                            except (ValueError, OSError):
+                                regdt_str = 'Invalid Date'
+                            try:
+                                lastlogin_str = datetime.datetime.fromtimestamp(lastlogin_ts).strftime(
+                                    '%Y-%m-%d %H:%M:%S') if lastlogin_ts else 'N/A'
+                            except (ValueError, OSError):
+                                lastlogin_str = 'Invalid Date'
+                            chan.send(
+                                f"{user['id']:<5} {user['name']:<12} {str(user['level']):<6} {regdt_str:<20} {lastlogin_str:<20} {user['comment']:<12} {user['mail']:<12}\r\n")
+                        chan.send(
+                            "------------------------------------------------------------------------------------------\r\n")
+                    else:
+                        chan.send("ユーザがいません。\r\n")
+                except Exception as e:  # !!! except ブロックを追加 !!!
+                    chan.send(f"ユーザ一覧表示中にエラーが発生しました: {e}\r\n")
+                    print(f"ユーザ一覧表示中にエラーが発生しました: {e}")
+
+            # --- 他のユーザー編集サブメニュー ---
+            elif sub_input == "2":
+                chan.send("ユーザー追加は未実装です。\r\n")
+            elif sub_input == "3":
+                chan.send("ユーザー削除は未実装です。\r\n")
+            elif sub_input == "4":
+                chan.send("ユーザー情報編集は未実装です。\r\n")
+            else:
+                chan.send("無効な選択です。\r\n")
+
+        # --- 無効なトップレベルコマンドの場合 ---
+        else:  # この else は if/elif と同じレベルにあるべき
+            chan.send("無効なコマンドです。\r\n")
+
+    # --- ループを抜けた後の処理 ---
+    chan.send("シスオペメニューを終了します。\r\n")

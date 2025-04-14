@@ -16,7 +16,8 @@ USER_COLUMNS = ['name', 'password', 'registdate',
 bind_host = "0.0.0.0"
 bind_port = 50000
 DBNAME = "bbs.db"
-onlinemenbers = []
+online_members_lock = threading.Lock()  # ロックオブジェクト作成
+online_menbers = []
 
 
 class Server(paramiko.ServerInterface):
@@ -43,7 +44,6 @@ class Server(paramiko.ServerInterface):
 def handle_client(client, addr, host_key):
     """メインの関数"""
     server_prefs = sqlite_tools.read_server_pref(DBNAME)
-    print(server_prefs)
     print(f"接続を受け付けました: {addr}")
     try:
         transport = paramiko.Transport(client)
@@ -70,7 +70,6 @@ def handle_client(client, addr, host_key):
         results = sqlite_tools.fetchall_idbase(
             DBNAME, 'users', 'name', login_id)
         userdata = results[0]
-        print(userdata)
         passwordauth = False
         passwordmisscount = 0
         # 該当IDがない、もしくはレベルが0場合は認証できないループへ
@@ -85,8 +84,6 @@ def handle_client(client, addr, host_key):
         while not passwordauth:  # 該当IDのパスワードを検証
             chan.send("PASSWORD: ")
             login_pass = ssh_input.hide_process_input(chan)
-            print("login {}:{}".format(login_id, login_pass))
-
             if login_pass == userdata[2]:
                 break
             else:
@@ -105,7 +102,8 @@ def handle_client(client, addr, host_key):
             DBNAME, 'users', USER_COLUMNS, userdata[0], 'lastlogin', date)
 
         # オンラインメンバーに追加
-        onlinemenbers.append(login_id)
+        with online_members_lock:  # ロック取得
+            online_menbers.append(login_id)
 
         # ウェルカムメッセージを送信
         sendm = util.txt_reads("welcome_message.txt")
@@ -114,7 +112,7 @@ def handle_client(client, addr, host_key):
 
         # 本ループ開始
         while True:
-            util.prompt_handler(chan, DBNAME, login_id)
+            server_prefs = util.prompt_handler(chan, DBNAME, login_id)
 
             # プロンプト表示
             sendm = util.txt_read("top_prompt.txt")
@@ -133,34 +131,36 @@ def handle_client(client, addr, host_key):
             # シスオペメニュー表示
             if (input_buffer == "S" or input_buffer == "s") and userlevel == 5:
                 bbsmenu.sysop_menu(chan, DBNAME)
-                server_prefs = sqlite_tools.read_server_pref(DBNAME)
 
             # オンラインメンバー一覧表示
             if (input_buffer == "W" or input_buffer == "w") and userlevel >= who_lv:
-                bbsmenu.who_menu(chan, DBNAME, onlinemenbers)
-                server_prefs = sqlite_tools.read_server_pref(DBNAME)
+                bbsmenu.who_menu(chan, DBNAME, online_menbers)
 
             # 電報送信
             if (input_buffer == "T" or input_buffer == "t" or input_buffer == "!") and userlevel >= telegram_lv:
-                bbsmenu.telegram_send(chan, DBNAME, login_id, onlinemenbers)
-                server_prefs = sqlite_tools.read_server_pref(DBNAME)
+                bbsmenu.telegram_send(chan, DBNAME, login_id, online_menbers)
 
             # メール送信
             if (input_buffer == "M" or input_buffer == "m") and userlevel >= mail_lv:
-                bbsmenu.mail_send(chan, DBNAME, login_id, onlinemenbers)
-                server_prefs = sqlite_tools.read_server_pref(DBNAME)
+                bbsmenu.mail_send(chan, DBNAME, login_id, online_menbers)
 
             # メール受信
             if (input_buffer == "N" or input_buffer == "n") and userlevel >= mail_lv:
                 bbsmenu.mail_recieve(chan, DBNAME, login_id)
-                server_prefs = sqlite_tools.read_server_pref(DBNAME)
+
             # 切断処理 (暫定)
             if input_buffer == "E" or input_buffer == "e":
                 sendm = util.txt_reads("logoff_message.txt")
                 for s in sendm:
                     chan.send(s + '\r')
                 # オンラインメンバーから削除
-                onlinemenbers.remove(login_id)
+                with online_members_lock:  # ロック取得
+                    try:
+                        online_menbers.remove(login_id)
+                    except ValueError:
+                        # すでにリストにない場合のエラー防止
+                        print(
+                            f"警告: オンラインリストから {login_id}を削除しようとしましたが、見つかりません。")
                 # ログアウト時刻記録
                 date = time.time()
                 sqlite_tools.update_idbase(
@@ -170,6 +170,11 @@ def handle_client(client, addr, host_key):
     except Exception as e:
         print(f"例外が発生しました: {e}")
     finally:
+        with online_members_lock:  # ロック取得
+            try:
+                online_menbers.remove(login_id)  # login_idが定義されているか注意
+            except (ValueError, NameError):
+                pass  # すでに無いかログイン前に切断された場合
         transport.close()
         print(f"接続を閉じました: {addr}")
 
