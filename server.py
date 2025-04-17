@@ -44,8 +44,6 @@ class Server(paramiko.ServerInterface):
     def check_channel_shell_request(self, channel):
         return True  # シェルリクエストを許可
 
-# ログオフ処理
-
 
 def logoff_user(chan, dbname, login_id, user_id):
     """ユーザの正常なログオフ処理を行う"""
@@ -81,6 +79,7 @@ def logoff_user(chan, dbname, login_id, user_id):
     if user_id is not None:
         try:
             logout_time = int(time.time())
+            # sqlite_tools.update_idbase の第3引数は許可カラムリスト
             sqlite_tools.update_idbase(
                 dbname, 'users', ['lastlogout'], user_id, 'lastlogout', logout_time)
             logging.info(f"ユーザ {login_id} のログアウト時刻を記録しました。")
@@ -94,8 +93,6 @@ def logoff_user(chan, dbname, login_id, user_id):
     logged_off_successfully = removed_from_list and time_recorded
 
     return logged_off_successfully
-
- # ヘルプ表示関数
 
 
 def show_help(chan):
@@ -111,8 +108,6 @@ def show_help(chan):
         logging.error(f"ヘルプ表示エラー: {e}")
         chan.send("ヘルプ表示中にエラーが発生しました。\r\n")
 
-# オンラインメンバー取得
-
 
 def get_online_members_list():
     """オンラインメンバーのリストのコピーを返す"""
@@ -120,7 +115,7 @@ def get_online_members_list():
         return list(online_members)
 
 
-def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref_dict):
+def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref_dict, addr):  # addr を追加
     """
     メインのコマンド処理ループを実行する。
 
@@ -131,14 +126,15 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         user_id: ユーザーID
         userlevel: ユーザーレベル
         server_pref_dict: サーバー設定辞書
+        addr: クライアントアドレス (ログ用)
 
     Returns:
         bool: 正常にログオフした場合はTrue、それ以外はFalse
     """
-
+    normal_logoff = False  # ループ内でログオフ状態を管理
     while True:
-        # 定期実行
-        util.prompt_handler(chan, DBNAME, login_id)
+        # 定期実行 (DBNAME -> dbname に修正)
+        util.prompt_handler(chan, dbname, login_id)
 
         # プロンプト表示
         try:
@@ -155,8 +151,10 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         input_buffer = ssh_input.process_input(chan)
 
         if input_buffer is None:  # クライアント切断
+            # ログに addr を追加
             logging.info(f"ユーザ {login_id} が切断しました。({addr})")
-            break
+            normal_logoff = False  # 異常終了
+            break  # ループを抜ける
 
         command = input_buffer.lower().strip()
         if not command:
@@ -166,45 +164,134 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         if command in ('h', '?'):
             show_help(chan)
 
-        # シスオペメニュー
+        # シスオペメニュー (DBNAME -> dbname に修正)
         elif command == "s" and userlevel >= 5:
-            bbsmenu.sysop_menu(chan, DBNAME)
+            bbsmenu.sysop_menu(chan, dbname)
 
-        # オンラインメンバー一覧表示
+        # オンラインメンバー一覧表示 (DBNAME -> dbname に修正)
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
             online_list = get_online_members_list()
-            bbsmenu.who_menu(chan, DBNAME, online_list)
+            bbsmenu.who_menu(chan, dbname, online_list)
 
-        # 電報送信
+        # 電報送信 (DBNAME -> dbname に修正)
         elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
             online_list = get_online_members_list()
-            bbsmenu.telegram_send(chan, DBNAME, login_id, online_list)
+            bbsmenu.telegram_send(chan, dbname, login_id, online_list)
 
-        # メール送信
+        # メール送信 (DBNAME -> dbname に修正)
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
-            # bbsmenu.mail_send(chan, DBNAME, login_id)
+            # bbsmenu.mail_send(chan, dbname, login_id)
             chan.send("メールはまだ未実装です。\r\n")
 
-        # チャット
+        # チャット (DBNAME -> dbname に修正)
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
-            # bbsmenu.chat(chan, DBNAME, login_id)
+            # bbsmenu.chat(chan, dbname, login_id)
             chan.send("チャットはまだ未実装です。\r\n")
-            # bbsmenu.mail_recieve(chan, DBNAME, login_id) # 不要なら削除
+            # bbsmenu.mail_recieve(chan, dbname, login_id) # 不要なら削除
 
-        # 切断処理
+        # 切断処理 (DBNAME -> dbname に修正)
         elif command == "e":
             normal_logoff = logoff_user(
-                chan, DBNAME, login_id, user_id)
-            break
+                chan, dbname, login_id, user_id)
+            break  # ループを抜ける
 
         else:
             chan.send("無効なコマンドです。 (h:ヘルプ)\r\n")
+        # コマンドループ終了 (while True)
+
+    return normal_logoff  # ログオフ状態を返す
+
+
+def authenticate_user(chan, addr, dbname, max_password_attempts):
+    """
+    ユーザー認証プロセスを実行する。
+
+    Args:
+        chan: Paramikoチャンネルオブジェクト
+        addr: クライアントアドレス
+        dbname: データベース名
+        max_password_attempts: 最大パスワード試行回数
+
+    Returns:
+        tuple: 認証成功時は (login_id, user_id, userdata)、失敗時は (None, None, None)
+    """
+    try:
+        chan.send("** Connect **\r\n\n")
+        chan.send("ID: ")
+
+        login_id_input = ssh_input.process_input(chan)
+        # --- 修正点1: return を if ブロック内に移動 ---
+        if login_id_input is None:
+            logging.info(f"ID入力中に切断されました ({addr})")
+            return None, None, None  # 切断された場合のみ None を返す
+
+        # --- 修正点3: DBNAME -> dbname に修正 ---
+        results = sqlite_tools.fetchall_idbase(
+            dbname, 'users', 'name', login_id_input)
+
+        # --- 修正点4: IDが存在しない場合の処理を明確化 ---
+        if not results:  # IDが存在しない場合
+            logging.warning(f"認証施行: 存在しないID '{login_id_input}' ({addr})")
+            password_attempts = 0  # ループ外で使うため初期化
+            for i in range(max_password_attempts):
+                password_attempts = i + 1  # 試行回数を記録
+                chan.send("PASSWORD: ")
+                login_pass_attempt = ssh_input.hide_process_input(chan)
+                if login_pass_attempt is None:  # 切断された場合
+                    logging.info(f"パスワード入力中に切断されました (存在しないID) ({addr})")
+                    return None, None, None
+                chan.send("IDまたはパスワードが違います。\r\n")
+                logging.warning(
+                    f"認証失敗 (存在しないID): '{login_id_input}',試行 {password_attempts}/{max_password_attempts} ({addr})")
+            # ループが正常に終わった場合（試行回数超過）
+            chan.send(f"{max_password_attempts}回以上間違えました。切断します。\r\n")
+            return None, None, None  # IDが存在しない場合はここで終了
+
+        # --- ID が存在する場合の処理 (else は不要、上の if で return するため) ---
+        userdata = results[0]
+        login_id = userdata['name']
+        user_id = userdata['id']
+
+        if userdata['level'] == 0:
+            logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
+            chan.send("このIDは現在利用できません。\r\n")
+            return None, None, None
+
+        password_attempts = 0
+        while password_attempts < max_password_attempts:
+            chan.send("PASSWORD: ")
+            login_pass = ssh_input.hide_process_input(chan)
+            if login_pass is None:
+                logging.info(f"パスワード入力中に切断されました ({login_id}, {addr})")
+                return None, None, None
+
+            if login_pass == userdata['password']:
+                logging.info(f"認証成功: '{login_id}' ({addr})")
+                return login_id, user_id, userdata  # 成功時に情報を返す
+            else:
+                password_attempts += 1
+                logging.warning(
+                    f"認証失敗: ID '{login_id}' のパスワード間違い ({password_attempts}/{max_password_attempts}) ({addr})")
+                chan.send("IDまたはパスワードが違います。\r\n")
+
+        # パスワード試行回数超過
+        chan.send(f"{max_password_attempts}回以上パスワードを間違えました。切断します。\r\n")
+        return None, None, None
+
+    except Exception as e:
+        logging.error(f"認証プロセス中に予期せぬエラーが発生しました ({addr}): {e}")
+        try:
+            if chan and chan.active:
+                chan.send("\r\n認証中にエラーが発生しました。切断します。\r\n")
+        except Exception as chan_e:
+            logging.error(f"認証エラー時のメッセージ送信に失敗 ({addr}): {chan_e}")
+        return None, None, None
 
 
 def handle_client(client, addr, host_key):
-    global online_members
     login_id = None
     user_id = None
+    userdata = None
     transport = None
     chan = None
     logged_in = False
@@ -229,70 +316,21 @@ def handle_client(client, addr, host_key):
             logging.error(f'*** チャンネルを取得できませんでした。({addr})')
             return
 
-        # ログインプロセス開始(後で切り出し)
-        chan.send("** Connect **\r\n\n")
-        chan.send("ID: ")
+        # ログインプロセス呼び出し
+        login_id, user_id, userdata = authenticate_user(
+            chan, addr, DBNAME, MAX_PASSWORD_ATTEMPTS)
 
-        # ID入力がなければ切断
-        login_id_input = ssh_input.process_input(chan)
-        if login_id_input is None:
+        # 認証失敗または切断の場合
+        if login_id is None:
             return
-
-        results = sqlite_tools.fetchall_idbase(
-            DBNAME, 'users', 'name', login_id_input)
-
-        if not results:  # IDが存在しない場合
-            logging.warning(f"認証施行: 存在しないID '{login_id_input}' ({addr})")
-            # 存在しないIDでもパスワード入力を要求(タイミング攻撃対策)
-            for i in range(MAX_PASSWORD_ATTEMPTS):
-                chan.send("PASSWORD: ")
-                login_pass_attempt = ssh_input.hide_process_input(chan)
-                if login_pass_attempt is None:  # 切断された場合
-                    return
-                # 存在しないIDなので、常に失敗メッセージを表示
-                chan.send("IDまたはパスワードが違います。\r\n")
-                logging.warning(
-                    f"認証失敗 (存在しないID): '{login_id_input}',試行 {i+1}/{MAX_PASSWORD_ATTEMPTS} ({addr})")
-            # --- for ループ終了 ---
-            # 試行回数を超えたらメッセージを表示して切断
-            chan.send(f"{MAX_PASSWORD_ATTEMPTS}回以上間違えました。切断します。\r\n")
-            return  # ここで return する
-
-        # IDが存在する場合の処理
-        userdata = results[0]
-        login_id = userdata['name']
-        user_id = userdata['id']
-
-        if userdata['level'] == 0:
-            logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
-            chan.send("このIDは現在利用できません。\r\n")
-            return
-
-        password_attempts = 0
-        while password_attempts < MAX_PASSWORD_ATTEMPTS:
-            chan.send("PASSWORD: ")
-            login_pass = ssh_input.hide_process_input(chan)
-            if login_pass is None:
-                return  # 切断
-
-            if login_pass == userdata['password']:
-                logging.info(f"認証成功: '{login_id}' ({addr})")
-                logged_in = True  # ログイン成功
-                break
-            else:
-                password_attempts += 1
-                logging.warning(
-                    f"認証失敗: ID '{login_id}' のパスワード間違い ({password_attempts}/{MAX_PASSWORD_ATTEMPTS}) ({addr})")
-                chan.send("IDまたはパスワードが違います。\r\n")
-
-        if not logged_in:
-            chan.send(f"{MAX_PASSWORD_ATTEMPTS}回以上パスワードを間違えました。切断します。\r\n")
-            return
+        # 認証成功の場合のみlogged_inをTrueにする
+        logged_in = True
 
         # ログイン後処理
         try:
             # ログイン時刻記録
             login_time = int(time.time())
+            # sqlite_tools.update_idbase の第3引数は許可カラムリスト
             sqlite_tools.update_idbase(
                 DBNAME, 'users', ['lastlogin'], user_id, 'lastlogin', login_time)
 
@@ -315,19 +353,19 @@ def handle_client(client, addr, host_key):
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(DBNAME)
-            # pref_names の末尾の _lv を削除 (get のキー名と合わせる)
             pref_names = ['bbs', 'chat', 'mail',
                           'telegram', 'userpref', 'who']
             if pref_list and len(pref_list) == len(pref_names):
                 server_pref_dict = dict(zip(pref_names, pref_list))
             else:
                 logging.error("サーバ設定読み込みエラーです。デフォルト値を使用します。")
-                server_pref_dict = dict(zip(pref_names, [0, 1, 1, 1, 1, 1]))
+                default_prefs = {'bbs': 0, 'chat': 1, 'mail': 1,
+                                 'telegram': 1, 'userpref': 1, 'who': 1}
+                server_pref_dict = default_prefs
             userlevel = userdata['level']
 
-            # コマンドループ
-            process_command_loop(chan, DBNAME, login_id, user_id,
-                                 userlevel, server_pref_dict)
+            normal_logoff = process_command_loop(chan, DBNAME, login_id, user_id,
+                                                 userlevel, server_pref_dict, addr)
 
         except Exception as e:
             logging.exception(
@@ -344,6 +382,7 @@ def handle_client(client, addr, host_key):
     finally:
         # 切断処理
         logging.info(
+            # normal_logoff が正しく反映されるはず
             f"接続終了処理開始: {addr} (ログインID:{login_id}, 正常ログオフ:{normal_logoff})")
 
         # 正常ログオフでない場合、かつログイン成功していた場合のみ後処理を試みる
@@ -351,22 +390,21 @@ def handle_client(client, addr, host_key):
             logging.warning(
                 f"予期せぬ切断またはエラーのため、追加のログオフ処理を実行します。: {login_id}")
 
-            # オンラインメンバーから削除
-            removed_from_list_finally = False
-            with online_members_lock:
-                if login_id in online_members:
-                    online_members.remove(login_id)
-                    removed_from_list_finally = True
-                    logging.info(
-                        f"オンラインリストから {login_id} を削除しました (finally)。オンライン: {len(online_members)}人")
-            # if not removed_from_list_finally:
-            #    logging.info(f"オンラインリストに {login_id} は見つかりませんでした(すでに削除済みかログイン失敗)。(finally)")
+            # オンラインメンバーから削除 (login_id が None でないことを確認)
+            if login_id:
+                removed_from_list_finally = False
+                with online_members_lock:
+                    if login_id in online_members:
+                        online_members.remove(login_id)
+                        removed_from_list_finally = True
+                        logging.info(
+                            f"オンラインリストから {login_id} を削除しました (finally)。オンライン: {len(online_members)}人")
 
-            # ログアウト時刻記録
+            # ログアウト時刻記録 (user_id が None でないことを確認)
             if user_id is not None:
                 try:
                     logout_time = int(time.time())
-                    # update_idbase の ALLOWED_COLUMNS を渡すか、カラム名を直接指定する
+                    # sqlite_tools.update_idbase の第3引数は許可カラムリスト
                     sqlite_tools.update_idbase(
                         DBNAME, 'users', ['lastlogout'], user_id, 'lastlogout', logout_time)
                     logging.info(
@@ -374,9 +412,7 @@ def handle_client(client, addr, host_key):
                 except Exception as e:
                     logging.error(
                         f"予期せぬ切断時のログアウト時刻記録エラー ({login_id}): {e} (finally)")
-            else:
-                logging.warning(
-                    f"警告: 予期せぬ切断時にuser_idが不明なため、ログアウト時刻を記録出来ませんでした ({login_id}) (finally)。")
+            # else: # user_id が None の場合のログは不要
 
         # トランスポートを閉じる
         if transport:
@@ -401,7 +437,7 @@ def main():
         logging.info(f"データベースファイル '{DBNAME}'を使用します。")
 
     # ホストキー読み込み
-    host_key = None  # finally で参照される可能性があるので初期化
+    host_key = None
     try:
         host_key = paramiko.RSAKey(filename=HOST_KEY_PATH)
         logging.info(f"ホストキー '{HOST_KEY_PATH}'を読み込みました。")
@@ -413,7 +449,7 @@ def main():
         return
 
     # ソケット設定とリスニング
-    sock = None  # finally で参照される可能性があるので初期化
+    sock = None
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -424,7 +460,7 @@ def main():
         logging.exception(
             f"{BIND_HOST}:{BIND_PORT} でのバインドまたはリッスンに失敗しました: {e}")
         if sock:
-            sock.close()  # エラー時にもソケットを閉じる
+            sock.close()
         return
 
     # クライアント接続待機ループ
@@ -441,7 +477,7 @@ def main():
     finally:
         logging.info("ソケットを閉じています...")
         if sock:
-            sock.close()  # finally で確実にソケットを閉じる
+            sock.close()
         logging.info("サーバが停止しました。")
 
 
