@@ -1,5 +1,6 @@
 import sqlite3
 import time
+import hashlib
 import os  # os.path を使うためにインポート
 import bbsmenu
 import sqlite_tools
@@ -33,6 +34,18 @@ def txt_read(filename):
         return ""  # 空文字列を返すなど、エラー処理を追加
 
 
+def hash_password(password):
+    """ハッシュ化したパスワードを返す"""
+    salt = os.urandom(16)
+    hashed_password = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode('utf-8'),
+        salt,
+        100000  # ストレッチング回数
+    )
+    return salt.hex(), hashed_password.hex()
+
+
 def make_sysop_and_database(dbname):
     """データベースと初期テーブル、Sysop/Guestユーザーを作成する"""
     conn = None  # finally で確実に close するため
@@ -47,10 +60,11 @@ def make_sysop_and_database(dbname):
         cur.execute(
             '''CREATE TABLE users(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL, -- ユーザー名はユニーク制約を追加推奨
+                name TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
+                salt TEXT NOT NULL,
                 registdate INTEGER,
-                level INTEGER DEFAULT 1, -- デフォルトレベルを設定
+                level INTEGER DEFAULT 1,
                 lastlogin INTEGER,
                 lastlogout INTEGER,
                 comment TEXT,
@@ -73,20 +87,23 @@ def make_sysop_and_database(dbname):
 
         registdate = int(time.time())
 
-        # シスオペ登録 (プレースホルダーを使用)
+        sysop_salt, sysop_hashed_pass = hash_password(sysoppass)
+
+        # シスオペ登録 (saltとハッシュ化パスワード保存)
         print("Registering Sysop...")
         cur.execute(
-            "INSERT INTO users(name, password, level, registdate, lastlogin, lastlogout, comment, mail) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-            (sysopname, sysoppass, 5, registdate, 0, 0,
+            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, mail) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (sysopname, sysop_hashed_pass, sysop_salt, 5, registdate, 0, 0,
              'Sysop', f'{sysopname}@example.com')  # メールアドレスも動的に
         )
         print("Sysop registered.")
 
-        # ゲスト登録 (プレースホルダーを使用)
+        # ゲスト登録 (saltとハッシュ化パスワード保存)
+        guest_salt, guest_hashed_pass = hash_password('GUEST')
         print("Registering Guest...")
         cur.execute(
-            "INSERT INTO users(name, password, level, registdate, lastlogin, lastlogout, comment, mail) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-            ("GUEST", "GUEST", 1, registdate, 0, 0,
+            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, mail) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ("GUEST", guest_hashed_pass, guest_salt, 1, registdate, 0, 0,
              'Guest', 'guest@example.com')  # 登録日も設定
         )
         print("Guest registered.")

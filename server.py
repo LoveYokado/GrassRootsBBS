@@ -1,6 +1,7 @@
 import socket
 import threading
 import paramiko
+import hashlib
 import os
 import time
 import logging
@@ -204,7 +205,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
 def authenticate_user(chan, addr, dbname, max_password_attempts):
     """
-    ユーザー認証プロセスを実行する。
+    ユーザー認証プロセスを実行する。(パスワードハッシュ対応)
 
     Args:
         chan: Paramikoチャンネルオブジェクト
@@ -240,6 +241,13 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                 if login_pass_attempt is None:  # 切断された場合
                     logging.info(f"パスワード入力中に切断されました (存在しないID) ({addr})")
                     return None, None, None
+                # ダミーのハッシュ計算 (時間はかかるが結果は使わない)
+                try:
+                    dummy_salt = os.urandom(16)
+                    hashlib.pbkdf2_hmac('sha256', login_pass_attempt.encode(
+                        'utf-8'), dummy_salt, 100000)
+                except Exception:
+                    pass  # エラーは無視
                 chan.send("IDまたはパスワードが違います。\r\n")
                 logging.warning(
                     f"認証失敗 (存在しないID): '{login_id_input}',試行 {password_attempts}/{max_password_attempts} ({addr})")
@@ -251,11 +259,30 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         userdata = results[0]
         login_id = userdata['name']
         user_id = userdata['id']
+        stored_hash = userdata['password']
+        salt_hex = userdata['salt']
 
         if userdata['level'] == 0:
             logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
             chan.send("このIDは現在利用できません。\r\n")
             return None, None, None
+
+        def verify_password(stored_password_hash, salt_hex, provided_password):
+            """入力されたパスワードが保存されたハッシュと一致するか検証"""
+            try:
+                salt = bytes.fromhex(salt_hex)
+                provided_hash = hashlib.pbkdf2_hmac(
+                    'sha256',
+                    provided_password.encode('utf-8'),
+                    salt,
+                    100000
+                ).hex()
+
+                match = (stored_password_hash == provided_hash)
+                return match
+            except Exception as e:  # その他の予期せぬエラー
+                logging.error(f"パスワード検証中にエラーが発生しました (ユーザー: {login_id}): {e}")
+                return False  # 検証失敗
 
         password_attempts = 0
         while password_attempts < max_password_attempts:
@@ -265,10 +292,12 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                 logging.info(f"パスワード入力中に切断されました ({login_id}, {addr})")
                 return None, None, None
 
-            if login_pass == userdata['password']:
+            if verify_password(stored_hash, salt_hex, login_pass):
+                # 認証成功
                 logging.info(f"認証成功: '{login_id}' ({addr})")
-                return login_id, user_id, userdata  # 成功時に情報を返す
+                return login_id, user_id, userdata
             else:
+                # 認証失敗
                 password_attempts += 1
                 logging.warning(
                     f"認証失敗: ID '{login_id}' のパスワード間違い ({password_attempts}/{max_password_attempts}) ({addr})")
