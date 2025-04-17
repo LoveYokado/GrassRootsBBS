@@ -120,6 +120,87 @@ def get_online_members_list():
         return list(online_members)
 
 
+def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref_dict):
+    """
+    メインのコマンド処理ループを実行する。
+
+    Args:
+        chan: Paramikoチャンネルオブジェクト
+        dbname: データベース名
+        login_id: ログインID
+        user_id: ユーザーID
+        userlevel: ユーザーレベル
+        server_pref_dict: サーバー設定辞書
+
+    Returns:
+        bool: 正常にログオフした場合はTrue、それ以外はFalse
+    """
+
+    while True:
+        # 定期実行
+        util.prompt_handler(chan, DBNAME, login_id)
+
+        # プロンプト表示
+        try:
+            sendm = util.txt_read("top_prompt.txt")
+            chan.send(sendm)
+        except FileNotFoundError:
+            logging.warning(
+                "プロンプトファイル'top_prompt.txt'が見つかりません。")
+            chan.send("> ")
+        except Exception as e:
+            logging.error(f"プロンプト処理エラー: {e}")
+            chan.send("> ")  # エラー時も代替プロンプト
+
+        input_buffer = ssh_input.process_input(chan)
+
+        if input_buffer is None:  # クライアント切断
+            logging.info(f"ユーザ {login_id} が切断しました。({addr})")
+            break
+
+        command = input_buffer.lower().strip()
+        if not command:
+            continue
+
+        # ヘルプメニュー表示
+        if command in ('h', '?'):
+            show_help(chan)
+
+        # シスオペメニュー
+        elif command == "s" and userlevel >= 5:
+            bbsmenu.sysop_menu(chan, DBNAME)
+
+        # オンラインメンバー一覧表示
+        elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
+            online_list = get_online_members_list()
+            bbsmenu.who_menu(chan, DBNAME, online_list)
+
+        # 電報送信
+        elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
+            online_list = get_online_members_list()
+            bbsmenu.telegram_send(chan, DBNAME, login_id, online_list)
+
+        # メール送信
+        elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
+            # bbsmenu.mail_send(chan, DBNAME, login_id)
+            chan.send("メールはまだ未実装です。\r\n")
+
+        # チャット
+        elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
+            # bbsmenu.chat(chan, DBNAME, login_id)
+            chan.send("チャットはまだ未実装です。\r\n")
+            # bbsmenu.mail_recieve(chan, DBNAME, login_id) # 不要なら削除
+
+        # 切断処理
+        elif command == "e":
+            normal_logoff = logoff_user(
+                chan, DBNAME, login_id, user_id)
+            break
+
+        else:
+            chan.send("無効なコマンドです。 (h:ヘルプ)\r\n")
+
+
 def handle_client(client, addr, host_key):
     global online_members
     login_id = None
@@ -244,71 +325,9 @@ def handle_client(client, addr, host_key):
                 server_pref_dict = dict(zip(pref_names, [0, 1, 1, 1, 1, 1]))
             userlevel = userdata['level']
 
-            # コマンドループ開始 後で関数に切り出す
-            while True:
-                # 定期実行
-                util.prompt_handler(chan, DBNAME, login_id)
-
-                # プロンプト表示
-                try:
-                    sendm = util.txt_read("top_prompt.txt")
-                    chan.send(sendm)
-                except FileNotFoundError:
-                    logging.warning(
-                        "プロンプトファイル'top_prompt.txt'が見つかりません。")
-                    chan.send("> ")
-                except Exception as e:
-                    logging.error(f"プロンプト処理エラー: {e}")
-                    chan.send("> ")  # エラー時も代替プロンプト
-
-                input_buffer = ssh_input.process_input(chan)
-
-                if input_buffer is None:  # クライアント切断
-                    logging.info(f"ユーザ {login_id} が切断しました。({addr})")
-                    break
-
-                command = input_buffer.lower().strip()
-                if not command:
-                    continue
-
-                # ヘルプメニュー表示
-                if command in ('h', '?'):
-                    show_help(chan)
-
-                # シスオペメニュー
-                elif command == "s" and userlevel >= 5:
-                    bbsmenu.sysop_menu(chan, DBNAME)
-
-                # オンラインメンバー一覧表示
-                elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
-                    online_list = get_online_members_list()
-                    bbsmenu.who_menu(chan, DBNAME, online_list)
-
-                # 電報送信
-                elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
-                    online_list = get_online_members_list()
-                    bbsmenu.telegram_send(chan, DBNAME, login_id, online_list)
-
-                # メール送信
-                elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
-                    # bbsmenu.mail_send(chan, DBNAME, login_id)
-                    chan.send("メールはまだ未実装です。\r\n")
-
-                # チャット
-                elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
-                    # bbsmenu.chat(chan, DBNAME, login_id)
-                    chan.send("チャットはまだ未実装です。\r\n")
-                    # bbsmenu.mail_recieve(chan, DBNAME, login_id) # 不要なら削除
-
-                # 切断処理
-                elif command == "e":
-                    normal_logoff = logoff_user(
-                        chan, DBNAME, login_id, user_id)
-                    break
-
-                else:
-                    chan.send("無効なコマンドです。 (h:ヘルプ)\r\n")
-                # コマンドループ終了
+            # コマンドループ
+            process_command_loop(chan, DBNAME, login_id, user_id,
+                                 userlevel, server_pref_dict)
 
         except Exception as e:
             logging.exception(
