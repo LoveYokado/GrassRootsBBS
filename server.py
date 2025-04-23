@@ -134,7 +134,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
     """
     normal_logoff = False  # ループ内でログオフ状態を管理
     while True:
-        # 定期実行 (DBNAME -> dbname に修正)
+        # 定期実行
         util.prompt_handler(chan, dbname, login_id)
 
         # プロンプト表示
@@ -165,32 +165,36 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         if command in ('h', '?'):
             show_help(chan)
 
-        # シスオペメニュー (DBNAME -> dbname に修正)
+        # シスオペメニュー
         elif command == "s" and userlevel >= 5:
             bbsmenu.sysop_menu(chan, dbname)
 
-        # オンラインメンバー一覧表示 (DBNAME -> dbname に修正)
+        # オンラインメンバー一覧表示
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
             online_list = get_online_members_list()
             bbsmenu.who_menu(chan, dbname, online_list)
 
-        # 電報送信 (DBNAME -> dbname に修正)
+        # 電報送信
         elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
             online_list = get_online_members_list()
             bbsmenu.telegram_send(chan, dbname, login_id, online_list)
 
-        # メール送信 (DBNAME -> dbname に修正)
+        # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
             # bbsmenu.mail_send(chan, dbname, login_id)
             chan.send("メールはまだ未実装です。\r\n")
 
-        # チャット (DBNAME -> dbname に修正)
+        # 掲示板(テスト実装)
+        elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
+            bbsmenu.bbs_menu(chan, dbname, login_id)
+
+        # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
             # bbsmenu.chat(chan, dbname, login_id)
             chan.send("チャットはまだ未実装です。\r\n")
             # bbsmenu.mail_recieve(chan, dbname, login_id) # 不要なら削除
 
-        # 切断処理 (DBNAME -> dbname に修正)
+        # 切断処理
         elif command == "e":
             normal_logoff = logoff_user(
                 chan, dbname, login_id, user_id)

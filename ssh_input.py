@@ -1,6 +1,13 @@
 import codecs
 
 
+def realtime_input():
+    """入力されたキーをそのまま返す関数"""
+    while True:
+        data = input()
+        return data
+
+
 def process_input(chan):
     """インクリメンタルデコーダを使用して入力を処理する関数"""
     decoder = codecs.getincrementaldecoder('utf-8')()
