@@ -127,6 +127,22 @@ def make_sysop_and_database(dbname):
         )
         print("server_pref table created and initialized.")
 
+        # メールボックステーブル作成
+        cur.execute(
+            '''CREATE TABLE mails(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender_id INTEGER NOT NULL,
+                recipient_id INTEGER NOT NULL,
+                subject TEXT NOT NULL,
+                body TEXT NOT NULL,
+                is_read INTEGER DEFAULT 0,
+                sent_at INTEGER NOT NULL,
+                sender_deleted INTEGER DEFAULT 0,
+                recipient_deleted INTEGER DEFAULT 0
+            )'''
+        )
+        print("MailBox created successfully.")
+
         # --- telegram テーブル作成 (id カラムあり) ---
         print("Creating telegram table...")
         cur.execute(

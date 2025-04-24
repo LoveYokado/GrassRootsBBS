@@ -1,11 +1,19 @@
 import codecs
 
 
-def realtime_input():
-    """入力されたキーをそのまま返す関数"""
+def realtime_input(chan):
+    """実装実験、リアルタイム文字入力を実装する"""
+    input_buffer = ''
     while True:
-        data = input()
-        return data
+        data = chan.recv(1)  # 1バイトずつデータを受信
+        # ascii以外は無視
+        try:
+            char = data.decode('ascii')
+        except UnicodeDecodeError:
+            continue
+        if char.isprintable() and ord(char) < 128:
+            input_buffer += char
+            return (char)
 
 
 def process_input(chan):

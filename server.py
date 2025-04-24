@@ -186,7 +186,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # 掲示板(テスト実装)
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
-            bbsmenu.bbs_menu(chan, dbname, login_id)
+            bbsmenu.bbs_menu(chan)
 
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):

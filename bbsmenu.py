@@ -3,42 +3,14 @@ import util
 import datetime
 import sqlite_tools
 import time
-import socket
 
 
-def bbs_menu(chan, dbname, login_id):
-    """実装実験、リアルタイム文字入力を実装する"""
-    chan.send("BBS Menu(type'e'to exit)\r\n")
-    input_buffer = ''
-    chan.send(">")
-    while True:
-        try:
-            data = chan.recv(1)  # 1バイトずつデータを受信
-            if not data:
-                print(f"BBS Menu:クライアント切断({login_id})")
-                return
-
-            # バイトデータを文字にデコード
-            # ascii以外は無視
-            try:
-                char = data.decode('ascii')
-            except UnicodeDecodeError:
-                continue
-            if char.lower() == 'e':
-                chan.send(char)
-                chan.send("\r\nExit BBS Menu\r\n")
-                break
-            elif char.isprintable() and ord(char) < 128:
-                input_buffer += char
-                chan.send(char)
-        except socket.timeout:
-            continue
-        except socket.error as e:
-            print(f"BBS Menu:soket error({login_id}): {e}")
-            return
-        except Exception as e:
-            print(f"BBS Menu:予期せぬエラー({login_id}): {e}")
-            return
+def bbs_menu(chan):
+    """BBSメニュー"""
+    rtinput = ''
+    while rtinput != 'e':
+        rtinput = ssh_input.realtime_input(chan)
+        chan.send(rtinput)
 
     return
 
