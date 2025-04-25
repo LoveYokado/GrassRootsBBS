@@ -4,6 +4,30 @@ import hashlib
 import os  # os.path を使うためにインポート
 import bbsmenu
 import sqlite_tools
+import logging
+
+
+def show_textsfile(chan, filename):
+    """テキストファイルを表示する"""
+    try:
+        sendm = txt_reads(filename)
+        for s in sendm:
+            chan.send(s + '\r')
+    except FileNotFoundError:
+        logging.warning(f"テキストファイル '{filename}' が見つかりません。")
+    except Exception as e:
+        logging.error(f"テキストファイル表示エラー: {e}")
+
+
+def show_textfile(chan, filename):
+    try:
+        sendm = txt_read(filename)
+        chan.send(sendm)
+    except FileNotFoundError:
+        logging.warning(
+            f"テキストファイル '{filename}' が見つかりません。")
+    except Exception as e:
+        logging.error(f"テキストファイル表示エラー: {e}")
 
 
 def txt_reads(filename):
@@ -128,6 +152,8 @@ def make_sysop_and_database(dbname):
         print("server_pref table created and initialized.")
 
         # メールボックステーブル作成
+
+        print("Creating mails table...")
         cur.execute(
             '''CREATE TABLE mails(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -141,7 +167,7 @@ def make_sysop_and_database(dbname):
                 recipient_deleted INTEGER DEFAULT 0
             )'''
         )
-        print("MailBox created successfully.")
+        print("mail table created and initialized.")
 
         # --- telegram テーブル作成 (id カラムあり) ---
         print("Creating telegram table...")
@@ -154,7 +180,7 @@ def make_sysop_and_database(dbname):
                 timestamp INTEGER NOT NULL
             )'''
         )
-        print("telegram table created.")
+        print("Telegram table created and initialized.")
 
         # データベースへコミット
         conn.commit()

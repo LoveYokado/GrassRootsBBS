@@ -3,6 +3,167 @@ import util
 import datetime
 import sqlite_tools
 import time
+import logging
+
+
+def mail(chan, dbname, login_id):
+    """メールメニュー"""
+    chan.send("ヘルプは?キーを押してください\r\n")
+    rtinput = ''
+    while rtinput != 'e':
+        if rtinput == '?' or rtinput == 'h':
+            util.show_textsfile(chan, "mailmenu.txt")
+        elif rtinput == 'w':
+            mail_write(chan, dbname, login_id)
+        else:
+            pass
+        rtinput = ssh_input.realtime_input(chan).lower()
+
+    return
+
+
+def mail_write(chan, dbname, login_id):
+    """メール送信"""
+    chan.send("送信先のIDを入力してください: ")
+    recipient_name = ssh_input.process_input(chan)
+
+    if not recipient_name:
+        chan.send("\r\n宛先が入力されていません。\r\n")
+        return
+    # データベースからユーザが存在するかを確認する。
+    try:
+        results = sqlite_tools.fetchall_idbase(
+            dbname, 'users', 'name', recipient_name)
+    except Exception as e:
+        logging.error(f"宛先ユーザ検索中にDBエラー({recipient_name}): {e}")
+        chan.send(f"何かがおかしいです。シスオペに連絡してください\r\n")
+        return
+    if not results:
+        chan.send(f"宛先'{recipient_name}'は存在しません\r\n")
+        return
+    # ユーザの存在を確認したらコメントを取得
+    userdata = results[0]
+    recipient_comment = userdata['comment'] if userdata['comment'] else "(コメントなし)"
+    chan.send(f"宛先: {recipient_name} ({recipient_comment})\r\n")
+    chan.send("この宛先でよろしいですか?(y/n): ")
+
+    rtinput = ''
+    while True:
+        data = chan.recv(1)
+        if not data:
+            logging.warning("メール宛先中に切断されました({login_id})")
+            return
+        try:
+            char = data.decode('ascii').lower()
+            if char == 'y':
+                chan.send("y\r\n")
+                rtinput = 'y'
+                break
+            elif char == 'n':
+                chan.send("n\r\n")
+                rtinput = 'n'
+                break
+            else:
+                pass
+        except UnicodeDecodeError:
+            continue
+        except Exception as e:
+            logging.error(f"メール宛先入力中にエラー({login_id}): {e}")
+            return
+
+    if rtinput == 'n':
+        chan.send("メール送信をキャンセルしました。\r\n")
+        return
+    # ここから後ろ、データベースに保存する手前までは掲示板でも利用するので、あとで関数化する
+    chan.send("件名を入力してください: ")
+    subject = ssh_input.process_input(chan)
+    if subject is None:
+        return
+    if not subject:
+        subject = "(無題)"
+
+    chan.send("本文を入力してください('.'のみの行で終了): \r\n")
+    message_lines = []
+    while True:
+        line = ssh_input.process_input(chan)
+        if line is None:
+            return
+        if line == '.':
+            break
+        message_lines.append(line)
+    message = '\r\n'.join(message_lines)
+    if not message:
+        chan.send("本文が入力されていません。終了します。\r\n")
+        return
+
+    # 送信内容確認
+    chan.send("\r\n-- 送信内容 --\r\n")
+    chan.send(f"宛先: {recipient_name} ({recipient_comment})\r\n")
+    chan.send(f"件名: {subject}\r\n")
+    chan.send("本文:\r\n")
+
+    for line in message.split('\r\n'):
+        chan.send(f"{line}\r\n")
+    chan.send("-- ここまで --\r\n")
+    chan.send("この内容で送信しますか?(y/n): ")
+    # 確認入力 (y/n)
+    confirm_input = ''
+    while True:
+        data = chan.recv(1)
+        if not data:
+            logging.warning(f"メール送信確認中に切断されました({login_id})")
+            return
+        try:
+            char = data.decode('ascii').lower()
+            if char == 'y':
+                chan.send('y\r\n')
+                confirm_input = 'y'
+                break
+            elif char == 'n':
+                chan.send('n\r\n')
+                confirm_input = 'n'
+                break
+            else:
+                pass  # y, n 以外は無視
+        except UnicodeDecodeError:
+            continue
+        except Exception as e:
+            logging.error(f"メール送信確認中の入力エラー({login_id}): {e}")
+            chan.send("\r\n入力処理中にエラーが発生しました。\r\n")
+            return
+    # 'n' が入力された場合はキャンセル
+    if confirm_input == 'n':
+        chan.send("メール送信をキャンセルしました。\r\n")
+        return
+    # データベースにメールを保存
+    try:
+        # 送信者のIDを取得
+        sender_resules = sqlite_tools.fetchall_idbase(
+            dbname, 'users', 'name', login_id)
+        # 一応念の為
+        if not sender_resules:
+            chan.send("送信者情報の取得に失敗しました。シスオペに連絡してください\r\n")
+            logging.error(f"送信者情報の取得に失敗しました。{login_id}がDBに存在しません。")
+            return
+
+        sender_id = sender_resules[0]['id']
+        recipient_id = userdata['id']
+        sent_at = int(time.time())
+
+        # mailsテーブルにデータ挿入
+        sql = """
+        INSERT INTO mails (sender_id, recipient_id, subject, body, sent_at)
+        VALUES (?, ?, ?, ?, ?)
+        """
+        params = (sender_id, recipient_id, subject, message, sent_at)
+        sqlite_tools.sqlite_execute_query(dbname, sql, params)
+
+        chan.send("\r\nメールを送信しました\r\n")
+
+    except Exception as e:
+        logging.error(f"メール送信中にDBエラー({login_id} -> {recipient_name}): {e}")
+        chan.send("\r\nメール送信中にエラーが発生しました。シスオペに連絡してください\r\n")
+    return
 
 
 def bbs_menu(chan):
@@ -121,10 +282,7 @@ def who_menu(chan, dbname, online_members):  # online_menbers -> online_members 
 
 def sysop_menu(chan, dbname):
     """シスオペメニュー"""
-    sendm = util.txt_reads("serverprefmenu.txt")
-    for s in sendm:
-        chan.send(s + '\r')
-
+    util.show_textsfile(chan, "serverprefmenu.txt")
     while True:
         chan.send("Server Preferences: ")
         input_buffer = ssh_input.process_input(chan)
@@ -138,8 +296,7 @@ def sysop_menu(chan, dbname):
         if command == "q":
             break
         if command == "":  # 空入力の場合
-            for s in sendm:  # メニュー再表示
-                chan.send(s + '\r')
+            util.show_textsfile(chan, "serverprefmenu.txt")
             continue
 
         # --- 設定一覧表示 ---
@@ -228,27 +385,21 @@ def sysop_menu(chan, dbname):
 
         # --- ユーザ情報変更メニュー ---
         elif command == "2":
-            user_edit_menu_text = util.txt_reads(
-                "useredit.txt")  # メニューテキストを先に読み込む
-            for s in user_edit_menu_text:
-                chan.send(s+'\r')
-
+            util.show_textsfile(chan, "useredit.txt")
             while True:  # サブメニュー用ループ
                 chan.send("ユーザ編集メニュー: ")
                 sub_input = ssh_input.process_input(chan)
                 if sub_input is None:
                     # クライアント切断の場合、sysop_menu を抜ける
-                    return  # None を返すか、例外を発生させるなどして上位に伝える
+                    return
 
-                # タイポ修正 (loser -> lower) および strip() 追加
                 sub_command = sub_input.lower().strip()
 
-                # --- ここから下の if/elif/else を while ループ内にインデント ---
                 if sub_command == "q":  # サブメニューを抜ける
                     break  # while ループを抜ける
 
                 # --- ユーザ一覧表示 ---
-                elif sub_command == "1":  # インデント修正
+                elif sub_command == "1":
                     try:
                         sql = "SELECT id, name, level, registdate, lastlogin, comment, mail FROM users ORDER BY id ASC"
                         # sqlite_tools.sqlite_execute_query が辞書を返すように row_factory を使っている前提
@@ -256,7 +407,6 @@ def sysop_menu(chan, dbname):
                             dbname, sql, fetch=True)
                         if users:
                             chan.send(
-                                # 表示項目に合わせてヘッダー調整
                                 "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n")
                             chan.send(
                                 "------------------------------------------------------------------------------------------\r\n")
@@ -300,24 +450,12 @@ def sysop_menu(chan, dbname):
                         chan.send(s+'\r')
                 else:  # インデント修正
                     chan.send("無効な選択です。\r\n")
-            # --- while ループのインデントはここまで ---
-
-            # 'q' が入力されてループを抜けた場合、ここに到達する
-            # 特に何もする必要はない (sysop_menu のメインループに戻る)
 
         # --- 無効なトップレベルコマンドの場合 ---
         else:
             chan.send("無効なコマンドです。\r\n")
             # メインメニューを再表示
-            for s in sendm:
-                chan.send(s + '\r')
+            util.show_textsfile(chan, "serverprefmenu.txt")
 
     # sysop_menu のメインループを抜けた場合 (q が入力された場合)
     chan.send("シスオペメニューを終了します。\r\n")
-
-# --- mail_send, mail_recieve は未実装のためコメントアウトまたは削除 ---
-# def mail_send(chan, dbname, login_id, online_menbers):
-#     chan.send("メール送信は未実装です。\r\n")
-
-# def mail_recieve(chan, dbname, login_id):
-#     chan.send("メール受信は未実装です。\r\n")

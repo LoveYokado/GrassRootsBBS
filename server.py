@@ -52,16 +52,7 @@ def logoff_user(chan, dbname, login_id, user_id):
     logged_off_successfully = False  # ログオフフラグ
 
     # ログオフメッセージ表示
-    try:
-        sendm = util.txt_reads("logoff_message.txt")
-        for s in sendm:
-            chan.send(s+'\r')
-    except FileNotFoundError:
-        logging.warning(
-            f"ログオフメッセージファイル'logoff_message.txt'が見つかりません ({login_id})")
-        chan.send("ログオフします。\r\n")
-    except Exception as e:
-        logging.error(f"ログオフメッセージ読込/送信中にエラーが発生しました ({login_id}): {e}")
+    util.show_textsfile(chan, "logoff_message.txt")
 
     # オンラインメンバーから削除
     removed_from_list = False
@@ -96,20 +87,6 @@ def logoff_user(chan, dbname, login_id, user_id):
     return logged_off_successfully
 
 
-def show_help(chan):
-    """ヘルプメニューを表示する"""
-    try:
-        sendm = util.txt_reads("bbsmenu.txt")
-        for s in sendm:
-            chan.send(s + '\r')
-    except FileNotFoundError:
-        logging.warning("ヘルプファイル 'bbsmenu.txt' が見つかりません。")
-        chan.send("ヘルプファイルが見つかりません。\r\n")
-    except Exception as e:
-        logging.error(f"ヘルプ表示エラー: {e}")
-        chan.send("ヘルプ表示中にエラーが発生しました。\r\n")
-
-
 def get_online_members_list():
     """オンラインメンバーのリストのコピーを返す"""
     with online_members_lock:
@@ -138,17 +115,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         util.prompt_handler(chan, dbname, login_id)
 
         # プロンプト表示
-        try:
-            sendm = util.txt_read("top_prompt.txt")
-            chan.send(sendm)
-        except FileNotFoundError:
-            logging.warning(
-                "プロンプトファイル'top_prompt.txt'が見つかりません。")
-            chan.send("> ")
-        except Exception as e:
-            logging.error(f"プロンプト処理エラー: {e}")
-            chan.send("> ")  # エラー時も代替プロンプト
-
+        util.show_textfile(chan, "top_prompt.txt")
         input_buffer = ssh_input.process_input(chan)
 
         if input_buffer is None:  # クライアント切断
@@ -163,7 +130,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # ヘルプメニュー表示
         if command in ('h', '?'):
-            show_help(chan)
+            util.show_textsfile(chan, "bbsmenu.txt")
 
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
@@ -181,8 +148,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
-            # bbsmenu.mail_send(chan, dbname, login_id)
-            chan.send("メールはまだ未実装です。\r\n")
+            bbsmenu.mail(chan, dbname, login_id)
 
         # 掲示板(テスト実装)
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
@@ -374,15 +340,7 @@ def handle_client(client, addr, host_key):
                 f"ユーザ {login_id} がログインしました。オンライン: {len(online_members)}人")
 
             # ウェルカムメッセージ
-            try:
-                sendm = util.txt_reads("welcome_message.txt")
-                for s in sendm:
-                    chan.send(s+'\r')
-            except FileNotFoundError:
-                logging.warning(
-                    f"ウェルカムメッセージファイル'welcome_message.txt'が見つかりません。")
-            except Exception as e:
-                logging.error(f"ウェルカムメッセージ処理エラー: {e}")
+            util.show_textsfile(chan, "welcome_message.txt")
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(DBNAME)
