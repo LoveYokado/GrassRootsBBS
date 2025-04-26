@@ -1,4 +1,37 @@
 import sqlite3
+import logging
+
+
+def get_user_id_from_user_name(dbname, username):
+    """ユーザ名からユーザIDを取得する"""
+    try:
+        results = fetchall_idbase(
+            dbname, 'users', 'name', username)
+        if results:
+            return results[0]['id']
+        else:
+            logging.warning(f"ユーザID取得失敗: ユーザ名 '{username}' が見つかりません。")
+            return None
+    except Exception as e:
+        logging.error(f"ユーザID取得中にDBエラー ({username}): {e}")
+        return None
+
+
+def get_sender_name_from_user_id(dbname, sender_id):
+    """ユーザIDからユーザ名を取得する"""
+    try:
+        results = fetchall_idbase(
+            dbname, 'users', 'id', sender_id)
+        if results:
+            return results[0]['name']
+        else:
+            # 送信者が削除された場合など
+            return "(不明)"  # 短く変更
+    except Exception as e:
+        logging.error(f"ユーザ名取得中にDBエラー (ID: {sender_id}): {e}")
+        return "(エラー)"
+
+# --- メールヘッダ表示関数 (1行表示) ---
 
 
 def sqlite_execute_query(dbname, sql, params=None, fetch=False):

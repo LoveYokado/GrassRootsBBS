@@ -10,6 +10,8 @@ import ssh_input
 import util
 import bbsmenu
 import sqlite_tools
+import mail_handler
+import socket
 
 HOST_KEY_PATH = 'test_rsa.key'
 BIND_HOST = "0.0.0.0"
@@ -148,7 +150,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
-            bbsmenu.mail(chan, dbname, login_id)
+            mail_handler.mail(chan, dbname, login_id)
 
         # 掲示板(テスト実装)
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
