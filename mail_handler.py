@@ -5,6 +5,46 @@ import sqlite_tools
 import time
 import logging
 import textwrap
+import sqlite3
+
+
+def toggle_mail_delete_status(dbname, mail_id, user_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(dbname)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        # 現在の状態を取得
+        cur.execute(
+            "SELECT recipient_deleted FROM mails WHERE id=? AND recipient_id=?", (mail_id, user_id))
+        result = cur.fetchone()
+
+        if result is None:
+            logging.warning(
+                f"メール削除のトグルが失敗しました。(MailID: {mail_id}, UserID: {user_id})")
+            conn.close()
+            return False
+
+        current_status = result['recipient_deleted']
+        new_status = 1-current_status  # ステータス反転
+
+        # ステータス更新
+        cur.execute("UPDATE mails SET recipient_deleted=? WHERE id=? AND recipient_id=?",
+                    (new_status, mail_id, user_id))
+        conn.commit()
+        conn.close()
+        return True
+    except sqlite3.Error as e:
+        logging.error(
+            f"メール削除トグル処理中にDBエラー (MailID: {mail_id}, UserID: {user_id}): {e}")
+    except Exception as e:
+        logging.error(
+            f"メール削除トグル処理中に予期せぬエラー (MailID: {mail_id}, UserID: {user_id}): {e}")
+        if conn:
+            conn.rollback()
+            conn.close()
+        return False
 
 
 def display_mail_header(chan, mail_data, dbname, is_selected=True):
@@ -13,23 +53,29 @@ def display_mail_header(chan, mail_data, dbname, is_selected=True):
         return
 
     mail_id = mail_data['id']
-    # 未読マークは削除 (表示形式に合わせて)
-    # read_status = " " if mail_data['is_read'] else "*"
+
     sender_name = sqlite_tools.get_sender_name_from_user_id(
         dbname, mail_data['sender_id'])
-    subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
+
+    try:
+        if mail_data['recipient_deleted'] == 1:
+            display_subject = "*"
+        else:
+            subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
+            display_subject = textwrap.shorten(
+                subject, width=40, placeholder="...")
+    except KeyError:
+        logging.warning(f"メールにデリート設定が見つかりませんでした。(MailID: {mail_id})")
+        subject = mail_data.get('subject', '(無題)')
+        display_subject = textwrap.shorten(
+            subject, width=40, placeholder="...")
+
     try:
         sent_dt = datetime.datetime.fromtimestamp(mail_data['sent_at'])
-        # フォーマット: YYYY-MM-DD HH:MM
-        date_str = sent_dt.strftime('%Y-%m-%d %H:%M')
+        date_str = sent_dt.strftime('%Y-%m-%d %H:%M:%S')
     except (ValueError, OSError, TypeError):
-        date_str = "----/--/-- --:--"
+        date_str = "---/--/-- --:--"
 
-    # 表示形式: メールID 送信日時 送信者 件名
-    # 例: 1  2025-01-01 20:01 guest ほげほげ
-    # 幅調整: ID(3), 日付(16), 送信者(12), 件名(残り)
-    display_subject = textwrap.shorten(subject, width=40, placeholder="...")
-    # is_selected フラグは将来的に使うかも (例: カーソル表示)
     line = f"{mail_id:<3} {date_str} {sender_name:<12} {display_subject}\r\n"
     chan.send(line)
 
@@ -91,6 +137,7 @@ def mail(chan, dbname, login_id):
     """
     メールメニュー (パソコン通信風)
     受信メールのタイトルを1行表示し、j/kで移動、Enterで本文表示。
+    dで削除/復元。
     wで作成、eで終了。
     """
     user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
@@ -101,16 +148,18 @@ def mail(chan, dbname, login_id):
     mails = []
     current_index = 0  # 現在表示しているメールのインデックス (リストは新しい順=0が最新)
 
-    def reload_mails():
+    def reload_mails(keep_index=True):
         """メールリストを再読み込みし、表示を更新する内部関数"""
         nonlocal mails, current_index
+        current_mail_id = mails[current_index]['id'] if mails else None
+
         try:
             # 受信トレイを取得 (recipient_deleted = 0 のもの、新しい順)
             # mails テーブルに必要なカラムを取得 (id, sender_id, subject, is_read, sent_at)
             sql = """
-                SELECT id, sender_id, subject, is_read, sent_at
+                SELECT id, sender_id, subject, is_read, sent_at, recipient_deleted
                 FROM mails
-                WHERE recipient_id = ? AND recipient_deleted = 0
+                WHERE recipient_id = ?
                 ORDER BY sent_at DESC
             """
             # sqlite_execute_query は Row オブジェクトのリストを返す想定
@@ -118,12 +167,28 @@ def mail(chan, dbname, login_id):
                 dbname, sql, (user_id,), fetch=True)
             mails = fetched_mails if fetched_mails else []
 
-            # インデックスをリセット (最新=0番目)
-            current_index = 0
+            new_index = 0  # デフォルトは先頭
+            if keep_index and current_mail_id is not None:
+                # 覚えておいたIDが新しいリストのどこにあるか探す
+                found = False
+                for i, mail_item in enumerate(mails):
+                    if mail_item['id'] == current_mail_id:
+                        new_index = i
+                        found = True
+                        break
+                if not found:  # もしIDが見つからなければ（物理削除された場合など）先頭に戻す
+                    new_index = 0
+            current_index = new_index  # インデックスを更新
+
             chan.send("\r\n--- 受信メール ---\r\n")  # 見出し表示
             if not mails:
                 chan.send("受信メールはありません。\r\n")
             else:
+                if current_index >= len(mails):
+                    current_index = len(mails)-1 if mails else 0
+                elif current_index < 0:
+                    current_index = 0
+
                 # 最初のメールヘッダを表示
                 display_mail_header(chan, mails[current_index], dbname)
             return True
@@ -213,6 +278,23 @@ def mail(chan, dbname, login_id):
             else:
                 chan.send("読むメールがありません。\r\n")
                 # プロンプト表示のためにループを続ける
+
+        elif char == 'd':  # メール削除トグル
+            if mails:
+                selected_mail_id = mails[current_index]['id']
+                toggled = toggle_mail_delete_status(
+                    dbname, selected_mail_id, user_id)
+                if toggled:
+                    reload_mails(keep_index=True)
+                else:
+                    chan.send("メールの状態変更が失敗しました。\r\n")
+                    if mails:
+                        display_mail_header(chan, mails[current_index], dbname)
+                    else:
+                        chan.send("メールがありません。\r\n")
+            else:
+                chan.send("削除対象のメールがありません。\r\n")
+
         elif char == 'w':  # メールを書く
             # mail_write を呼び出す前に改行を入れておく
             chan.send("\r\n")

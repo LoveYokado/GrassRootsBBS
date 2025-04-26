@@ -90,7 +90,7 @@ def telegram_recieve(chan, dbname, username):
         pass
 
 
-def who_menu(chan, dbname, online_members):  # online_menbers -> online_members に修正
+def who_menu(chan, dbname, online_members):
     """
     オンラインメンバー一覧を表示する
     """
@@ -98,22 +98,21 @@ def who_menu(chan, dbname, online_members):  # online_menbers -> online_members 
     chan.send("NAME            COMMENT\r\n")
     chan.send(
         "-------------------------------------------------------------------\r\n")
-    if not online_members:  # 変数名修正
+    if not online_members:
         chan.send("現在オンラインのメンバーはいません。\r\n")  # メッセージ修正
         return
 
-    for member_name in online_members:  # 変数名修正
+    for member_name in online_members:
         # fetchall_idbase はリストを返す。ユーザー名は UNIQUE なので結果は 0 or 1 件
         results = sqlite_tools.fetchall_idbase(
             dbname, 'users', 'name', member_name)
         if results:  # 結果が存在する場合
-            # sqlite_tools で row_factory=sqlite3.Row を使っていれば辞書アクセス可能
             userdata = results[0]
             comment = userdata['comment'] if userdata['comment'] else "(コメントなし)"
             chan.send(f"{member_name:<15} {comment} \r\n")
         else:
             # 基本的に online_members にいるユーザーは DB に存在するはずだが念のため
-            chan.send(f"{member_name:<15} {'(ユーザー情報取得エラー)'}\r\n")  # エラーメッセージ修正
+            chan.send(f"{member_name:<15} {'(ユーザー情報取得エラー)'}\r\n")
             print(f"警告: オンラインメンバー '{member_name}' の情報がDBに見つかりません。")
     chan.send(
         "-------------------------------------------------------------------\r\n")
@@ -285,8 +284,7 @@ def sysop_menu(chan, dbname):
                 elif sub_command == "4":  # インデント修正 & 変数名修正
                     chan.send("ユーザー削除は未実装です。\r\n")
                 elif sub_command == "":  # 空入力の場合、再度メニュー表示
-                    for s in user_edit_menu_text:  # useredit.txt を再表示
-                        chan.send(s+'\r')
+                    util.show_textsfile(chan, "useredit.txt")
                 else:  # インデント修正
                     chan.send("無効な選択です。\r\n")
 
