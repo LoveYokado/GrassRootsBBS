@@ -17,83 +17,21 @@ def get_user_id_from_user_name(dbname, username):
         return None
 
 
-def get_user_name_from_user_id(dbname, user_id):
+def get_sender_name_from_user_id(dbname, sender_id):
     """ユーザIDからユーザ名を取得する"""
     try:
         results = fetchall_idbase(
-            dbname, 'users', 'id', user_id)
+            dbname, 'users', 'id', sender_id)
         if results:
             return results[0]['name']
         else:
             # 送信者が削除された場合など
             return "(不明)"  # 短く変更
     except Exception as e:
-        logging.error(f"ユーザ名取得中にDBエラー (ID: {user_id}): {e}")
+        logging.error(f"ユーザ名取得中にDBエラー (ID: {sender_id}): {e}")
         return "(エラー)"
 
-
-def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode):
-    """
-    メールの削除フラグをトグルする汎用関数。
-
-    Args:
-        dbname (str): データベース名
-        mail_id (int): メールID
-        user_id (int): ユーザーID
-        mode (str): 'sender' または 'recipient'
-
-    Returns:
-        tuple: (成功/失敗(bool), 新しいステータス(int))
-               失敗時は (False, 0) を返す。
-    """
-    if mode == 'sender':
-        user_id_colmn = 'sender_id'
-        delete_flag_colmn = 'sender_deleted'
-    elif mode == 'recipient':
-        user_id_colmn = 'recipient_id'
-        delete_flag_colmn = 'recipient_deleted'
-    else:
-        logging.error(f"無効なモードが指定されました: {mode}")
-        return False, 0
-
-    conn = None
-    try:
-        conn = sqlite3.connect(dbname)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-
-        # 現在の状態を取得
-        sql_select = f"SELECT {delete_flag_colmn} FROM mails WHERE id=? AND {user_id_colmn}=?"
-        cur.execute(sql_select, (mail_id, user_id))
-        result = cur.fetchone()
-
-        if result is None:
-            logging.warning(
-                f"メール削除トグルに失敗({mode})しました。メールなしか権限なしです)(MailID: {mail_id}, UserID: {user_id})")
-            return False, 0
-
-        current_status = result[delete_flag_colmn]
-        new_status = 1-current_status  # ステータス反転
-
-        # ステータスを更新
-        sql_update = f"UPDATE mails SET {delete_flag_colmn}=? WHERE id=? AND {user_id_colmn}=?"
-        cur.execute(sql_update, (new_status, mail_id, user_id))
-        conn.commit()
-
-        logging.info(
-            f"メール(ID:{mail_id})の{delete_flag_colmn}を{new_status}に変更しました(User:{user_id},Mode:{mode})")
-        return True, new_status
-    except sqlite3.Error as e:
-        logging.error(
-            f"メール削除トグル処理{mode}中にDBエラー (MailID: {mail_id}, UserID: {user_id}): {e}")
-    except Exception as e:
-        logging.error(
-            f"メール削除トグル処理{mode}中に予期せぬエラー (MailID: {mail_id}, UserID: {user_id}): {e}")
-    finally:
-        if conn:
-            conn.rollback()
-            conn.close()
-    return False, 0
+# --- メールヘッダ表示関数 (1行表示) ---
 
 
 def sqlite_execute_query(dbname, sql, params=None, fetch=False):
