@@ -127,12 +127,12 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             break  # ループを抜ける
 
         command = input_buffer.lower().strip()
-        if not command:
-            continue
 
-        # ヘルプメニュー表示
-        if command in ('h', '?'):
-            util.show_textsfile(chan, "bbsmenu.txt")
+        # ヘルプメニュー表示 BIGMODELはヘルプがHと?で別
+        if command in ('h'):
+            util.show_textsfile(chan, "MENU/MENU.2")
+        elif command in ('?'):
+            util.show_textsfile(chan, "MENU/MENU_.1")
 
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
@@ -169,7 +169,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             break  # ループを抜ける
 
         else:
-            chan.send("無効なコマンドです。 (h:ヘルプ)\r\n")
+            util.show_textsfile(chan, "MENU/MENU.2")
         # コマンドループ終了 (while True)
 
     return normal_logoff  # ログオフ状態を返す
@@ -342,7 +342,7 @@ def handle_client(client, addr, host_key):
                 f"ユーザ {login_id} がログインしました。オンライン: {len(online_members)}人")
 
             # ウェルカムメッセージ
-            util.show_textsfile(chan, "welcome_message.txt")
+            util.show_textsfile(chan, "MENU/OPENNING.2")
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(DBNAME)

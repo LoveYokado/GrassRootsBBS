@@ -5,7 +5,6 @@ import sqlite_tools
 import time
 import logging
 import textwrap
-import sqlite3
 
 
 def display_mail_header(chan, mail_data, dbname, view_mode='inbox'):
