@@ -45,6 +45,7 @@ class Server(paramiko.ServerInterface):
         return True  # PTY リクエストを許可
 
     def check_channel_shell_request(self, channel):
+
         return True  # シェルリクエストを許可
 
 
