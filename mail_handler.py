@@ -7,6 +7,241 @@ import logging
 import textwrap
 
 
+def mail(chan, dbname, login_id):
+    """
+    メールメニュー (パソコン通信風)
+    受信メールのタイトルを1行表示し、j/kで移動、Enterで本文表示。
+    dで削除/復元。sで送受信変更。
+    wで作成、eで終了。
+    """
+    user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
+    if user_id is None:
+        chan.send("\r\nエラー: ユーザー情報が見つかりません。\r\n")
+        return
+
+    # メールメニュー
+    while True:
+        chan.send("選択してください([W]送信 [R]受信 [L]一覧形式受信): ")
+        choice = ssh_input.process_input(chan).lower()
+        if choice == 'l':
+            view_mode = 'inbox'
+            break
+        elif choice == 'w':
+            mail_write(chan, dbname, login_id)
+            return
+        elif choice == 'r':
+            view_mode = 'reader'
+            break
+        elif choice == '':
+            return
+        else:
+            pass
+
+    if view_mode in ('inbox', 'outbox'):
+        mails = []
+        current_index = 0  # -1が先頭マーカー lenが末尾マーカー
+
+        def update_current_display():
+            """現在のcurrent_indexに対応するメールを表示する内部関数"""
+            nonlocal mails, current_index
+            if current_index == -1:
+                chan.send("00000 v\r\n")
+            elif current_index == len(mails):
+                if not mails:  # エラー対策
+                    chan.send("メールがありません。\r\n")
+                else:
+                    marker_id_str = f"{len(mails) + 1:05d}"
+                    chan.send(f"{marker_id_str} ^\r\n")
+            elif mails and 0 <= current_index < len(mails):
+                display_mail_header(
+                    chan, mails[current_index], dbname, view_mode)
+            else:
+                chan.send("メールがありません。\r\n")
+
+        def reload_mails(keep_index=True):
+            """メールリストを再読み込みし、表示を更新する内部関数"""
+            nonlocal mails, current_index
+            current_mail_id = None
+            if mails and 0 <= current_index < len(mails):
+                current_mail_id = mails[current_index]['id']
+
+            try:
+                if view_mode == 'inbox':
+                    sql = """
+                        SELECT id, sender_id, subject, is_read, sent_at, recipient_deleted
+                        FROM mails
+                        WHERE recipient_id = ?
+                        ORDER BY sent_at ASC
+                    """
+#                    chan.send(f"\r\n--- 受信メール ---\r\n")
+                else:  # outbox
+                    sql = """
+                        SELECT id, recipient_id, subject, is_read, sent_at, sender_deleted
+                        FROM mails
+                        WHERE sender_id = ?
+                        ORDER BY sent_at ASC
+                    """
+#                    chan.send(f"\r\n--- 送信メール ---\r\n")
+
+                fetched_mails = sqlite_tools.sqlite_execute_query(
+                    dbname, sql, (user_id,), fetch=True)
+                mails = fetched_mails if fetched_mails else []
+
+                new_index = 0
+
+                if mails:
+                    if keep_index and current_mail_id is not None:
+                        found = False
+                        for i, mail_item in enumerate(mails):
+                            if mail_item['id'] == current_mail_id:
+                                new_index = i
+                                found = True
+                                break
+                        if not found:
+                            new_index = 0  # 該当メールがなければ先頭へ
+                    # else:kttp_index=falseならnew_indexは0(先頭)
+                current_index = new_index  # mailsが空なら0、あれば0以上len-1以下
+
+                # reroad_mails直後はマーカー状態にしない
+                if view_mode == 'inbox':
+                    chan.send(f"\r\n--- 受信メール ---\r\n")
+                else:
+                    chan.send(f"\r\n--- 送信メール ---\r\n")
+
+                if not mails:
+                    chan.send("メールはありません。\r\n")
+                    current_index = 0
+                else:
+                    display_mail_header(
+                        chan, mails[current_index], dbname, view_mode)
+                return True
+            except Exception as e:
+                logging.error(
+                    f"メール一覧取得中にDBエラー (ユーザーID: {user_id},Mode:{view_mode}): {e}")
+                chan.send("\r\nメール一覧の取得中にエラーが発生しました。\r\n")
+                mails = []
+                current_index = 0
+                return False
+
+        # 初期読み込みと表示
+        if not reload_mails(keep_index=False):  # 先頭から表示
+            return
+
+        # メインループ
+        while True:
+            data = chan.recv(1)
+            try:
+                if data == b'\r' or data == b'\n':
+                    char = '\r'
+                else:
+                    char = data.decode('ascii').lower()
+            except UnicodeDecodeError:
+                chan.send('\a')
+                continue
+            except Exception as e:
+                logging.error(f"メールメニュー中にエラー (ユーザーID: {user_id}): {e}")
+                continue
+
+            # 入力判定
+            if char == 'j':  # 次へ (古い方へ、インデックス増)
+                if not mails:
+                    chan.send('\a')  # ビープ音
+                    continue
+                if current_index < len(mails):
+                    current_index += 1
+                    update_current_display()
+                else:
+                    chan.send('\a')  # ビープ音
+            elif char == 'k':  # 前へ (新しい方へ、インデックス減)
+                if not mails:
+                    chan.send('\a')  # ビープ音
+                    continue
+                if current_index > -1:
+                    current_index -= 1
+                    update_current_display()
+                else:
+                    chan.send('\a')  # ビープ音
+            elif char == '\r':  # Enter (メールを読む)
+                if mails and 0 <= current_index < len(mails):  # 通常のメールを抽出
+                    selected_mail_data = mails[current_index]
+                    selected_mail_id = mails[current_index]['id']
+
+                    is_deleted = False
+                    try:
+                        if view_mode == 'inbox' and selected_mail_data['recipient_deleted'] == 1:
+                            is_deleted = True
+                        elif view_mode == 'outbox' and selected_mail_data['sender_deleted'] == 1:
+                            is_deleted = True
+                    except KeyError:
+                        logging.warning(
+                            f"メールデータに削除フラグが見つかりません(MailID: {selected_mail_id})")
+
+                    if is_deleted:  # 削除されている場合
+                        chan.send("メールは削除されています\r\n\r\n")
+                        if mails:
+                            current_index += 1
+                            update_current_display()
+
+                    else:
+
+                        # 本文表示 (成功フラグ, 既読変更フラグ を受け取る)
+                        success, marked_as_read = display_mail_content(
+                            chan, selected_mail_id, dbname, view_mode)
+
+                        if success:
+                            chan.send("\r\n")  # 本文表示後に1行開ける
+                            if mails:
+                                current_index += 1
+                                update_current_display()
+                        else:
+                            # 本文表示失敗時も、現在のヘッダを再表示しておく
+                            if mails or current_index == -1 or current_index == len(mails):
+                                update_current_display()
+                            else:  # mailが空
+                                chan.send("メールがありません。\r\n")
+                elif current_index == -1 or current_index == len(mails):
+                    chan.send("\a")
+                else:
+                    chan.send("読むメールがありません。\r\n")
+
+            elif char == 'd':  # メール削除トグル
+                if mails and 0 <= current_index < len(mails):
+                    selected_mail_id = mails[current_index]['id']
+                    toggled = False
+                    new_status = 0
+                    if view_mode == 'inbox':
+                        toggled, new_status = sqlite_tools.toggle_mail_delete_status_generic(
+                            dbname, selected_mail_id, user_id, mode='recipient')
+                    else:  # outbox
+                        toggled, new_status = sqlite_tools.toggle_mail_delete_status_generic(
+                            dbname, selected_mail_id, user_id, mode='sender')
+                    if toggled:
+                        reload_mails(keep_index=True)
+                    else:
+                        chan.send("メールの状態変更が失敗しました。\r\n")
+                        update_current_display()
+                else:
+                    chan.send("\a")
+            elif char == 's':  # 受信/送信切り替え
+                view_mode = 'outbox' if view_mode == 'inbox' else 'inbox'
+                reload_mails(keep_index=False)  # インデックスをリセットしてリロード
+            elif char == 'w':  # メール作成
+                chan.send("\r\n")
+                mail_write(chan, dbname, login_id)
+                reload_mails(keep_index=False)  # インデックスをリセットしてリロード
+            elif char == '?' or char == 'h':  # ヘルプ
+                chan.send("\r\n")
+                util.show_textsfile(chan, "mailmenu.txt")
+                update_current_display()  # 現在のメールヘッダorマーカを再表示
+            elif char == 'e':  # 終了
+                chan.send("\r\nメールメニューを終了します。\r\n")
+                break  # ループを抜ける
+
+            else:
+                chan.send('\a')
+    return
+
+
 def display_mail_header(chan, mail_data, dbname, view_mode='inbox'):
     """指定されたメールのヘッダ情報（1行）を表示する"""
     if not mail_data:
@@ -15,9 +250,9 @@ def display_mail_header(chan, mail_data, dbname, view_mode='inbox'):
     mail_id = mail_data['id']
     try:
         sent_dt = datetime.datetime.fromtimestamp(mail_data['sent_at'])
-        date_str = sent_dt.strftime('%Y-%m-%d %H:%M')
+        date_str = sent_dt.strftime('%Y-%m-%d %H:%M:%S')
     except (ValueError, OSError, TypeError):
-        date_str = "---/--/-- --:--"
+        date_str = "---/--/-- --:--:--"
 
     subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
 
@@ -32,22 +267,22 @@ def display_mail_header(chan, mail_data, dbname, view_mode='inbox'):
             display_subject = "(削除済み)"
         else:
             display_subject = textwrap.shorten(
-                subject, width=40, placeholder="...")
+                subject, width=38, placeholder="...")
     except KeyError as e:
         logging.warning(f"メールヘッダ表示中にキーエラー ({mail_id}): {e}")
         display_subject = textwrap.shorten(
-            subject, width=40, placeholder="..."
+            subject, width=38, placeholder="..."
         )
 
     # 送信や、宛先表示
     if view_mode == 'inbox':
         sender_name = sqlite_tools.get_user_name_from_user_id(
             dbname, mail_data['sender_id'])
-        line = f"{mail_id:<3} {date_str} {sender_name:<12} {deleted_mark} {display_subject}\r\n"
+        line = f"{mail_id:05d} {date_str} {sender_name:<12} {deleted_mark} {display_subject}\r\n"
     else:  # outbox
         recipient_name = sqlite_tools.get_user_name_from_user_id(
             dbname, mail_data['recipient_id'])
-        line = f"{mail_id:<3} {date_str} To: {recipient_name:<9} {deleted_mark}  {display_subject}\r\n"
+        line = f"{mail_id:05d} {date_str} To: {recipient_name:<9} {deleted_mark}  {display_subject}\r\n"
     chan.send(line)
 
 
@@ -58,7 +293,6 @@ def display_mail_content(chan, mail_id, dbname, view_mode='inbox'):
             dbname, 'mails', 'id', mail_id)
         if not mail_results:
             chan.send("\r\nエラー: メールが見つかりません。\r\n")
-            time.sleep(1)
             return False, False
 
         mail_data = mail_results[0]
@@ -99,231 +333,7 @@ def display_mail_content(chan, mail_id, dbname, view_mode='inbox'):
     except Exception as e:
         logging.error(f"メール内容表示中にエラー (ID: {mail_id}): {e}")
         chan.send("\r\nメール内容の表示中にエラーが発生しました。\r\n")
-        time.sleep(1)
         return False, False
-
-
-def mail(chan, dbname, login_id):
-    """
-    メールメニュー (パソコン通信風)
-    受信メールのタイトルを1行表示し、j/kで移動、Enterで本文表示。
-    dで削除/復元。sで送受信変更。
-    wで作成、eで終了。
-    """
-    user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
-    if user_id is None:
-        chan.send("\r\nエラー: ユーザー情報が見つかりません。\r\n")
-        return
-
-    # メールメニュー
-    while True:
-        chan.send("選択してください([W]送信 [R]受信 [L]一覧形式受信): ")
-        choice = ssh_input.process_input(chan).lower()
-        if choice == 'r':
-            view_mode = 'inbox'
-            break
-        elif choice == 'w':
-            mail_write(chan, dbname, login_id)
-            return
-        elif choice == 'l':
-            view_mode = 'list'
-            break
-        elif choice == '':
-            return
-        else:
-            pass
-
-    if view_mode in ('inbox', 'outbox'):
-        mails = []
-        current_index = 0  # 現在表示しているメールのインデックス (リストは新しい順=0が最新)
-
-        def reload_mails(keep_index=True):
-            """メールリストを再読み込みし、表示を更新する内部関数"""
-            nonlocal mails, current_index
-            current_mail_id = mails[current_index]['id'] if mails and 0 <= current_index < len(
-                mails) else None
-
-            try:
-                if view_mode == 'inbox':
-                    sql = """
-                        SELECT id, sender_id, subject, is_read, sent_at, recipient_deleted
-                        FROM mails
-                        WHERE recipient_id = ?
-                        ORDER BY sent_at DESC
-                    """
-                    chan.send(f"\r\n--- 受信メール ---\r\n")
-                else:  # outbox
-                    sql = """
-                        SELECT id, recipient_id, subject, is_read, sent_at, sender_deleted
-                        FROM mails
-                        WHERE sender_id = ?
-                        ORDER BY sent_at DESC
-                    """
-                    chan.send(f"\r\n--- 送信メール ---\r\n")
-
-                fetched_mails = sqlite_tools.sqlite_execute_query(
-                    dbname, sql, (user_id,), fetch=True)
-                mails = fetched_mails if fetched_mails else []
-
-                new_index = 0
-                if keep_index and current_mail_id is not None:
-                    found = False
-                    for i, mail_item in enumerate(mails):
-                        if mail_item['id'] == current_mail_id:
-                            new_index = i
-                            found = True
-                            break
-                current_index = new_index
-
-                if not mails:
-                    chan.send("メールはありません。\r\n")
-                else:
-                    # インデックスチェック
-                    if current_index >= len(mails):
-                        current_index = len(mails)-1
-                    if current_index < 0:
-                        current_index = 0
-                    display_mail_header(
-                        chan, mails[current_index], dbname, view_mode)
-                    return True
-
-            except Exception as e:
-                logging.error(
-                    f"メール一覧取得中にDBエラー (ユーザーID: {user_id},Mode:`view_mode`): {e}")
-                chan.send("\r\nメール一覧の取得中にエラーが発生しました。\r\n")
-                mails = []
-                current_index = 0
-                return False
-
-        # 初期読み込みと表示
-        if not reload_mails():
-            return
-
-        # メインループ
-        while True:
-            data = chan.recv(1)
-            try:
-                if data == b'\r' or data == b'\n':
-                    char = '\r'
-                else:
-                    char = data.decode('ascii').lower()
-            except UnicodeDecodeError:
-                chan.send('\a')
-                continue
-            except Exception as e:
-                logging.error(f"メールメニュー中にエラー (ユーザーID: {user_id}): {e}")
-                continue
-
-            # 入力判定
-            if char == 'j':  # 次へ (古い方へ、インデックス増)
-                if mails and current_index < len(mails) - 1:
-                    current_index += 1
-                    display_mail_header(
-                        chan, mails[current_index], dbname, view_mode)
-                else:
-                    chan.send('\a')  # ビープ音 (移動できない)
-            elif char == 'k':  # 前へ (新しい方へ、インデックス減)
-                if mails and current_index > 0:
-                    current_index -= 1
-                    display_mail_header(
-                        chan, mails[current_index], dbname, view_mode)
-                else:
-                    chan.send('\a')  # ビープ音
-            elif char == '\r':  # Enter (メールを読む)
-                if mails:
-                    selected_mail_data = mails[current_index]
-                    selected_mail_id = mails[current_index]['id']
-
-                    is_deleted = False
-                    try:
-                        if view_mode == 'inbox' and selected_mail_data['recipient_deleted'] == 1:
-                            is_deleted = True
-                        elif view_mode == 'outbox' and selected_mail_data['sender_deleted'] == 1:
-                            is_deleted = True
-                    except KeyError:
-                        logging.warning(
-                            f"メールデータに削除フラグが見つかりません(MailID: {selected_mail_id})")
-
-                    if is_deleted:  # 削除されている場合
-                        chan.send("メールは削除されています\r\n\r\n")
-                        if current_index < len(mails) - 1:
-                            current_index += 1
-                        # 次のメールヘッダを表示
-                        if mails:
-                            display_mail_header(
-                                chan, mails[current_index], dbname, view_mode)
-                        else:
-                            chan.send("メールがありません。\r\n")
-                    else:
-
-                        # 本文表示 (成功フラグ, 既読変更フラグ を受け取る)
-                        success, marked_as_read = display_mail_content(
-                            chan, selected_mail_id, dbname, view_mode)
-
-                        if success:
-                            if current_index < len(mails) - 1:
-                                current_index += 1
-                            # 次のメールヘッダを表示 (リストが空でなければ)
-                            if mails:
-                                display_mail_header(
-                                    chan, mails[current_index], dbname, view_mode)
-                            else:
-                                chan.send("メールがありません。\r\n")
-
-                        else:
-                            # 本文表示失敗時も、現在のヘッダを再表示しておく
-                            if mails:
-                                display_mail_header(
-                                    chan, mails[current_index], dbname, view_mode)
-                            else:
-                                chan.send("メールがありません。\r\n")
-                else:
-                    chan.send("読むメールがありません。\r\n")
-
-            elif char == 'd':  # メール削除トグル
-                if mails:
-                    selected_mail_id = mails[current_index]['id']
-                    toggled = False
-                    new_status = 0
-                    if view_mode == 'inbox':
-                        toggled, new_status = sqlite_tools.toggle_mail_delete_status_generic(
-                            dbname, selected_mail_id, user_id, mode='recipient')
-                    else:  # outbox
-                        toggled, new_status = sqlite_tools.toggle_mail_delete_status_generic(
-                            dbname, selected_mail_id, user_id, mode='sender')
-                    if toggled:
-                        reload_mails(keep_index=True)
-                    else:
-                        chan.send("メールの状態変更が失敗しました。\r\n")
-                        if mails:
-                            display_mail_header(
-                                chan, mails[current_index], dbname, view_mode)
-                        else:
-                            chan.send("メールがありません。\r\n")
-                else:
-                    chan.send("対象のメールがありません。\r\n")
-            elif char == 's':  # 受信/送信切り替え
-                view_mode = 'outbox' if view_mode == 'inbox' else 'inbox'
-                reload_mails(keep_index=False)  # モード切替時はインデックスをリセット
-            elif char == 'w':  # メール作成
-                chan.send("\r\n")
-                mail_write(chan, dbname, login_id)
-                reload_mails(keep_index=False)  # メール作成後はインデックスをリセット
-            elif char == '?' or char == 'h':  # ヘルプ
-                chan.send("\r\n")
-                util.show_textsfile(chan, "mailmenu.txt")
-                if mails:
-                    display_mail_header(
-                        chan, mails[current_index], dbname, view_mode)
-                else:
-                    chan.send("メールがありません。\r\n")
-            elif char == 'e':  # 終了
-                chan.send("\r\nメールメニューを終了します。\r\n")
-                break  # ループを抜ける
-
-            else:
-                chan.send('\a')
-    return
 
 
 def mail_write(chan, dbname, login_id):
