@@ -35,7 +35,7 @@ class Server(paramiko.ServerInterface):
             return paramiko.OPEN_SUCCEEDED
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
-    # WEBアプリのSSHクライアントからの接続用
+    # WEBアプリのSSHクライアントからの接続用なので、内部のみで完結するため、このままにしておくｗｗｗ
     def check_auth_password(self, username, password):
         if (username == 'user') and (password == 'pass'):
             return paramiko.AUTH_SUCCESSFUL

@@ -4,6 +4,10 @@ import datetime
 import sqlite_tools
 import time
 
+CMD_SHOW_PREFS = "0"
+CMD_SET_PERMISSIONS = "1"
+CMD_USER_EDIT = "2"
+
 
 def bbs_menu(chan):
     """BBSメニュー"""
@@ -69,14 +73,9 @@ def telegram_recieve(chan, dbname, username):
     if results:
         chan.send("--- 電報が届いています ---\r\n")  # 見出しを追加
         for result in results:
-            # sqlite_tools.load_and_delete_telegrams が辞書を返すように変更した場合
-            # sender = result['sender_name']
-            # message = result['message']
-            # timestamp_val = result['timestamp']
-            # sqlite_tools.load_and_delete_telegrams がタプルを返す場合 (現在のコード)
-            sender = result[1]
-            message = result[3]
-            timestamp_val = result[4]
+            sender = result['sender']
+            message = result['message']
+            timestamp_val = result['timestamp']
             try:
                 dt_str = datetime.datetime.fromtimestamp(
                     timestamp_val).strftime('%Y-%m-%d %H:%M')  # 秒は省略しても良いかも
@@ -138,7 +137,7 @@ def sysop_menu(chan, dbname):
             continue
 
         # --- 設定一覧表示 ---
-        if command == "0":
+        if command == CMD_SHOW_PREFS:
             server_prefs_list = sqlite_tools.read_server_pref(dbname)
             if server_prefs_list:
                 pref_names = ['bbs', 'chat', 'mail',
@@ -161,7 +160,7 @@ def sysop_menu(chan, dbname):
                 chan.send("設定がありません(または取得エラー)\r\n")
 
         # --- 各BBSメニューのユーザレベルごとのパーミッション ---
-        elif command == "1":
+        elif command == CMD_SET_PERMISSIONS:
             chan.send("各BBSメニューのユーザレベルごとのパーミッションを設定します\r\n")
             chan.send(
                 "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): ")
@@ -209,10 +208,22 @@ def sysop_menu(chan, dbname):
 
             # データベース更新
             if user_level is not None:  # 念のため確認
+                if menu_to_change == 'bbs':
+                    sql = "UPDATE server_pref SET bbs=?"
+                elif menu_to_change == 'chat':
+                    sql = "UPDATE server_pref SET chat=?"
+                elif menu_to_change == 'mail':
+                    sql = "UPDATE server_pref SET mail=?"
+                elif menu_to_change == 'telegram':
+                    sql = "UPDATE server_pref SET telegram=?"
+                elif menu_to_change == 'userpref':
+                    sql = "UPDATE server_pref SET userpref=?"
+                elif menu_to_change == 'who':
+                    sql = "UPDATE server_pref SET who=?"
+                else:
+                    chan.send(f"内部エラー:不正なメニュー項目 '{menu_to_change}' \r\n")
+                    continue
                 try:
-                    # SQLインジェクション対策のため、カラム名は直接埋め込まない方がより安全だが、
-                    # valid_menus でチェックしているのでここでは許容する
-                    sql = f"UPDATE server_pref SET {menu_to_change}=?"
                     sqlite_tools.sqlite_execute_query(
                         dbname, sql, (user_level,))  # params はタプルで渡す
                     chan.send(
@@ -222,7 +233,7 @@ def sysop_menu(chan, dbname):
                     print(f"データベース更新エラー: {e}")  # サーバーログ
 
         # --- ユーザ情報変更メニュー ---
-        elif command == "2":
+        elif command == CMD_USER_EDIT:
             util.show_textsfile(chan, "useredit.txt")
             while True:  # サブメニュー用ループ
                 chan.send("ユーザ編集メニュー: ")
