@@ -132,6 +132,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # ヘルプメニュー表示 BIGMODELはヘルプがHと?で別
         if command in ('h'):
             util.show_textsfile(chan, "MENU/MENU.2")
+
         elif command in ('?'):
             util.show_textsfile(chan, "MENU/MENU_.1")
 
