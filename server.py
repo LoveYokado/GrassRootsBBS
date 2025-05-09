@@ -132,9 +132,10 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # ヘルプメニュー表示 BIGMODELはヘルプがHと?で別
         if command in ('h'):
             util.show_textsfile(chan, "MENU/MENU.2")
-
+            chan.send("\r\n")
         elif command in ('?'):
             util.show_textsfile(chan, "MENU/MENU_.1")
+            chan.send("\r\n")
 
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
@@ -195,16 +196,13 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         chan.send("ID: ")
 
         login_id_input = ssh_input.process_input(chan)
-        # --- 修正点1: return を if ブロック内に移動 ---
         if login_id_input is None:
             logging.info(f"ID入力中に切断されました ({addr})")
             return None, None, None  # 切断された場合のみ None を返す
 
-        # --- 修正点3: DBNAME -> dbname に修正 ---
         results = sqlite_tools.fetchall_idbase(
             dbname, 'users', 'name', login_id_input)
 
-        # --- 修正点4: IDが存在しない場合の処理を明確化 ---
         if not results:  # IDが存在しない場合
             logging.warning(f"認証施行: 存在しないID '{login_id_input}' ({addr})")
             password_attempts = 0  # ループ外で使うため初期化

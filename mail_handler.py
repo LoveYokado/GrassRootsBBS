@@ -166,9 +166,28 @@ def mail(chan, dbname, login_id):
                 if advance_cursor_after:
                     if mails:  # メール空対策
                         current_index += 1
-                    update_current_display()
+                    update_current_display()  # メールヘッダ表示
+                else:
+
+                    next_mail_index_for_header = current_index+1
+                    if 0 <= next_mail_index_for_header < len(mails):
+
+                        if view_mode == 'inbox':
+                            util.show_textfile(
+                                chan, 'MENU/MAIL_SENDER_HEADER.2')
+                            chan.send('\r\n')
+
+                        else:
+                            util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
+                            chan.send('\r\n')
+
+                        display_mail_header(
+                            chan, mails[next_mail_index_for_header], dbname, view_mode)
+                    elif next_mail_index_for_header == len(mails) and mails:
+                        marked_id_str = f"{len(mails)+1:05d}"
+                        chan.send(f"{marked_id_str} ^\r\n")
             else:
-                update_current_display()  # ヘッダを再表示
+                update_current_display()
 
         # 初期読み込みと表示
         if not reload_mails(keep_index=False):  # 先頭から表示
@@ -239,12 +258,43 @@ def mail(chan, dbname, login_id):
                 if not mails:
                     chan.send('\a')  # ビープ音
                     continue
-                if current_index > -1:
+                if current_index > 0:
                     current_index -= 1
-                    if current_index == -1:
+                    slected_mail_data = mails[current_index]
+                    is_deleted = False
+                    try:
+                        if view_mode == 'inbox' and slected_mail_data['recipient_deleted']:
+                            is_deleted = True
+                        elif view_mode == 'outbox' and slected_mail_data['sender_deleted']:
+                            is_deleted = True
+                    except KeyError:
+                        pass
+
+                    if is_deleted:
+                        chan.send("メールは削除されています。\r\n\r\n")
+                        if view_mode == 'inbox':
+                            util.show_textfile(
+                                chan, 'MENU/MAIL_SENDER_HEADER.2')
+                        else:  # outbox
+                            util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
+                        chan.send("\r\n")
                         update_current_display()
                     else:
-                        read_selected_mail(advance_cursor_after=False)
+                        success, _ = display_mail_content(
+                            chan, slected_mail_data['id'], dbname, view_mode)
+                        if success:
+                            chan.send('\r\n')
+                            if view_mode == 'inbox':
+                                util.show_textfile(
+                                    chan, 'MENU/MAIL_SENDER_HEADER.2')
+                            else:
+                                util.show_textfile(
+                                    chan, 'MENU/MAIL_RCPT_HEADER.2')
+                            chan.send("\r\n")
+                            update_current_display()
+                elif current_index == 0:
+                    current_index -= 1
+                    update_current_display()
                 else:
                     chan.send('\a')  # 先頭だよビープ音
 
@@ -262,14 +312,34 @@ def mail(chan, dbname, login_id):
                 if not mails:
                     chan.send('\a')  # ビープ音
                     continue
-                if current_index < len(mails):
+                if 0 <= current_index < len(mails):
+                    selected_mail_data = mails[current_index]
+                    is_deleted = False
+                    try:
+                        if view_mode == 'inbox' and selected_mail_data['recipient_deleted'] == 1:
+                            is_deleted = True
+                        elif view_mode == 'outbox' and selected_mail_data['sender_deleted'] == 1:
+                            is_deleted = True
+                    except KeyError:
+                        pass
+
+                    if is_deleted:
+                        chan.send("メールは削除されています。\r\n\r\n")
+                    else:  # 削除されてないメールを読む
+                        success, _ = display_mail_content(
+                            chan, selected_mail_data['id'], dbname, view_mode)
+                        if success:
+                            chan.send('\r\n')
                     current_index += 1
-                    if current_index == len(mails):
-                        update_current_display()
-                    else:
-                        read_selected_mail(advance_cursor_after=False)
-                else:
-                    chan.send('\a')  # 末尾だよビープ音
+
+                    if 0 <= current_index < len(mails):
+                        if view_mode == 'inbox':
+                            util.show_textfile(
+                                chan, 'MENU/MAIL_SENDER_HEADER.2')
+                        else:
+                            util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
+                        chan.send("\r\n")
+                    update_current_display()
 
             # 新方向へ進む[ctrl+x][j][space]
             elif key_input == '\x18' or key_input == 'j' or key_input == 'J' or key_input == ' ' or key_input == "KEY_DOWN":
@@ -388,23 +458,23 @@ def display_mail_content(chan, mail_id, dbname, view_mode='inbox'):
 
         mail_data = mail_results[0]
 
-        subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
+        # subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
         body = mail_data['body'] if mail_data['body'] else "(本文なし)"
-        try:
-            sent_dt = datetime.datetime.fromtimestamp(mail_data['sent_at'])
-            date_str = sent_dt.strftime('%Y-%m-%d %H:%M:%S')
-        except (ValueError, OSError, TypeError):
-            date_str = "不明な日時"
+        # try:
+        #    sent_dt = datetime.datetime.fromtimestamp(mail_data['sent_at'])
+        #    date_str = sent_dt.strftime('%Y-%m-%d %H:%M:%S')
+        # except (ValueError, OSError, TypeError):
+        #    date_str = "不明な日時"
 
         # 本文
-        if view_mode == 'inbox':
-            sender_name = sqlite_tools.get_user_name_from_user_id(
-                dbname, mail_data['sender_id'])
-            chan.send(f"送信者: {sender_name}\r\n")
-        else:  # outbox
-            recipient_name = sqlite_tools.get_user_name_from_user_id(
-                dbname, mail_data['recipient_id'])
-        chan.send(f"日時: {date_str}\r\n")
+        # if view_mode == 'inbox':
+        #    sender_name = sqlite_tools.get_user_name_from_user_id(
+        #        dbname, mail_data['sender_id'])
+        #    chan.send(f"送信者: {sender_name}\r\n")
+        # else:  # outbox
+        #    recipient_name = sqlite_tools.get_user_name_from_user_id(
+        #        dbname, mail_data['recipient_id'])
+        # chan.send(f"日時: {date_str}\r\n")
         wrapped_body = textwrap.fill(body, width=78)
         for line in wrapped_body.splitlines():
             chan.send(f"{line}\r\n")
