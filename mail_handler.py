@@ -312,34 +312,51 @@ def mail(chan, dbname, login_id):
                 if not mails:
                     chan.send('\a')  # ビープ音
                     continue
+
+                # current_indexが-1の時は０に移動
+                if current_index == -1:
+                    if not mails:  # 先頭マーカの時にメールがなくなったら
+                        chan.send('\a')
+                        update_current_display()
+                        continue
+                    current_index = 0
+
+                # current_indexがlen以上、末尾マーカ表示中かそれを超えたら、それ以上進めない
+                if current_index >= len(mails):
+                    chan.send('\a')
+                    continue
+
+                # ここに来るときは0<=current_index<len(mails)が保証される
+                selected_mail_data = mails[current_index]
+                is_deleted = False
+                try:
+                    if view_mode == 'inbox' and selected_mail_data['recipient_deleted'] == 1:
+                        is_deleted = True
+                    elif view_mode == 'outbox' and selected_mail_data['sender_deleted'] == 1:
+                        is_deleted = True
+                except KeyError:
+                    pass  # Falseのまま
+
+                if is_deleted:
+                    chan.send("メールは削除されています。\r\n\r\n")
+                # 削除されていてもカーソルは進める
+                else:
+                    success, _ = display_mail_content(
+                        chan, selected_mail_data['id'], dbname, view_mode)
+                    if success:
+                        chan.send('\r\n')
+
+                current_index += 1
+
+                # 次のメールヘッダ準備
                 if 0 <= current_index < len(mails):
-                    selected_mail_data = mails[current_index]
-                    is_deleted = False
-                    try:
-                        if view_mode == 'inbox' and selected_mail_data['recipient_deleted'] == 1:
-                            is_deleted = True
-                        elif view_mode == 'outbox' and selected_mail_data['sender_deleted'] == 1:
-                            is_deleted = True
-                    except KeyError:
-                        pass
+                    if view_mode == 'inbox':
+                        util.show_textfile(chan, 'MENU/MAIL_SENDER_HEADER.2')
+                    else:  # outbox
+                        util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
+                    chan.send('\r\n')
 
-                    if is_deleted:
-                        chan.send("メールは削除されています。\r\n\r\n")
-                    else:  # 削除されてないメールを読む
-                        success, _ = display_mail_content(
-                            chan, selected_mail_data['id'], dbname, view_mode)
-                        if success:
-                            chan.send('\r\n')
-                    current_index += 1
-
-                    if 0 <= current_index < len(mails):
-                        if view_mode == 'inbox':
-                            util.show_textfile(
-                                chan, 'MENU/MAIL_SENDER_HEADER.2')
-                        else:
-                            util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
-                        chan.send("\r\n")
-                    update_current_display()
+                update_current_display()
 
             # 新方向へ進む[ctrl+x][j][space]
             elif key_input == '\x18' or key_input == 'j' or key_input == 'J' or key_input == ' ' or key_input == "KEY_DOWN":
