@@ -377,8 +377,21 @@ def mail(chan, dbname, login_id):
             elif key_input == '*':
                 if mails and 0 <= current_index < len(mails):
                     selected_mail_id = mails[current_index]['id']
+
+                    mode_for_toggle = None
+                    if view_mode == 'inbox':
+                        mode_for_toggle = 'recipient'
+                    elif view_mode == 'outbox':
+                        mode_for_toggle = 'sender'
+                    else:
+                        logging.error(
+                            f"削除トグル動作時の不明なView_mode: {view_mode} (MailID: {selected_mail_id}, UserID: {user_id})")
+                        chan.send('内部エラーが発生(mode)。\r\n')
+                        update_current_display()
+                        continue
+
                     toggled, _ = sqlite_tools.toggle_mail_delete_status_generic(
-                        dbname, selected_mail_id, user_id, mode=view_mode)
+                        dbname, selected_mail_id, user_id, mode_param=mode_for_toggle)
                     if toggled:
                         reload_mails(keep_index=True)
                     else:

@@ -32,7 +32,7 @@ def get_user_name_from_user_id(dbname, user_id):
         return "(エラー)"
 
 
-def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode):
+def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode_param):
     """
     メールの削除フラグをトグルする汎用関数。
 
@@ -40,7 +40,7 @@ def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode):
         dbname (str): データベース名
         mail_id (int): メールID
         user_id (int): ユーザーID
-        mode (str): 'sender' または 'recipient'
+        mode_param (str): 'sender' または 'recipient'
 
     Returns:
         tuple: (成功/失敗(bool), 新しいステータス(int))
@@ -48,6 +48,8 @@ def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode):
     """
 
     conn = None
+    mode = str(mode_param).strip()
+
     try:
         conn = sqlite3.connect(dbname)
         conn.row_factory = sqlite3.Row
@@ -63,7 +65,8 @@ def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode):
             sql_update = "UPDATE mails SET recipient_deleted=? WHERE id=? AND recipient_id=?"
             current_status_colmn = 'recipient_deleted'
         else:
-            logging.error(f"無効なモードが指定されました: {mode}")
+            logging.error(
+                f"無効なモードが指定されました: original='{mode_param}',stripped='{mode}' ")
             return False, 0
 
         # 現在の状態を取得
