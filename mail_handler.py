@@ -429,8 +429,73 @@ def mail(chan, dbname, login_id):
 
             # 新方向へ読み続ける[r]
             elif key_input == 'r' or key_input == 'R':
-                pass
                 # 現在の位置からのメールをすべて本文込みで一気に表示する
+                if not mails:
+                    chan.send('\a')  # メールがない場合はビープ
+                    continue
+                if current_index == len(mails):  # 末尾マーカ一だった場合
+                    chan.send('\a')  # 既に末尾なのでビープ
+                    continue
+
+                chan.send("\r\n")
+
+                # 表示インデックス決定
+                start_processing_idx = current_index
+                if start_processing_idx == -1:
+                    start_processing_idx = 0
+
+                # 開始インデックスが有効範囲外ORメールがない場合は処理しない
+                if not (mails and 0 <= start_processing_idx < len(mails)):
+                    if not mails and start_processing_idx == 0:
+                        chan.send("メールはありません。\r\n")
+                    else:
+                        chan.send('\a')
+                    update_current_display()
+                    continue
+
+                # 共通ヘッダ表示
+                if view_mode == 'inbox':
+                    util.show_textfile(chan, 'MENU/MAIL_SENDER_HEADER.2')
+                else:
+                    util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
+                chan.send("\r\n")
+
+                current_index = start_processing_idx
+
+                # current_indexが有効な場合
+                while 0 <= current_index < len(mails):
+                    selected_mail_data = mails[current_index]
+                    selected_mail_id = selected_mail_data['id']
+
+                    # メールヘッダ表示
+                    display_mail_header(
+                        chan, selected_mail_data, dbname, view_mode, mail_id_width=mail_count_digits
+                    )
+
+                    is_deleted = False
+                    try:
+                        if view_mode == 'inbox' and selected_mail_data['recipient_deleted'] == 1:
+                            is_deleted = True
+                        elif view_mode == 'outbox' and selected_mail_data['sender_deleted'] == 1:
+                            is_deleted = True
+                    except KeyError:
+                        logging.warning(
+                            f"メールデータに削除フラグが見つかりません(MailID: {selected_mail_id},Rキー処理)")
+
+                    if is_deleted:
+                        chan.send("\r\n")
+                    else:
+                        # メール本文表示
+                        success, _ = display_mail_content(
+                            chan, selected_mail_id, dbname, view_mode
+                        )
+                        if success:
+                            chan.send('\r\n')
+                        else:
+                            chan.send('\r\n')
+                    current_index += 1  # 次のメールへ
+
+                update_current_display()
 
             # タイトル一覧[t]
             elif key_input == 't' or key_input == 'T':
