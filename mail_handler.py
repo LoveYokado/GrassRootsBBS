@@ -41,27 +41,34 @@ def mail(chan, dbname, login_id):
     if view_mode in ('inbox', 'outbox'):
         mails = []
         current_index = 0  # -1が先頭マーカー lenが末尾マーカー
+        mail_count_digits = 5  # メールのID表示桁数、メール数に応じて変動
 
-        def update_current_display():
+        def update_current_display():  # clear_screen パラメータを削除
             """現在のcurrent_indexに対応するメールを表示する内部関数"""
-            nonlocal mails, current_index
+            nonlocal mails, current_index, mail_count_digits
+            # 画面クリア命令は削除
+
             if current_index == -1:
-                chan.send("00000 v\r\n")
+                # 先頭マーカーのID部分も mail_count_digits に合わせる
+                marker_id_str = "0" * mail_count_digits
+                chan.send(f"{marker_id_str} v\r\n")
             elif current_index == len(mails):
                 if not mails:  # エラー対策
                     chan.send("メールがありません。\r\n")
                 else:
-                    marker_id_str = f"{len(mails) + 1:05d}"
+                    # 末尾マーカーのID部分も mail_count_digits に合わせる
+                    marker_num = len(mails) + 1  # 表示上の番号
+                    marker_id_str = f"{marker_num:0{mail_count_digits}d}"
                     chan.send(f"{marker_id_str} ^\r\n")
             elif mails and 0 <= current_index < len(mails):
                 display_mail_header(
-                    chan, mails[current_index], dbname, view_mode)
+                    chan, mails[current_index], dbname, view_mode, mail_id_width=mail_count_digits)
             else:
                 chan.send("メールがありません。\r\n")
 
         def reload_mails(keep_index=True):
             """メールリストを再読み込みし、表示を更新する内部関数"""
-            nonlocal mails, current_index
+            nonlocal mails, current_index, mail_count_digits
             current_mail_id = None
             if mails and 0 <= current_index < len(mails):
                 current_mail_id = mails[current_index]['id']
@@ -103,6 +110,13 @@ def mail(chan, dbname, login_id):
                     # else:kttp_index=falseならnew_indexは0(先頭)
                 current_index = new_index  # mailsが空なら0、あれば0以上len-1以下
 
+                # mail_count_digits を更新
+                if mails:
+                    mail_count_digits = max(
+                        5, len(str(len(mails) + 1)))  # 表示する最大番号の桁数
+                else:
+                    mail_count_digits = 5
+
                 # reroad_mails直後はマーカー状態にしない
                 if view_mode == 'inbox':
                     util.show_textfile(chan, 'MENU/MAIL_SENDER_HEADER.2')
@@ -118,7 +132,7 @@ def mail(chan, dbname, login_id):
                     current_index = 0
                 else:
                     display_mail_header(
-                        chan, mails[current_index], dbname, view_mode)
+                        chan, mails[current_index], dbname, view_mode, mail_id_width=mail_count_digits)
                 return True
             except Exception as e:
                 logging.error(
@@ -172,7 +186,7 @@ def mail(chan, dbname, login_id):
                     next_mail_index_for_header = current_index+1
                     if 0 <= next_mail_index_for_header < len(mails):
 
-                        if view_mode == 'inbox':
+                        if view_mode == 'inbox':  # ヘッダ表示
                             util.show_textfile(
                                 chan, 'MENU/MAIL_SENDER_HEADER.2')
                             chan.send('\r\n')
@@ -182,9 +196,11 @@ def mail(chan, dbname, login_id):
                             chan.send('\r\n')
 
                         display_mail_header(
-                            chan, mails[next_mail_index_for_header], dbname, view_mode)
+                            chan, mails[next_mail_index_for_header], dbname, view_mode, mail_id_width=mail_count_digits)
+                    # 末尾マーカー表示
                     elif next_mail_index_for_header == len(mails) and mails:
-                        marked_id_str = f"{len(mails)+1:05d}"
+                        marker_num = len(mails) + 1
+                        marked_id_str = f"{marker_num:0{mail_count_digits}d}"
                         chan.send(f"{marked_id_str} ^\r\n")
             else:
                 update_current_display()
@@ -418,8 +434,38 @@ def mail(chan, dbname, login_id):
 
             # タイトル一覧[t]
             elif key_input == 't' or key_input == 'T':
-                pass
-                # 現在の位置からのメールのタイトルを一気に表示する
+                if not mails:
+                    chan.send('\a')  # メールがない場合はビープ
+                    continue
+                if current_index == len(mails):  # 既に末尾マーカー位置
+                    chan.send('\a')  # 既に末尾なのでビープ
+                    continue
+
+                chan.send("\r\n")  # 現在の表示からの区切り
+
+                # 表示を開始するインデックスを決定
+                start_idx_for_display = current_index
+                if start_idx_for_display == -1:  # 先頭マーカーなら最初のメールから
+                    start_idx_for_display = 0
+
+                if 0 <= start_idx_for_display < len(mails):
+                    # スクロール表示する内容のヘッダタイトル
+                    if view_mode == 'inbox':
+                        util.show_textfile(chan, 'MENU/MAIL_SENDER_HEADER.2')
+                    else:  # outbox
+                        util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
+                    chan.send("\r\n")
+
+                    for i in range(start_idx_for_display, len(mails)):  # 現在位置から最後まで
+                        mail_data = mails[i]
+                        # format_mail_header_str を使って、カーソルなしのヘッダ文字列を取得
+                        header_line = format_mail_header_str(
+                            mail_data, dbname, view_mode, mail_id_width=mail_count_digits
+                        )
+                        chan.send(header_line + "\r\n")
+
+                current_index = len(mails)  # カーソルを末尾マーカーに移動
+                update_current_display()  # プロンプト部分を更新 (画面クリアなし)
 
             # 説明[?]
             elif key_input == '?':
@@ -433,10 +479,10 @@ def mail(chan, dbname, login_id):
     return
 
 
-def display_mail_header(chan, mail_data, dbname, view_mode='inbox'):
-    """指定されたメールのヘッダ情報（1行）を表示する"""
+def format_mail_header_str(mail_data, dbname, view_mode='inbox', mail_id_width=5):
+    """指定されたメールのヘッダ情報（1行）を文字列として返す"""
     if not mail_data:
-        return
+        return ""
 
     mail_id = mail_data['id']
     try:
@@ -465,16 +511,25 @@ def display_mail_header(chan, mail_data, dbname, view_mode='inbox'):
             subject, width=38, placeholder="..."
         )
 
+    mail_id_str = f"{mail_id:0{mail_id_width}d}"
+
     # 送信や、宛先表示
     if view_mode == 'inbox':
         sender_name = sqlite_tools.get_user_name_from_user_id(
             dbname, mail_data['sender_id'])
-        line = f"{mail_id:05d}  {date_str}  {sender_name:<7} {deleted_mark} {display_subject}\r\n"
+        return f"{mail_id_str}  {date_str}  {sender_name:<7} {deleted_mark} {display_subject}"
     else:  # outbox
         recipient_name = sqlite_tools.get_user_name_from_user_id(
             dbname, mail_data['recipient_id'])
-        line = f"{mail_id:05d}  {date_str}  {recipient_name:<7} {deleted_mark} {display_subject}\r\n"
-    chan.send(line)
+        return f"{mail_id_str}  {date_str}  {recipient_name:<7} {deleted_mark} {display_subject}"
+
+
+def display_mail_header(chan, mail_data, dbname, view_mode='inbox', mail_id_width=5):
+    """指定されたメールのヘッダ情報（1行）を表示する"""
+    header_line = format_mail_header_str(
+        mail_data, dbname, view_mode, mail_id_width)
+    if header_line:
+        chan.send(header_line + "\r\n")
 
 
 def display_mail_content(chan, mail_id, dbname, view_mode='inbox'):
@@ -488,23 +543,8 @@ def display_mail_content(chan, mail_id, dbname, view_mode='inbox'):
 
         mail_data = mail_results[0]
 
-        # subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
         body = mail_data['body'] if mail_data['body'] else "(本文なし)"
-        # try:
-        #    sent_dt = datetime.datetime.fromtimestamp(mail_data['sent_at'])
-        #    date_str = sent_dt.strftime('%Y-%m-%d %H:%M:%S')
-        # except (ValueError, OSError, TypeError):
-        #    date_str = "不明な日時"
 
-        # 本文
-        # if view_mode == 'inbox':
-        #    sender_name = sqlite_tools.get_user_name_from_user_id(
-        #        dbname, mail_data['sender_id'])
-        #    chan.send(f"送信者: {sender_name}\r\n")
-        # else:  # outbox
-        #    recipient_name = sqlite_tools.get_user_name_from_user_id(
-        #        dbname, mail_data['recipient_id'])
-        # chan.send(f"日時: {date_str}\r\n")
         wrapped_body = textwrap.fill(body, width=78)
         for line in wrapped_body.splitlines():
             chan.send(f"{line}\r\n")
