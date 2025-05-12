@@ -1,3 +1,9 @@
+import mail_handler
+import sqlite_tools
+import bbsmenu
+import util
+import ssh_input
+import paramiko.py3compat
 import socket
 import threading
 import paramiko
@@ -6,18 +12,17 @@ import os
 import time
 import logging
 
-import ssh_input
-import util
-import bbsmenu
-import sqlite_tools
-import mail_handler
-import socket
 
-HOST_KEY_PATH = 'test_rsa.key'
+# サーバセッティング
+HOST_KEY_PATH = 'test_rsa.key'  # webアプリのキー
 BIND_HOST = "0.0.0.0"
-BIND_PORT = 50000
+WEBAPP_BIND_PORT = 50000  # ポートのスタート地点
+NORMAL_BIND_PORT_START = 50001  # 通常接続用ポートの開始番号
+SSH_SERVER_THREAD_COUNT = 3  # 通常接続のスレッド数
 DBNAME = "bbs.db"
-MAX_PASSWORD_ATTEMPTS = 3
+MAX_PASSWORD_ATTEMPTS = 3  # パスワード最大試行回数
+WEBAPP_USER = 'user'
+WEBAPP_PASSWORD = 'pass'
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -27,8 +32,9 @@ online_members = set()
 
 
 class Server(paramiko.ServerInterface):
-    def __init__(self):
+    def __init__(self, is_web_app_connection=False):
         self.event = threading.Event()
+        self.is_web_app_connection = is_web_app_connection
 
     def check_channel_request(self, kind, chanid):
         if kind == 'session':
@@ -36,9 +42,42 @@ class Server(paramiko.ServerInterface):
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
     # WEBアプリのSSHクライアントからの接続用なので、内部のみで完結するため、このままにしておくｗｗｗ
-    def check_auth_password(self, username, password):
-        if (username == 'user') and (password == 'pass'):
+    def check_auth_password(self, username, password):  # パスワード認証
+        """
+        パスワード認証を処理する。
+        通常接続時はDBのユーザー情報と照合。
+        """
+        if self.is_web_app_connection and username == WEBAPP_USER and password == WEBAPP_PASSWORD:
+            logging.info("WEBアプリからの接続を許可")
             return paramiko.AUTH_SUCCESSFUL
+
+        if not self.is_web_app_connection:
+            # 通常接続のパス認証
+            user_auth_info = sqlite_tools.get_user_auth_info(DBNAME, username)
+            if user_auth_info and user_auth_info['auth_method'] in ('password_only', 'both'):
+                stored_hash = user_auth_info['password']
+                salt_hex = user_auth_info['salt']
+                try:
+                    salt = bytes.fromhex(salt_hex)
+                    provided_hash = hashlib.pbkdf2_hmac(
+                        'sha256',
+                        password.encode('utf-8'),
+                        salt,
+                        100000
+                    ).hex()
+                    if stored_hash == provided_hash:
+                        logging.info(f"パスワード認証成功: ユーザ名'{username}'")
+                        return paramiko.AUTH_SUCCESSFUL
+                except Exception as e:
+                    logging.error(f"通常接続パスワード検証中にエラー: ユーザ名'{username}': {e}")
+                logging.warning(f"通常接続パスワード認証失敗(不一致): ユーザ名'{username}'")
+            else:
+                logging.warning(
+                    f"WEBアプリからの接続パスワード認証失敗: ユーザ名'{username}'はパスワード認証が許可されていないか、存在しません。")
+            return paramiko.AUTH_FAILED
+
+        logging.warning(
+            f"パスワード認証失敗(フォールスルー): ユーザ名'{username}', is_web_app:{self.is_web_app_connection}")
         return paramiko.AUTH_FAILED
 
     def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
@@ -47,6 +86,67 @@ class Server(paramiko.ServerInterface):
     def check_channel_shell_request(self, channel):
 
         return True  # シェルリクエストを許可
+
+    def check_auth_publickey(self, username, key):
+        if self.is_web_app_connection:
+            # webアプリでは公開鍵認証を許可しない
+            return paramiko.AUTH_FAILED
+
+        # 通常接続時の公開鍵認証
+        user_auth_info = sqlite_tools.get_user_auth_info(DBNAME, username)
+        if not user_auth_info or user_auth_info['auth_method'] not in ('key_only', 'both'):
+            logging.warning(
+                f"公開鍵認証失敗: ユーザ名'{username}'は公開鍵認証が許可されていないか、存在しません。")
+            return paramiko.AUTH_FAILED
+
+        logging.info(f"公開鍵認証開始: ユーザ名'{username}' (鍵認証許可ユーザ)")
+        try:
+            # 公開鍵ファイルを読み込む
+            with open('.sshkey/authorized_keys_test.pub', 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#'):  # 空行＋コメントスキップ
+                        continue
+                    parts = line.strip().split()
+                    if len(parts) >= 2:
+                        key_type = parts[0]
+                        key_string = parts[1]
+                        key_comment_user = None
+                        if len(parts) > 2:
+                            key_comment_user = parts[2].split('@')[0]
+                        auth_key = paramiko.RSAKey(
+                            data=paramiko.py3compat.decodebytes(key_string.encode('ascii')))
+
+                        # 鍵と公開鍵ファイルのコメントユーザ名がSSH接続ユーザ名と一致
+                        if key == auth_key and (username == key_comment_user or username == "keyuser"):
+                            logging.info(
+                                f"公開鍵認証成功: ユーザ名'{username}' (鍵タイプ: {key_type})")
+                            return paramiko.AUTH_SUCCESSFUL
+        except FileExistsError:
+            logging.error(f"公開鍵ファイルが見つかりません。")
+        except Exception as e:
+            logging.error(f"公開鍵読み込みまたは比較中にエラー: {e}")
+        logging.warning(f"公開鍵認証失敗: ユーザ名'{username}'")
+        return paramiko.AUTH_FAILED
+
+    def get_allowed_auths(self, username):
+
+        if self.is_web_app_connection:
+            # Webアプリ接続時はパスワード認証のみ
+            return 'password'
+
+        # 通常接続時はDBからユーザの認証設定を取
+        user_auth_info = sqlite_tools.get_user_auth_info(DBNAME, username)
+        if user_auth_info:
+            auth_method = user_auth_info['auth_method']
+            if auth_method == 'key_only':
+                return 'publickey'
+            elif auth_method == 'password_only':
+                return 'password'
+            elif auth_method == 'both':
+                return 'publickey,password'
+        logging.warning(f"ユーザ名'{username}'の認証タイプ不明、またはユーザ不在。")
+        return ''
 
 
 def logoff_user(chan, dbname, login_id, user_id):
@@ -289,7 +389,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         return None, None, None
 
 
-def handle_client(client, addr, host_key):
+def handle_client(client, addr, host_key, is_web_app=True):
     login_id = None
     user_id = None
     userdata = None
@@ -301,8 +401,9 @@ def handle_client(client, addr, host_key):
     logging.info(f"接続を受け付けました: {addr}")
     try:
         transport = paramiko.Transport(client)
+        # serverクラスのインスタンスを作成、Webアプリ接続かどうかを判別
         transport.add_server_key(host_key)
-        server = Server()
+        server = Server(is_web_app_connection=is_web_app)
         try:
             transport.start_server(server=server)
         except paramiko.SSHException as e:
@@ -317,14 +418,54 @@ def handle_client(client, addr, host_key):
             logging.error(f'*** チャンネルを取得できませんでした。({addr})')
             return
 
-        # ログインプロセス呼び出し
-        login_id, user_id, userdata = authenticate_user(
-            chan, addr, DBNAME, MAX_PASSWORD_ATTEMPTS)
+        if is_web_app:
+            # webアプリの場合paramiko認証が成功してればOK
+            # Server.check_auth_password で設定に書かれたID/PASSWORDのSSH認証が行われている前提
+            if transport.is_authenticated():
+                # SSH認証は成功。次にBBSアプリケーションレベルの認証を行う。
+                logging.info(f"WEBアプリからのSSH接続認証成功。BBS認証に進みます。 ({addr})")
+                login_id, user_id, userdata = authenticate_user(
+                    chan, addr, DBNAME, MAX_PASSWORD_ATTEMPTS)
+            else:
+                logging.error(
+                    f"WEBアプリ接続でparamiko認証に失敗しました。(is_authenticated is False ({addr})")
+                return
+        else:
+            # 通常接続の場合(鍵認証)
+            if transport.is_authenticated():
+                login_id = transport.get_username()
+                logging.info(f"SSH接続認証成功。 ユーザ名: {login_id} ({addr})")
+                # SSHユーザ名でDBからユーザ情報を取得
+                results = sqlite_tools.fetchall_idbase(
+                    DBNAME, 'users', 'name', login_id)
+                if results:
+                    userdata = results[0]
+                    user_id = userdata['id']
+                    user_level_val = userdata['level'] if 'level' in userdata.keys(
+                    ) else 0
 
-        # 認証失敗または切断の場合
+                    if user_level_val == 0:
+                        logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
+                        if chan.active:
+                            chan.send("このユーザは現在利用できません。\r\n")
+                        return
+                    logging.info(
+                        f"SSH認証ユーザー情報取得成功: {login_id},UserID:{user_id},Level:{user_level_val}")
+                else:
+                    logging.warning(
+                        f"SSH鍵認証ユーザ '{login_id}'はDBに登録されていません ({addr})")
+                    if chan.active:
+                        chan.send("このユーザは現在利用できませんよ。\r\n")
+                    return
+            else:
+                logging.warning(f"通常接続でparamiko認証に失敗しました。 ({addr})")
+                return
+
+        # 認証失敗
         if login_id is None:
+            logging.info(f"認証プロセスが完了しませんでした ({addr})")  # ログレベルをINFOに変更
             return
-        # 認証成功の場合のみlogged_inをTrueにする
+
         logged_in = True
 
         # ログイン後処理
@@ -351,11 +492,14 @@ def handle_client(client, addr, host_key):
             if pref_list and len(pref_list) == len(pref_names):
                 server_pref_dict = dict(zip(pref_names, pref_list))
             else:
+                # sqlite_tools.read_server_pref がデフォルト値を返すようになったため、
+                # 基本的にこのelseブロックには入らないはず。
                 logging.error("サーバ設定読み込みエラーです。デフォルト値を使用します。")
                 default_prefs = {'bbs': 0, 'chat': 1, 'mail': 1,
                                  'telegram': 1, 'userpref': 1, 'who': 1}
                 server_pref_dict = default_prefs
-            userlevel = userdata['level']
+            userlevel = userdata['level'] if userdata and 'level' in userdata.keys(
+            ) else 0
 
             normal_logoff = process_command_loop(chan, DBNAME, login_id, user_id,
                                                  userlevel, server_pref_dict, addr)
@@ -416,6 +560,22 @@ def handle_client(client, addr, host_key):
         logging.info(f"接続を閉じました: {addr}")
 
 
+def wait_for_connections(sock, host_key, is_web_app_server):
+    """
+    指定されたソケットでクライアントからの接続を待ち受け、新しい接続があるたびにhandle_clientを呼び出す。
+    """
+    while True:
+        try:
+            client, addr = sock.accept()
+            client_thread = threading.Thread(
+                target=handle_client, args=(client, addr, host_key, is_web_app_server), daemon=True)
+            client_thread.start()
+        except Exception as e:
+            logging.error(
+                f"接続待ち受け中に予期せぬエラーが発生しました(is_web_app_server={is_web_app_server}): {e}")
+            break
+
+
 def main():
     # データベース初期化チェック
     if not os.path.isfile(DBNAME):
@@ -441,36 +601,75 @@ def main():
         print("RSAキーを生成してください (例: ssh-keygen -t rsa -f test_rsa.key)")
         return
 
-    # ソケット設定とリスニング
-    sock = None
+    listening_sockets = []  # 起動したソケット用リスト
+    threads = []  # 起動したスレッド用リスト
+
+    # WEBアプリ用ソケット準備とスレッド作成
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((BIND_HOST, BIND_PORT))
-        sock.listen(5)
-        logging.info(f"SSHサーバが {BIND_HOST}:{BIND_PORT} で待機中...")
+        webapp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        webapp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        webapp_sock.bind((BIND_HOST, WEBAPP_BIND_PORT))
+        webapp_sock.listen(5)
+        logging.info(f"WEBアプリ用SSHサーバが{BIND_HOST}:{WEBAPP_BIND_PORT}で待機中...")
+        listening_sockets.append(webapp_sock)
+
+        web_app_thread = threading.Thread(
+            target=wait_for_connections, args=(webapp_sock, host_key, True), daemon=True)
+        web_app_thread.start()
+        threads.append(web_app_thread)
     except Exception as e:
         logging.exception(
-            f"{BIND_HOST}:{BIND_PORT} でのバインドまたはリッスンに失敗しました: {e}")
-        if sock:
-            sock.close()
+            f"WEBアプリ用ポート{BIND_HOST}:{WEBAPP_BIND_PORT}での起動に失敗: {e}")
+        # WEBアプリ用がコケたら通常用も起動しないで終了
+        for s in listening_sockets:
+            s.close()
         return
 
-    # クライアント接続待機ループ
+    # 通常接続用ソケットの準備とスレッド起動
+    for i in range(SSH_SERVER_THREAD_COUNT):
+        normal_port = NORMAL_BIND_PORT_START+i
+        try:
+            normal_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            normal_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            normal_sock.bind((BIND_HOST, normal_port))
+            normal_sock.listen(10)  # ちょっと多めに
+            logging.info(f"通常用SSHサーバが{BIND_HOST}:{normal_port}で待機中...")
+            listening_sockets.append(normal_sock)
+
+            normal_thread = threading.Thread(
+                target=wait_for_connections, args=(normal_sock, host_key, False), daemon=True)
+            normal_thread.start()
+            threads.append(normal_thread)
+        except Exception as e:
+            logging.exception(f"通常ポート{BIND_HOST}:{normal_port}での起動に失敗: {e}")
+            # 失敗したポートがあっても他のポートは頑張って起動する
+            if normal_sock:
+                normal_sock.close()
+                if normal_sock in listening_sockets:
+                    listening_sockets.remove(normal_sock)
+            continue
+
+        if not any(t.is_alive() for t in threads if t is not None):
+            logging.info("接続を受け付けるスレッドがないのでサーバを終了します。")
+            for s in listening_sockets:
+                s.close()
+            return
+
+    # webアプリ接続用スレッドスタート
     try:
         while True:
-            client, addr = sock.accept()
-            client_thread = threading.Thread(
-                target=handle_client, args=(client, addr, host_key), daemon=True)
-            client_thread.start()
+            time.sleep(1)
     except KeyboardInterrupt:
         logging.info("Ctrl+Cを検出しました。サーバをシャットダウンします。")
     except Exception as e:
-        logging.exception("メインループで予期せぬエラーが発生しました。")
+        logging.exception("メイン待機ループで予期せぬエラーが発生しました。")
     finally:
-        logging.info("ソケットを閉じています...")
-        if sock:
-            sock.close()
+        logging.info("すべてのソケットを閉じています...")
+        for sock_item in listening_sockets:
+            try:
+                sock_item.close()
+            except Exception as e_sock_close:
+                logging.exception(f"ソケットのクローズ中にエラー発生: {e_sock_close}")
         logging.info("サーバが停止しました。")
 
 

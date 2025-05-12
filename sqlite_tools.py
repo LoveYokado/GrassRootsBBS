@@ -32,6 +32,19 @@ def get_user_name_from_user_id(dbname, user_id):
         return "(エラー)"
 
 
+def get_user_auth_info(dbname, username):
+    """
+    ユーザ名から認証情報を含むユーザデータ取得。
+    見つからない場合はNoneを返す。
+    """
+    try:
+        results = fetchall_idbase(dbname, 'users', 'name', username)
+        return results[0] if results else None
+    except Exception as e:
+        logging.error(f"認証情報取得中にエラー ({username}): {e}")
+        return None
+
+
 def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode_param):
     """
     メールの削除フラグをトグルする汎用関数。

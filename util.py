@@ -92,7 +92,8 @@ def make_sysop_and_database(dbname):
                 lastlogin INTEGER,
                 lastlogout INTEGER,
                 comment TEXT,
-                mail TEXT
+                mail TEXT,
+                auth_method TEXT DEFAULT'passsword_only' NOT NULL CHECK(auth_method IN ('key_only','password_only','webapp_only','both'))
             )'''
         )
         print("users table created.")
@@ -116,9 +117,9 @@ def make_sysop_and_database(dbname):
         # シスオペ登録 (saltとハッシュ化パスワード保存)
         print("Registering Sysop...")
         cur.execute(
-            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, mail) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, mail,auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (sysopname, sysop_hashed_pass, sysop_salt, 5, registdate, 0, 0,
-             'Sysop', f'{sysopname}@example.com')  # メールアドレスも動的に
+             'Sysop', f'{sysopname}@example.com', 'both')  # メールアドレスも動的に、認証は両方
         )
         print("Sysop registered.")
 
@@ -126,11 +127,25 @@ def make_sysop_and_database(dbname):
         guest_salt, guest_hashed_pass = hash_password('GUEST')
         print("Registering Guest...")
         cur.execute(
-            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, mail) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, mail, auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ("GUEST", guest_hashed_pass, guest_salt, 1, registdate, 0, 0,
-             'Guest', 'guest@example.com')  # 登録日も設定
+             'Guest', 'guest@example.com', 'webapp_only')  # 登録日も設定、ゲストはWebAPPのみ
         )
         print("Guest registered.")
+
+        # テスト用SSH鍵認証専用ユーザー登録 (keyuser)
+        key_user_name = "keyuser"
+        key_user_dummy_pass = ""  # 鍵認証ユーザーはパスワードを使わない想定
+        key_user_salt, key_user_hashed_pass = hash_password(
+            key_user_dummy_pass)
+        print(f"Registering SSH Key User: {key_user_name}...")
+        cur.execute(
+            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, mail, auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (key_user_name, key_user_hashed_pass, key_user_salt, 2, registdate, 0, 0,
+             # keyuserは鍵のみ
+             'SSH Key User', f'{key_user_name}@example.com', 'key_only')
+        )
+        print(f"SSH Key TestUser '{key_user_name}' registered.")
 
         # --- server_pref テーブル作成 ---
         print("Creating server_pref table...")
