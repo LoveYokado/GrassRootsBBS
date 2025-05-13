@@ -73,7 +73,7 @@ def telegram_recieve(chan, dbname, username):
     if results:
         chan.send("--- 電報が届いています ---\r\n")  # 見出しを追加
         for result in results:
-            sender = result['sender']
+            sender = result['sender_name']
             message = result['message']
             timestamp_val = result['timestamp']
             try:
