@@ -1,0 +1,23 @@
+# ./config.toml
+
+title = "BicliModel Configuration"
+
+[ssh] #公開鍵のパスとファイル名
+key_dir = ".sshkey"
+auth_keys_filename = "authorized_keys.pub"
+
+[security]
+pbkdf2_rounds = 100000 # パスワードハッシュのストレチッング数
+
+[server]
+BIND_HOST = "0.0.0.0"
+NORMAL_BIND_PORT_START = 50001 # 通常接続用ポートの開始番号
+NORMAL_SSH_PORT_COUNT = 1      # 通常接続のポート数
+DBNAME = "bbs.db"
+MAX_PASSWORD_ATTEMPTS = 3      # パスワード最大試行回数
+
+[webapp]
+WEBAPP_KEY_PATH = '.sshkey/webapp_rsa.key' # webアプリのキー
+WEBAPP_BIND_PORT = 50000
+WEBAPP_USER = 'user'                       # WebAppのデフォルトユーザー名 (本番環境では変更を推奨)
+WEBAPP_PASSWORD = 'pass'                   # WebAppのデフォルトパスワード (本番環境では変更を強く推奨)

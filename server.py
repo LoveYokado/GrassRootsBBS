@@ -3,7 +3,6 @@ import sqlite_tools
 import bbsmenu
 import util
 import ssh_input
-import paramiko.py3compat
 import socket
 import threading
 import paramiko
@@ -11,18 +10,10 @@ import hashlib
 import os
 import time
 import logging
+import base64
 
 
-# サーバセッティング
-HOST_KEY_PATH = 'test_rsa.key'  # webアプリのキー
-BIND_HOST = "0.0.0.0"
-WEBAPP_BIND_PORT = 50000  # ポートのスタート地点
-NORMAL_BIND_PORT_START = 50001  # 通常接続用ポートの開始番号
-SSH_SERVER_THREAD_COUNT = 3  # 通常接続のスレッド数
-DBNAME = "bbs.db"
-MAX_PASSWORD_ATTEMPTS = 3  # パスワード最大試行回数
-WEBAPP_USER = 'user'
-WEBAPP_PASSWORD = 'pass'
+CONFIG_FILE_PATH = "config.toml"
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
@@ -47,13 +38,25 @@ class Server(paramiko.ServerInterface):
         パスワード認証を処理する。
         通常接続時はDBのユーザー情報と照合。
         """
-        if self.is_web_app_connection and username == WEBAPP_USER and password == WEBAPP_PASSWORD:
+        webapp_config = util.app_config.get('webapp', {})
+        server_config = util.app_config.get('server', {})
+        security_config = util.app_config.get('security', {})
+
+        webapp_user = webapp_config.get('WEBAPP_USER')
+        webapp_password = webapp_config.get('WEBAPP_PASSWORD')
+        db_name = server_config.get('DBNAME')
+        pbkdf2_rounds = security_config.get('pbkdf2_rounds', 100000)
+
+        if not db_name:
+            logging.error("DB名が設定されていません")
+            return paramiko.AUTH_FAILED
+
+        if self.is_web_app_connection and username == webapp_user and password == webapp_password:
             logging.info("WEBアプリからの接続を許可")
             return paramiko.AUTH_SUCCESSFUL
 
         if not self.is_web_app_connection:
-            # 通常接続のパス認証
-            user_auth_info = sqlite_tools.get_user_auth_info(DBNAME, username)
+            user_auth_info = sqlite_tools.get_user_auth_info(db_name, username)
             if user_auth_info and user_auth_info['auth_method'] in ('password_only', 'both'):
                 stored_hash = user_auth_info['password']
                 salt_hex = user_auth_info['salt']
@@ -63,7 +66,7 @@ class Server(paramiko.ServerInterface):
                         'sha256',
                         password.encode('utf-8'),
                         salt,
-                        100000
+                        pbkdf2_rounds
                     ).hex()
                     if stored_hash == provided_hash:
                         logging.info(f"パスワード認証成功: ユーザ名'{username}'")
@@ -92,17 +95,29 @@ class Server(paramiko.ServerInterface):
             # webアプリでは公開鍵認証を許可しない
             return paramiko.AUTH_FAILED
 
+        server_config = util.app_config.get('server', {})
+        ssh_config = util.app_config.get('ssh', {})
+        db_name = server_config.get('DBNAME')
+        if not db_name:
+            logging.error("DB名が設定されていません")
+            return paramiko.AUTH_FAILED
+
         # 通常接続時の公開鍵認証
-        user_auth_info = sqlite_tools.get_user_auth_info(DBNAME, username)
+        user_auth_info = sqlite_tools.get_user_auth_info(db_name, username)
         if not user_auth_info or user_auth_info['auth_method'] not in ('key_only', 'both'):
             logging.warning(
                 f"公開鍵認証失敗: ユーザ名'{username}'は公開鍵認証が許可されていないか、存在しません。")
             return paramiko.AUTH_FAILED
 
         logging.info(f"公開鍵認証開始: ユーザ名'{username}' (鍵認証許可ユーザ)")
+
+        key_dir = ssh_config.get('key_dir', '.sshkey')
+        auth_keys_filename = ssh_config.get(
+            'auth_keys_filename', 'authorized_keys.pub')
+        authorized_keys_path = os.path.join(key_dir, auth_keys_filename)
+
         try:
-            # 公開鍵ファイルを読み込む
-            with open('.sshkey/authorized_keys_test.pub', 'r') as f:
+            with open(authorized_keys_path, 'r') as f:
                 for line in f:
                     line = line.strip()
                     if not line or line.startswith('#'):  # 空行＋コメントスキップ
@@ -115,7 +130,7 @@ class Server(paramiko.ServerInterface):
                         if len(parts) > 2:
                             key_comment_user = parts[2].split('@')[0]
                         auth_key = paramiko.RSAKey(
-                            data=paramiko.py3compat.decodebytes(key_string.encode('ascii')))
+                            data=base64.b64decode(key_string.encode('ascii')))
 
                         # 鍵と公開鍵ファイルのコメントユーザ名がSSH接続ユーザ名と一致
                         if key == auth_key and (username == key_comment_user or username == "keyuser"):
@@ -123,7 +138,7 @@ class Server(paramiko.ServerInterface):
                                 f"公開鍵認証成功: ユーザ名'{username}' (鍵タイプ: {key_type})")
                             return paramiko.AUTH_SUCCESSFUL
         except FileExistsError:
-            logging.error(f"公開鍵ファイルが見つかりません。")
+            logging.error(f"公開鍵ファイル '{authorized_keys_path}' が見つかりません。")
         except Exception as e:
             logging.error(f"公開鍵読み込みまたは比較中にエラー: {e}")
         logging.warning(f"公開鍵認証失敗: ユーザ名'{username}'")
@@ -135,8 +150,14 @@ class Server(paramiko.ServerInterface):
             # Webアプリ接続時はパスワード認証のみ
             return 'password'
 
+        server_config = util.app_config.get('server', {})
+        db_name = server_config.get('DBNAME')
+        if not db_name:
+            logging.error("DB名が設定されていません")
+            return ''
+
         # 通常接続時はDBからユーザの認証設定を取
-        user_auth_info = sqlite_tools.get_user_auth_info(DBNAME, username)
+        user_auth_info = sqlite_tools.get_user_auth_info(db_name, username)
         if user_auth_info:
             auth_method = user_auth_info['auth_method']
             if auth_method == 'key_only':
@@ -291,6 +312,17 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
     Returns:
         tuple: 認証成功時は (login_id, user_id, userdata)、失敗時は (None, None, None)
     """
+    server_config = util.app_config.get('server', {})
+    security_config = util.app_config.get('security', {})
+    db_name_from_config = server_config.get('DBNAME')
+    max_attempts = server_config.get('MAX_PASSWORD_ATTEMPTS', 3)
+    pbkdf2_rounds = security_config.get('pbkdf2_rounds', 100000)
+    if not db_name_from_config:
+        logging.error("DB名が設定ファイルにありません")
+        if chan and chan.active:
+            chan.send("\r\nサーバ設定エラー。シスオペに連絡してください\r\n")
+        return None, None, None
+
     try:
         chan.send("** Connect **\r\n\n")
         chan.send("ID: ")
@@ -301,12 +333,12 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
             return None, None, None  # 切断された場合のみ None を返す
 
         results = sqlite_tools.fetchall_idbase(
-            dbname, 'users', 'name', login_id_input)
+            db_name_from_config, 'users', 'name', login_id_input)
 
         if not results:  # IDが存在しない場合
             logging.warning(f"認証施行: 存在しないID '{login_id_input}' ({addr})")
             password_attempts = 0  # ループ外で使うため初期化
-            for i in range(max_password_attempts):
+            for i in range(max_attempts):
                 password_attempts = i + 1  # 試行回数を記録
                 chan.send("PASSWORD: ")
                 login_pass_attempt = ssh_input.hide_process_input(chan)
@@ -317,17 +349,17 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                 try:
                     dummy_salt = os.urandom(16)
                     hashlib.pbkdf2_hmac('sha256', login_pass_attempt.encode(
-                        'utf-8'), dummy_salt, 100000)
+                        'utf-8'), dummy_salt, pbkdf2_rounds)
                 except Exception:
                     pass  # エラーは無視
                 chan.send("IDまたはパスワードが違います。\r\n")
                 logging.warning(
-                    f"認証失敗 (存在しないID): '{login_id_input}',試行 {password_attempts}/{max_password_attempts} ({addr})")
+                    f"認証失敗 (存在しないID): '{login_id_input}',試行 {password_attempts}/{max_attempts} ({addr})")
             # ループが正常に終わった場合（試行回数超過）
-            chan.send(f"{max_password_attempts}回以上間違えました。切断します。\r\n")
+            chan.send(f"{max_attempts}回以上間違えました。切断します。\r\n")
             return None, None, None  # IDが存在しない場合はここで終了
 
-        # --- ID が存在する場合の処理 (else は不要、上の if で return するため) ---
+        # ID が存在する場合の処理 (else は不要、上の if で return するため)
         userdata = results[0]
         login_id = userdata['name']
         user_id = userdata['id']
@@ -347,7 +379,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                     'sha256',
                     provided_password.encode('utf-8'),
                     salt,
-                    100000
+                    pbkdf2_rounds
                 ).hex()
 
                 match = (stored_password_hash == provided_hash)
@@ -357,7 +389,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                 return False  # 検証失敗
 
         password_attempts = 0
-        while password_attempts < max_password_attempts:
+        while password_attempts < max_attempts:
             chan.send("PASSWORD: ")
             login_pass = ssh_input.hide_process_input(chan)
             if login_pass is None:
@@ -372,11 +404,11 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                 # 認証失敗
                 password_attempts += 1
                 logging.warning(
-                    f"認証失敗: ID '{login_id}' のパスワード間違い ({password_attempts}/{max_password_attempts}) ({addr})")
+                    f"認証失敗: ID '{login_id}' のパスワード間違い ({password_attempts}/{max_attempts}) ({addr})")
                 chan.send("IDまたはパスワードが違います。\r\n")
 
         # パスワード試行回数超過
-        chan.send(f"{max_password_attempts}回以上パスワードを間違えました。切断します。\r\n")
+        chan.send(f"{max_attempts}回以上パスワードを間違えました。切断します。\r\n")
         return None, None, None
 
     except Exception as e:
@@ -421,11 +453,18 @@ def handle_client(client, addr, host_key, is_web_app=True):
         if is_web_app:
             # webアプリの場合paramiko認証が成功してればOK
             # Server.check_auth_password で設定に書かれたID/PASSWORDのSSH認証が行われている前提
+            db_name_from_config = util.app_config.get(
+                'server', {}).get('DBNAME')
+            max_attempts_from_config = util.app_config.get(
+                'server', {}).get('MAX_PASSWORD_ATTEMPTS', 3)
+            if not db_name_from_config:
+                logging.error("DB名が設定されていません(webapp)")
+                return
             if transport.is_authenticated():
                 # SSH認証は成功。次にBBSアプリケーションレベルの認証を行う。
                 logging.info(f"WEBアプリからのSSH接続認証成功。BBS認証に進みます。 ({addr})")
                 login_id, user_id, userdata = authenticate_user(
-                    chan, addr, DBNAME, MAX_PASSWORD_ATTEMPTS)
+                    chan, addr, db_name_from_config, max_attempts_from_config)
             else:
                 logging.error(
                     f"WEBアプリ接続でparamiko認証に失敗しました。(is_authenticated is False ({addr})")
@@ -435,9 +474,14 @@ def handle_client(client, addr, host_key, is_web_app=True):
             if transport.is_authenticated():
                 login_id = transport.get_username()
                 logging.info(f"SSH接続認証成功。 ユーザ名: {login_id} ({addr})")
+                db_name_from_config = util.app_config.get(
+                    'server', {}).get('DBNAME')
+                if not db_name_from_config:
+                    logging.error("DB名が設定されていません")
+                    return
                 # SSHユーザ名でDBからユーザ情報を取得
                 results = sqlite_tools.fetchall_idbase(
-                    DBNAME, 'users', 'name', login_id)
+                    db_name_from_config, 'users', 'name', login_id)
                 if results:
                     userdata = results[0]
                     user_id = userdata['id']
@@ -470,11 +514,17 @@ def handle_client(client, addr, host_key, is_web_app=True):
 
         # ログイン後処理
         try:
+            db_name_from_config = util.app_config.get(
+                'server', {}).get('DBNAME')
+            if not db_name_from_config:
+                logging.error("DB名が設定されていません")
+                return
+
             # ログイン時刻記録
             login_time = int(time.time())
             # sqlite_tools.update_idbase の第3引数は許可カラムリスト
             sqlite_tools.update_idbase(
-                DBNAME, 'users', ['lastlogin'], user_id, 'lastlogin', login_time)
+                db_name_from_config, 'users', ['lastlogin'], user_id, 'lastlogin', login_time)
 
             # オンラインメンバーに追加
             with online_members_lock:
@@ -486,7 +536,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
             util.show_textsfile(chan, "MENU/OPENNING.2")
 
             # サーバ設定読み込み
-            pref_list = sqlite_tools.read_server_pref(DBNAME)
+            pref_list = sqlite_tools.read_server_pref(db_name_from_config)
             pref_names = ['bbs', 'chat', 'mail',
                           'telegram', 'userpref', 'who']
             if pref_list and len(pref_list) == len(pref_names):
@@ -501,7 +551,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
             userlevel = userdata['level'] if userdata and 'level' in userdata.keys(
             ) else 0
 
-            normal_logoff = process_command_loop(chan, DBNAME, login_id, user_id,
+            normal_logoff = process_command_loop(chan, db_name_from_config, login_id, user_id,
                                                  userlevel, server_pref_dict, addr)
 
         except Exception as e:
@@ -538,12 +588,12 @@ def handle_client(client, addr, host_key, is_web_app=True):
                             f"オンラインリストから {login_id} を削除しました (finally)。オンライン: {len(online_members)}人")
 
             # ログアウト時刻記録 (user_id が None でないことを確認)
-            if user_id is not None:
+            if user_id is not None and db_name_from_config:
                 try:
                     logout_time = int(time.time())
                     # sqlite_tools.update_idbase の第3引数は許可カラムリスト
                     sqlite_tools.update_idbase(
-                        DBNAME, 'users', ['lastlogout'], user_id, 'lastlogout', logout_time)
+                        db_name_from_config, 'users', ['lastlogout'], user_id, 'lastlogout', logout_time)
                     logging.info(
                         f"予期せぬ切断のため、ユーザー {login_id} のログアウト時刻を記録しました (finally)。")
                 except Exception as e:
@@ -577,26 +627,52 @@ def wait_for_connections(sock, host_key, is_web_app_server):
 
 
 def main():
+    # 設定読み込み
+    try:
+        util.load_app_config_from_path(CONFIG_FILE_PATH)
+    except Exception as e:
+        logging.critical(
+            f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
+        print(f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
+        return
+    server_config = util.app_config.get('server', {})
+    webapp_config = util.app_config.get('webapp', {})
+
+    db_name_from_config = server_config.get('DBNAME')
+    bind_host_from_config = server_config.get('BIND_HOST', '0.0.0.0')
+    webapp_key_path_from_config = webapp_config.get(
+        'WEBAPP_KEY_PATH', 'test_rsa.key')
+    webapp_bind_port_from_config = webapp_config.get('WEBAPP_BIND_PORT')
+    normal_bind_port_from_config = server_config.get('NORMAL_BIND_PORT_START')
+    NORMAL_SSH_PORT_COUNT_from_config = server_config.get(
+        'NORMAL_SSH_PORT_COUNT', 1)
+
+    if not db_name_from_config:
+        logging.critical("DB名が設定ファイルにありません")
+        print("DB名が設定ファイルにありません")
+        return
     # データベース初期化チェック
-    if not os.path.isfile(DBNAME):
-        logging.info(f"データベースファイル '{DBNAME}'が見つかりません。初期化を実行します。")
+    if not os.path.isfile(db_name_from_config):
+        logging.info(
+            f"データベースファイル '{db_name_from_config}'が見つかりません。初期化を実行します。")
         try:
-            util.make_sysop_and_database(DBNAME)
+            util.make_sysop_and_database(db_name_from_config)
             logging.info("データベースの初期化が完了しました。")
         except Exception as e:
             logging.exception(f"データベースの初期化中にエラーが発生しました。: {e}")
             return
     else:
-        logging.info(f"データベースファイル '{DBNAME}'を使用します。")
+        logging.info(f"データベースファイル '{db_name_from_config}'を使用します。")
 
     # ホストキー読み込み
     host_key = None
     try:
-        host_key = paramiko.RSAKey(filename=HOST_KEY_PATH)
-        logging.info(f"ホストキー '{HOST_KEY_PATH}'を読み込みました。")
+        host_key = paramiko.RSAKey(filename=webapp_key_path_from_config)
+        logging.info(f"ホストキー '{webapp_key_path_from_config}'を読み込みました。")
     except Exception as e:
-        logging.exception(f"ホストキー '{HOST_KEY_PATH}'が見つからないか、読み込めません。")
-        print(f"エラー: ホストキー '{HOST_KEY_PATH}' が見つからないか、読み込めません。")
+        logging.exception(
+            f"ホストキー '{webapp_key_path_from_config}'が見つからないか、読み込めません。")
+        print(f"エラー: ホストキー '{webapp_key_path_from_config}' が見つからないか、読み込めません。")
         print("SSHサーバーを起動できません。")
         print("RSAキーを生成してください (例: ssh-keygen -t rsa -f test_rsa.key)")
         return
@@ -605,55 +681,76 @@ def main():
     threads = []  # 起動したスレッド用リスト
 
     # WEBアプリ用ソケット準備とスレッド作成
-    try:
-        webapp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        webapp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        webapp_sock.bind((BIND_HOST, WEBAPP_BIND_PORT))
-        webapp_sock.listen(5)
-        logging.info(f"WEBアプリ用SSHサーバが{BIND_HOST}:{WEBAPP_BIND_PORT}で待機中...")
-        listening_sockets.append(webapp_sock)
+    if webapp_bind_port_from_config is not None:
+        try:
+            webapp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            webapp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            webapp_sock.bind(
+                (bind_host_from_config, webapp_bind_port_from_config))
+            webapp_sock.listen(5)
+            logging.info(
+                f"WEBアプリ用SSHサーバが{bind_host_from_config}:{webapp_bind_port_from_config}で待機中...")
+            listening_sockets.append(webapp_sock)
 
-        web_app_thread = threading.Thread(
-            target=wait_for_connections, args=(webapp_sock, host_key, True), daemon=True)
-        web_app_thread.start()
-        threads.append(web_app_thread)
-    except Exception as e:
-        logging.exception(
-            f"WEBアプリ用ポート{BIND_HOST}:{WEBAPP_BIND_PORT}での起動に失敗: {e}")
-        # WEBアプリ用がコケたら通常用も起動しないで終了
-        for s in listening_sockets:
-            s.close()
-        return
+            web_app_thread = threading.Thread(
+                target=wait_for_connections, args=(webapp_sock, host_key, True), daemon=True)
+            web_app_thread.start()
+            threads.append(web_app_thread)
+        except Exception as e:
+            logging.exception(
+                f"WEBアプリ用ポート{bind_host_from_config}:{webapp_bind_port_from_config}での起動に失敗: {e}")
+            # WEBアプリ用がコケたら通常用も起動しないで終了
+    else:
+        logging.info("WEBアプリのポートが設定されていないため、通常用SSHサーバのみを起動します。")
 
     # 通常接続用ソケットの準備とスレッド起動
-    for i in range(SSH_SERVER_THREAD_COUNT):
-        normal_port = NORMAL_BIND_PORT_START+i
+    if normal_bind_port_from_config is not None:
         try:
-            normal_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            normal_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            normal_sock.bind((BIND_HOST, normal_port))
-            normal_sock.listen(10)  # ちょっと多めに
-            logging.info(f"通常用SSHサーバが{BIND_HOST}:{normal_port}で待機中...")
-            listening_sockets.append(normal_sock)
+            num_ports = int(NORMAL_SSH_PORT_COUNT_from_config)
+            if num_ports <= 0:
+                logging.warning(f"SSHサーバポート数が0以下になっています。")
+            else:
 
-            normal_thread = threading.Thread(
-                target=wait_for_connections, args=(normal_sock, host_key, False), daemon=True)
-            normal_thread.start()
-            threads.append(normal_thread)
+                for i in range(num_ports):
+                    normal_port = normal_bind_port_from_config+i
+                    normal_sock_instance = None
+                    try:
+                        normal_sock_instance = socket.socket(
+                            socket.AF_INET, socket.SOCK_STREAM)
+                        normal_sock_instance.setsockopt(
+                            socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        normal_sock_instance.bind(
+                            (bind_host_from_config, normal_port))
+                        normal_sock_instance.listen(10)  # ちょっと多めに
+                        logging.info(
+                            f"通常用SSHサーバが{bind_host_from_config}:{normal_port}で待機中...")
+                        listening_sockets.append(normal_sock_instance)
+
+                        normal_thread = threading.Thread(
+                            target=wait_for_connections, args=(normal_sock_instance, host_key, False), daemon=True)
+                        normal_thread.start()
+                        threads.append(normal_thread)
+                    except Exception as e:
+                        logging.exception(
+                            f"通常ポート{bind_host_from_config}:{normal_port}での起動に失敗: {e}")
+                        # 失敗したポートがあっても他のポートは頑張って起動する
+                        if normal_sock_instance:
+                            normal_sock_instance.close()
+                            if normal_sock_instance in listening_sockets:
+                                listening_sockets.remove(normal_sock_instance)
+                        continue
         except Exception as e:
-            logging.exception(f"通常ポート{BIND_HOST}:{normal_port}での起動に失敗: {e}")
-            # 失敗したポートがあっても他のポートは頑張って起動する
-            if normal_sock:
-                normal_sock.close()
-                if normal_sock in listening_sockets:
-                    listening_sockets.remove(normal_sock)
-            continue
+            logging.exception(
+                f"通常ポート{bind_host_from_config}:{normal_bind_port_from_config}での起動に失敗: {e}")
+    else:
+        logging.info("通常接続用ポートが設定されていないので、通常接続用SSHサーバは起動しません。")
 
-        if not any(t.is_alive() for t in threads if t is not None):
-            logging.info("接続を受け付けるスレッドがないのでサーバを終了します。")
-            for s in listening_sockets:
+    if not any(t.is_alive() for t in threads if t is not None):
+        logging.info("接続を受け付けるスレッドがないのでサーバを終了します。")
+        for s in listening_sockets:
+            if s:
                 s.close()
-            return
+        return
 
     # webアプリ接続用スレッドスタート
     try:
