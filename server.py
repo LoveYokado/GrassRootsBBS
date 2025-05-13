@@ -21,6 +21,17 @@ logging.basicConfig(level=logging.INFO,
 online_members_lock = threading.Lock()  # ロックオブジェクト作成
 online_members = set()
 
+# 同時接続数とロック周り
+# webapp
+current_webapp_clients = 0
+current_webapp_clients_lock = threading.Lock()
+max_concurrent_webapp_clients_config = 0
+
+# ssh
+current_normal_ssh_clients = 0
+current_normal_ssh_clients_lock = threading.Lock()
+max_concurrent_normal_ssh_clients_config = 0
+
 
 class Server(paramiko.ServerInterface):
     def __init__(self, is_web_app_connection=False):
@@ -572,6 +583,21 @@ def handle_client(client, addr, host_key, is_web_app=True):
             # normal_logoff が正しく反映されるはず
             f"接続終了処理開始: {addr} (ログインID:{login_id}, 正常ログオフ:{normal_logoff})")
 
+        # 接続数カウンタデクリメント
+        if is_web_app:
+            with current_webapp_clients_lock:
+                global current_webapp_clients
+                current_webapp_clients = max(0, current_webapp_clients-1)
+                logging.debug(
+                    f"Webapp接続カウンタデクリメント: {current_webapp_clients}/{max_concurrent_webapp_clients_config}")
+        else:
+            with current_normal_ssh_clients_lock:
+                global current_normal_ssh_clients
+                current_normal_ssh_clients = max(
+                    0, current_normal_ssh_clients-1)
+                logging.debug(
+                    f"通常SSH接続カウンタデクリメント: {current_normal_ssh_clients}/{max_concurrent_normal_ssh_clients_config}")
+
         # 正常ログオフでない場合、かつログイン成功していた場合のみ後処理を試みる
         if logged_in and not normal_logoff:
             logging.warning(
@@ -617,9 +643,39 @@ def wait_for_connections(sock, host_key, is_web_app_server):
     while True:
         try:
             client, addr = sock.accept()
+
+            # 接続上限チェック
+            if is_web_app_server:
+                with current_webapp_clients_lock:
+                    global current_webapp_clients
+                    if max_concurrent_webapp_clients_config > 0 and current_webapp_clients >= max_concurrent_webapp_clients_config:
+                        logging.info(
+                            f"Webapp接続上限({max_concurrent_webapp_clients_config})に達しました。新規接続を拒否します({addr})")
+                        client.close()
+                        continue
+                    current_webapp_clients += 1
+                    logging.debug(
+                        f"Webapp接続カウンタインクリメント: {current_webapp_clients}/{max_concurrent_webapp_clients_config}")
+            else:
+                with current_normal_ssh_clients_lock:
+                    global current_normal_ssh_clients
+                    if max_concurrent_normal_ssh_clients_config > 0 and current_normal_ssh_clients >= max_concurrent_normal_ssh_clients_config:
+                        logging.info(
+                            f"通常SSH接続上限({max_concurrent_normal_ssh_clients_config})に達しました。新規接続を拒否します({addr})")
+                        client.close()
+                        continue
+                    current_normal_ssh_clients += 1
+                    logging.debug(
+                        f"通常SSH接続カウンタインクリメント: {current_normal_ssh_clients}/{max_concurrent_normal_ssh_clients_config}")
+
+            # スレッド開始
             client_thread = threading.Thread(
                 target=handle_client, args=(client, addr, host_key, is_web_app_server), daemon=True)
             client_thread.start()
+        except socket.timeout:
+            logging.info(
+                f"接続待ち受け中にタイムアウトしました(is_web_app_server={is_web_app_server})。")
+            continue
         except Exception as e:
             logging.error(
                 f"接続待ち受け中に予期せぬエラーが発生しました(is_web_app_server={is_web_app_server}): {e}")
@@ -635,6 +691,7 @@ def main():
             f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         print(f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         return
+    global max_concurrent_webapp_clients_config, max_concurrent_normal_ssh_clients_config
     server_config = util.app_config.get('server', {})
     webapp_config = util.app_config.get('webapp', {})
 
@@ -646,6 +703,10 @@ def main():
     normal_bind_port_from_config = server_config.get('NORMAL_BIND_PORT_START')
     NORMAL_SSH_PORT_COUNT_from_config = server_config.get(
         'NORMAL_SSH_PORT_COUNT', 1)
+    max_concurrent_webapp_clients_config = server_config.get(
+        'MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
+    max_concurrent_normal_ssh_clients_config = server_config.get(
+        'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', 0)
 
     if not db_name_from_config:
         logging.critical("DB名が設定ファイルにありません")
@@ -686,7 +747,7 @@ def main():
             webapp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             webapp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             webapp_sock.bind(
-                (bind_host_from_config, webapp_bind_port_from_config))
+                (bind_host_from_config, int(webapp_bind_port_from_config)))
             webapp_sock.listen(5)
             logging.info(
                 f"WEBアプリ用SSHサーバが{bind_host_from_config}:{webapp_bind_port_from_config}で待機中...")
@@ -711,7 +772,7 @@ def main():
                 logging.warning(f"SSHサーバポート数が0以下になっています。")
             else:
 
-                for i in range(num_ports):
+                for i in range(int(num_ports)):
                     normal_port = normal_bind_port_from_config+i
                     normal_sock_instance = None
                     try:
@@ -720,7 +781,7 @@ def main():
                         normal_sock_instance.setsockopt(
                             socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                         normal_sock_instance.bind(
-                            (bind_host_from_config, normal_port))
+                            (bind_host_from_config, int(normal_port)))
                         normal_sock_instance.listen(10)  # ちょっと多めに
                         logging.info(
                             f"通常用SSHサーバが{bind_host_from_config}:{normal_port}で待機中...")
