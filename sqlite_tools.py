@@ -130,7 +130,7 @@ def sqlite_execute_query(dbname, sql, params=None, fetch=False):
             conn.commit()
             return None
     except sqlite3.Error as e:
-        print(f"SQLiteエラー: {e}")
+        logging.error(f"SQLiteエラー: {e}")
         if conn:
             conn.rollback()  # 書き込みエラーの場合ロールバック
         return None
@@ -172,7 +172,7 @@ def read_server_pref(dbname):
         return list(results[0])
     else:
         # テーブルが存在しないか空の場合
-        print("警告: server_pref テーブルが見つからないか、空です。")
+        logging.warning("警告: server_pref テーブルが見つからないか、空です。")
         # デフォルト値を返すか、None を返すなどエラー処理を明確にする
         return [0, 1, 1, 1, 1, 1]  # 例: デフォルト値を返す
 
@@ -210,7 +210,29 @@ def load_and_delete_telegrams(dbname, recipient_name):
         sqlite_execute_query(dbname, sql_delete, tuple(telegram_ids))
     else:
         # 通常ここには来ないはずだが、念のためログ
-        print(f"警告: 電報データは取得できましたが、IDリストが空です。受信者: {recipient_name}")
+        logging.warning(f"警告: 電報データは取得できましたが、IDリストが空です。受信者: {recipient_name}")
 
     # 取得した電報データを返す (id を含んだまま)
     return results
+
+
+def get_memberlist(dbname, search_word=None):
+    """
+    メンバーリストを取得する。検索ワードがなければ全表示
+    """
+    try:
+        conn = sqlite3.connect(dbname)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        sql = "SELECT name, comment FROM users"
+        if search_word:
+            sql += " WHERE name LIKE ? OR comment LIKE ?"
+            cur.execute(sql, (f"%{search_word}%", f"%{search_word}%"))
+        else:
+            cur.execute(sql)
+        results = cur.fetchall()
+        conn.close()
+        return [dict(row) for row in results]
+    except sqlite3.Error as e:
+        logging.error(f"会員リスト取得エラー: {e}")
+        return None

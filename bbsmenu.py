@@ -89,6 +89,68 @@ def telegram_recieve(chan, dbname, username):
         pass
 
 
+# ... (他の関数)
+
+
+def userpref_menu(chan, dbname, login_id):
+    """ユーザー設定メニュー"""
+    util.show_textsfile(chan, "MENU/USER_.1")  # メニュー表示
+    while True:
+        util.show_textfile(chan, "userpref/prompt.txt")  # プロンプト表示
+        input_buffer = ssh_input.process_input(chan)
+        if input_buffer is None:
+            break  # 接続が切れた場合
+
+        command = input_buffer.lower().strip()
+        if command == '1':
+            # メニューモード変更 (未実装)
+            chan.send("メニューモード変更は未実装です。\r\n")
+        elif command == '2':
+            # パスワード変更
+            change_password(chan, dbname, login_id)
+        elif command == '3':
+            # プロフィール変更
+            change_profile(chan, dbname, login_id)
+        elif command == '4':
+            # 会員リスト表示
+            show_member_list(chan, dbname)
+        elif command == '5':
+            # 最終ログイン日時仮設定 (未実装)
+            chan.send("最終ログイン日時仮設定は未実装です。\r\n")
+        elif command == '6':
+            # 探索リスト登録 (未実装)
+            chan.send("探索リスト登録は未実装です。\r\n")
+        elif command == '7':
+            # 探索リスト読み出し (未実装)
+            chan.send("探索リスト読み出しは未実装です。\r\n")
+        elif command == '8':
+            # 元探索リスト読み出し (未実装)
+            chan.send("元探索リスト読み出しは未実装です。\r\n")
+        elif command == '9':
+            # 電報受信制限 (未実装)
+            chan.send("電報受信制限は未実装です。\r\n")
+        elif command == 'e' or command == '':
+            break  # メニューから抜ける
+        elif command == 'h' or command == '?':
+            util.show_textsfile(chan, "MENU/USER_.1")  # メニュー再表示
+        else:
+            chan.send("無効なコマンドです。\r\n")
+
+
+def show_member_list(chan, dbname):
+    """会員リストを表示する"""
+    util.show_textfile(
+        chan, "userpref/search_imput.txt")
+    search_word = ssh_input.process_input(chan)
+    member_list = sqlite_tools.get_memberlist(dbname, search_word)
+    if member_list:
+        for member in member_list:
+            chan.send(
+                f"{member.get('name', 'N/A')} {member.get('comment', 'N/A')}\r\n")
+    else:
+        chan.send("会員リストは空です。\r\n")
+
+
 def who_menu(chan, dbname, online_members):
     """
     オンラインメンバー一覧を表示する

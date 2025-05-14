@@ -282,6 +282,10 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
             online_list = get_online_members_list()
             bbsmenu.telegram_send(chan, dbname, login_id, online_list)
+            
+        #　ユーザ環境設定(ゲスト以上すべて)
+        elif command in ("u") and userlevel >= 1:
+            bbsmenu.userpref_menu(chan, dbname, login_id)            
 
         # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
