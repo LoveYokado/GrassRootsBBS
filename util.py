@@ -7,7 +7,7 @@ import hashlib
 import time
 import sqlite3
 
-import bbsmenu
+import text.userpref.bbsmenu as bbsmenu
 import sqlite_tools
 
 
@@ -48,25 +48,25 @@ def _validate_config_or_log_warnings():
             logging.warning(f"設定ファイルに必須セクション '{section}' がありません。")
 
 
-def show_textsfile(chan, filename):
+def show_textsfile(chan, filename, menu_mode='2'):
     """テキストファイルを表示する"""
     try:
-        sendm = txt_reads(filename)
+        sendm = txt_reads(filename+'.'+menu_mode)
         for s in sendm:
             chan.send(s + '\r')
     except FileNotFoundError:
-        logging.warning(f"テキストファイル '{filename}' が見つかりません。")
+        logging.warning(f"テキストファイル '{filename+'.'+menu_mode}' が見つかりません。")
     except Exception as e:
         logging.error(f"テキストファイル表示エラー: {e}")
 
 
-def show_textfile(chan, filename):
+def show_textfile(chan, filename, menu_mode='2'):
     try:
-        sendm = txt_read(filename)
+        sendm = txt_read(filename+'.'+menu_mode)
         chan.send(sendm)
     except FileNotFoundError:
         logging.warning(
-            f"テキストファイル '{filename}' が見つかりません。")
+            f"テキストファイル '{filename+'.'+menu_mode}' が見つかりません。")
     except Exception as e:
         logging.error(f"テキストファイル表示エラー: {e}")
 
@@ -139,7 +139,8 @@ def make_sysop_and_database(dbname):
                 lastlogout INTEGER,
                 comment TEXT,
                 mail TEXT,
-                auth_method TEXT DEFAULT'passsword_only' NOT NULL CHECK(auth_method IN ('key_only','password_only','webapp_only','both'))
+                auth_method TEXT DEFAULT 'password_only' NOT NULL CHECK(auth_method IN ('key_only','password_only','webapp_only','both')),
+                menu_mode TEXT DEFAULT '2' NOT NULL CHECK(menu_mode IN ('1','2','3'))
             )'''
         )
         print("users table created.")
@@ -265,7 +266,7 @@ def make_sysop_and_database(dbname):
         print("Database connection closed.")
 
 
-def prompt_handler(chan, dbname, login_id):
+def prompt_handler(chan, dbname, login_id, menu_mode='2'):
     """ 定型実行のまとめ """
     bbsmenu.telegram_recieve(chan, dbname, login_id)
     server_prefs = sqlite_tools.read_server_pref(dbname)

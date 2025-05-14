@@ -92,19 +92,24 @@ def telegram_recieve(chan, dbname, username):
 # ... (他の関数)
 
 
-def userpref_menu(chan, dbname, login_id):
+def userpref_menu(chan, dbname, login_id, current_menu_mode):
     """ユーザー設定メニュー"""
-    util.show_textsfile(chan, "MENU/USER_.1")  # メニュー表示
+    util.show_textsfile(chan, "MENU/USER_", current_menu_mode)  # メニュー表示
     while True:
-        util.show_textfile(chan, "userpref/prompt.txt")  # プロンプト表示
+        util.show_textfile(chan, "userpref/prompt",
+                           current_menu_mode)  # プロンプト表示
         input_buffer = ssh_input.process_input(chan)
         if input_buffer is None:
             break  # 接続が切れた場合
 
         command = input_buffer.lower().strip()
         if command == '1':
-            # メニューモード変更 (未実装)
-            chan.send("メニューモード変更は未実装です。\r\n")
+            new_mode_after_change = change_menu_mode(
+                chan, dbname, login_id, current_menu_mode)
+            if new_mode_after_change and new_mode_after_change != current_menu_mode:
+                current_menu_mode = new_mode_after_change
+                util.show_textsfile(chan, "MENU/USER_", current_menu_mode)
+                continue
         elif command == '2':
             # パスワード変更
             change_password(chan, dbname, login_id)
@@ -113,7 +118,7 @@ def userpref_menu(chan, dbname, login_id):
             change_profile(chan, dbname, login_id)
         elif command == '4':
             # 会員リスト表示
-            show_member_list(chan, dbname)
+            show_member_list(chan, dbname, current_menu_mode)
         elif command == '5':
             # 最終ログイン日時仮設定 (未実装)
             chan.send("最終ログイン日時仮設定は未実装です。\r\n")
@@ -132,15 +137,51 @@ def userpref_menu(chan, dbname, login_id):
         elif command == 'e' or command == '':
             break  # メニューから抜ける
         elif command == 'h' or command == '?':
-            util.show_textsfile(chan, "MENU/USER_.1")  # メニュー再表示
+            util.show_textsfile(chan, "MENU/USER_",
+                                current_menu_mode)  # メニュー再表示
         else:
             chan.send("無効なコマンドです。\r\n")
 
 
-def show_member_list(chan, dbname):
+def change_menu_mode(chan, dbname, login_id, current_menu_mode):
+    """メニューモード変更"""
+    user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
+    if user_id is None:
+        chan.send("ユーザー情報が見つかりません。\r\n")
+        return None
+    while True:
+        util.show_textsfile(
+            chan, "userpref/menu_mode_select", current_menu_mode)
+        choice = ssh_input.process_input(chan)
+        if choice is None:
+            return None  # 切断
+
+        choice = choice.upper().strip()
+        new_menu_mode = None
+        if choice == '1':
+            new_menu_mode = '1'
+        elif choice == '2':
+            new_menu_mode = '2'
+        elif choice == '3':
+            new_menu_mode = '3'
+        elif choice == 'e' or choice == '':
+            return None
+        else:
+            continue
+
+        if new_menu_mode:
+            if sqlite_tools.update_user_menu_mode(dbname, user_id, new_menu_mode):
+                chan.send(f"メニューモードを {new_menu_mode} に変更しました。\r\n")
+                return new_menu_mode
+            else:
+                chan.send("メニューモードの変更に失敗しました。\r\n")
+            return None
+
+
+def show_member_list(chan, dbname, current_menu_mode):
     """会員リストを表示する"""
     util.show_textfile(
-        chan, "userpref/search_imput.txt")
+        chan, "userpref/search_input", current_menu_mode)
     search_word = ssh_input.process_input(chan)
     member_list = sqlite_tools.get_memberlist(dbname, search_word)
     if member_list:
@@ -179,9 +220,9 @@ def who_menu(chan, dbname, online_members):
         "-------------------------------------------------------------------\r\n")
 
 
-def sysop_menu(chan, dbname):
+def sysop_menu(chan, dbname, current_menu_mode):
     """シスオペメニュー"""
-    util.show_textsfile(chan, "serverprefmenu.txt")
+    util.show_textsfile(chan, "serverprefmenu", current_menu_mode)
     while True:
         chan.send("Server Preferences: ")
         input_buffer = ssh_input.process_input(chan)
@@ -195,7 +236,7 @@ def sysop_menu(chan, dbname):
         if command == "q":
             break
         if command == "":  # 空入力の場合
-            util.show_textsfile(chan, "serverprefmenu.txt")
+            util.show_textsfile(chan, "serverprefmenu", current_menu_mode)
             continue
 
         # --- 設定一覧表示 ---
@@ -296,7 +337,7 @@ def sysop_menu(chan, dbname):
 
         # --- ユーザ情報変更メニュー ---
         elif command == CMD_USER_EDIT:
-            util.show_textsfile(chan, "useredit.txt")
+            util.show_textsfile(chan, "useredit", current_menu_mode)
             while True:  # サブメニュー用ループ
                 chan.send("ユーザ編集メニュー: ")
                 sub_input = ssh_input.process_input(chan)
@@ -357,7 +398,7 @@ def sysop_menu(chan, dbname):
                 elif sub_command == "4":  # インデント修正 & 変数名修正
                     chan.send("ユーザー削除は未実装です。\r\n")
                 elif sub_command == "":  # 空入力の場合、再度メニュー表示
-                    util.show_textsfile(chan, "useredit.txt")
+                    util.show_textsfile(chan, "useredit", current_menu_mode)
                 else:  # インデント修正
                     chan.send("無効な選択です。\r\n")
 
@@ -365,7 +406,7 @@ def sysop_menu(chan, dbname):
         else:
             chan.send("無効なコマンドです。\r\n")
             # メインメニューを再表示
-            util.show_textsfile(chan, "serverprefmenu.txt")
+            util.show_textsfile(chan, "serverprefmenu", current_menu_mode)
 
     # sysop_menu のメインループを抜けた場合 (q が入力された場合)
     chan.send("シスオペメニューを終了します。\r\n")

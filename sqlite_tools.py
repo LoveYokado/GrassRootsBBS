@@ -236,3 +236,26 @@ def get_memberlist(dbname, search_word=None):
     except sqlite3.Error as e:
         logging.error(f"会員リスト取得エラー: {e}")
         return None
+
+
+def update_user_menu_mode(dbname, user_id, new_mode):
+    """ユーザーのメニューモードを更新する"""
+    ALLOWED_MODES = ['JP', 'US', 'ANSI']
+    if new_mode not in ALLOWED_MODES:
+        logging.error(f"無効なメニューモードが指定されました: {new_mode}")
+        return False
+
+    try:
+        # update_idbase を使う場合 (usersテーブルの許可カラムリストに 'menu_mode' を追加する必要あり)
+        # ALLOWED_COLUMNS_USERS = ['lastlogout', 'lastlogin', 'password', 'salt', 'comment', 'mail', 'level', 'auth_method', 'menu_mode']
+        # update_idbase(dbname, 'users', ALLOWED_COLUMNS_USERS, user_id, 'menu_mode', new_mode)
+
+        # sqlite_execute_query を直接使う場合
+        sql = "UPDATE users SET menu_mode = ? WHERE id = ?"
+        sqlite_execute_query(dbname, sql, (new_mode, user_id))
+        logging.info(f"ユーザーID {user_id} のメニューモードを {new_mode} に更新しました。")
+        return True
+    except Exception as e:
+        logging.error(
+            f"メニューモード更新中にエラー (UserID: {user_id}, Mode: {new_mode}): {e}")
+        return False

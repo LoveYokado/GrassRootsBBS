@@ -1,6 +1,6 @@
 import mail_handler
 import sqlite_tools
-import bbsmenu
+import text.userpref.bbsmenu as bbsmenu
 import util
 import ssh_input
 import socket
@@ -181,13 +181,13 @@ class Server(paramiko.ServerInterface):
         return ''
 
 
-def logoff_user(chan, dbname, login_id, user_id):
+def logoff_user(chan, dbname, login_id, user_id, menu_mode):
     """ユーザの正常なログオフ処理を行う"""
     global online_members_lock, online_members
     logged_off_successfully = False  # ログオフフラグ
 
     # ログオフメッセージ表示
-    util.show_textsfile(chan, "logoff_message.txt")
+    util.show_textsfile(chan, "logoff_message", menu_mode)
 
     # オンラインメンバーから削除
     removed_from_list = False
@@ -228,7 +228,7 @@ def get_online_members_list():
         return list(online_members)
 
 
-def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref_dict, addr):  # addr を追加
+def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref_dict, addr, menu_mode):  # addr を追加
     """
     メインのコマンド処理ループを実行する。
 
@@ -239,6 +239,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         user_id: ユーザーID
         userlevel: ユーザーレベル
         server_pref_dict: サーバー設定辞書
+        menu_mode: メニューモード
         addr: クライアントアドレス (ログ用)
 
     Returns:
@@ -247,10 +248,10 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
     normal_logoff = False  # ループ内でログオフ状態を管理
     while True:
         # 定期実行
-        util.prompt_handler(chan, dbname, login_id)
+        util.prompt_handler(chan, dbname, login_id, menu_mode)
 
         # プロンプト表示
-        util.show_textfile(chan, "top_prompt.txt")
+        util.show_textfile(chan, "top_prompt", menu_mode)
         input_buffer = ssh_input.process_input(chan)
 
         if input_buffer is None:  # クライアント切断
@@ -263,29 +264,29 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # ヘルプメニュー表示 BIGMODELはヘルプがHと?で別
         if command in ('h'):
-            util.show_textsfile(chan, "MENU/MENU.2")
+            util.show_textsfile(chan, "MENU/MENU", menu_mode)
             chan.send("\r\n")
         elif command in ('?'):
-            util.show_textsfile(chan, "MENU/MENU_.1")
+            util.show_textsfile(chan, "MENU/MENU_", menu_mode)
             chan.send("\r\n")
 
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
-            bbsmenu.sysop_menu(chan, dbname)
+            bbsmenu.sysop_menu(chan, dbname, menu_mode)
 
         # オンラインメンバー一覧表示
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
             online_list = get_online_members_list()
-            bbsmenu.who_menu(chan, dbname, online_list)
+            bbsmenu.who_menu(chan, dbname, online_list, menu_mode)
 
         # 電報送信
         elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
             online_list = get_online_members_list()
             bbsmenu.telegram_send(chan, dbname, login_id, online_list)
-            
-        #　ユーザ環境設定(ゲスト以上すべて)
+
+        # 　ユーザ環境設定(ゲスト以上すべて)
         elif command in ("u") and userlevel >= 1:
-            bbsmenu.userpref_menu(chan, dbname, login_id)            
+            bbsmenu.userpref_menu(chan, dbname, login_id, menu_mode)
 
         # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
@@ -304,11 +305,11 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # 切断処理
         elif command == "e":
             normal_logoff = logoff_user(
-                chan, dbname, login_id, user_id)
+                chan, dbname, login_id, user_id, menu_mode)
             break  # ループを抜ける
 
         else:
-            util.show_textsfile(chan, "MENU/MENU.2")
+            util.show_textsfile(chan, "MENU/MENU", menu_mode)
         # コマンドループ終了 (while True)
 
     return normal_logoff  # ログオフ状態を返す
@@ -546,9 +547,11 @@ def handle_client(client, addr, host_key, is_web_app=True):
                 online_members.add(login_id)
             logging.info(
                 f"ユーザ {login_id} がログインしました。オンライン: {len(online_members)}人")
-
+            current_menu_mode = userdata['menu_mode']if userdata and 'menu_mode' in userdata.keys(
+            ) else '2'
+            menu_mode = current_menu_mode
             # ウェルカムメッセージ
-            util.show_textsfile(chan, "MENU/OPENNING.2")
+            util.show_textsfile(chan, "MENU/OPENNING", menu_mode)
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(db_name_from_config)
@@ -563,11 +566,10 @@ def handle_client(client, addr, host_key, is_web_app=True):
                 default_prefs = {'bbs': 0, 'chat': 1, 'mail': 1,
                                  'telegram': 1, 'userpref': 1, 'who': 1}
                 server_pref_dict = default_prefs
-            userlevel = userdata['level'] if userdata and 'level' in userdata.keys(
-            ) else 0
+            userlevel = userdata['level'] if userdata and 'level' in userdata else 0
 
             normal_logoff = process_command_loop(chan, db_name_from_config, login_id, user_id,
-                                                 userlevel, server_pref_dict, addr)
+                                                 userlevel, server_pref_dict, addr, menu_mode)
 
         except Exception as e:
             logging.exception(
