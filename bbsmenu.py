@@ -192,7 +192,7 @@ def show_member_list(chan, dbname, current_menu_mode):
         chan.send("会員リストは空です。\r\n")
 
 
-def who_menu(chan, dbname, online_members):
+def who_menu(chan, dbname, online_members, current_menu_mode):
     """
     オンラインメンバー一覧を表示する
     """
