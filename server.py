@@ -11,6 +11,7 @@ import os
 import time
 import logging
 import base64
+import datetime
 
 
 CONFIG_FILE_PATH = "setting/config.toml"
@@ -187,7 +188,7 @@ def logoff_user(chan, dbname, login_id, user_id, menu_mode):
     logged_off_successfully = False  # ログオフフラグ
 
     # ログオフメッセージ表示
-    util.show_textsfile(chan, "logoff_message", menu_mode)
+    util.send_text_by_key(chan, "logoff.message", menu_mode)
 
     # オンラインメンバーから削除
     removed_from_list = False
@@ -251,23 +252,22 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         util.prompt_handler(chan, dbname, login_id, menu_mode)
 
         # プロンプト表示
-        util.show_textfile(chan, "top_prompt", menu_mode)
+        util.send_text_by_key(chan, "top_menu.prompt",
+                              menu_mode, add_newline=False)
         input_buffer = ssh_input.process_input(chan)
 
         if input_buffer is None:  # クライアント切断
-            # ログに addr を追加
             logging.info(f"ユーザ {login_id} が切断しました。({addr})")
             normal_logoff = False  # 異常終了
             break  # ループを抜ける
 
         command = input_buffer.lower().strip()
 
-        # ヘルプメニュー表示 BIGMODELはヘルプがHと?で別
+        # ヘルプメニュー表示 ヘルプがHと?で別にもできる
         if command in ('h'):
-            util.show_textsfile(chan, "MENU/MENU", menu_mode)
-            chan.send("\r\n")
+            util.send_text_by_key(chan, "top_menu.help_h", menu_mode)
         elif command in ('?'):
-            util.show_textsfile(chan, "MENU/MENU_", menu_mode)
+            util.send_text_by_key(chan, "top_menu.help_q", menu_mode)
             chan.send("\r\n")
 
         # シスオペメニュー
@@ -309,7 +309,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             break  # ループを抜ける
 
         else:
-            util.show_textsfile(chan, "MENU/MENU", menu_mode)
+            util.send_text_by_key(chan, "top_menu.help_h", menu_mode)
         # コマンドループ終了 (while True)
 
     return normal_logoff  # ログオフ状態を返す
@@ -550,8 +550,23 @@ def handle_client(client, addr, host_key, is_web_app=True):
             current_menu_mode = userdata['menu_mode']if userdata and 'menu_mode' in userdata.keys(
             ) else '2'
             menu_mode = current_menu_mode
+
+            # 最終ログイン時刻を文字列化
+            last_login_time = userdata['lastlogin'] if userdata and 'lastlogin' in userdata.keys(
+            ) else 0
+            last_login_str = "なし"
+            if last_login_time and last_login_time > 0:
+                try:
+                    last_login_str = datetime.datetime.fromtimestamp(
+                        last_login_time).strftime('%Y-%m-%d %H:%M:%S')
+                except (OSError,  TypeError, ValueError):
+                    logging.warning(
+                        f"最終ログイン時刻の変換に失敗しました。 {last_login_time}")
+                    last_login_str = "不明な日時"
+
             # ウェルカムメッセージ
-            util.show_textsfile(chan, "MENU/OPENNING", menu_mode)
+            util.send_text_by_key(
+                chan, "login.welcome_message", menu_mode, login_id=login_id, last_login_str=last_login_str)
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(db_name_from_config)

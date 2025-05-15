@@ -6,10 +6,13 @@ import os  # os.path を使うためにインポート
 import hashlib
 import time
 import sqlite3
+import yaml
 
 import bbsmenu
 import sqlite_tools
 
+# テキストデータのキャッシュ用グローバル変数
+_master_text_data_cache = None
 
 # 設定辞書(グローバル)
 app_config = {}
@@ -48,55 +51,115 @@ def _validate_config_or_log_warnings():
             logging.warning(f"設定ファイルに必須セクション '{section}' がありません。")
 
 
-def show_textsfile(chan, filename, menu_mode='2'):
-    """テキストファイルを表示する"""
+def load_master_text_data():
+    """全体のテキストデータを読み込んでキャッシュする。"""
+    global _master_text_data_cache
+    if _master_text_data_cache is not None:
+        return _master_text_data_cache
+
+    # テキストデータを読み込む
+    master_text_data_filename = "textdata.yaml"
+    file_path = os.path.join('text', master_text_data_filename)
     try:
-        sendm = txt_reads(filename+'.'+menu_mode)
-        for s in sendm:
-            chan.send(s + '\r')
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+            _master_text_data_cache = data  # キャッシュ作りまーす
+            return _master_text_data_cache
     except FileNotFoundError:
-        logging.warning(f"テキストファイル '{filename+'.'+menu_mode}' が見つかりません。")
+        logging.error(f"テキストデータファイル '{file_path}' が見つかりません。")
+        _master_text_data_cache = {}
+        return _master_text_data_cache
     except Exception as e:
-        logging.error(f"テキストファイル表示エラー: {e}")
+        logging.error(f"テキストデータファイル '{file_path}' の読み込みエラー: {e}")
+        _master_text_data_cache = {}
+        return _master_text_data_cache
 
 
-def show_textfile(chan, filename, menu_mode='2'):
+def get_text_by_key(key_string, menu_mode, default_value=""):
+    """
+    指定モードのテキストデータを取得する。
+    例：get_text_by_key("user_pref_menu.header","1")
+    """
+    master_data = load_master_text_data()
+    keys = key_string.split('.')
+    current_level_data = master_data
     try:
-        sendm = txt_read(filename+'.'+menu_mode)
-        chan.send(sendm)
-    except FileNotFoundError:
+        # 要素の取り出し
+        for key_part in keys:
+            if not isinstance(current_level_data, dict):
+                logging.warning(
+                    f"キー {key_string} のパス {key_part}が辞書ではありません。")
+                return default_value
+            current_level_data = current_level_data[key_part]
+
+        if isinstance(current_level_data, dict):
+            mode_specific_key = f"mode_{menu_mode}"
+            text_value = current_level_data[mode_specific_key]
+
+            if isinstance(text_value, list):
+                return "\r\n".join(text_value)  # 複数行の場合
+            return str(text_value)  # 単行の場合
+
+        else:
+            # キーの終端が辞書ではなかった場合
+            logging.warning(
+                f"キー {key_string}の終端が予期した形式ではありません。(mode_{menu_mode}を持つ辞書にしてください)")
+            return default_value
+    except (KeyError, TypeError):
         logging.warning(
-            f"テキストファイル '{filename+'.'+menu_mode}' が見つかりません。")
-    except Exception as e:
-        logging.error(f"テキストファイル表示エラー: {e}")
+            f"キー {key_string} (mode{menu_mode}) に対応するテキストデータが見つかりません。")
+        return default_value
 
 
-def txt_reads(filename):
-    """ ./text/ の複数行のテキストファイルを読むだけ。"""
-    # ファイルパスを安全に結合
-    filepath = os.path.join('text', filename)
-    try:
-        # with 文を使ってファイルを確実に閉じる
-        with open(filepath, 'r', encoding='UTF-8', newline='\n') as f:
-            data = f.readlines()
-        return data
-    except FileNotFoundError:
-        logging.warning(f"エラー: ファイルが見つかりません - {filepath}")
-        return []  # 空のリストを返すなど、エラー処理を追加
+def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=True, **kwargs):
+    """指定されたキーのテキストをチャンネルに送信する
+    キーワード引数でプレイスホルダを置換可能"""
+    text_to_send = get_text_by_key(key_string, menu_mode, default_value)
+    if text_to_send:
+        try:
+            if kwargs:
+                text_to_send = text_to_send.format(**kwargs)
 
+            # SSHチャンネル向けに改行コードを正規化 (\r\n または \n を \r\n に統一)
+            processed_text = text_to_send.replace(
+                '\r\n', '\n').replace('\n', '\r\n')
 
-def txt_read(filename):
-    """./text/ の一行のテキストファイルを読むだけ。"""
-    # ファイルパスを安全に結合
-    filepath = os.path.join('text', filename)
-    try:
-        # with 文を使ってファイルを確実に閉じる
-        with open(filepath, 'r', encoding='UTF-8', newline='\n') as f:
-            data = f.read()
-        return data
-    except FileNotFoundError:
-        logging.warning(f"エラー: ファイルが見つかりません - {filepath}")
-        return ""  # 空文字列を返すなど、エラー処理を追加
+            # 末尾の改行を追加するかどうか制御
+            if add_newline:
+                if not processedtext.endswith('\r\n'):
+                    chan.sechannel.send(processed_text + '\r\n')
+
+            else:
+                chan.send(processed_text)
+
+        except KeyError as e:
+            logging.warning(
+                f"キー {key_string}のテキストフォーマット中にエラー：未定義のプレイスホルダ {e}")
+            # フォーマットエラーの場合も、改行処理と送信は試みる (text_to_send はフォーマット前のもの)
+            processed_text_on_error = text_to_send.replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            if add_newline:
+                if not processed_text_on_error.endswith('\r\n'):
+                    chan.send(processed_text_on_error + '\r\n')
+                else:
+                    chan.send(processed_text_on_error)
+            else:
+                chan.send(processed_text_on_error)
+        except Exception as e:
+            logging.error(
+                f"テキスト送信中にエラー(キー: {key_string})： {e}")
+            processed_text_on_error = text_to_send.replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            if add_newline:
+                if not processed_text_on_error.endswith('\r\n'):
+                    chan.send(processed_text_on_error + '\r\n')
+                else:
+                    chan.send(processed_text_on_error)
+            else:
+                chan.send(processed_text_on_error)
+    elif not default_value:
+        logging.warning(
+            f"キー {key_string} (mode{menu_mode}) に対応するテキストデータがないのでスキップします。")
 
 
 def hash_password(password):
@@ -320,3 +383,56 @@ def generate_ssh_keypair(username):
     except Exception as e:
         logging.error(f"SSH鍵生成エラー: {e}")
         return None
+
+
+# ここからしたはデバッグ後に削除する
+
+def show_textsfile(chan, filename, menu_mode='2'):
+    """テキストファイルを表示する"""
+    try:
+        sendm = txt_reads(filename+'.'+menu_mode)
+        for s in sendm:
+            chan.send(s + '\r')
+    except FileNotFoundError:
+        logging.warning(f"テキストファイル '{filename+'.'+menu_mode}' が見つかりません。")
+    except Exception as e:
+        logging.error(f"テキストファイル表示エラー: {e}")
+
+
+def show_textfile(chan, filename, menu_mode='2'):
+    try:
+        sendm = txt_read(filename+'.'+menu_mode)
+        chan.send(sendm)
+    except FileNotFoundError:
+        logging.warning(
+            f"テキストファイル '{filename+'.'+menu_mode}' が見つかりません。")
+    except Exception as e:
+        logging.error(f"テキストファイル表示エラー: {e}")
+
+
+def txt_reads(filename):
+    """ ./text/ の複数行のテキストファイルを読むだけ。"""
+    # ファイルパスを安全に結合
+    filepath = os.path.join('text', filename)
+    try:
+        # with 文を使ってファイルを確実に閉じる
+        with open(filepath, 'r', encoding='UTF-8', newline='\n') as f:
+            data = f.readlines()
+        return data
+    except FileNotFoundError:
+        logging.warning(f"エラー: ファイルが見つかりません - {filepath}")
+        return []  # 空のリストを返すなど、エラー処理を追加
+
+
+def txt_read(filename):
+    """./text/ の一行のテキストファイルを読むだけ。"""
+    # ファイルパスを安全に結合
+    filepath = os.path.join('text', filename)
+    try:
+        # with 文を使ってファイルを確実に閉じる
+        with open(filepath, 'r', encoding='UTF-8', newline='\n') as f:
+            data = f.read()
+        return data
+    except FileNotFoundError:
+        logging.warning(f"エラー: ファイルが見つかりません - {filepath}")
+        return ""  # 空文字列を返すなど、エラー処理を追加

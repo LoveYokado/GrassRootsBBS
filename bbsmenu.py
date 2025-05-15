@@ -95,7 +95,9 @@ def telegram_recieve(chan, dbname, username):
 
 def userpref_menu(chan, dbname, login_id, current_menu_mode):
     """ユーザー設定メニュー"""
-    util.show_textsfile(chan, "MENU/USER_", current_menu_mode)  # メニュー表示
+    util.send_text_by_key(chan, "user_pref_menu.header",
+                          current_menu_mode)  # メニュー表示
+
     while True:
         util.show_textfile(chan, "userpref/prompt",
                            current_menu_mode)  # プロンプト表示
@@ -138,8 +140,8 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
         elif command == 'e' or command == '':
             break  # メニューから抜ける
         elif command == 'h' or command == '?':
-            util.show_textsfile(chan, "MENU/USER_",
-                                current_menu_mode)  # メニュー再表示
+            util.send_text_by_key(
+                chan, "user_pref_menu.header", current_menu_mode)  # メニュー再表示
         else:
             chan.send("無効なコマンドです。\r\n")
 

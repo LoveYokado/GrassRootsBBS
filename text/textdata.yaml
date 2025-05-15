@@ -493,12 +493,9 @@ login:
       WELCOME, {login_id}!
       LAST LOGIN: {last_login_str}
 
-
 # --- 未実装機能のプレースホルダー ---
 unimplemented:
   message:
     mode_1: "{feature_name} は未実装です。\r\n"
     mode_2: "{feature_name} is unimplemented.\r\n"
     mode_3: "{feature_name} N/I.\r\n"
-
-```
