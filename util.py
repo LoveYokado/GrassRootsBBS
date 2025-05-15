@@ -126,11 +126,13 @@ def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=
 
             # 末尾の改行を追加するかどうか制御
             if add_newline:
-                if not processedtext.endswith('\r\n'):
-                    chan.sechannel.send(processed_text + '\r\n')
+                if not processed_text.endswith('\r\n'):
+                    chan.send(processed_text + '\r\n')
+                else:
+                    chan.send(processed_text)  # 既に改行で終わっている場合はそのまま送信
 
             else:
-                chan.send(processed_text)
+                chan.send(processed_text)  # 末尾に改行を追加しない
 
         except KeyError as e:
             logging.warning(

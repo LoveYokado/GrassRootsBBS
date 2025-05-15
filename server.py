@@ -581,7 +581,8 @@ def handle_client(client, addr, host_key, is_web_app=True):
                 default_prefs = {'bbs': 0, 'chat': 1, 'mail': 1,
                                  'telegram': 1, 'userpref': 1, 'who': 1}
                 server_pref_dict = default_prefs
-            userlevel = userdata['level'] if userdata and 'level' in userdata else 0
+            userlevel = userdata['level'] if userdata and 'level' in userdata.keys(
+            ) else 0
 
             normal_logoff = process_command_loop(chan, db_name_from_config, login_id, user_id,
                                                  userlevel, server_pref_dict, addr, menu_mode)

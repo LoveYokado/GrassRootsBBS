@@ -99,8 +99,8 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
                           current_menu_mode)  # メニュー表示
 
     while True:
-        util.show_textfile(chan, "userpref/prompt",
-                           current_menu_mode)  # プロンプト表示
+        util.send_text_by_key(chan, "userpref.prompt",
+                              current_menu_mode, add_newline=False)  # プロンプト表示
         input_buffer = ssh_input.process_input(chan)
         if input_buffer is None:
             break  # 接続が切れた場合
@@ -111,7 +111,8 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
                 chan, dbname, login_id, current_menu_mode)
             if new_mode_after_change and new_mode_after_change != current_menu_mode:
                 current_menu_mode = new_mode_after_change
-                util.show_textsfile(chan, "MENU/USER_", current_menu_mode)
+                util.send_text_by_key(
+                    chan, "user_pref_menu.header", current_menu_mode)
                 continue
         elif command == '2':
             # パスワード変更
@@ -153,8 +154,8 @@ def change_menu_mode(chan, dbname, login_id, current_menu_mode):
         chan.send("ユーザー情報が見つかりません。\r\n")
         return None
     while True:
-        util.show_textsfile(
-            chan, "userpref/menu_mode_select", current_menu_mode)
+        util.send_text_by_key(
+            chan, "userpref.menu_mode_select", current_menu_mode, add_newline=False)
         choice = ssh_input.process_input(chan)
         if choice is None:
             return None  # 切断
@@ -183,8 +184,8 @@ def change_menu_mode(chan, dbname, login_id, current_menu_mode):
 
 def show_member_list(chan, dbname, current_menu_mode):
     """会員リストを表示する"""
-    util.show_textfile(
-        chan, "userpref/search_input", current_menu_mode)
+    util.send_text_by_key(
+        chan, "userpref_menu.member_list.search_prompt", current_menu_mode, add_newline=False)
     search_word = ssh_input.process_input(chan)
     member_list = sqlite_tools.get_memberlist(dbname, search_word)
     if member_list:
@@ -192,19 +193,19 @@ def show_member_list(chan, dbname, current_menu_mode):
             chan.send(
                 f"{member.get('name', 'N/A')} {member.get('comment', 'N/A')}\r\n")
     else:
-        chan.send("会員リストは空です。\r\n")
+        util.send_text_by_key(chan, "userpref_menu.member_list.notfound",
+                              current_menu_mode)  # リストが空のとき
 
 
 def who_menu(chan, dbname, online_members, current_menu_mode):
     """
     オンラインメンバー一覧を表示する
     """
-    chan.send("オンラインメンバー一覧\r\n")
-    chan.send("NAME            COMMENT\r\n")
-    chan.send(
-        "-------------------------------------------------------------------\r\n")
+    util.send_text_by_key(
+        chan, "who_menu.header", current_menu_mode)
     if not online_members:
-        chan.send("現在オンラインのメンバーはいません。\r\n")  # メッセージ修正
+        util.send_text_by_key(chan, "who_menu.nomembers",
+                              current_menu_mode)
         return
 
     for member_name in online_members:
@@ -219,13 +220,12 @@ def who_menu(chan, dbname, online_members, current_menu_mode):
             # 基本的に online_members にいるユーザーは DB に存在するはずだが念のため
             chan.send(f"{member_name:<15} {'(ユーザー情報取得エラー)'}\r\n")
             print(f"警告: オンラインメンバー '{member_name}' の情報がDBに見つかりません。")
-    chan.send(
-        "-------------------------------------------------------------------\r\n")
+    util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)
 
 
 def sysop_menu(chan, dbname, current_menu_mode):
     """シスオペメニュー"""
-    util.show_textsfile(chan, "serverprefmenu", current_menu_mode)
+    util.send_text_by_key(chan, "serverprefmenu", current_menu_mode)
     while True:
         chan.send("Server Preferences: ")
         input_buffer = ssh_input.process_input(chan)
@@ -239,7 +239,7 @@ def sysop_menu(chan, dbname, current_menu_mode):
         if command == "q":
             break
         if command == "":  # 空入力の場合
-            util.show_textsfile(chan, "serverprefmenu", current_menu_mode)
+            util.send_text_by_key(chan, "serverpref.menu", current_menu_mode)
             continue
 
         # --- 設定一覧表示 ---
