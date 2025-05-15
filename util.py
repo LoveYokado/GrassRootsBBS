@@ -7,7 +7,7 @@ import hashlib
 import time
 import sqlite3
 
-import text.userpref.bbsmenu as bbsmenu
+import bbsmenu
 import sqlite_tools
 
 
@@ -140,7 +140,7 @@ def make_sysop_and_database(dbname):
                 comment TEXT,
                 mail TEXT,
                 auth_method TEXT DEFAULT 'password_only' NOT NULL CHECK(auth_method IN ('key_only','password_only','webapp_only','both')),
-                menu_mode TEXT DEFAULT '2' NOT NULL CHECK(menu_mode IN ('1','2','3'))
+                menu_mode TEXT DEFAULT '1' NOT NULL CHECK(menu_mode IN ('1','2','3'))
             )'''
         )
         print("users table created.")

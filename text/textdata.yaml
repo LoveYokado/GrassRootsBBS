@@ -1,0 +1,504 @@
+##
+## GrassRootsBBS テキストデータファイル
+## このファイルには、各メニューモードに対応した表示テキストが格納されています。
+##
+## 構造:
+## feature_name: # 例: user_pref_menu, sysop_menu, common_messages
+##   element_name: # 例: header, prompt, options, messages
+##     mode_1: "モード1のテキスト"
+##     mode_2: "モード2のテキスト"
+##     mode_3: "モード3のテキスト"
+##     # 複数行の場合は | または > を使用
+##     mode_1: |
+##       複数行のテキスト
+##       です。
+##
+
+# --- トップメニュー関連 ---
+top_menu:
+  prompt:
+    mode_1: "コマンドを入力してください: "
+    mode_2: "Enter command: "
+    mode_3: "CMD > "
+  help_h: # Hキーで表示されるヘルプ
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        コマンド一覧 (日本語)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      H, ? : ヘルプ表示
+      S    : シスオペメニュー (Sysop以上)
+      W    : オンラインメンバー一覧
+      T, ! : 電報送信
+      U    : ユーザー環境設定
+      M    : メールメニュー
+      B    : 掲示板
+      C    : チャット
+      E    : ログオフ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Command List (English)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      H, ? : Show Help
+      S    : Sysop Menu (Sysop+)
+      W    : Online Members List
+      T, ! : Send Telegram
+      U    : User Preferences
+      M    : Mail Menu
+      B    : BBS
+      C    : Chat
+      E    : Logoff
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
+      ╔═══════════════════════════════════════╗
+      ║   COMMAND LIST (ANSI)                 ║
+      ╚═══════════════════════════════════════╝
+      H, ? : HELP
+      S    : SYSOP (LVL 5+)
+      W    : WHO
+      T, ! : TELEGRAM
+      U    : USER PREFS
+      M    : MAIL
+      B    : BBS
+      C    : CHAT
+      E    : LOGOFF
+      ╚═══════════════════════════════════════╝
+  help_q: # ?キーで表示されるヘルプ (Hと同じ内容で良いか、別途定義するかは要検討)
+    mode_1: |
+      (Hキーと同じ内容をここに記述するか、参照させる)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        コマンド一覧 (日本語)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      H, ? : ヘルプ表示
+      S    : シスオペメニュー (Sysop以上)
+      W    : オンラインメンバー一覧
+      T, ! : 電報送信
+      U    : ユーザー環境設定
+      M    : メールメニュー
+      B    : 掲示板
+      C    : チャット
+      E    : ログオフ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      (Same as H key)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Command List (English)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      H, ? : Show Help
+      S    : Sysop Menu (Sysop+)
+      W    : Online Members List
+      T, ! : Send Telegram
+      U    : User Preferences
+      M    : Mail Menu
+      B    : BBS
+      C    : Chat
+      E    : Logoff
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
+      (SAME AS H)
+      ╔═══════════════════════════════════════╗
+      ║   COMMAND LIST (ANSI)                 ║
+      ╚═══════════════════════════════════════╝
+      H, ? : HELP
+      S    : SYSOP (LVL 5+)
+      W    : WHO
+      T, ! : TELEGRAM
+      U    : USER PREFS
+      M    : MAIL
+      B    : BBS
+      C    : CHAT
+      E    : LOGOFF
+      ╚═══════════════════════════════════════╝
+
+# --- ユーザー設定メニュー関連 ---
+user_pref_menu:
+  header: # メニュー本体の表示
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        端末環境設定の説明 (日本語)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [1] メニューモード変更
+      [2] パスワード変更
+      [3] プロフィール変更
+      [4] 会員リスト
+      [5] 最終ログイン日時仮設定 (未実装)
+      [6] 探索リスト登録 (未実装)
+      [7] 探索リスト読み出し (未実装)
+      [8] 元探索リスト読み出し (未実装)
+      [9] 電報受信制限 (未実装)
+      [E] 終了
+      [H,?]: ヘルプ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Terminal Environment Settings (English)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [1] Change Menu Mode
+      [2] Change Password
+      [3] Change Profile
+      [4] Member List
+      [5] Set Last Login Time (Unimplemented)
+      [6] Register Search List (Unimplemented)
+      [7] Load Search List (Unimplemented)
+      [8] Load Original Search List (Unimplemented)
+      [9] Telegram Receive Restriction (Unimplemented)
+      [E] Exit
+      [H,?]: Help
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
+      ╔═══════════════════════════════════════╗
+      ║   USER PREFS (ANSI)                   ║
+      ╚═══════════════════════════════════════╝
+      [1] CHG MODE
+      [2] CHG PASS
+      [3] CHG PROF
+      [4] MEMBER LIST
+      [5] SET LAST LOGIN (N/I)
+      [6] REG SEARCH (N/I)
+      [7] LOAD SEARCH (N/I)
+      [8] LOAD ORIG SEARCH (N/I)
+      [9] TELEGRAM RESTRICT (N/I)
+      [E] EXIT
+      [H,?]: HELP
+      ╚═══════════════════════════════════════╝
+  prompt: # メニュー選択プロンプト
+    mode_1: "YourPref (JP): "
+    mode_2: "YourPref (US): "
+    mode_3: "YOURPREF > "
+
+  # --- メニューモード変更サブメニュー ---
+  mode_selection:
+    header: # モード選択肢の表示
+      mode_1: |
+        メニューモードを選択してください:
+        [1] モード1 (日本語)
+        [2] モード2 (英語)
+        [3] モード3 (ANSI)
+        [Q] キャンセル
+      mode_2: |
+        Select Menu Mode:
+        [1] Mode 1 (Japanese)
+        [2] Mode 2 (English)
+        [3] Mode 3 (ANSI)
+        [Q] Cancel
+      mode_3: |
+        SELECT MODE:
+        [1] MODE 1 (JP)
+        [2] MODE 2 (US)
+        [3] MODE 3 (ANSI)
+        [Q] CANCEL
+    prompt: # モード選択プロンプト
+      mode_1: "選択してください: "
+      mode_2: "Select: "
+      mode_3: "SELECT > "
+    confirm_changed: # 変更成功メッセージ (フォーマット文字列)
+      mode_1: "メニューモードを {mode} に変更しました。\r\n"
+      mode_2: "Menu mode changed to {mode}.\r\n"
+      mode_3: "MODE CHANGED TO {mode}.\r\n"
+    confirm_failed: # 変更失敗メッセージ
+      mode_1: "メニューモードの変更に失敗しました。\r\n"
+      mode_2: "Failed to change menu mode.\r\n"
+      mode_3: "MODE CHANGE FAILED.\r\n"
+    cancel: # キャンセルメッセージ
+      mode_1: "メニューモードの変更をキャンセルしました。\r\n"
+      mode_2: "Menu mode change cancelled.\r\n"
+      mode_3: "MODE CHANGE CANCELLED.\r\n"
+    invalid_choice: # 無効な選択肢メッセージ (フォーマット文字列)
+      mode_1: "無効な選択です。{valid_choices} のいずれかを入力してください。\r\n"
+      mode_2: "Invalid choice. Please enter one of {valid_choices}.\r\n"
+      mode_3: "INVALID CHOICE. ENTER {valid_choices}.\r\n"
+
+  # --- 会員リストサブメニュー ---
+  member_list:
+    search_prompt:
+      mode_1: "検索ワードを入力してください (未入力で全件表示): "
+      mode_2: "Enter search term (leave blank for all): "
+      mode_3: "SEARCH TERM > "
+    not_found:
+      mode_1: "会員が見つかりませんでした。\r\n"
+      mode_2: "No members found.\r\n"
+      mode_3: "NO MEMBERS FOUND.\r\n"
+    # 会員情報の表示形式はコード側でフォーマットするので、ここでは不要
+
+# --- WHOメニュー関連 ---
+who_menu:
+  header:
+    mode_1: |
+      オンラインメンバー一覧 (日本語)
+      NAME            COMMENT
+      -------------------------------------------------------------------
+    mode_2: |
+      Online Members List (English)
+      NAME            COMMENT
+      -------------------------------------------------------------------
+    mode_3: |
+      ONLINE MEMBERS (ANSI)
+      NAME            COMMENT
+      -------------------------------------------------------------------
+  no_members:
+    mode_1: "現在オンラインのメンバーはいません。\r\n"
+    mode_2: "No members are currently online.\r\n"
+    mode_3: "NO ONLINE MEMBERS.\r\n"
+  user_info_error: # ユーザー情報取得エラー時の表示
+    mode_1: "(ユーザー情報取得エラー)"
+    mode_2: "(User info error)"
+    mode_3: "(USER INFO ERROR)"
+
+# --- シスオペメニュー関連 ---
+sysop_menu:
+  header: # メニュー本体の表示
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        シスオペメニュー (日本語)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [0] 設定一覧表示
+      [1] 各BBSメニューのユーザレベルごとのパーミッション
+      [2] ユーザ情報変更メニュー
+      [Q] 終了
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Sysop Menu (English)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [0] Show Settings
+      [1] Set Permissions for BBS Menus
+      [2] User Edit Menu
+      [Q] Quit
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
+      ╔═══════════════════════════════════════╗
+      ║   SYSOP MENU (ANSI)                   ║
+      ╚═══════════════════════════════════════╝
+      [0] SHOW SETTINGS
+      [1] SET PERMISSIONS
+      [2] USER EDIT
+      [Q] QUIT
+      ╚═══════════════════════════════════════╝
+  prompt:
+    mode_1: "Server Preferences (JP): "
+    mode_2: "Server Preferences (US): "
+    mode_3: "SYSOP > "
+
+  # --- ユーザー編集サブメニュー ---
+  user_edit:
+    header: # ユーザー編集メニュー本体の表示
+      mode_1: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          ユーザ情報変更メニュー (日本語)
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        [1] ユーザ一覧表示
+        [2] ユーザー情報変更 (未実装)
+        [3] ユーザー追加 (未実装)
+        [4] ユーザー削除 (未実装)
+        [Q] 終了
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      mode_2: |
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+          User Edit Menu (English)
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        [1] Show User List
+        [2] Change User Info (Unimplemented)
+        [3] Add User (Unimplemented)
+        [4] Delete User (Unimplemented)
+        [Q] Quit
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      mode_3: |
+        ╔═══════════════════════════════════════╗
+        ║   USER EDIT MENU (ANSI)               ║
+        ╚═══════════════════════════════════════╝
+        [1] SHOW USERS
+        [2] CHG USER INFO (N/I)
+        [3] ADD USER (N/I)
+        [4] DEL USER (N/I)
+        [Q] QUIT
+        ╚═══════════════════════════════════════╝
+    prompt:
+      mode_1: "ユーザ編集メニュー (JP): "
+      mode_2: "User Edit Menu (US): "
+      mode_3: "USER EDIT > "
+    user_list_header: # ユーザー一覧表示時のヘッダー
+      mode_1: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
+      mode_2: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
+      mode_3: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------" # ANSIでも同じで良いか要検討
+    no_users:
+      mode_1: "ユーザがいません。\r\n"
+      mode_2: "No users found.\r\n"
+      mode_3: "NO USERS.\r\n"
+    user_list_error:
+      mode_1: "ユーザ一覧表示中にエラーが発生しました: {error}\r\n" # フォーマット文字列
+      mode_2: "An error occurred while displaying user list: {error}\r\n"
+      mode_3: "USER LIST ERROR: {error}\r\n"
+    unimplemented_message: # 未実装機能の共通メッセージ
+      mode_1: "{feature_name} は未実装です。\r\n" # フォーマット文字列
+      mode_2: "{feature_name} is unimplemented.\r\n"
+      mode_3: "{feature_name} N/I.\r\n"
+
+# --- メールメニュー関連 ---
+mail_menu:
+  main_prompt:
+    mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "
+    mode_2: "Select ([W]rite [R]ead [L]ist Inbox): "
+    mode_3: "SELECT ([W] [R] [L]): "
+  sender_header: # 受信箱ヘッダー
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-"
+    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-"
+    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-" # ANSIでも同じで良いか要検討
+  recipient_header: # 送信箱ヘッダー
+    mode_1: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-"
+    mode_2: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-"
+    mode_3: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-" # ANSIでも同じで良いか要検討
+  no_mails:
+    mode_1: "メールはありません。\r\n"
+    mode_2: "No mails.\r\n"
+    mode_3: "NO MAILS.\r\n"
+  db_error_list:
+    mode_1: "\r\nメール一覧の取得中にエラーが発生しました。\r\n"
+    mode_2: "\r\nAn error occurred while fetching mail list.\r\n"
+    mode_3: "\r\nMAIL LIST ERROR.\r\n"
+  deleted_message:
+    mode_1: "メールは削除されています。\r\n\r\n"
+    mode_2: "Mail is deleted.\r\n\r\n"
+    mode_3: "MAIL DELETED.\r\n\r\n"
+  # ... 他のメール関連テキストも追加
+
+# --- 電報関連 ---
+telegram:
+  send_prompt:
+    mode_1: "電報を送信します (オンラインメンバーのみ)\r\n"
+    mode_2: "Send Telegram (Online members only)\r\n"
+    mode_3: "SEND TELEGRAM (ONLINE ONLY)\r\n"
+  recipient_prompt:
+    mode_1: "宛先ID: "
+    mode_2: "Recipient ID: "
+    mode_3: "TO ID: "
+  recipient_not_online:
+    mode_1: "ID '{recipient_name}' は現在オンラインではありません。\r\n" # フォーマット文字列
+    mode_2: "ID '{recipient_name}' is not currently online.\r\n"
+    mode_3: "ID '{recipient_name}' NOT ONLINE.\r\n"
+  message_prompt:
+    mode_1: "電報メッセージ (最大100文字): "
+    mode_2: "Telegram message (max 100 chars): "
+    mode_3: "MSG (MAX 100): "
+  no_recipient:
+    mode_1: "宛先が入力されていません。\r\n"
+    mode_2: "Recipient not entered.\r\n"
+    mode_3: "NO RECIPIENT.\r\n"
+  no_message:
+    mode_1: "メッセージが入力されていません。\r\n"
+    mode_2: "Message not entered.\r\n"
+    mode_3: "NO MSG.\r\n"
+  message_truncated:
+    mode_1: "メッセージが長すぎるため、100文字に切り詰めました。\r\n"
+    mode_2: "Message too long, truncated to 100 chars.\r\n"
+    mode_3: "MSG TRUNCATED.\r\n"
+  send_success:
+    mode_1: "電報を送信しました。\r\n"
+    mode_2: "Telegram sent.\r\n"
+    mode_3: "TELEGRAM SENT.\r\n"
+  send_error:
+    mode_1: "電報の送信中にエラーが発生しました。\r\n"
+    mode_2: "An error occurred while sending telegram.\r\n"
+    mode_3: "TELEGRAM SEND ERROR.\r\n"
+  receive_header:
+    mode_1: "--- 電報が届いています ---\r\n"
+    mode_2: "--- Telegrams Received ---\r\n"
+    mode_3: "--- TELEGRAMS ---\r\n"
+  receive_footer:
+    mode_1: "--- 電報ここまで ---\r\n"
+    mode_2: "--- End of Telegrams ---\r\n"
+    mode_3: "--- END TELEGRAMS ---\r\n"
+  unknown_date:
+    mode_1: "不明な日時"
+    mode_2: "Unknown Date"
+    mode_3: "UNK DATE"
+
+# --- ログオフ関連 ---
+logoff:
+  message: # ログオフメッセージ (util.show_textsfile で使われている想定)
+    mode_1: |
+      ログオフしました。またのご利用をお待ちしております。
+      さようなら！
+    mode_2: |
+      Logged off. We look forward to seeing you again.
+      Goodbye!
+    mode_3: |
+      LOGGED OFF.
+      GOODBYE!
+
+# --- 共通メッセージ ---
+common_messages:
+  invalid_command:
+    mode_1: "無効なコマンドです。\r\n"
+    mode_2: "Invalid command.\r\n"
+    mode_3: "INVALID COMMAND.\r\n"
+  user_not_found: # ユーザーが見つからない場合の汎用メッセージ
+    mode_1: "ユーザー情報が見つかりません。\r\n"
+    mode_2: "User information not found.\r\n"
+    mode_3: "USER NOT FOUND.\r\n"
+  db_error: # データベースエラーの汎用メッセージ
+    mode_1: "データベースエラーが発生しました。シスオペに連絡してください。\r\n"
+    mode_2: "A database error occurred. Please contact the sysop.\r\n"
+    mode_3: "DB ERROR. CONTACT SYSOP.\r\n"
+  permission_denied: # 権限がない場合のメッセージ
+    mode_1: "この操作を行う権限がありません。\r\n"
+    mode_2: "You do not have permission to perform this action.\r\n"
+    mode_3: "PERMISSION DENIED.\r\n"
+  # ... 他の共通メッセージも追加
+
+# --- 認証関連 ---
+auth:
+  connect_message:
+    mode_1: "** 接続 **\r\n\n"
+    mode_2: "** Connect **\r\n\n"
+    mode_3: "** CONNECT **\r\n\n"
+  id_prompt:
+    mode_1: "ID: "
+    mode_2: "ID: "
+    mode_3: "ID: "
+  password_prompt:
+    mode_1: "PASSWORD: "
+    mode_2: "PASSWORD: "
+    mode_3: "PASS: "
+  invalid_credentials:
+    mode_1: "IDまたはパスワードが違います。\r\n"
+    mode_2: "Invalid ID or password.\r\n"
+    mode_3: "INVALID ID/PASS.\r\n"
+  account_disabled:
+    mode_1: "このIDは現在利用できません。\r\n"
+    mode_2: "This ID is currently unavailable.\r\n"
+    mode_3: "ACCOUNT DISABLED.\r\n"
+  too_many_attempts:
+    mode_1: "{max_attempts}回以上間違えました。切断します。\r\n" # フォーマット文字列
+    mode_2: "Too many attempts ({max_attempts}). Disconnecting.\r\n"
+    mode_3: "TOO MANY ATTEMPTS ({max_attempts}). DISCONNECTING.\r\n"
+  auth_error:
+    mode_1: "\r\n認証中にエラーが発生しました。切断します。\r\n"
+    mode_2: "\r\nAn error occurred during authentication. Disconnecting.\r\n"
+    mode_3: "\r\nAUTH ERROR. DISCONNECTING.\r\n"
+  ssh_auth_db_error: # SSH認証時のDBエラーなど
+    mode_1: "サーバ設定エラー。シスオペに連絡してください\r\n"
+    mode_2: "Server configuration error. Please contact the sysop.\r\n"
+    mode_3: "SERVER CONFIG ERROR. CONTACT SYSOP.\r\n"
+
+# --- ログイン後処理関連 ---
+login:
+  welcome_message: # util.show_textsfile で使われている想定
+    mode_1: |
+      ようこそ、{login_id}さん！
+      最終ログイン: {last_login_str}
+    mode_2: |
+      Welcome, {login_id}!
+      Last login: {last_login_str}
+    mode_3: |
+      WELCOME, {login_id}!
+      LAST LOGIN: {last_login_str}
+
+
+# --- 未実装機能のプレースホルダー ---
+unimplemented:
+  message:
+    mode_1: "{feature_name} は未実装です。\r\n"
+    mode_2: "{feature_name} is unimplemented.\r\n"
+    mode_3: "{feature_name} N/I.\r\n"
+
+```

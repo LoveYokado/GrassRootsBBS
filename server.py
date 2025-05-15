@@ -1,6 +1,6 @@
 import mail_handler
 import sqlite_tools
-import text.userpref.bbsmenu as bbsmenu
+import bbsmenu
 import util
 import ssh_input
 import socket
@@ -13,7 +13,7 @@ import logging
 import base64
 
 
-CONFIG_FILE_PATH = "config.toml"
+CONFIG_FILE_PATH = "setting/config.toml"
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')

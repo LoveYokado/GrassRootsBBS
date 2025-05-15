@@ -3,6 +3,7 @@ import util
 import datetime
 import sqlite_tools
 import time
+import yaml
 
 CMD_SHOW_PREFS = "0"
 CMD_SET_PERMISSIONS = "1"
