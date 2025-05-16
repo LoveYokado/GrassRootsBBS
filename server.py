@@ -353,6 +353,11 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
     server_config = util.app_config.get('server', {})
     security_config = util.app_config.get('security', {})
     db_name_from_config = server_config.get('DBNAME')
+    auth_menu_mode = server_config.get('default_auth_menu_mode', '1')
+    if auth_menu_mode not in ('1', '2', '3'):
+        logging.warning("default_auth_menu_mode 設定値不正")
+        auth_menu_mode = '1'
+
     max_attempts = server_config.get('MAX_PASSWORD_ATTEMPTS', 3)
     pbkdf2_rounds = security_config.get('pbkdf2_rounds', 100000)
     if not db_name_from_config:
@@ -362,8 +367,9 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         return None, None, None
 
     try:
-        util.send_text_by_key(chan, "auth.connect_message")  # 接続メッセージ
-        util.send_text_by_key(chan, "auth.id_prompt",
+        util.send_text_by_key(chan, "auth.connect_message",
+                              menu_mode=auth_menu_mode)  # 接続メッセージ
+        util.send_text_by_key(chan, "auth.id_prompt", menu_mode=auth_menu_mode,
                               add_newline=False)  # ID入力プロンプト
 
         login_id_input = ssh_input.process_input(chan)
@@ -380,7 +386,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
             for i in range(max_attempts):
                 password_attempts = i + 1  # 試行回数を記録
                 util.send_text_by_key(
-                    chan, "auth.password_prompt", add_newline=False)  # パスワード入力プロンプト
+                    chan, "auth.password_prompt", menu_mode=auth_menu_mode, add_newline=False)  # パスワード入力プロンプト
                 login_pass_attempt = ssh_input.hide_process_input(chan)
                 if login_pass_attempt is None:  # 切断された場合
                     logging.info(f"パスワード入力中に切断されました (存在しないID) ({addr})")
@@ -393,12 +399,12 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                 except Exception:
                     pass  # エラーは無視
                 util.send_text_by_key(
-                    chan, "auth.invalid_credentials")  # 認証失敗メッセージ
+                    chan, "auth.invalid_credentials", menu_mode=auth_menu_mode)  # 認証失敗メッセージ
                 logging.warning(
                     f"認証失敗 (存在しないID): '{login_id_input}',試行 {password_attempts}/{max_attempts} ({addr})")
             # ループが正常に終わった場合（試行回数超過）
             util.send_text_by_key(
-                chan, "auth.too_many_attempts", max_attempts=max_attempts)
+                chan, "auth.too_many_attempts", menu_mode=auth_menu_mode, max_attempts=max_attempts)
             return None, None, None  # IDが存在しない場合はここで終了
 
         # ID が存在する場合の処理 (else は不要、上の if で return するため)
@@ -410,7 +416,8 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
 
         if userdata['level'] == 0:
             logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
-            util.send_text_by_key(chan, "auth.account_disabled")  # ID停止通知
+            util.send_text_by_key(
+                chan, "auth.account_disabled", menu_mode=auth_menu_mode)  # ID停止通知
             return None, None, None
 
         def verify_password(stored_password_hash, salt_hex, provided_password):
@@ -432,7 +439,8 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
 
         password_attempts = 0
         while password_attempts < max_attempts:
-            chan.send("PASSWORD: ")
+            util.send_text_by_key(
+                chan, "auth.password_prompt", add_newline=False)  # パスワード入力プロンプト
             login_pass = ssh_input.hide_process_input(chan)
             if login_pass is None:
                 logging.info(f"パスワード入力中に切断されました ({login_id}, {addr})")
@@ -447,17 +455,21 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                 password_attempts += 1
                 logging.warning(
                     f"認証失敗: ID '{login_id}' のパスワード間違い ({password_attempts}/{max_attempts}) ({addr})")
-                chan.send("IDまたはパスワードが違います。\r\n")
+                util.send_text_by_key(
+                    chan, "auth.invalid_credentials", menu_mode=auth_menu_mode)
 
         # パスワード試行回数超過
-        chan.send(f"{max_attempts}回以上パスワードを間違えました。切断します。\r\n")
+        util.send_text_by_key(
+            chan, "auth.too_many_attempts", menu_mode=auth_menu_mode, max_attempts=max_attempts
+        )
         return None, None, None
 
     except Exception as e:
         logging.error(f"認証プロセス中に予期せぬエラーが発生しました ({addr}): {e}")
         try:
             if chan and chan.active:
-                chan.send("\r\n認証中にエラーが発生しました。切断します。\r\n")
+                util.send_text_by_key(
+                    chan, "auth.auth_error", menu_mode=auth_menu_mode)  # 認証中にエラー
         except Exception as chan_e:
             logging.error(f"認証エラー時のメッセージ送信に失敗 ({addr}): {chan_e}")
         return None, None, None
@@ -533,6 +545,8 @@ def handle_client(client, addr, host_key, is_web_app=True):
                     if user_level_val == 0:
                         logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
                         if chan.active:
+                            util.send_text_by_key(
+                                chan, "auth.account_disabled")
                             chan.send("このユーザは現在利用できません。\r\n")
                         return
                     logging.info(

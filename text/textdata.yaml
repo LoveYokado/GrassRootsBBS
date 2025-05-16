@@ -525,9 +525,9 @@ auth:
     mode_2: "This ID is currently unavailable.\r\n"
     mode_3: "ACCOUNT DISABLED.\r\n"
   too_many_attempts:
-    mode_1: "{max_attempts}回以上間違えました。切断します。\r\n" # フォーマット文字列
-    mode_2: "Too many attempts ({max_attempts}). Disconnecting.\r\n"
-    mode_3: "TOO MANY ATTEMPTS ({max_attempts}). DISCONNECTING.\r\n"
+    mode_1: "{max_attempts}回以上パスワードを間違えました。切断します。\r\n" # フォーマット文字列
+    mode_2: "Too many password attempts ({max_attempts}). Disconnecting.\r\n"
+    mode_3: "TOO MANY PASSWORD ATTEMPTS ({max_attempts}). DISCONNECTING.\r\n"
   auth_error:
     mode_1: "\r\n認証中にエラーが発生しました。切断します。\r\n"
     mode_2: "\r\nAn error occurred during authentication. Disconnecting.\r\n"

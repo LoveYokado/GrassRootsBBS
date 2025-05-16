@@ -16,6 +16,7 @@ NORMAL_SSH_PORT_COUNT = 1             # 通常接続のポート数
 MAX_CONCURRENT_NORMAL_SSH_CLIENTS = 4 # 通常接続の同時接続可能クライアント数(0で無制限)
 DBNAME = "bbs.db"
 MAX_PASSWORD_ATTEMPTS = 3             # パスワード最大試行回数
+default_auth_menu_mode = "1"          # デフォルトの認証メニューモード(1-3)
 
 [webapp]
 WEBAPP_KEY_PATH = '.sshkey/webapp_rsa.key' # webアプリのキー
