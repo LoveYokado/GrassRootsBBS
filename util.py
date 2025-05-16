@@ -333,7 +333,7 @@ def make_sysop_and_database(dbname):
 
 def prompt_handler(chan, dbname, login_id, menu_mode='2'):
     """ 定型実行のまとめ """
-    bbsmenu.telegram_recieve(chan, dbname, login_id)
+    bbsmenu.telegram_recieve(chan, dbname, login_id, menu_mode)
     server_prefs = sqlite_tools.read_server_pref(dbname)
     return server_prefs
 

@@ -96,6 +96,11 @@ class Server(paramiko.ServerInterface):
         return paramiko.AUTH_FAILED
 
     def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
+
+        # ターミナルタイプをログに出力(debug用)
+        logging.info(
+            f"PTY request: term='{term}', width={width}, height={height}, modes={modes}")
+
         return True  # PTY リクエストを許可
 
     def check_channel_shell_request(self, channel):
@@ -229,7 +234,7 @@ def get_online_members_list():
         return list(online_members)
 
 
-def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref_dict, addr, menu_mode):  # addr を追加
+def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref_dict, addr, initial_menu_mode):  # addr を追加
     """
     メインのコマンド処理ループを実行する。
 
@@ -240,20 +245,21 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         user_id: ユーザーID
         userlevel: ユーザーレベル
         server_pref_dict: サーバー設定辞書
-        menu_mode: メニューモード
+        initial_menu_mode: 初期メニューモード
         addr: クライアントアドレス (ログ用)
 
     Returns:
         bool: 正常にログオフした場合はTrue、それ以外はFalse
     """
+    current_loop_menu_mode = initial_menu_mode
     normal_logoff = False  # ループ内でログオフ状態を管理
     while True:
         # 定期実行
-        util.prompt_handler(chan, dbname, login_id, menu_mode)
+        util.prompt_handler(chan, dbname, login_id, current_loop_menu_mode)
 
         # プロンプト表示
-        util.send_text_by_key(chan, "top_menu.prompt",
-                              menu_mode, add_newline=False)
+        util.send_text_by_key(chan, "common_messages.select_prompt",
+                              current_loop_menu_mode, add_newline=False)
         input_buffer = ssh_input.process_input(chan)
 
         if input_buffer is None:  # クライアント切断
@@ -265,36 +271,51 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # ヘルプメニュー表示 ヘルプがHと?で別にもできる
         if command in ('h'):
-            util.send_text_by_key(chan, "top_menu.help_h", menu_mode)
+            # ヘルプメニュー表示(menu_mode)
+            util.send_text_by_key(chan, "top_menu.help_h",
+                                  current_loop_menu_mode)
         elif command in ('?'):
-            util.send_text_by_key(chan, "top_menu.help_q", menu_mode)
+            util.send_text_by_key(chan, "top_menu.help_q",
+                                  current_loop_menu_mode)
             chan.send("\r\n")
 
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
-            bbsmenu.sysop_menu(chan, dbname, menu_mode)
+            # シスオペメニュー(menu_mode)
+            bbsmenu.sysop_menu(chan, dbname, current_loop_menu_mode)
 
         # オンラインメンバー一覧表示
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
             online_list = get_online_members_list()
-            bbsmenu.who_menu(chan, dbname, online_list, menu_mode)
+            bbsmenu.who_menu(chan, dbname, online_list, current_loop_menu_mode)
 
         # 電報送信
         elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
             online_list = get_online_members_list()
-            bbsmenu.telegram_send(chan, dbname, login_id, online_list)
+            bbsmenu.telegram_send(chan, dbname, login_id,
+                                  online_list, current_loop_menu_mode)
 
         # 　ユーザ環境設定(ゲスト以上すべて)
         elif command in ("u") and userlevel >= 1:
-            bbsmenu.userpref_menu(chan, dbname, login_id, menu_mode)
+            previous_menu_mode_before_userpref = current_loop_menu_mode
+            returned_menu_mode = bbsmenu.userpref_menu(
+                chan, dbname, login_id, current_loop_menu_mode)
+            if returned_menu_mode:
+                current_loop_menu_mode = returned_menu_mode
+                if current_loop_menu_mode != previous_menu_mode_before_userpref:
+                    util.send_text_by_key(
+                        chan, "top_menu.help_h", current_loop_menu_mode)
+
+            bbsmenu.userpref_menu(chan, dbname, login_id,
+                                  current_loop_menu_mode)
 
         # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
-            mail_handler.mail(chan, dbname, login_id)
+            mail_handler.mail(chan, dbname, login_id, current_loop_menu_mode)
 
         # 掲示板(テスト実装)
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
-            bbsmenu.bbs_menu(chan)
+            bbsmenu.bbs_menu(chan, dbname, login_id, current_loop_menu_mode)
 
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
@@ -305,11 +326,12 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # 切断処理
         elif command == "e":
             normal_logoff = logoff_user(
-                chan, dbname, login_id, user_id, menu_mode)
+                chan, dbname, login_id, user_id, current_loop_menu_mode)
             break  # ループを抜ける
 
         else:
-            util.send_text_by_key(chan, "top_menu.help_h", menu_mode)
+            util.send_text_by_key(chan, "top_menu.help_h",
+                                  current_loop_menu_mode)
         # コマンドループ終了 (while True)
 
     return normal_logoff  # ログオフ状態を返す
@@ -340,8 +362,9 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         return None, None, None
 
     try:
-        chan.send("** Connect **\r\n\n")
-        chan.send("ID: ")
+        util.send_text_by_key(chan, "auth.connect_message")  # 接続メッセージ
+        util.send_text_by_key(chan, "auth.id_prompt",
+                              add_newline=False)  # ID入力プロンプト
 
         login_id_input = ssh_input.process_input(chan)
         if login_id_input is None:
@@ -356,7 +379,8 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
             password_attempts = 0  # ループ外で使うため初期化
             for i in range(max_attempts):
                 password_attempts = i + 1  # 試行回数を記録
-                chan.send("PASSWORD: ")
+                util.send_text_by_key(
+                    chan, "auth.password_prompt", add_newline=False)  # パスワード入力プロンプト
                 login_pass_attempt = ssh_input.hide_process_input(chan)
                 if login_pass_attempt is None:  # 切断された場合
                     logging.info(f"パスワード入力中に切断されました (存在しないID) ({addr})")
@@ -368,11 +392,13 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                         'utf-8'), dummy_salt, pbkdf2_rounds)
                 except Exception:
                     pass  # エラーは無視
-                chan.send("IDまたはパスワードが違います。\r\n")
+                util.send_text_by_key(
+                    chan, "auth.invalid_credentials")  # 認証失敗メッセージ
                 logging.warning(
                     f"認証失敗 (存在しないID): '{login_id_input}',試行 {password_attempts}/{max_attempts} ({addr})")
             # ループが正常に終わった場合（試行回数超過）
-            chan.send(f"{max_attempts}回以上間違えました。切断します。\r\n")
+            util.send_text_by_key(
+                chan, "auth.too_many_attempts", max_attempts=max_attempts)
             return None, None, None  # IDが存在しない場合はここで終了
 
         # ID が存在する場合の処理 (else は不要、上の if で return するため)
@@ -384,7 +410,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
 
         if userdata['level'] == 0:
             logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
-            chan.send("このIDは現在利用できません。\r\n")
+            util.send_text_by_key(chan, "auth.account_disabled")  # ID停止通知
             return None, None, None
 
         def verify_password(stored_password_hash, salt_hex, provided_password):
@@ -547,10 +573,8 @@ def handle_client(client, addr, host_key, is_web_app=True):
                 online_members.add(login_id)
             logging.info(
                 f"ユーザ {login_id} がログインしました。オンライン: {len(online_members)}人")
-            current_menu_mode = userdata['menu_mode']if userdata and 'menu_mode' in userdata.keys(
-            ) else '2'
-            menu_mode = current_menu_mode
-
+            initial_user_menu_mode = userdata['menu_mode'] if 'menu_mode' in userdata.keys(
+            ) else '1'
             # 最終ログイン時刻を文字列化
             last_login_time = userdata['lastlogin'] if userdata and 'lastlogin' in userdata.keys(
             ) else 0
@@ -566,7 +590,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
 
             # ウェルカムメッセージ
             util.send_text_by_key(
-                chan, "login.welcome_message", menu_mode, login_id=login_id, last_login_str=last_login_str)
+                chan, "login.welcome_message", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(db_name_from_config)
@@ -585,7 +609,8 @@ def handle_client(client, addr, host_key, is_web_app=True):
             ) else 0
 
             normal_logoff = process_command_loop(chan, db_name_from_config, login_id, user_id,
-                                                 userlevel, server_pref_dict, addr, menu_mode)
+                                                 # initial_user_menu_mode)
+                                                 userlevel, server_pref_dict, addr, initial_user_menu_mode)
 
         except Exception as e:
             logging.exception(

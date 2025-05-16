@@ -240,7 +240,7 @@ def get_memberlist(dbname, search_word=None):
 
 def update_user_menu_mode(dbname, user_id, new_mode):
     """ユーザーのメニューモードを更新する"""
-    ALLOWED_MODES = ['JP', 'US', 'ANSI']
+    ALLOWED_MODES = ['1', '2', '3']
     if new_mode not in ALLOWED_MODES:
         logging.error(f"無効なメニューモードが指定されました: {new_mode}")
         return False

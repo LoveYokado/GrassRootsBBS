@@ -4,6 +4,7 @@ import datetime
 import sqlite_tools
 import time
 import yaml
+import logging
 
 CMD_SHOW_PREFS = "0"
 CMD_SET_PERMISSIONS = "1"
@@ -20,39 +21,45 @@ def bbs_menu(chan):
     return
 
 
-def telegram_send(chan, dbname, sender_name, online_members):
+def telegram_send(chan, dbname, sender_name, online_members, current_menu_mode):
     """
     オンラインのメンバーにのみ電報を送信し、データベースに保存する。
     """
-    chan.send("電報を送信します (オンラインメンバーのみ)\r\n")
-    chan.send("宛先ID: ")
+    util.send_text_by_key(chan, "telegram.send_message",
+                          current_menu_mode)  # 電報送信メッセージ
+    util.send_text_by_key(chan, "telegram.send_prompt",
+                          current_menu_mode, add_newline=False)  # 宛先入力
     recipient_name = ssh_input.process_input(chan)
 
     if not recipient_name:
-        chan.send("宛先が入力されていません。\r\n")
+        util.send_text_by_key(chan, "telegram.no_recipient",
+                              current_menu_mode)  # 宛先がオンラインにない
         return
 
     # ここでオンラインチェック
     if recipient_name not in online_members:
-        chan.send(f"ID '{recipient_name}' は現在オンラインではありません。\r\n")
+        util.send_text_by_key(chan, "telegram.recipient_not_online",
+                              current_menu_mode, recipient_name=recipient_name)
         return
 
     # 自分自身には送れないようにする(テスト中は無効)
     # if recipient_name == sender_name:
-    #    chan.send("自分自身に電報を送ることはできません。\r\n")
+    #    util.send_text_by_key(chan, "telegram.cannot_send_to_self", current_menu_mode)
     #    return
 
-    chan.send("電報メッセージ (最大100文字): ")
+    util.send_text_by_key(chan, "telegram.message_prompt",
+                          current_menu_mode, add_newline=False)
     message = ssh_input.process_input(chan)
 
     if not message:
-        chan.send("メッセージが入力されていません。\r\n")
+        util.send_text_by_key(chan, "telegram.no_message", current_menu_mode)
         return
 
     # メッセージが長すぎる場合の処理（任意）
     if len(message) > 100:
         message = message[:100]
-        chan.send("メッセージが長すぎるため、100文字に切り詰めました。\r\n")
+        util.send_text_by_key(
+            chan, "telegram.message_truncated", current_menu_mode)
 
     # 電報をデータベースに保存 (sqlite_tools.save_telegram が必要)
     try:
@@ -60,19 +67,22 @@ def telegram_send(chan, dbname, sender_name, online_members):
         # sqlite_tools に save_telegram(dbname, sender, recipient, message, timestamp) 関数を実装する想定
         sqlite_tools.save_telegram(
             dbname, sender_name, recipient_name, message, current_timestamp)
+        util.send_text_by_key(chan, "telegram.send_success", current_menu_mode)
         chan.send("電報を送信しました。\r\n")
         # オプション: リアルタイム通知が必要なら、ここで受信側スレッドに通知する仕組みを追加
     except Exception as e:
         # サーバーログ
-        print(f"電報保存エラー (送信者: {sender_name}, 宛先: {recipient_name}): {e}")
-        chan.send("電報の送信中にエラーが発生しました。\r\n")
+        logging.warning(
+            f"電報保存エラー (送信者: {sender_name}, 宛先: {recipient_name}): {e}")
+        util.send_text_by_key(chan, "telegram.send_error", current_menu_mode)
 
 
-def telegram_recieve(chan, dbname, username):
+def telegram_recieve(chan, dbname, username, current_menu_mode):
     """受信している電報を表示すして、表示後に削除する"""
     results = sqlite_tools.load_and_delete_telegrams(dbname, username)
     if results:
-        chan.send("--- 電報が届いています ---\r\n")  # 見出しを追加
+        util.send_text_by_key(chan, "telegram.receive_header",
+                              current_menu_mode)  # 電報受信メッセージ
         for result in results:
             sender = result['sender_name']
             message = result['message']
@@ -83,8 +93,10 @@ def telegram_recieve(chan, dbname, username):
             except (ValueError, OSError, TypeError):  # TypeError も考慮
                 dt_str = "不明な日時"
             # 表示形式を修正
-            chan.send(f"[{dt_str}] From:{sender}: {message}\r\n")
-        chan.send("--- 電報ここまで ---\r\n")  # 終了を示す
+            util.send_text_by_key(
+                chan, "telegram.receive_message", current_menu_mode, sender=sender, message=message, dt_str=dt_str)  # 受信メッセージ本体
+        util.send_text_by_key(
+            chan, "telegram.receive_footer", current_menu_mode)
     else:
         # 電報がない場合は何も表示しない
         pass
@@ -95,24 +107,21 @@ def telegram_recieve(chan, dbname, username):
 
 def userpref_menu(chan, dbname, login_id, current_menu_mode):
     """ユーザー設定メニュー"""
-    util.send_text_by_key(chan, "user_pref_menu.header",
-                          current_menu_mode)  # メニュー表示
-
     while True:
-        util.send_text_by_key(chan, "userpref.prompt",
+        util.send_text_by_key(chan, "user_pref_menu.header", current_menu_mode)
+        util.send_text_by_key(chan, "common_messages.select_prompt",
                               current_menu_mode, add_newline=False)  # プロンプト表示
         input_buffer = ssh_input.process_input(chan)
         if input_buffer is None:
-            break  # 接続が切れた場合
+            return current_menu_mode  # 接続が切れた場合
 
         command = input_buffer.lower().strip()
         if command == '1':
+            # メニューモード変更
             new_mode_after_change = change_menu_mode(
                 chan, dbname, login_id, current_menu_mode)
             if new_mode_after_change and new_mode_after_change != current_menu_mode:
                 current_menu_mode = new_mode_after_change
-                util.send_text_by_key(
-                    chan, "user_pref_menu.header", current_menu_mode)
                 continue
         elif command == '2':
             # パスワード変更
@@ -139,23 +148,28 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
             # 電報受信制限 (未実装)
             chan.send("電報受信制限は未実装です。\r\n")
         elif command == 'e' or command == '':
-            break  # メニューから抜ける
+            return current_menu_mode  # メニューから抜ける
         elif command == 'h' or command == '?':
             util.send_text_by_key(
-                chan, "user_pref_menu.header", current_menu_mode)  # メニュー再表示
+                chan, "user_pref_menu.help", current_menu_mode)  # メニュー再表示
+            continue
         else:
-            chan.send("無効なコマンドです。\r\n")
+            util.send_text_by_key(
+                chan, "common_messages.invalid_command", current_menu_mode)  # 無効なコマンド
 
 
 def change_menu_mode(chan, dbname, login_id, current_menu_mode):
     """メニューモード変更"""
     user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
     if user_id is None:
-        chan.send("ユーザー情報が見つかりません。\r\n")
+        util.send_text_by_key(
+            chan, "common_messages.user_not_found", current_menu_mode)
         return None
     while True:
         util.send_text_by_key(
-            chan, "userpref.menu_mode_select", current_menu_mode, add_newline=False)
+            chan, "user_pref_menu.mode_selection.header", current_menu_mode)
+        util.send_text_by_key(
+            chan, "common_messages.select_prompt", current_menu_mode, add_newline=False)
         choice = ssh_input.process_input(chan)
         if choice is None:
             return None  # 切断
@@ -175,10 +189,12 @@ def change_menu_mode(chan, dbname, login_id, current_menu_mode):
 
         if new_menu_mode:
             if sqlite_tools.update_user_menu_mode(dbname, user_id, new_menu_mode):
-                chan.send(f"メニューモードを {new_menu_mode} に変更しました。\r\n")
+                util.send_text_by_key(chan, "user_pref_menu.mode_selection.confirm_changed",
+                                      current_menu_mode, mode=new_menu_mode)  # メニューモード変更
                 return new_menu_mode
             else:
-                chan.send("メニューモードの変更に失敗しました。\r\n")
+                util.send_text_by_key(
+                    chan, "user_pref_menu.mode_selection.confirm_failed", current_menu_mode)  # メニューモードの変更に失敗
             return None
 
 
@@ -225,13 +241,15 @@ def who_menu(chan, dbname, online_members, current_menu_mode):
 
 def sysop_menu(chan, dbname, current_menu_mode):
     """シスオペメニュー"""
-    util.send_text_by_key(chan, "serverprefmenu", current_menu_mode)
+    util.send_text_by_key(chan, "sysop_menu.header",
+                          current_menu_mode)  # メニュー表示
     while True:
-        chan.send("Server Preferences: ")
+        util.send_text_by_key(chan, "common_messages.select_prompt",
+                              current_menu_mode, add_newline=False)  # プロンプト表示
         input_buffer = ssh_input.process_input(chan)
 
         if input_buffer is None:
-            print("sysop_menu:クライアント切断")
+            logging.info("sysop_menu:クライアント切断")
             break
 
         command = input_buffer.lower().strip()  # 先に小文字化・空白除去
@@ -239,7 +257,8 @@ def sysop_menu(chan, dbname, current_menu_mode):
         if command == "q":
             break
         if command == "":  # 空入力の場合
-            util.send_text_by_key(chan, "serverpref.menu", current_menu_mode)
+            util.send_text_by_key(chan, "sysop_menu.header",
+                                  current_menu_mode)  # メニュー表示
             continue
 
         # --- 設定一覧表示 ---
@@ -248,29 +267,27 @@ def sysop_menu(chan, dbname, current_menu_mode):
             if server_prefs_list:
                 pref_names = ['bbs', 'chat', 'mail',
                               'telegram', 'userpref', 'who']
-                chan.send('サーバ設定一覧\r\n')
-                chan.send('-'*40+"\r\n")
-                chan.send('{:<20} {:<20}\r\n'.format(
-                    '項目名', '値 (レベル)'))  # ヘッダー修正
-                chan.send('-'*40+"\r\n")
+                util.send_text_by_key(
+                    chan, "sysop_menu.view_settings.header", current_menu_mode)    # 設定一覧ヘッダ
                 for i, name in enumerate(pref_names):
                     if i < len(server_prefs_list):
                         chan.send('{:<20} {:<20}\r\n'.format(
                             name, server_prefs_list[i]))
                     else:
                         # 通常ここには来ないはず (read_server_pref が固定長リストを返すため)
-                        chan.send('{:<20} {:<20}\r\n'.format(name, '(取得エラー)'))
-                chan.send('-'*40+"\r\n")  # 区切り線はループの外
+                        chan.send('{:<20} {:<20}\r\n'.format(name, '(error)'))
+                chan.send('-'*36+"\r\n")  # 区切り線はループの外
             else:
                 # read_server_pref がデフォルト値を返すようになったので、ここに来る可能性は低い
-                chan.send("設定がありません(または取得エラー)\r\n")
+                util.send_text_by_key(
+                    chan, "sysop_menu.view_settings.no_settings_error", current_menu_mode)  # 設定なしかエラー
 
         # --- 各BBSメニューのユーザレベルごとのパーミッション ---
         elif command == CMD_SET_PERMISSIONS:
-            chan.send("各BBSメニューのユーザレベルごとのパーミッションを設定します\r\n")
-            chan.send(
-                "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): ")
-
+            util.send_text_by_key(
+                chan, "sysop_menu.set_permissions.header", current_menu_mode)  # 設定メニューヘッダ
+            util.send_text_by_key(
+                chan, "sysop_menu.set_permissions.prompt", current_menu_mode, add_newline=False)  # 入力プロンプト
             menu_input = ssh_input.process_input(chan)
             if menu_input is None:  # 切断チェック
                 break
@@ -279,21 +296,27 @@ def sysop_menu(chan, dbname, current_menu_mode):
             valid_menus = ['bbs', 'chat', 'mail',
                            'telegram', 'userpref', 'who']
             if menu_to_change not in valid_menus:
-                chan.send("有効なメニューを選択してください\r\n")
+                util.send_text_by_key(
+                    chan, "common_messages.invalid_command", current_menu_mode
+                )
                 continue  # メニュー選択からやり直し
 
             user_level = None
             while user_level is None:  # 正しいレベルが入力されるまでループ
-                chan.send(
-                    "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n")
-                chan.send("ユーザレベルを入力してください(0~5): ")
+                util.send_text_by_key(
+                    chan, "sysop_menu.set_permissions.user_level_message", current_menu_mode
+                )  # ユーザレベル一覧
+                util.send_text_by_key(
+                    chan, "sysop_menu.set_permissions.leveluser_level_prompt", current_menu_mode, add_newline=False)  # プロンプト
                 level_input = ssh_input.process_input(chan)
                 if level_input is None:  # 切断チェック
                     user_level = -1  # ループを抜けるためのダミー値
                     break  # 外側のループも抜ける準備
 
                 if level_input.lower().strip() == 'q':  # キャンセル機能
-                    chan.send("レベル設定をキャンセルしました。\r\n")
+                    util.send_text_by_key(
+                        chan, "common_messages.cancel", current_menu_mode
+                    )
                     user_level = -1  # ループを抜ける
                     break
 
@@ -302,9 +325,11 @@ def sysop_menu(chan, dbname, current_menu_mode):
                     if 0 <= level_val <= 5:  # 範囲チェック修正
                         user_level = level_val  # 正しい値が入力された
                     else:
-                        chan.send("ユーザレベルは0~5の範囲で入力してください\r\n")
+                        util.send_text_by_key(
+                            chan, "sysop_menu.set_permissions.user_level_0-1_message", current_menu_mode)
                 except ValueError:
-                    chan.send("ユーザレベルは0~5の整数で入力してください\r\n")
+                    util.send_text_by_key(
+                        chan, "sysop_menu.set_permissions.user_level_0-1_message", current_menu_mode)
 
             if user_level == -1:  # 切断またはキャンセル
                 if menu_input is None:  # 切断の場合
@@ -327,22 +352,27 @@ def sysop_menu(chan, dbname, current_menu_mode):
                 elif menu_to_change == 'who':
                     sql = "UPDATE server_pref SET who=?"
                 else:
-                    chan.send(f"内部エラー:不正なメニュー項目 '{menu_to_change}' \r\n")
+                    logging.error(f"内部エラー:不正なメニュー項目 '{menu_to_change}'")
                     continue
                 try:
                     sqlite_tools.sqlite_execute_query(
                         dbname, sql, (user_level,))  # params はタプルで渡す
-                    chan.send(
-                        f"{menu_to_change}メニューのユーザレベルを{user_level}に変更しました\r\n")
+                    util.send_text_by_key(
+                        chan, "sysop_menu.set_permissions.user_level_changed", current_menu_mode, menu_to_change=menu_to_change, user_level=user_level
+                    )  # ユーザレベル変更メッセージ
                 except Exception as e:
-                    chan.send(f"データベース更新エラー: {e}\r\n")
-                    print(f"データベース更新エラー: {e}")  # サーバーログ
+                    util.send_text_by_key(
+                        chan, "common_messages.database_update_error", current_menu_mode)  # データベース更新エラー
+                    logging.error(f"データベース更新エラー: {e}")  # サーバーログ
 
         # --- ユーザ情報変更メニュー ---
         elif command == CMD_USER_EDIT:
-            util.show_textsfile(chan, "useredit", current_menu_mode)
+
             while True:  # サブメニュー用ループ
-                chan.send("ユーザ編集メニュー: ")
+                util.send_text_by_key(
+                    chan, "sysop_menu.user_edit.header", current_menu_mode)  # メニュー表示
+                util.send_text_by_key(
+                    chan, "common_messages.select_prompt", current_menu_mode, add_newline=False)  # プロンプト
                 sub_input = ssh_input.process_input(chan)
                 if sub_input is None:
                     # クライアント切断の場合、sysop_menu を抜ける
@@ -361,8 +391,8 @@ def sysop_menu(chan, dbname, current_menu_mode):
                         users = sqlite_tools.sqlite_execute_query(
                             dbname, sql, fetch=True)
                         if users:
-                            chan.send(
-                                "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n")
+                            util.send_text_by_key(
+                                chan, "sysop_menu.user_edit.user_list_header", current_menu_mode)  # ヘッダ表示
                             chan.send(
                                 "------------------------------------------------------------------------------------------\r\n")
                             for user in users:
@@ -387,10 +417,14 @@ def sysop_menu(chan, dbname, current_menu_mode):
                             chan.send(
                                 "------------------------------------------------------------------------------------------\r\n")
                         else:
-                            chan.send("ユーザがいません。\r\n")
+                            util.send_text_by_key(
+                                chan, "sysop_menu.user_edit.no_users", current_menu_mode
+                            )  # ユーザなし
                     except Exception as e:  # except を追加
-                        chan.send(f"ユーザ一覧表示中にエラーが発生しました: {e}\r\n")
-                        print(f"ユーザ一覧表示中にエラーが発生しました: {e}")  # サーバーログにも
+                        util.send_text_by_key(
+                            chan, "sysop_menu.user_edit.user_list_error", current_menu_mode
+                        )  # ユーザ表示エラー
+                        logging.error(f"ユーザ一覧表示中にエラーが発生しました: {e}")  # サーバーログにも
 
                 # --- 他のユーザー編集サブメニュー ---
                 # インデント修正 & 変数名修正 (sub_input -> sub_command)
@@ -401,15 +435,19 @@ def sysop_menu(chan, dbname, current_menu_mode):
                 elif sub_command == "4":  # インデント修正 & 変数名修正
                     chan.send("ユーザー削除は未実装です。\r\n")
                 elif sub_command == "":  # 空入力の場合、再度メニュー表示
-                    util.show_textsfile(chan, "useredit", current_menu_mode)
+                    continue
                 else:  # インデント修正
-                    chan.send("無効な選択です。\r\n")
+                    util.send_text_by_key(
+                        chan, "common_messages.invalid_command", current_menu_mode
+                    )  # 無効なコマンド
 
         # --- 無効なトップレベルコマンドの場合 ---
         else:
-            chan.send("無効なコマンドです。\r\n")
+            util.send_text_by_key(
+                chan, "common_messages.invalid_command", current_menu_mode
+            )  # 無効なコマンド
             # メインメニューを再表示
-            util.show_textsfile(chan, "serverprefmenu", current_menu_mode)
 
     # sysop_menu のメインループを抜けた場合 (q が入力された場合)
-    chan.send("シスオペメニューを終了します。\r\n")
+    util.send_text_by_key(chan, "sysop_menu.exit_sysop_menu",
+                          current_menu_mode)  # 終了メッセージ
