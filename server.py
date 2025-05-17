@@ -632,7 +632,9 @@ def handle_client(client, addr, host_key, is_web_app=True):
                 f"クライアント処理中に予期せぬエラーが発生しました({login_id},{addr}): {e}")
             try:
                 if chan and chan.active:
-                    util.send_text_by_key(chan, "common_messages.unexpected_error", initial_user_menu_mode  # 予期せぬエラーが発生したため、切断します。
+                    # 予期せぬエラーが発生したため、切断します。
+                    util.send_text_by_key(
+                        chan, "common_messages.unexpected_error", initial_user_menu_mode)
             except:
                 pass
 
@@ -649,13 +651,13 @@ def handle_client(client, addr, host_key, is_web_app=True):
         if is_web_app:
             with current_webapp_clients_lock:
                 global current_webapp_clients
-                current_webapp_clients=max(0, current_webapp_clients-1)
+                current_webapp_clients = max(0, current_webapp_clients-1)
                 logging.debug(
                     f"Webapp接続カウンタデクリメント: {current_webapp_clients}/{max_concurrent_webapp_clients_config}")
         else:
             with current_normal_ssh_clients_lock:
                 global current_normal_ssh_clients
-                current_normal_ssh_clients=max(
+                current_normal_ssh_clients = max(
                     0, current_normal_ssh_clients-1)
                 logging.debug(
                     f"通常SSH接続カウンタデクリメント: {current_normal_ssh_clients}/{max_concurrent_normal_ssh_clients_config}")
@@ -667,18 +669,18 @@ def handle_client(client, addr, host_key, is_web_app=True):
 
             # オンラインメンバーから削除 (login_id が None でないことを確認)
             if login_id:
-                removed_from_list_finally=False
+                removed_from_list_finally = False
                 with online_members_lock:
                     if login_id in online_members:
                         online_members.remove(login_id)
-                        removed_from_list_finally=True
+                        removed_from_list_finally = True
                         logging.info(
                             f"オンラインリストから {login_id} を削除しました (finally)。オンライン: {len(online_members)}人")
 
             # ログアウト時刻記録 (user_id が None でないことを確認)
             if user_id is not None and db_name_from_config:
                 try:
-                    logout_time=int(time.time())
+                    logout_time = int(time.time())
                     # sqlite_tools.update_idbase の第3引数は許可カラムリスト
                     sqlite_tools.update_idbase(
                         db_name_from_config, 'users', ['lastlogout'], user_id, 'lastlogout', logout_time)
@@ -704,7 +706,7 @@ def wait_for_connections(sock, host_key, is_web_app_server):
     """
     while True:
         try:
-            client, addr=sock.accept()
+            client, addr = sock.accept()
 
             # 接続上限チェック
             if is_web_app_server:
@@ -731,7 +733,7 @@ def wait_for_connections(sock, host_key, is_web_app_server):
                         f"通常SSH接続カウンタインクリメント: {current_normal_ssh_clients}/{max_concurrent_normal_ssh_clients_config}")
 
             # スレッド開始
-            client_thread=threading.Thread(
+            client_thread = threading.Thread(
                 target=handle_client, args=(client, addr, host_key, is_web_app_server), daemon=True)
             client_thread.start()
         except socket.timeout:
@@ -754,20 +756,20 @@ def main():
         print(f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         return
     global max_concurrent_webapp_clients_config, max_concurrent_normal_ssh_clients_config
-    server_config=util.app_config.get('server', {})
-    webapp_config=util.app_config.get('webapp', {})
+    server_config = util.app_config.get('server', {})
+    webapp_config = util.app_config.get('webapp', {})
 
-    db_name_from_config=server_config.get('DBNAME')
-    bind_host_from_config=server_config.get('BIND_HOST', '0.0.0.0')
-    webapp_key_path_from_config=webapp_config.get(
+    db_name_from_config = server_config.get('DBNAME')
+    bind_host_from_config = server_config.get('BIND_HOST', '0.0.0.0')
+    webapp_key_path_from_config = webapp_config.get(
         'WEBAPP_KEY_PATH', 'test_rsa.key')
-    webapp_bind_port_from_config=webapp_config.get('WEBAPP_BIND_PORT')
-    normal_bind_port_from_config=server_config.get('NORMAL_BIND_PORT_START')
-    NORMAL_SSH_PORT_COUNT_from_config=server_config.get(
+    webapp_bind_port_from_config = webapp_config.get('WEBAPP_BIND_PORT')
+    normal_bind_port_from_config = server_config.get('NORMAL_BIND_PORT_START')
+    NORMAL_SSH_PORT_COUNT_from_config = server_config.get(
         'NORMAL_SSH_PORT_COUNT', 1)
-    max_concurrent_webapp_clients_config=server_config.get(
+    max_concurrent_webapp_clients_config = server_config.get(
         'MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
-    max_concurrent_normal_ssh_clients_config=server_config.get(
+    max_concurrent_normal_ssh_clients_config = server_config.get(
         'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', 0)
 
     if not db_name_from_config:
@@ -788,9 +790,9 @@ def main():
         logging.info(f"データベースファイル '{db_name_from_config}'を使用します。")
 
     # ホストキー読み込み
-    host_key=None
+    host_key = None
     try:
-        host_key=paramiko.RSAKey(filename=webapp_key_path_from_config)
+        host_key = paramiko.RSAKey(filename=webapp_key_path_from_config)
         logging.info(f"ホストキー '{webapp_key_path_from_config}'を読み込みました。")
     except Exception as e:
         logging.exception(
@@ -800,13 +802,13 @@ def main():
         print("RSAキーを生成してください (例: ssh-keygen -t rsa -f test_rsa.key)")
         return
 
-    listening_sockets=[]  # 起動したソケット用リスト
-    threads=[]  # 起動したスレッド用リスト
+    listening_sockets = []  # 起動したソケット用リスト
+    threads = []  # 起動したスレッド用リスト
 
     # WEBアプリ用ソケット準備とスレッド作成
     if webapp_bind_port_from_config is not None:
         try:
-            webapp_sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            webapp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             webapp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             webapp_sock.bind(
                 (bind_host_from_config, int(webapp_bind_port_from_config)))
@@ -815,7 +817,7 @@ def main():
                 f"WEBアプリ用SSHサーバが{bind_host_from_config}:{webapp_bind_port_from_config}で待機中...")
             listening_sockets.append(webapp_sock)
 
-            web_app_thread=threading.Thread(
+            web_app_thread = threading.Thread(
                 target=wait_for_connections, args=(webapp_sock, host_key, True), daemon=True)
             web_app_thread.start()
             threads.append(web_app_thread)
@@ -829,16 +831,16 @@ def main():
     # 通常接続用ソケットの準備とスレッド起動
     if normal_bind_port_from_config is not None:
         try:
-            num_ports=int(NORMAL_SSH_PORT_COUNT_from_config)
+            num_ports = int(NORMAL_SSH_PORT_COUNT_from_config)
             if num_ports <= 0:
                 logging.warning(f"SSHサーバポート数が0以下になっています。")
             else:
 
                 for i in range(int(num_ports)):
-                    normal_port=normal_bind_port_from_config+i
-                    normal_sock_instance=None
+                    normal_port = normal_bind_port_from_config+i
+                    normal_sock_instance = None
                     try:
-                        normal_sock_instance=socket.socket(
+                        normal_sock_instance = socket.socket(
                             socket.AF_INET, socket.SOCK_STREAM)
                         normal_sock_instance.setsockopt(
                             socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -849,7 +851,7 @@ def main():
                             f"通常用SSHサーバが{bind_host_from_config}:{normal_port}で待機中...")
                         listening_sockets.append(normal_sock_instance)
 
-                        normal_thread=threading.Thread(
+                        normal_thread = threading.Thread(
                             target=wait_for_connections, args=(normal_sock_instance, host_key, False), daemon=True)
                         normal_thread.start()
                         threads.append(normal_thread)
