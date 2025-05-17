@@ -8,7 +8,7 @@ import socket
 import textwrap
 
 
-def mail(chan, dbname, login_id):
+def mail(chan, dbname, login_id, menu_mode):
     """
     メールメニュー (パソコン通信風)
     受信メールのタイトルを1行表示し、j/kで移動、Enterで本文表示。
@@ -17,18 +17,22 @@ def mail(chan, dbname, login_id):
     """
     user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
     if user_id is None:
-        chan.send("\r\nエラー: ユーザー情報が見つかりません。\r\n")
+        util.send_text_by_key(
+            chan, "common_messages.user_not_found", menu_mode
+        )  # ユーザー情報が見つかりません。
         return
 
     # メールメニュー
     while True:
-        chan.send("選択してください([W]送信 [R]受信 [L]一覧形式受信): ")
+        # 選択してください([W]送信 [R]受信 [L]一覧形式受信)
+        util.send_text_by_key(
+            chan, "mail_handler.main_prompt", menu_mode, add_newline=False)
         choice = ssh_input.process_input(chan).lower()
         if choice == 'l':
             view_mode = 'inbox'
             break
         elif choice == 'w':
-            mail_write(chan, dbname, login_id)
+            mail_write(chan, dbname, login_id, menu_mode)
             return
         elif choice == 'r':
             view_mode = 'reader'
@@ -54,7 +58,8 @@ def mail(chan, dbname, login_id):
                 chan.send(f"{marker_id_str} v\r\n")
             elif current_index == len(mails):
                 if not mails:  # エラー対策
-                    chan.send("メールがありません。\r\n")
+                    util.send_text_by_key(
+                        chan, "mail_handler.no_mails", menu_mode)  # メールがありません。
                 else:
                     # 末尾マーカーのID部分も mail_count_digits に合わせる
                     marker_num = len(mails) + 1  # 表示上の番号
@@ -81,7 +86,6 @@ def mail(chan, dbname, login_id):
                         WHERE recipient_id = ?
                         ORDER BY sent_at ASC
                     """
-#                    chan.send(f"\r\n--- 受信メール ---\r\n")
                 else:  # outbox
                     sql = """
                         SELECT id, recipient_id, subject, is_read, sent_at, sender_deleted
@@ -89,7 +93,6 @@ def mail(chan, dbname, login_id):
                         WHERE sender_id = ?
                         ORDER BY sent_at ASC
                     """
-#                    chan.send(f"\r\n--- 送信メール ---\r\n")
 
                 fetched_mails = sqlite_tools.sqlite_execute_query(
                     dbname, sql, (user_id,), fetch=True)
@@ -119,16 +122,15 @@ def mail(chan, dbname, login_id):
 
                 # reroad_mails直後はマーカー状態にしない
                 if view_mode == 'inbox':
-                    util.show_textfile(chan, 'MENU/MAIL_SENDER_HEADER.2')
-                    chan.send('\r\n')
-                    # -NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-
-                else:
-                    util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
-                    chan.send('\r\n')
-                    # -NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-
+                    util.send_text_by_key(
+                        chan, "mail_handler.sender_header", menu_mode)  # 送信ヘッダ
+                else:  # outbox")
+                    util.send_text_by_key(
+                        chan, "mail_handler.recipient_header", menu_mode)  # 受信ヘッダ
 
                 if not mails:
-                    chan.send("メールはありません。\r\n")
+                    util.send_text_by_key(
+                        chan, "mail_handler.no_mails", menu_mode)  # メールがありません。
                     current_index = 0
                 else:
                     display_mail_header(
@@ -165,7 +167,8 @@ def mail(chan, dbname, login_id):
                     f"メールデータに削除フラグが見つかりません(MailID: {selected_mail_id})")
 
             if is_deleted:  # 削除されている場合
-                chan.send("メールは削除されています\r\n\r\n")
+                util.send_text_by_key(
+                    chan, "mail_handler.mail_deleted", menu_mode)  # メールは削除されています
                 if advance_cursor_after:
                     if mails:  # メール空対策
                         current_index += 1
@@ -173,7 +176,7 @@ def mail(chan, dbname, login_id):
                 return
 
             success, marked_as_read = display_mail_content(
-                chan, selected_mail_id, dbname, view_mode)
+                chan, selected_mail_id, dbname, view_mode, menu_mode)
 
             if success:
                 chan.send("\r\n")  # 本文表示後に1行開け
@@ -187,12 +190,13 @@ def mail(chan, dbname, login_id):
                     if 0 <= next_mail_index_for_header < len(mails):
 
                         if view_mode == 'inbox':  # ヘッダ表示
-                            util.show_textfile(
-                                chan, 'MENU/MAIL_SENDER_HEADER.2')
+                            util.send_text_by_key(
+                                chan, "mail_handler.sender_header", menu_mode)  # 送信ヘッダ
                             chan.send('\r\n')
 
                         else:
-                            util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
+                            util.send_text_by_key(
+                                chan, "mail_handler.recipient_header", menu_mode)  # 受信ヘッダ
                             chan.send('\r\n')
 
                         display_mail_header(
@@ -287,26 +291,31 @@ def mail(chan, dbname, login_id):
                         pass
 
                     if is_deleted:
-                        chan.send("メールは削除されています。\r\n\r\n")
+                        util.send_text_by_key(
+                            chan, "common_messages.mail_deleted", menu_mode
+                        )  # メールは削除されています。
                         if view_mode == 'inbox':
-                            util.show_textfile(
-                                chan, 'MENU/MAIL_SENDER_HEADER.2')
+                            util.send_text_by_key(
+                                chan, "mail_handler.sender_header", menu_mode
+                            )  # 送信ヘッダ
                         else:  # outbox
-                            util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
-                        chan.send("\r\n")
+                            util.send_text_by_key(
+                                chan, "mail_handler.recipient_header", menu_mode
+                            )  # 受信ヘッダ
                         update_current_display()
                     else:
                         success, _ = display_mail_content(
-                            chan, slected_mail_data['id'], dbname, view_mode)
+                            chan, slected_mail_data['id'], dbname, view_mode, menu_mode)
                         if success:
                             chan.send('\r\n')
                             if view_mode == 'inbox':
-                                util.show_textfile(
-                                    chan, 'MENU/MAIL_SENDER_HEADER.2')
+                                util.send_text_by_key(
+                                    chan, "mail_handler.sender_header", menu_mode
+                                )  # 送信ヘッダ
                             else:
-                                util.show_textfile(
-                                    chan, 'MENU/MAIL_RCPT_HEADER.2')
-                            chan.send("\r\n")
+                                util.send_text_by_key(
+                                    chan, "mail_handler.recipient_header", menu_mode
+                                )  # 受信ヘッダ
                             update_current_display()
                 elif current_index == 0:
                     current_index -= 1
@@ -319,7 +328,9 @@ def mail(chan, dbname, login_id):
                 if current_index == -1 or current_index == len(mails):
                     chan.send('\a')  # ビープ音
                 elif not mails:
-                    chan.send('メールがありません\r\n')
+                    util.send_text_by_key(
+                        chan, "mail_handler.no_mails", menu_mode
+                    )
                 else:
                     read_selected_mail(advance_cursor_after=False)
 
@@ -354,11 +365,13 @@ def mail(chan, dbname, login_id):
                     pass  # Falseのまま
 
                 if is_deleted:
-                    chan.send("メールは削除されています。\r\n\r\n")
+                    util.send_text_by_key(
+                        chan, "mail_handler.mail_deleted", menu_mode
+                    )  # メールは削除されています
                 # 削除されていてもカーソルは進める
                 else:
                     success, _ = display_mail_content(
-                        chan, selected_mail_data['id'], dbname, view_mode)
+                        chan, selected_mail_data['id'], dbname, view_mode, menu_mode)
                     if success:
                         chan.send('\r\n')
 
@@ -367,11 +380,13 @@ def mail(chan, dbname, login_id):
                 # 次のメールヘッダ準備
                 if 0 <= current_index < len(mails):
                     if view_mode == 'inbox':
-                        util.show_textfile(chan, 'MENU/MAIL_SENDER_HEADER.2')
+                        util.send_text_by_key(
+                            chan, "mail_handler.sender_header", menu_mode
+                        )  # 送信ヘッダ
                     else:  # outbox
-                        util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
-                    chan.send('\r\n')
-
+                        util.send_text_by_key(
+                            chan, "mail_handler.recipient_header", menu_mode
+                        )  # 受信ヘッダ
                 update_current_display()
 
             # 新方向へ進む[ctrl+x][j][space]
@@ -402,7 +417,6 @@ def mail(chan, dbname, login_id):
                     else:
                         logging.error(
                             f"削除トグル動作時の不明なView_mode: {view_mode} (MailID: {selected_mail_id}, UserID: {user_id})")
-                        chan.send('内部エラーが発生(mode)。\r\n')
                         update_current_display()
                         continue
 
@@ -411,7 +425,9 @@ def mail(chan, dbname, login_id):
                     if toggled:
                         reload_mails(keep_index=True)
                     else:
-                        chan.send('状態変更に失敗しました\r\n')
+                        util.send_text_by_key(
+                            chan, "mail_handler.toggle_delete_status_failed", menu_mode
+                        )  # 状態変更に失敗しました
                         update_current_display()
                 else:
                     chan.send('\a')
@@ -419,7 +435,7 @@ def mail(chan, dbname, login_id):
             # 書く[w]
             elif key_input == 'w' or key_input == 'W':
                 chan.send('\r\n')
-                mail_write(chan, dbname, login_id)
+                mail_write(chan, dbname, login_id, menu_mode)
                 reload_mails(keep_index=False)
 
             # 送受信切替[s]
@@ -447,7 +463,9 @@ def mail(chan, dbname, login_id):
                 # 開始インデックスが有効範囲外ORメールがない場合は処理しない
                 if not (mails and 0 <= start_processing_idx < len(mails)):
                     if not mails and start_processing_idx == 0:
-                        chan.send("メールはありません。\r\n")
+                        util.send_text_by_key(
+                            chan, "mail_handler.no_mail", menu_mode
+                        )  # メールはありません
                     else:
                         chan.send('\a')
                     update_current_display()
@@ -455,10 +473,13 @@ def mail(chan, dbname, login_id):
 
                 # 共通ヘッダ表示
                 if view_mode == 'inbox':
-                    util.show_textfile(chan, 'MENU/MAIL_SENDER_HEADER.2')
+                    util.send_text_by_key(
+                        chan, "mail_handler.sender_header", menu_mode
+                    )  # 送信ヘッダ
                 else:
-                    util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
-                chan.send("\r\n")
+                    util.send_text_by_key(
+                        chan, "mail_handler.recipient_header", menu_mode
+                    )  # 受信ヘッダ
 
                 current_index = start_processing_idx
 
@@ -487,7 +508,7 @@ def mail(chan, dbname, login_id):
                     else:
                         # メール本文表示
                         success, _ = display_mail_content(
-                            chan, selected_mail_id, dbname, view_mode
+                            chan, selected_mail_id, dbname, view_mode, menu_mode
                         )
                         if success:
                             chan.send('\r\n')
@@ -516,10 +537,13 @@ def mail(chan, dbname, login_id):
                 if 0 <= start_idx_for_display < len(mails):
                     # スクロール表示する内容のヘッダタイトル
                     if view_mode == 'inbox':
-                        util.show_textfile(chan, 'MENU/MAIL_SENDER_HEADER.2')
+                        util.send_text_by_key(
+                            chan, "mail_handler.sender_header", menu_mode
+                        )  # 送信ヘッダ
                     else:  # outbox
-                        util.show_textfile(chan, 'MENU/MAIL_RCPT_HEADER.2')
-                    chan.send("\r\n")
+                        util.send_text_by_key(
+                            chan, "mail_handler.recipient_header", menu_mode
+                        )  # 受信ヘッダ
 
                     for i in range(start_idx_for_display, len(mails)):  # 現在位置から最後まで
                         mail_data = mails[i]
@@ -535,7 +559,9 @@ def mail(chan, dbname, login_id):
             # 説明[?]
             elif key_input == '?':
                 chan.send('\r\n')
-                util.show_textsfile(chan, 'MENU/MAIL_HELP.2')
+                util.send_text_by_key(
+                    chan, "mail_handler.mail_help", menu_mode
+                )  # メール説明
                 update_current_display()
 
             else:
@@ -566,7 +592,7 @@ def format_mail_header_str(mail_data, dbname, view_mode='inbox', mail_id_width=5
         elif view_mode == 'outbox' and mail_data['sender_deleted'] == 1:
             deleted_mark = "*"
         if deleted_mark:
-            display_subject = "(削除済み)"
+            display_subject = "(Deleted)"
         else:
             display_subject = textwrap.shorten(
                 subject, width=38, placeholder="...")
@@ -597,13 +623,15 @@ def display_mail_header(chan, mail_data, dbname, view_mode='inbox', mail_id_widt
         chan.send(header_line + "\r\n")
 
 
-def display_mail_content(chan, mail_id, dbname, view_mode='inbox'):
+def display_mail_content(chan, mail_id, dbname, view_mode='inbox', menu_mode='2'):
     """メールの内容を表示し、既読にする。成功/失敗(bool)と既読変更(bool)を返す"""
     try:
         mail_results = sqlite_tools.fetchall_idbase(
             dbname, 'mails', 'id', mail_id)
         if not mail_results:
-            chan.send("\r\nエラー: メールが見つかりません。\r\n")
+            util.send_text_by_key(
+                chan, "mail_handler.no_mails", menu_mode
+            )  # メールが見つかりません
             return False, False
 
         mail_data = mail_results[0]
@@ -623,21 +651,21 @@ def display_mail_content(chan, mail_id, dbname, view_mode='inbox'):
                 marked_as_read = True
             except Exception as e:
                 logging.error(f"メール既読処理中にDBエラー (ID: {mail_id}): {e}")
-                chan.send("\r\n(既読処理中にエラーが発生しました)\r\n")
         return True, marked_as_read
 
     except Exception as e:
         logging.error(f"メール内容表示中にエラー (ID: {mail_id}): {e}")
-        chan.send("\r\nメール内容の表示中にエラーが発生しました。\r\n")
         return False, False
 
 
-def mail_write(chan, dbname, login_id):
+def mail_write(chan, dbname, login_id, menu_mode='2'):
     """メール送信"""
     recipient_info_list = []  # 複数宛先に対応
 
     while True:
-        chan.send("送り先のIDを入力してください: ")
+        util.send_text_by_key(
+            chan, "mail_handler.enter_recipient", menu_mode, add_newline=False
+        )  # 送り先のIDを入力してください:
         recipient_name_input = ssh_input.process_input(chan)
 
         if not recipient_name_input:
@@ -651,7 +679,9 @@ def mail_write(chan, dbname, login_id):
                 dbname, 'users', 'name', recipient_name_input)
         except Exception as e:
             logging.error(f"宛先ユーザ検索中にDBエラー({recipient_name_input}): {e}")
-            chan.send(f"何かがおかしいです。シスオペに連絡してください\r\n")
+            util.send_text_by_key(
+                chan, "common.db_error", menu_mode
+            )  # エラー発生
             return
         if not results:
             chan.send("** 送り先が存在しません **\r\n")
@@ -661,11 +691,12 @@ def mail_write(chan, dbname, login_id):
         userdata = results[0]
         current_recipient_name = userdata['name']
         current_recipient_comment = userdata[
-            'comment'] if userdata['comment'] else "(コメントなし)"
+            'comment'] if userdata['comment'] else "(No comment)"
 
         chan.send(f"\"{current_recipient_comment}\"\r\n")
-        chan.send("この送り先でよいですか?(Y または N): ")
-
+        util.send_text_by_key(
+            chan, "mail_handler.recipient_yn", menu_mode, add_newline=False
+        )  # この送り先でよいですか?(Y または N):
         # 送り先の確認
         confirm_add_recipient = ''
         while True:
@@ -674,12 +705,16 @@ def mail_write(chan, dbname, login_id):
                 confirm_add_recipient = ans
                 break
             else:
-                chan.send("この送り先でよいですか?(Y または N): ")
+                util.send_text_by_key(
+                    chan, "mail_handler.recipient_yn", menu_mode, add_newline=False
+                )  # この送り先でよいですか?(Y または N):
         if confirm_add_recipient == 'y':
             recipient_info_list.append(
                 (current_recipient_name, current_recipient_comment)
             )
-            chan.send("他にも送りますか( Y ): ")
+            util.send_text_by_key(
+                chan, "mail_handler.send_another_yn", menu_mode, add_newline=False
+            )
             add_more_ans = ssh_input.process_input(chan).lower()
             if add_more_ans == 'y':
                 continue
@@ -696,15 +731,18 @@ def mail_write(chan, dbname, login_id):
         return
 
     # ここから後ろ、データベースに保存する手前までは掲示板でも利用するので、あとで関数化する
-    chan.send("件名を入力してください: ")
+    util.send_text_by_key(
+        chan, "mail_handler.enter_subject", menu_mode, add_newline=False
+    )  # 件名を入力してください:
     subject = ssh_input.process_input(chan)
     if subject is None:
         return
     if not subject:
-        subject = "(無題)"
+        subject = "(No subject)"
 
     # 本文入力
-    chan.send("本文を入力してください('.'のみの行で終了): \r\n")
+    util.send_text_by_key(
+        chan, "mail_handler.enter_body", menu_mode)
     message_lines = []
     while True:
         line = ssh_input.process_input(chan)
@@ -715,20 +753,27 @@ def mail_write(chan, dbname, login_id):
         message_lines.append(line)
     message = '\r\n'.join(message_lines)
     if not message:
-        chan.send("本文が入力されていません。終了します。\r\n")
+        util.send_text_by_key(
+            chan, "mail_handler.no_body", menu_mode
+        )
         return
 
     # 送信内容確認
-    chan.send("\r\n-- 送信内容 --\r\n")
-    chan.send(
-        f"宛先: {current_recipient_name} ({current_recipient_comment})\r\n")
-    chan.send(f"件名: {subject}\r\n")
-    chan.send("本文:\r\n")
+    util.send_text_by_key(
+        chan, "mail_handler.confirm_send", menu_mode)  # 送信内容
+    util.send_text_by_key(
+        chan, "mail_handler.recipient", menu_mode, current_recipient_name=current_recipient_name, current_recipient_comment=current_recipient_comment)  # 宛先
+    util.send_text_by_key(
+        chan, "mail_handler.subject", menu_mode, subject=subject)  # 件名
+    util.send_text_by_key(
+        chan, "mail_handler.body", menu_mode, message=message
+    )  # 本文
 
     for line in message.split('\r\n'):
         chan.send(f"{line}\r\n")
-    chan.send("-- ここまで --\r\n")
-    chan.send("この内容で送信しますか?(y/n): ")
+    util.send_text_by_key(
+        chan, "mail_handler.confirm_send_yn", menu_mode, add_newline=False
+    )  # この内容で送信しますか?(y/n):
     # 確認入力 (y/n)
     confirm_input = ''
     while True:
@@ -752,11 +797,15 @@ def mail_write(chan, dbname, login_id):
             continue
         except Exception as e:
             logging.error(f"メール送信確認中の入力エラー({login_id}): {e}")
-            chan.send("\r\n入力処理中にエラーが発生しました。\r\n")
+            util.send_text_by_key(
+                chan, "common_message.error", menu_mode
+            )
             return
     # 'n' が入力された場合はキャンセル
     if confirm_input == 'n':
-        chan.send("メール送信をキャンセルしました。\r\n")
+        util.send_text_by_key(
+            chan, "mail_handler.send_cancelled", menu_mode
+        )  # メール送信をキャンセルしました。
         return
     # データベースにメールを保存
     try:
@@ -766,7 +815,9 @@ def mail_write(chan, dbname, login_id):
         # 一応念の為
         if not sender_results:
             chan.send("送信者情報の取得に失敗しました。シスオペに連絡してください\r\n")
-            logging.error(f"送信者情報の取得に失敗しました。{login_id}がDBに存在しません。")
+            util.send_text_by_key(
+                chan, "common_message.error", menu_mode
+            )
             return
 
         sender_id = sender_results[0]['id']
@@ -777,7 +828,8 @@ def mail_write(chan, dbname, login_id):
                 dbname, 'users', 'name', rec_name)
             if not recipient_results:
                 logging.error(f"送信に失敗、{rec_name}がDBに存在しません。")
-                chan.send(f"送信中にエラー、{rec_name}が見つかりません。")
+                util.send_text_by_key(
+                    chan, "common_message.error", menu_mode)
                 continue
 
             recipient_id = recipient_results[0]['id']
@@ -790,9 +842,13 @@ def mail_write(chan, dbname, login_id):
             params = (sender_id, recipient_id, subject, message, sent_at)
             sqlite_tools.sqlite_execute_query(dbname, sql, params)
 
-            chan.send("\r\nメールを送信しました\r\n")
+            util.send_text_by_key(
+                chan, "mail_handler.send_success", menu_mode
+            )  # メールを送信しました
 
     except Exception as e:
         logging.error(f"メール送信中にDBエラー({login_id} -> ?): {e}")
-        chan.send("\r\nメール送信中にエラーが発生しました。シスオペに連絡してください\r\n")
+        util.send_text_by_key(
+            chan, "common_message.error", menu_mode
+        )
     return

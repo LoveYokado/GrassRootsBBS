@@ -376,19 +376,23 @@ sysop_menu:
     mode_3: "EXITING SYSOP MENU."
 
 # --- メールメニュー関連 ---
-mail_menu:
+mail_handler:
   main_prompt:
     mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "
     mode_2: "Select ([W]rite [R]ead [L]ist Inbox): "
     mode_3: "SELECT ([W] [R] [L]): "
+  enter_recipient:
+    mode_1: "送り先のIDを入力してください: "
+    mode_2: "Enter recipient ID: "
+    mode_3: "ENTER RECIPIENT ID: "
   sender_header: # 受信箱ヘッダー
-    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-"
-    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-"
-    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-" # ANSIでも同じで良いか要検討
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n"
+    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n"
+    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n" # ANSIでも同じで良いか要検討
   recipient_header: # 送信箱ヘッダー
-    mode_1: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-"
-    mode_2: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-"
-    mode_3: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-" # ANSIでも同じで良いか要検討
+    mode_1: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
+    mode_2: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
+    mode_3: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n" # ANSIでも同じで良いか要検討
   no_mails:
     mode_1: "メールはありません。\r\n"
     mode_2: "No mails.\r\n"
@@ -397,10 +401,97 @@ mail_menu:
     mode_1: "\r\nメール一覧の取得中にエラーが発生しました。\r\n"
     mode_2: "\r\nAn error occurred while fetching mail list.\r\n"
     mode_3: "\r\nMAIL LIST ERROR.\r\n"
-  deleted_message:
+  mail_deleted:
     mode_1: "メールは削除されています。\r\n\r\n"
     mode_2: "Mail is deleted.\r\n\r\n"
     mode_3: "MAIL DELETED.\r\n\r\n"
+  toggle_delete_status_failed:
+    mode_1: "状態の変更に失敗しました。\r\n"
+    mode_2: "State change failed.\r\n"
+    mode_3: "STATE CHANGE FAILED.\r\n"
+  recipient_yn:
+    mode_1: "この送り先で良いですか？（Y/N): "
+    mode_2: "Is this recipient OK? (Y/N): "
+    mode_3: "IS THIS RECIPIENT OK? (Y/N): "
+  send_another_yn:
+    mode_1: "他にも送りますか？（Y/N): "
+    mode_2: "Send another? (Y/N): "
+    mode_3: "SEND ANOTHER? (Y/N): "
+  enter_subject:
+    mode_1: "件名を入力してください: "
+    mode_2: "Enter subject: "
+    mode_3: "ENTER SUBJECK: "
+  enter_body:
+    mode_1: "本文を入力してください(’．’のみの行で終了): \r\n"
+    mode_2: "Enter body (end with ’.’): \r\n"
+    mode_3: "ENTER BODY (END WITH ’.’): \r\n"
+  no_body:
+    mode_1: "本文が入力されていません。終了します。\r\n"
+    mode_2: "No body entered. Exiting.\r\n"
+    mode_3: "NO BODY ENTERED. EXITING.\r\n"
+  confirm_send:
+    mode_1: "-- 送信内容 --\r\n"
+    mode_2: "-- Sent content --\r\n"
+    mode_3: "-- SENT CONTENT --\r\n"
+  recipient:
+    mode_1: "宛先: {current_recipient_name} ({current_recipient_comment})\r\n"
+    mode_2: "Recipient: {current_recipient_name} ({current_recipient_comment})\r\n"
+    mode_3: "TO: {current_recipient_name} ({current_recipient_comment})\r\n"
+  subject:
+    mode_1: "件名: {subject}\r\n"
+    mode_2: "Subject: {subject}\r\n"
+    mode_3: "SUBJECT: {subject}\r\n"
+  body:
+    mode_1: "本文: \r\n"
+    mode_2: "Body: \r\n"
+    mode_3: "BODY: \r\n"
+  confirm_send_yn:
+    mode_1: "この内容で送信しますか?（Y/N): "
+    mode_2: "Send this content? (Y/N): "
+    mode_3: "SEND THIS CONTENT? (Y/N): "
+  mail_cancelled:
+    mode_1: "メール送信をキャンセルしました。\r\n"
+    mode_2: "Mail send cancelled.\r\n"
+    mode_3: "MAIL SEND CANCELLED.\r\n"
+  send_success:
+    mode_1: "メールを送信しました。\r\n"
+    mode_2: "Mail sent.\r\n"
+    mode_3: "MAIL SENT.\r\n"
+  mail_help:
+    mode_1: |
+      --- メールメニュー ヘルプ ---
+      j : 次のメールへ (古い方へ)
+      k : 前のメールへ (新しい方へ)
+      Enter: 表示中のメールを読む
+      d : 表示中のメールを削除 / 削除取消 (トグル)
+      s : 受信箱 / 送信済み箱 を切り替え
+      w : 新しいメールを書く
+      h : このヘルプを表示
+      e : メールメニューを終了
+      ---------------------------
+    mode_2: |
+      --- MAIL MENU HELP ---
+      j : Next mail (older)
+      k : Previous mail (newer)
+      Enter: Read current mail
+      d : Delete current mail / Toggle delete status
+      s : Toggle inbox / sentbox
+      w : Write new mail
+      h : Display this help
+      e : Exit mail menu
+      ---------------------------
+    mode_3: |
+      --- MAIL MENU HELP ---
+      J : NEXT MAIL (OLDER)
+      K : PREVIOUS MAIL (NEWER)
+      ENTER: READ CURRENT MAIL
+      D : DELETE CURRENT MAIL / TOGGLE DELETE STATUS
+      S : TOGGLE INBOX / SENTBOX
+      W : WRITE NEW MAIL
+      H : DISPLAY THIS HELP
+      E : EXIT MAIL MENU
+      ---------------------------
+
   # ... 他のメール関連テキストも追加
 
 # --- 電報関連 ---
@@ -500,6 +591,14 @@ common_messages:
     mode_1: "キャンセルしました。\r\n"
     mode_2: "Canceled.\r\n"
     mode_3: "CANCELLED.\r\n"
+  unexpectederror:
+    mode_1: "予期せぬエラーが発生しました。\r\n"
+    mode_2: "An unexpected error occurred.\r\n"
+    mode_3: "UNEXPECTED ERROR.\r\n" #予期せぬエラーが発生
+  error:
+    mode_1: "エラーが発生しました。シスオペに連絡してください。\r\n"
+    mode_2: "An error occurred. Please contact the sysop.\r\n"
+    mode_3: "ERROR. CONTACT SYSOP.\r\n"
   # ... 他の共通メッセージも追加
 
 # --- 認証関連 ---
