@@ -125,10 +125,10 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
                 continue
         elif command == '2':
             # パスワード変更
-            change_password(chan, dbname, login_id)
+            change_password(chan, dbname, login_id, current_menu_mode)
         elif command == '3':
             # プロフィール変更
-            change_profile(chan, dbname, login_id)
+            change_profile(chan, dbname, login_id, current_menu_mode)
         elif command == '4':
             # 会員リスト表示
             show_member_list(chan, dbname, current_menu_mode)
@@ -237,6 +237,125 @@ def who_menu(chan, dbname, online_members, current_menu_mode):
             chan.send(f"{member_name:<15} {'(ユーザー情報取得エラー)'}\r\n")
             print(f"警告: オンラインメンバー '{member_name}' の情報がDBに見つかりません。")
     util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)
+
+
+def change_password(chan, dbname, login_id, current_menu_mode):
+    """パスワード変更"""
+    security_config = util.app_config.get('security', {})
+    pbkdf2_rounds = security_config.get('pbkdf2_rounds', 100000)
+
+    # 今のパスワードを確認
+    util.send_text_by_key(chan, "user_pref_menu.change_password.current_password",
+                          current_menu_mode, add_newline=False)  # 今のパスワード入力
+    current_pass = ssh_input.process_input(chan)
+    if current_pass is None:
+        return
+
+    user_auth_info = sqlite_tools.get_usser_credentials(dbname, login_id)
+    if not user_auth_info:
+        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
+        logging.error(f"パスワード変更施行中にユーザが見つかりません: {login_id}")
+        return
+
+    if not util._valify_password(user_auth_info['password'], user_auth_info['salt'], current_pass, pbkdf2_rounds):
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_password.invalid_password", current_menu_mode)  # 不正パスワード
+        return
+
+    # 新しいパスワードを入力
+    while True:
+        util.send_text_by_key(chan, "user_pref_menu.change_password.new_password",
+                              current_menu_mode, add_newline=False)  # 新しいパスワード入力
+        new_pass1 = ssh_input.hide_process_input(chan)
+        if new_pass1 is None:
+            return
+
+        if len(new_pass1) < 8:
+            util.send_text_by_key(
+                chan, "user_pref_menu.change_password.password_too_short", current_menu_mode)  # パスワードが短いよ
+            continue
+
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_password.new_password_confirm", add_newline=False)  # 新しいパスワード確認
+        new_pass2 = ssh_input.hide_process_input(chan)
+        if new_pass2 is None:
+            return
+
+        if new_pass1 == new_pass2:
+            break
+        else:
+            util.send_text_by_key(
+                chan, "user_pref_menu.change_password.password_mismatch", current_menu_mode)  # パスワードが一致しない
+
+    # パスワードのハッシュ化とDB更新
+    new_salt_hex, new_hashed_password = util.hash_password(new_pass1)
+    if sqlite_tools.update_user_password_and_salt(dbname, login_id, new_hashed_password, new_salt_hex):
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_password.password_changed", current_menu_mode)  # パスワード変更完了
+    else:
+        util.send_text_by_key(chan, "common_messages.error",
+                              current_menu_mode)  # パスワード変更エラー
+        logging.error(f"パスワード変更エラー({login_id})")
+
+    # SSHキー再生成
+    util.send_text_by_key(
+        chan, "user_pref_menu.change_password.confirm_regenerate_ssh_key_yn", current_menu_mode, add_newline=False)
+    choice = ssh_input.process_input(chan)
+    if choice is None:
+        return
+
+    if choice.lower() == 'y':
+        try:
+            private_key_pem = util.regenerate_ssh_key_pair(login_id)
+            if private_key_pem:
+                chan.send(b'\r\n')
+                util.send_text_by_key(
+                    chan, "user_pref_menu.change_password.new_private_key_info", current_menu_mode)
+                for line in private_key_pem.splitlines():
+                    chan.send(line.encode('utf-8') + b'\r\n')
+                chan.send(b'\r\n')
+                util.send_text_by_key(
+                    chan, "user_pref_menu.change_password.ssh_key_updated_success", current_menu_mode)
+            else:
+                raise Exception("SSHキーの再生成に失敗しました。秘密鍵が取得できませんでした。")
+        except Exception as e:
+            logging.error(f"SSHキー再生成または表示中にエラー ({login_id}): {e}")
+            util.send_text_by_key(
+                chan, "common_messages.error", current_menu_mode)
+
+
+def change_profile(chan, dbname, login_id, current_menu_mode):
+    """プロフィール変更"""
+    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+    if not user_data:
+        util.send_text_by_key(
+            chan, "common_messages.user_not_found", current_menu_mode)
+        return
+
+    current_comment = user_data.get('comment', '')
+    util.send_text_by_key(chan, "user_pref_menu.change_profile.current_profile",
+                          current_menu_mode, comment=current_comment)
+    util.send_text_by_key(
+        chan, "user_pref_menu.change_profile.new_profile", current_menu_mode, add_newline=False)
+    new_comment = ssh_input.process_input(chan)
+
+    if new_comment is None:
+        return
+    if new_comment == '':  # 空入力はキャンセル扱いにするか、空コメントとして許可するか後で考える
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_profile.cancelled", current_menu_mode)
+        return
+    try:
+        # コメント更新
+        if sqlite_tools.update_user_profile(dbname, user_data[id],  new_comment):
+            util.send_text_by_key(
+                chan, "user_pref_menu.change_profile.profile_updated", current_menu_mode)
+        else:
+            raise Exception("コメント更新に失敗")
+
+    except Exception as e:
+        logging.error(f"コメント更新エラー: {e}")
+        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
 
 
 def sysop_menu(chan, dbname, current_menu_mode):

@@ -214,6 +214,56 @@ user_pref_menu:
     mode_1: ""
     mode_2: ""
     mode_3: ""
+  change_password:
+    current_password:
+      mode_1: "現在のパスワードを入力してください: "
+      mode_2: "Enter current password: "
+      mode_3: "ENTER CURRENT PASS: "
+    invalid_password:
+      mode_1: "パスワードが違います。\r\n"
+      mode_2: "Invalid password.\r\n"
+      mode_3: "INVALID PASS.\r\n"
+    new_password:
+      mode_1: "新しいパスワードを入力してください: "
+      mode_2: "Enter new password: "
+      mode_3: "ENTER NEW PASS: "
+    password_too_short:
+      mode_1: "パスワードは8文字以上にしてください。\r\n"
+      mode_2: "Password must be at least 8 characters long.\r\n"
+      mode_3: "PASSWORD TOO SHORT.\r\n"
+    new_password_confirm:
+      mode_1: "新しいパスワードをもう一度入力してください: "
+      mode_2: "Re-enter new password: "
+      mode_3: "RE-ENTER NEW PASS: "
+    password_mismatch:
+      mode_1: "パスワードが一致しません。\r\n"
+      mode_2: "Passwords do not match.\r\n"
+      mode_3: "PASSWORD MISMATCH.\r\n"
+    password_changed:
+      mode_1: "パスワードを変更しました。\r\n"
+      mode_2: "Password changed.\r\n"
+      mode_3: "PASSWORD CHANGED.\r\n"
+    confirm_regenerate_ssh_key_yn:
+      mode_1: "SSH公開鍵を再生成しますか?\r\n"
+      mode_2: "Regenerate SSH public key?\r\n"
+      mode_3: "REGENERATE SSH KEY?\r\n"
+    ssh_key_updated_success:
+      mode_1: "新しいSSH公開鍵を生成しました。\r\n"
+      mode_2: "New SSH public key generated.\r\n"
+      mode_3: "NEW SSH KEY GENERATED.\r\n"
+  change_profile:
+    current_profile:
+      mode_1: "現在のプロフィールは「{comment}」です。\r\n"
+      mode_2: "Current profile is \"{comment}\".\r\n"
+      mode_3: "CURRENT PROFILE IS \"{comment}\".\r\n"
+    new_profile:
+      mode_1: "新しいプロフィールを入力してください: "
+      mode_2: "Enter new profile: "
+      mode_3: "ENTER NEW PROFILE: "
+    profile_updated:
+      mode_1: "プロフィールを更新しました。\r\n"
+      mode_2: "Profile updated.\r\n"
+      mode_3: "PROFILE UPDATED.\r\n"
 # --- WHOメニュー関連 ---
 who_menu:
   header:

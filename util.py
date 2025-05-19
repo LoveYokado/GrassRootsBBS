@@ -2,11 +2,13 @@ import logging
 import toml
 import socket
 import paramiko
+import io
 import os  # os.path を使うためにインポート
 import hashlib
 import time
 import sqlite3
 import yaml
+import codecs
 
 import bbsmenu
 import sqlite_tools
@@ -20,6 +22,24 @@ app_config = {}
 # SSH_KEY_DIR = '.sshkey'
 # AUTH_KEYS_FILE = os.path.join(SSH_KEY_DIR, 'authorized_keys.pub')
 # PBKDF2_ROUNDS = 100000  # パスワードハッシュのストレチッング数
+
+
+def generate_ssh_key_pair(username):
+    """
+    SSH公開鍵ペアを生成する
+    """
+    key = paramiko.RSAKey.generate(2048)
+
+    # 秘密鍵(PEM)をエクスポート
+    private_key_io = io.StringIO()
+    key.write_private_key(private_key_io)
+    private_key_pem_string = private_key_io.getvalue()
+    private_key_io.close()
+
+    # 公開鍵をエクスポート
+    public_key_openssh_string = f"{key.get_name()} {key.get_base64()} {username}"
+
+    return private_key_pem_string, public_key_openssh_string
 
 
 def load_app_config_from_path(config_file_path):
