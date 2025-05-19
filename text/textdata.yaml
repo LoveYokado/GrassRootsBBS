@@ -247,10 +247,14 @@ user_pref_menu:
       mode_1: "SSH公開鍵を再生成しますか?\r\n"
       mode_2: "Regenerate SSH public key?\r\n"
       mode_3: "REGENERATE SSH KEY?\r\n"
+    new_private_key_info:
+      mode_1: "新しいSSH秘密鍵を生成しました。\r\n"
+      mode_2: "New SSH private key generated.\r\n"
+      mode_3: "NEW SSH PRIVATE KEY GENERATED.\r\n"
     ssh_key_updated_success:
-      mode_1: "新しいSSH公開鍵を生成しました。\r\n"
-      mode_2: "New SSH public key generated.\r\n"
-      mode_3: "NEW SSH KEY GENERATED.\r\n"
+      mode_1: "この鍵をなくすとSSH接続ができなくなりますので、大切に保管してください。\r\n"
+      mode_2: "This key will no longer work for SSH connections, so please keep it safe.\r\n"
+      mode_3: "THIS KEY WILL NO LONGER WORK FOR SSH CONNECTIONS, SO KEEP IT SAFE.\r\n"
   change_profile:
     current_profile:
       mode_1: "現在のプロフィールは「{comment}」です。\r\n"
@@ -264,6 +268,11 @@ user_pref_menu:
       mode_1: "プロフィールを更新しました。\r\n"
       mode_2: "Profile updated.\r\n"
       mode_3: "PROFILE UPDATED.\r\n"
+    cancelled:
+      mode_1: "プロフィールの更新をキャンセルしました。\r\n"
+      mode_2: "Profile update cancelled.\r\n"
+      mode_3: "PROFILE UPDATE CANCELLED.\r\n"
+
 # --- WHOメニュー関連 ---
 who_menu:
   header:
@@ -641,10 +650,10 @@ common_messages:
     mode_1: "キャンセルしました。\r\n"
     mode_2: "Canceled.\r\n"
     mode_3: "CANCELLED.\r\n"
-  unexpectederror:
-    mode_1: "予期せぬエラーが発生しました。\r\n"
-    mode_2: "An unexpected error occurred.\r\n"
-    mode_3: "UNEXPECTED ERROR.\r\n" #予期せぬエラーが発生
+  unexpected_error:
+    mode_1: "予期せぬエラーが発生したため、切断します。"
+    mode_2: "予期せぬエラーが発生したため、切断します。"
+    mode_3: "予期せぬエラーが発生したため、切断します。"
   error:
     mode_1: "エラーが発生しました。シスオペに連絡してください。\r\n"
     mode_2: "An error occurred. Please contact the sysop.\r\n"

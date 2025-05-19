@@ -259,3 +259,34 @@ def update_user_menu_mode(dbname, user_id, new_mode):
         logging.error(
             f"メニューモード更新中にエラー (UserID: {user_id}, Mode: {new_mode}): {e}")
         return False
+
+
+def update_user_password_and_salt(dbname, login_id, new_hashed_password, new_salt_hex):
+    """ユーザのパスハッシュとソルトの更新"""
+    try:
+        user_id = get_user_id_from_user_name(dbname, login_id)
+        if user_id is None:
+            logging.error(f"パスワード更新失敗、ユーザが見つかりません: {login_id}")
+            return False
+        # usersテーブルの更新
+        sql = "UPDATE users SET password = ?, salt = ? WHERE id = ?"
+        sqlite_execute_query(
+            dbname, sql, (new_hashed_password, new_salt_hex, user_id))
+        logging.info(f"ユーザ '{login_id}' (ID: {user_id}) のパスワードとソルトを更新しました。")
+        return True
+    except Exception as e:
+        logging.error(f"パスワードとソルトの更新中にDBエラー (ユーザ: {login_id}): {e}")
+        return False
+
+
+def update_user_profile_comment(dbname, user_id, new_comment):
+    """ユーザーのプロフィールコメントを更新"""
+    try:
+        # usersテーブルの更新
+        sql = "UPDATE users SET comment = ? WHERE id = ?"
+        sqlite_execute_query(dbname, sql, (new_comment, user_id))
+        logging.info(f"ユーザID {user_id} のプロフィールコメントを更新しました。")
+        return True
+    except Exception as e:
+        logging.error(f"プロフィールコメント更新中にDBエラー (UserID: {user_id}): {e}")
+        return False

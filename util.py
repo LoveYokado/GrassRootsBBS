@@ -16,31 +16,6 @@ import sqlite_tools
 # テキストデータのキャッシュ用グローバル変数
 _master_text_data_cache = None
 
-# 設定辞書(グローバル)
-app_config = {}
-
-# SSH_KEY_DIR = '.sshkey'
-# AUTH_KEYS_FILE = os.path.join(SSH_KEY_DIR, 'authorized_keys.pub')
-# PBKDF2_ROUNDS = 100000  # パスワードハッシュのストレチッング数
-
-
-def generate_ssh_key_pair(username):
-    """
-    SSH公開鍵ペアを生成する
-    """
-    key = paramiko.RSAKey.generate(2048)
-
-    # 秘密鍵(PEM)をエクスポート
-    private_key_io = io.StringIO()
-    key.write_private_key(private_key_io)
-    private_key_pem_string = private_key_io.getvalue()
-    private_key_io.close()
-
-    # 公開鍵をエクスポート
-    public_key_openssh_string = f"{key.get_name()} {key.get_base64()} {username}"
-
-    return private_key_pem_string, public_key_openssh_string
-
 
 def load_app_config_from_path(config_file_path):
     """
@@ -58,6 +33,20 @@ def load_app_config_from_path(config_file_path):
     except toml.TomlDecodeError as e:
         logging.error(f"設定ファイル '{config_file_path}' の読み込みエラー: {e}")
         raise
+
+
+def verify_password(stored_password_hash, salt_hex, provided_password, pbkdf2_rounds):
+    """
+    パスワードと保存されたハッシュの検証
+    """
+    try:
+        salt = bytes.fromhex(salt_hex)
+        provided_hash = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'),
+                                            salt, pbkdf2_rounds).hex()
+        return stored_password_hash == provided_hash
+    except Exception as e:
+        logging.error(f"パスワード検証中エラー: {e}")
+        return False
 
 
 def _validate_config_or_log_warnings():
@@ -255,11 +244,13 @@ def make_sysop_and_database(dbname):
         )
 
         # シスオペのSSH鍵を作成
-        sysop_private_key = generate_ssh_keypair(sysopname)
-
-        print("Sysop registered.")
-        print(sysop_private_key)
-        print("秘密鍵は今回のみの表示です。大切に保管してください。")
+        sysop_private_key_pem = generate_and_regenerate_ssh_key(sysopname)
+        if sysop_private_key_pem:
+            print("Sysop registered.")
+            print(sysop_private_key_pem)
+            print("秘密鍵は今回のみの表示です。大切に保管してください。")
+        else:
+            print("シスオペのSSH鍵の作成に失敗しました。")
         # ゲスト登録 (saltとハッシュ化パスワード保存)
         guest_salt, guest_hashed_pass = hash_password('GUEST')
         print("Registering Guest...")
@@ -358,9 +349,10 @@ def prompt_handler(chan, dbname, login_id, menu_mode='2'):
     return server_prefs
 
 
-def generate_ssh_keypair(username):
+def generate_and_regenerate_ssh_key(username):
     """
-    SSH鍵を生成する。公開鍵はauthorized_keys.pubに追加し、秘密鍵は文字列として返す
+    新しいSSHキーペアを生成し、公開鍵をauthorized_keys.pubに追加する。
+    秘密鍵(PEM形式文字列)を返す。
     """
     if not app_config:
         logging.error("設定が読み込まれていません。SSH鍵ペアを生成できません。")
@@ -384,7 +376,7 @@ def generate_ssh_keypair(username):
         private_key_io.close()
 
         # 公開鍵を生成してauthorized_keys.pubに追加
-        public_key_line = f"ssh-rsa {key.get_base64()} {username}@{socket.gethostname()}"
+        public_key_line = f"{key.get_name()} {key.get_base64()} {username}"
 
         # .sshkeyディレクトリがなければ作成
         if not os.path.exists(key_dir_val):
@@ -392,13 +384,9 @@ def generate_ssh_keypair(username):
             logging.info(f"SSHキーディレクトリ '{key_dir_val}' を作成しました。")
 
         auth_key_path = os.path.join(key_dir_val, auth_keys_filename_val)
-        # authorized_keys.pubがなければ作成
-        if not os.path.exists(auth_key_path):
-            with open(auth_key_path, 'w', encoding='utf-8') as f:
-                f.write(public_key_line+'\n')
-        else:  # あれば追記
-            with open(auth_key_path, 'a', encoding='utf-8') as f:
-                f.write(public_key_line+'\n')
+        # authorized_keys.pubに追記
+        with open(auth_key_path, 'a', encoding='utf-8') as f:
+            f.write(public_key_line+'\n')
         logging.info(f"SSH鍵を生成しました。{username} の公開鍵を {auth_key_path} に追加しました。")
 
         return private_key_str
@@ -408,6 +396,71 @@ def generate_ssh_keypair(username):
 
 
 # ここからしたはデバッグ後に削除する
+def regenerate_user_ssh_key(username):
+    """
+    指定されたユーザの公開鍵をauthorized_keys.pubから削除し、
+    新しいキーペアを生成して公開鍵を追記。
+    """
+    if not app_config:
+        logging.error("設定が読み込めないので鍵が作れません。")
+        return None
+    try:
+        ssh_config = app_config.get("ssh", {})
+        key_dir_val = ssh_config.get('key_dir')
+        auth_keys_filename_val = ssh_config.get('auth_keys_filename')
+
+        if not key_dir_val or not auth_keys_filename_val:
+            logging.error(
+                "SSH設定(key_dir or auth_keys_filename)がconfig.tomlに設定されていません。")
+            return None
+
+        auth_key_path = os.path.join(key_dir_val, auth_keys_filename_val)
+
+        # 古い公開鍵を削除
+        if os.path.exists(auth_key_path):
+            temp_auth_key_path = auth_key_path + ".tmp"
+            found_and_removed = False
+            with open(auth_key_path, 'r', encoding='utf-8') as infile, \
+                    open(temp_auth_key_path, 'w', encoding='utf-8') as outfile:
+                for line in infile:
+                    stripped_line = line.strip()
+                    if not stripped_line or stripped_line.startswith('#'):
+                        outfile.write(line)
+                        continue
+
+                    parts = stripped_line.split()
+                    # 公開鍵のコメント部分がユーザー名と一致するか確認
+                    key_comment_user = None
+                    if len(parts) > 2:
+                        key_comment_user = parts[2].split('@')[0]  # @以降は無視
+
+                    if key_comment_user == username:
+                        logging.info(
+                            f"ユーザー '{username}' の古いSSH公開鍵を削除します: {stripped_line}")
+                        found_and_removed = True
+                    else:
+                        outfile.write(line)  # 他のユーザーの鍵は保持
+
+            os.replace(temp_auth_key_path, auth_key_path)  # 一時ファイルを元のファイルに置き換え
+            if not found_and_removed:
+                logging.warning(
+                    f"ユーザー '{username}' のSSH公開鍵は見つかりませんでした。削除処理はスキップされました。")
+        else:
+            logging.warning(f"authorized_keysファイル '{auth_key_path}' が存在しません。")
+
+        # 新しいキーペアを生成し、公開鍵を追記
+        new_private_key_pem = generate_and_regenerate_ssh_key(username)
+        if new_private_key_pem:
+            logging.info(f"ユーザー '{username}' の新しいSSH鍵ペアを生成し、公開鍵を登録しました。")
+            return new_private_key_pem
+        else:
+            logging.error(f"ユーザー '{username}' の新しいSSH鍵ペアの生成に失敗しました。")
+            return None
+
+    except Exception as e:
+        logging.error(f"SSH鍵の再生成中にエラーが発生しました (ユーザー: {username}): {e}")
+        return None
+
 
 def show_textsfile(chan, filename, menu_mode='2'):
     """テキストファイルを表示する"""
