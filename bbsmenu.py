@@ -9,11 +9,6 @@ import logging
 CMD_SHOW_PREFS = "0"
 CMD_SET_PERMISSIONS = "1"
 CMD_USER_EDIT = "2"
-# 電報受信制限の定数
-TELEGRAM_RESTRICTION_RECEIVE_ALL = 0
-TELEGRAM_RESTRICTION_MEMBERS_ONLY = 1
-TELEGRAM_RESTRICTION_REJECT_ALL = 2
-TELEGRAM_RESTRICTION_REJECT_BLACKLIST = 3
 
 
 def bbs_menu(chan):
@@ -154,7 +149,7 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
             set_telegram_restriction(chan, dbname, login_id, current_menu_mode)
         elif command == '10':
             # ブラックリスト編集
-            chan.send("ブラックリスト編集は未実装です。\r\n")
+            edit_blacklist(chan, dbname, login_id, current_menu_mode)
         elif command == 'e' or command == '':
             return current_menu_mode  # メニューから抜ける
         elif command == 'h' or command == '?':
@@ -385,7 +380,7 @@ def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
 
     while True:
         util.send_text_by_key(
-            chan, "user_pref_menu.set_lastlogin.newe_datetime", current_menu_mode, add_newline=False)
+            chan, "user_pref_menu.set_lastlogin.newe_datetime", current_menu_mode, add_newline=False)  # 新しい日時
         datetime_str_input = ssh_input.process_input(chan)
 
         if datetime_str_input is None:
@@ -393,7 +388,7 @@ def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
         if not datetime_str_input:
             util.send_text_by_key(
                 chan, "user_pref_menu.set_lastlogin.cancelled", current_menu_mode
-            )
+            )  # キャンセル
             return
 
         new_datetime_obj = None
@@ -414,7 +409,8 @@ def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
         if new_datetime_obj is None:
             util.send_text_by_key(
                 chan, "user_pref_menu.set_lastlogin.invalid_format", current_menu_mode
-            )
+            )  # 日時のフォーマットが不正
+            continue
 
         new_timestamp = int(new_datetime_obj.timestamp())
 
@@ -423,7 +419,7 @@ def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
                 dbname, 'users', ['lastlogin'], user_id, 'lastlogin', new_timestamp)
             util.send_text_by_key(
                 chan, "user_pref_menu.set_lastlogin.updated", current_menu_mode
-            )
+            )  # 最終ログイン日時更新
             return
         except Exception as e:
             logging.error(f"最終ログイン日時更新エラー: {e}")
@@ -433,8 +429,161 @@ def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
 
 
 def set_telegram_restriction(chan, dbname, login_id, current_menu_mode):
+    """電報受信制限設定"""
+    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+    if not user_data:
+        logging.error(f"電報受信制限設定時にユーザが存在しませんでした。{login_id}")
+        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
+        return
 
-    pass
+    user_id = user_data['id']
+
+    while True:
+        util.send_text_by_key(
+            chan, "user_pref_menu.telegram_restriction.prompt", current_menu_mode, add_newline=False)
+        choice = ssh_input.process_input(chan)
+        new_restriction_level = -1
+        new_restridtion_lebel_text = ""
+        if choice == '1':
+            new_restriction_level = 0
+            new_restridtion_lebel_text = util.get_text_by_key(
+                "user_pref_menu.telegram_restriction.recieve_all", current_menu_mode)
+        elif choice == '2':
+            new_restriction_level = 1
+            new_restridtion_lebel_text = util.get_text_by_key(
+                "user_pref_menu.telegram_restriction.members_only", current_menu_mode)
+        elif choice == '3':
+            new_restriction_level = 2
+            new_restridtion_lebel_text = util.get_text_by_key(
+                "user_pref_menu.telegram_restriction.reject_all", current_menu_mode)
+        elif choice == '4':
+            new_restriction_level = 3
+            new_restridtion_lebel_text = util.get_text_by_key(
+                "user_pref_menu.telegram_restriction.reject_black_list", current_menu_mode)
+        else:
+            return
+
+        if sqlite_tools.update_user_telegram_restriction(dbname, user_id, new_restriction_level):
+            chan.send(new_restridtion_lebel_text+"\r\n")  # 制限レベル表示
+            return
+        else:
+            logging.error(f"電報受信制限更新時にエラーが発生しました。{login_id}")
+            util.send_text_by_key(
+                chan, "common_messages.error", current_menu_mode)
+            return
+
+
+def edit_blacklist(chan, dbname, login_id, current_menu_mode):
+    """ブラックリスト編集"""
+    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+
+    user_id = user_data['id']
+    current_blacklist_str = user_data['blacklist']
+
+    util.send_text_by_key(
+        chan, "user_pref_menu.blacklist_edit.header", current_menu_mode)
+    util.send_text_by_key(
+        chan, "user_pref_menu.blacklist_edit.current_blacklist_header", current_menu_mode)  # 現在のブラックリスト
+
+    if current_blacklist_str:
+        current_user_id_strs = [uid_str.strip(
+        ) for uid_str in current_blacklist_str.split(',') if uid_str.strip().isdigit()]
+        display_login_ids = []
+
+        if current_user_id_strs:
+            # 複数のIDから一度に名前を取得
+            id_to_name_map = sqlite_tools.get_user_names_from_user_ids(
+                dbname, current_user_id_strs)
+            for uid_str in current_user_id_strs:
+                # 取得したマップからユーザー名を参照
+                user_id_int = int(uid_str)  # マップのキーは整数型
+                login_name = id_to_name_map.get(user_id_int)
+                display_login_ids.append(
+                    login_name if login_name else f"(ID:{uid_str} 不明)")
+
+        if display_login_ids:
+            # プレースホルダを使って表示する方が望ましい
+            # util.send_text_by_key(chan, "user_pref_menu.blacklist_edit.current_list_display", current_menu_mode, blacklist_users=", ".join(display_login_ids))
+            chan.send("  " + ", ".join(display_login_ids) + "\r\n")
+        else:
+            # ID文字列はあるが、有効なユーザー名に変換できなかった場合
+            util.send_text_by_key(
+                chan, "user_pref_menu.blacklist_edit.no_blacklist", current_menu_mode)
+    else:
+        util.send_text_by_key(
+            chan, "user_pref_menu.blacklist_edit.no_blacklist", current_menu_mode)  # ブラックリスト無し
+
+    util.send_text_by_key(chan, "user_pref_menu.blacklist_edit.confirm_change_prompt",
+                          current_menu_mode, add_newline=False)  # 変更するかの確認
+    Confirm_choice = ssh_input.process_input(chan)
+
+    if Confirm_choice is None or Confirm_choice.lower() != "y":
+        util.send_text_by_key(
+            chan, "user_pref_menu.blacklist_edit.cancelled", current_menu_mode)  # キャンセル
+        return
+
+    util.send_text_by_key(chan, "user_pref_menu.blacklist_edit.new_list_prompt",
+                          current_menu_mode, add_newline=False)  # 新しいブラックリスト",)
+    new_blacklist_login_ids_input_str = ssh_input.process_input(chan)
+
+    if new_blacklist_login_ids_input_str is None:
+        util.send_text_by_key(
+            chan, "user_pref_menu.blacklist_edit.cancelled", current_menu_mode)  # キャンセル
+        return
+
+    new_blacklist_login_ids_input_str = new_blacklist_login_ids_input_str.strip()
+    validated_user_ids_for_db = []
+
+    if not new_blacklist_login_ids_input_str:  # 空入力はブラックリストをクリア
+        pass  # validated_user_ids_for_db は空のまま
+    else:
+        input_login_ids = [name.strip(
+        ) for name in new_blacklist_login_ids_input_str.split(',') if name.strip()]
+
+        # 何か入力はあるが、パースしたら空になった場合 (例: ",,,")
+        if not input_login_ids and new_blacklist_login_ids_input_str:
+            util.send_text_by_key(
+                # 適切なエラーメッセージキーに変更
+                chan, "user_pref_menu.blacklist_edit.invalid_id_format", current_menu_mode)
+            return
+
+        for target_login_id_str in input_login_ids:
+            if not target_login_id_str:  # カンマが連続した場合など
+                continue
+
+            # 自分自身をブラックリストには追加できない
+            if target_login_id_str == login_id:
+                # logging.info(f"ユーザー {login_id} が自身をブラックリストに追加しようとしました。")
+                # メッセージを出しても良いが、今回は単に無視する
+                continue
+
+            # 入力された login_id から user_id を取得
+            target_user_id_from_db = sqlite_tools.get_user_id_from_user_name(
+                dbname, target_login_id_str)
+
+            if target_user_id_from_db is None:
+                util.send_text_by_key(chan, "user_pref_menu.blacklist_edit.user_id_not_found",
+                                      current_menu_mode, user_id=target_login_id_str)  # user_id を login_id に変更
+                return
+
+            validated_user_ids_for_db.append(str(target_user_id_from_db))
+    # 重複を除いてソートして保存
+    # validated_user_ids_for_db には文字列型の user_id が入っている
+    if validated_user_ids_for_db:
+        # 数値としてソートするために一度intに変換
+        unique_sorted_user_ids = sorted(
+            list(set(map(int, validated_user_ids_for_db))))
+        final_blacklist_db_str = ",".join(map(str, unique_sorted_user_ids))
+    else:
+        final_blacklist_db_str = ""
+
+    if sqlite_tools.update_user_blacklist(dbname, user_id, final_blacklist_db_str):
+        util.send_text_by_key(
+            chan, "user_pref_menu.blacklist_edit.update_success", current_menu_mode)  # 成功
+    else:
+        logging.error(f"ブラックリスト更新時にエラーが発生しました。{login_id}")
+        util.send_text_by_key(
+            chan, "common_messages.error", current_menu_mode)
 
 
 def sysop_menu(chan, dbname, current_menu_mode):

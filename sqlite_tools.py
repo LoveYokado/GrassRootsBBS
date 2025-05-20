@@ -292,7 +292,7 @@ def update_user_profile_comment(dbname, user_id, new_comment):
         return False
 
 
-def updat_user_telegram_restriction(dbname, user_id, restriction_level):
+def update_user_telegram_restriction(dbname, user_id, restriction_level):
     """ユーザの電報受信制限を更新"""
     try:
         sql = "UPDATE users SET telegram_restriction=? WHERE id=?"
@@ -302,3 +302,42 @@ def updat_user_telegram_restriction(dbname, user_id, restriction_level):
     except Exception as e:
         logging.error(f"電報受信制限更新中にDBエラー (UserID: {user_id}): {e}")
         return False
+
+
+def update_user_blacklist(dbname, user_id, blacklist_str):
+    """ユーザのブラックリストを更新"""
+    try:
+        sql = "UPDATE users SET blacklist=? WHERE id=?"
+        sqlite_execute_query(dbname, sql, (blacklist_str, user_id))
+        logging.info(f"ユーザID {user_id} のブラックリストを更新しました。")
+        return True
+    except Exception as e:
+        logging.error(f"ブラックリスト更新中にDBエラー (UserID: {user_id}): {e}")
+        return False
+
+
+def get_user_names_from_user_ids(dbname, user_ids):
+    """
+    複数のユーザーIDのリストから、ユーザーIDとユーザー名のマッピング辞書を取得する。
+    存在しないIDは結果に含まれない。
+    """
+    if not user_ids:
+        return {}
+
+    # user_ids リスト内の非数値や空文字列を除外
+    valid_user_ids = [int(uid)
+                      for uid in user_ids if str(uid).strip().isdigit()]
+    if not valid_user_ids:
+        return {}
+
+    placeholders = ','.join('?' * len(valid_user_ids))
+    sql = f"SELECT id, name FROM users WHERE id IN ({placeholders})"
+
+    results = sqlite_execute_query(
+        dbname, sql, tuple(valid_user_ids), fetch=True)
+
+    id_to_name_map = {}
+    if results:
+        for row in results:
+            id_to_name_map[row['id']] = row['name']
+    return id_to_name_map

@@ -233,7 +233,7 @@ user_pref_menu:
       mode_2: "Last login time updated.\r\n"
       mode_3: "LAST LOGIN TIME UPDATED.\r\n"
   telegram_restriction:
-    options_header:
+    prompt:
       mode_1: "選択してください([1]全電報を受信 [2]会員からのみ受信 [3]全電報を拒否 [4]ブラックリストからの電報を拒否): "
       mode_2: "Select ([1]All telegrams [2]Only from members [3]Reject all telegrams [4]Reject telegrams from blacklist): "
       mode_3: "SELECT ([1]ALL TELEGRAMS [2]MEMBERS ONLY  [3]REJECT ALL [4]REJECT BLACKLIST): "
@@ -249,6 +249,63 @@ user_pref_menu:
       mode_1: "電報受信制限の変更をキャンセルしました。"
       mode_2: "Telegram reception restriction change cancelled."
       mode_3: "RESTRICTION CHANGE CANCELLED." #ヘルプ
+    recieve_all:
+      mode_1: "** すべての電報を受信します **"
+      mode_2: "** All telegrams **"
+      mode_3: "** ALL TELEGRAMS **"
+    member_only:
+      mode_1: "** ゲストからの電報を拒否します **"
+      mode_2: "** Only from members **"
+      mode_3: "** MEMBERS ONLY **"
+    reject_all:
+      mode_1: "** ゲストおよび会員からの電報を拒否します **"
+      mode_2: "** Reject all telegrams **"
+      mode_3: "** REJECT ALL **"
+    reject_blacklist:
+      mode_1: "** ブラックリストに設定された会員からの電報を拒否します **"
+      mode_2: "** Reject telegrams from blacklist **"
+      mode_3: "** REJECT BLACKLIST **"
+  blacklist_edit:
+    header:
+      mode_1: "--- ブラックリスト編集 ---"
+      mode_2: "--- Edit Blacklist ---"
+      mode_3: "--- EDIT BLACKLIST ---"
+    current_blacklist_header:
+      mode_1: "現在のブラックリスト (ユーザーID):"
+      mode_2: "Current Blacklist (User IDs):"
+      mode_3: "CURRENT BLACKLIST (USER IDS):"
+    no_blacklist:
+      mode_1: "  (現在ブラックリストに登録されているユーザーはいません)"
+      mode_2: "  (No users currently on the blacklist)"
+      mode_3: "  (NO USERS ON BLACKLIST)"
+    confirm_change_prompt:
+      mode_1: "ブラックリストを変更しますか？ (y/n): "
+      mode_2: "Do you want to change the blacklist? (y/n): "
+      mode_3: "CHANGE BLACKLIST? (Y/N): "
+    new_list_prompt:
+      mode_1: "新しいブラックリストをカンマ区切りで入力してください (例: user1,test,guest 空入力でクリア): "
+      mode_2: "Enter new blacklist as comma-separated User Logins (e.g., user1,test,guest. Empty to clear): "
+      mode_3: "NEW BLACKLIST (LOGINS, COMMA-SEP. EMPTY TO CLEAR): "
+    invalid_id_format:
+      mode_1: "** 不正な入力形式です。ユーザー名をカンマで区切って入力してください。 **"
+      mode_2: "** Invalid input format. Please enter usernames separated by commas. **"
+      mode_3: "** INVALID INPUT. ENTER USERNAMES, COMMA-SEP. **"
+    user_id_not_found:
+      mode_1: "** 存在しないユーザー「{user_id}」が含まれています。 **"
+      mode_2: '** User "{user_id}" not found. **'
+      mode_3: '** USER "{user_id}" NOT FOUND. **'
+    update_success:
+      mode_1: "ブラックリストを更新しました。"
+      mode_2: "Blacklist updated successfully."
+      mode_3: "BLACKLIST UPDATED."
+    update_failed:
+      mode_1: "** ブラックリストの更新に失敗しました。 **"
+      mode_2: "** Failed to update blacklist. **"
+      mode_3: "** BLACKLIST UPDATE FAILED. **"
+    cancelled:
+      mode_1: "ブラックリストの編集をキャンセルしました。"
+      mode_2: "Blacklist editing cancelled."
+      mode_3: "BLACKLIST EDIT CANCELLED."
   help_h:
     mode_1: ""
     mode_2: ""

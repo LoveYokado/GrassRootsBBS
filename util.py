@@ -214,7 +214,9 @@ def make_sysop_and_database(dbname):
                 comment TEXT,
                 mail TEXT,
                 auth_method TEXT DEFAULT 'password_only' NOT NULL CHECK(auth_method IN ('key_only','password_only','webapp_only','both')),
-                menu_mode TEXT DEFAULT '1' NOT NULL CHECK(menu_mode IN ('1','2','3'))
+                menu_mode TEXT DEFAULT '1' NOT NULL CHECK(menu_mode IN ('1','2','3')),
+                telegram_restriction INTEGER DEFAULT 0 NOT NULL CHECK(telegram_restriction IN (0, 1, 2, 3)),
+                blacklist TEXT DEFAULT ''
             )'''
         )
         print("users table created.")
