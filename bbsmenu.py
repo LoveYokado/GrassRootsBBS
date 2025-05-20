@@ -77,30 +77,63 @@ def telegram_send(chan, dbname, sender_name, online_members, current_menu_mode):
 
 def telegram_recieve(chan, dbname, username, current_menu_mode):
     """受信している電報を表示すして、表示後に削除する"""
+    # 電報受信設定を取得
+    user_settings = sqlite_tools.get_user_auth_info(dbname, username)
+    user_restriction = user_settings['telegram_restriction']
+    blacklist_str = user_settings['blacklist']
+    user_blacklist_ids = set()
+    if blacklist_str:
+        try:
+            user_blacklist_ids = set(int(uid)
+                                     for uid in blacklist_str.split(','))
+        except ValueError:
+            logging.error(
+                f"ユーザ{username}のブラックリスト形式エラー:{blacklist_str}")
+            user_blacklist_ids = set()
+
     results = sqlite_tools.load_and_delete_telegrams(dbname, username)
-    if results:
+    if not results:
+        return
+
+    filterd_telegrams = []
+    for teregram in results:
+        sender_name = teregram['sender_name']
+        # SenderユーザIDを取得
+        sender_id = sqlite_tools.get_user_id_from_user_name(
+            dbname, sender_name)
+
+        should_display = True
+
+        # 電報受信制限確認
+        if user_restriction == 2:  # 全拒否
+            should_display = False
+        elif user_restriction == 1:  # ゲスト除外
+            if sender_name.upper() == "GUEST":
+                should_display = False
+
+        # ブラックリスト確認
+        if should_display == 3 and sender_id in user_blacklist_ids:
+            should_display = False
+
+        if should_display:
+            filterd_telegrams.append(teregram)
+
+    if filterd_telegrams:
         util.send_text_by_key(chan, "telegram.receive_header",
                               current_menu_mode)  # 電報受信メッセージ
-        for result in results:
-            sender = result['sender_name']
-            message = result['message']
-            timestamp_val = result['timestamp']
+        for telegram_to_display in filterd_telegrams:
+            sender = telegram_to_display['sender_name']
+            message = telegram_to_display['message']
+            timestamp_val = telegram_to_display['timestamp']
             try:
                 dt_str = datetime.datetime.fromtimestamp(
                     timestamp_val).strftime('%Y-%m-%d %H:%M')  # 秒は省略しても良いかも
             except (ValueError, OSError, TypeError):  # TypeError も考慮
                 dt_str = "不明な日時"
-            # 表示形式を修正
             util.send_text_by_key(
                 chan, "telegram.receive_message", current_menu_mode, sender=sender, message=message, dt_str=dt_str)  # 受信メッセージ本体
         util.send_text_by_key(
             chan, "telegram.receive_footer", current_menu_mode)
-    else:
-        # 電報がない場合は何も表示しない
-        pass
-
-
-# ... (他の関数)
 
 
 def who_menu(chan, dbname, online_members, current_menu_mode):
