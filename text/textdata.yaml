@@ -114,11 +114,12 @@ user_pref_menu:
       [2] パスワード変更
       [3] プロフィール変更
       [4] 会員リスト
-      [5] 最終ログイン日時仮設定 (未実装)
+      [5] 最終ログイン日時仮設定
       [6] 探索リスト登録 (未実装)
       [7] 探索リスト読み出し (未実装)
       [8] 元探索リスト読み出し (未実装)
-      [9] 電報受信制限 (未実装)
+      [9] 電報受信制限
+      [10] ブラックリスト編集
       [E] 終了
       [H,?]: ヘルプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -130,11 +131,12 @@ user_pref_menu:
       [2] Change Password
       [3] Change Profile
       [4] Member List
-      [5] Set Last Login Time (Unimplemented)
+      [5] Set Last Login Time
       [6] Register Search List (Unimplemented)
       [7] Load Search List (Unimplemented)
       [8] Load Original Search List (Unimplemented)
-      [9] Telegram Receive Restriction (Unimplemented)
+      [9] Telegram Receive Restriction
+      [10] Edit Blacklist
       [E] Exit
       [H,?]: Help
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -146,11 +148,12 @@ user_pref_menu:
       [2] CHG PASS
       [3] CHG PROF
       [4] MEMBER LIST
-      [5] SET LAST LOGIN (N/I)
+      [5] SET LAST LOGIN
       [6] REG SEARCH (N/I)
       [7] LOAD SEARCH (N/I)
       [8] LOAD ORIG SEARCH (N/I)
-      [9] TELEGRAM RESTRICT (N/I)
+      [9] TELEGRAM RESTRICT
+      [10] EDIT BLACKLIST
       [E] EXIT
       [H,?]: HELP
       ╚═══════════════════════════════════════╝
@@ -208,8 +211,44 @@ user_pref_menu:
       mode_2: "No members found.\r\n"
       mode_3: "NO MEMBERS FOUND.\r\n"
     # 会員情報の表示形式はコード側でフォーマットするので、ここでは不要
-
-  #ヘルプ
+  set_lastlogin:
+    current_lastlogin:
+      mode_1: "設定されている最終ログイン日時は {lastlogin}です。"
+      mode_2: "The last login time is {lastlogin}."
+      mode_3: "LAST LOGIN TIME IS {lastlogin}."
+    newe_datetime:
+      mode_1: "新しい最終ログイン日時を入力してください(YYYY-MM-DD HH:MM:SS): "
+      mode_2: "Enter new last login time(YYYY-MM-DD HH:MM:SS): "
+      mode_3: "ENTER NEW LAST LOGIN TIME(YYYY-MM-DD HH:MM:SS): "
+    cancelled:
+      mode_1: "最終ログイン日時の設定をキャンセルしました。\r\n"
+      mode_2: "Last login time change cancelled.\r\n"
+      mode_3: "LAST LOGIN TIME CHANGE CANCELLED.\r\n"
+    invalid_format:
+      mode_1: "無効な日時フォーマットです。YYYY-MM-DD HH:MM:SS で入力してください。\r\n"
+      mode_2: "Invalid date format. Please enter in YYYY-MM-DD HH:MM:SS format.\r\n"
+      mode_3: "INVALID DATE FORMAT. ENTER YYYY-MM-DD HH:MM:SS.\r\n"
+    updated:
+      mode_1: "最終ログイン日時を更新しました。\r\n"
+      mode_2: "Last login time updated.\r\n"
+      mode_3: "LAST LOGIN TIME UPDATED.\r\n"
+  telegram_restriction:
+    options_header:
+      mode_1: "選択してください([1]全電報を受信 [2]会員からのみ受信 [3]全電報を拒否 [4]ブラックリストからの電報を拒否): "
+      mode_2: "Select ([1]All telegrams [2]Only from members [3]Reject all telegrams [4]Reject telegrams from blacklist): "
+      mode_3: "SELECT ([1]ALL TELEGRAMS [2]MEMBERS ONLY  [3]REJECT ALL [4]REJECT BLACKLIST): "
+    setting_updated:
+      mode_1: "電報受信制限を「{new_restriction_text}」に変更しました。"
+      mode_2: 'Telegram reception restriction changed to "{new_restriction_text}".'
+      mode_3: 'TELEGRAM RESTRICTION SET TO "{new_restriction_text}".'
+    update_failed:
+      mode_1: "電報受信制限の変更に失敗しました。"
+      mode_2: "Failed to change telegram reception restriction."
+      mode_3: "RESTRICTION CHANGE FAILED."
+    cancelled:
+      mode_1: "電報受信制限の変更をキャンセルしました。"
+      mode_2: "Telegram reception restriction change cancelled."
+      mode_3: "RESTRICTION CHANGE CANCELLED." #ヘルプ
   help_h:
     mode_1: ""
     mode_2: ""

@@ -9,6 +9,11 @@ import logging
 CMD_SHOW_PREFS = "0"
 CMD_SET_PERMISSIONS = "1"
 CMD_USER_EDIT = "2"
+# 電報受信制限の定数
+TELEGRAM_RESTRICTION_RECEIVE_ALL = 0
+TELEGRAM_RESTRICTION_MEMBERS_ONLY = 1
+TELEGRAM_RESTRICTION_REJECT_ALL = 2
+TELEGRAM_RESTRICTION_REJECT_BLACKLIST = 3
 
 
 def bbs_menu(chan):
@@ -133,8 +138,8 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
             # 会員リスト表示
             show_member_list(chan, dbname, current_menu_mode)
         elif command == '5':
-            # 最終ログイン日時仮設定 (未実装)
-            chan.send("最終ログイン日時仮設定は未実装です。\r\n")
+            # 最終ログイン日時仮設定
+            set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode)
         elif command == '6':
             # 探索リスト登録 (未実装)
             chan.send("探索リスト登録は未実装です。\r\n")
@@ -145,8 +150,11 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
             # 元探索リスト読み出し (未実装)
             chan.send("元探索リスト読み出しは未実装です。\r\n")
         elif command == '9':
-            # 電報受信制限 (未実装)
-            chan.send("電報受信制限は未実装です。\r\n")
+            # 電報受信制限
+            set_telegram_restriction(chan, dbname, login_id, current_menu_mode)
+        elif command == '10':
+            # ブラックリスト編集
+            chan.send("ブラックリスト編集は未実装です。\r\n")
         elif command == 'e' or command == '':
             return current_menu_mode  # メニューから抜ける
         elif command == 'h' or command == '?':
@@ -356,6 +364,77 @@ def change_profile(chan, dbname, login_id, current_menu_mode):
     except Exception as e:
         logging.error(f"コメント更新エラー: {e}")
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
+
+
+def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
+    """最終ログイン日時を手動で設定"""
+    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+
+    user_id = user_data['id']
+    current_lastlogin_ts = user_data['lastlogin']
+
+    current_lastlogin_str = "None"
+    if current_lastlogin_ts and current_lastlogin_ts > 0:
+        try:
+            current_lastlogin_str = datetime.datetime.fromtimestamp(
+                current_lastlogin_ts).strftime('%Y-%m-%d %H:%M:%S')
+        except (OSError, TypeError, ValueError):
+            current_lastlogin_str = "Unknown datetime"
+    util.send_text_by_key(
+        chan, "user_pref_menu.set_lastlogin.current_lastlogin", current_menu_mode, lastlogin=current_lastlogin_str)  # 最終ログイン日時
+
+    while True:
+        util.send_text_by_key(
+            chan, "user_pref_menu.set_lastlogin.newe_datetime", current_menu_mode, add_newline=False)
+        datetime_str_input = ssh_input.process_input(chan)
+
+        if datetime_str_input is None:
+            return
+        if not datetime_str_input:
+            util.send_text_by_key(
+                chan, "user_pref_menu.set_lastlogin.cancelled", current_menu_mode
+            )
+            return
+
+        new_datetime_obj = None
+        datetime_formats_to_try = [
+            '%Y-%m-%d %H:%M:%S',
+            '%Y-%m-%d %H:%M',
+            '%y-%m-%d %H:%M:%S',
+            '%y-%m-%d %H:%M',
+        ]
+
+        for fmt in datetime_formats_to_try:
+            try:
+                new_datetime_obj = datetime.datetime.strptime(
+                    datetime_str_input, fmt)
+                break
+            except ValueError:
+                continue
+        if new_datetime_obj is None:
+            util.send_text_by_key(
+                chan, "user_pref_menu.set_lastlogin.invalid_format", current_menu_mode
+            )
+
+        new_timestamp = int(new_datetime_obj.timestamp())
+
+        try:
+            sqlite_tools.update_idbase(
+                dbname, 'users', ['lastlogin'], user_id, 'lastlogin', new_timestamp)
+            util.send_text_by_key(
+                chan, "user_pref_menu.set_lastlogin.updated", current_menu_mode
+            )
+            return
+        except Exception as e:
+            logging.error(f"最終ログイン日時更新エラー: {e}")
+            util.send_text_by_key(
+                chan, "common_messages.error", current_menu_mode)
+            return
+
+
+def set_telegram_restriction(chan, dbname, login_id, current_menu_mode):
+
+    pass
 
 
 def sysop_menu(chan, dbname, current_menu_mode):

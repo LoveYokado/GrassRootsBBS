@@ -290,3 +290,15 @@ def update_user_profile_comment(dbname, user_id, new_comment):
     except Exception as e:
         logging.error(f"プロフィールコメント更新中にDBエラー (UserID: {user_id}): {e}")
         return False
+
+
+def updat_user_telegram_restriction(dbname, user_id, restriction_level):
+    """ユーザの電報受信制限を更新"""
+    try:
+        sql = "UPDATE users SET telegram_restriction=? WHERE id=?"
+        sqlite_execute_query(dbname, sql, (restriction_level, user_id))
+        logging.info(f"ユーザID {user_id} の電報受信制限を{restriction_level}に変更しました。")
+        return True
+    except Exception as e:
+        logging.error(f"電報受信制限更新中にDBエラー (UserID: {user_id}): {e}")
+        return False
