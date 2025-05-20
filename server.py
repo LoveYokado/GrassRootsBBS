@@ -13,6 +13,9 @@ import logging
 import base64
 import datetime
 
+import user_pref_menu
+import sysop_menu
+import util
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
@@ -26,16 +29,21 @@ online_members = set()
 # webapp
 current_webapp_clients = 0
 current_webapp_clients_lock = threading.Lock()
-max_concurrent_webapp_clients_config = 0
 
 # ssh
 current_normal_ssh_clients = 0
 current_normal_ssh_clients_lock = threading.Lock()
-max_concurrent_normal_ssh_clients_config = 0
 
 
 class Server(paramiko.ServerInterface):
     def __init__(self, is_web_app_connection=False):
+        """
+        ServerInterface の初期化
+
+        :param is_web_app_connection: bool
+            WEBアプリケーション経由で接続されたSSHクライアントか否か
+        """
+
         self.event = threading.Event()
         self.is_web_app_connection = is_web_app_connection
 
@@ -282,7 +290,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
             # シスオペメニュー(menu_mode)
-            bbsmenu.sysop_menu(chan, dbname, current_loop_menu_mode)
+            sysop_menu.sysop_menu(chan, dbname, current_loop_menu_mode)
 
         # オンラインメンバー一覧表示
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
@@ -298,16 +306,13 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # 　ユーザ環境設定(ゲスト以上すべて)
         elif command in ("u") and userlevel >= 1:
             previous_menu_mode_before_userpref = current_loop_menu_mode
-            returned_menu_mode = bbsmenu.userpref_menu(
+            returned_menu_mode = user_pref_menu.userpref_menu(
                 chan, dbname, login_id, current_loop_menu_mode)
             if returned_menu_mode:
                 current_loop_menu_mode = returned_menu_mode
                 if current_loop_menu_mode != previous_menu_mode_before_userpref:
                     util.send_text_by_key(
                         chan, "top_menu.help_h", current_loop_menu_mode)
-
-            bbsmenu.userpref_menu(chan, dbname, login_id,
-                                  current_loop_menu_mode)
 
         # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
@@ -652,18 +657,22 @@ def handle_client(client, addr, host_key, is_web_app=True):
             with current_webapp_clients_lock:
                 global current_webapp_clients
                 current_webapp_clients = max(0, current_webapp_clients-1)
+                _max_webapp_clients = util.app_config.get(
+                    'server', {}).get('MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
                 logging.debug(
-                    f"Webapp接続カウンタデクリメント: {current_webapp_clients}/{max_concurrent_webapp_clients_config}")
+                    f"Webapp接続カウンタデクリメント: {current_webapp_clients}/{_max_webapp_clients}")
         else:
             with current_normal_ssh_clients_lock:
                 global current_normal_ssh_clients
                 current_normal_ssh_clients = max(
                     0, current_normal_ssh_clients-1)
+                _max_normal_clients = util.app_config.get('server', {}).get(
+                    'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', 0)
                 logging.debug(
-                    f"通常SSH接続カウンタデクリメント: {current_normal_ssh_clients}/{max_concurrent_normal_ssh_clients_config}")
+                    f"通常SSH接続カウンタデクリメント: {current_normal_ssh_clients}/{_max_normal_clients}")
 
         # 正常ログオフでない場合、かつログイン成功していた場合のみ後処理を試みる
-        if logged_in and not normal_logoff:
+        if logged_in and not normal_logoff and login_id:
             logging.warning(
                 f"予期せぬ切断またはエラーのため、追加のログオフ処理を実行します。: {login_id}")
 
@@ -712,25 +721,31 @@ def wait_for_connections(sock, host_key, is_web_app_server):
             if is_web_app_server:
                 with current_webapp_clients_lock:
                     global current_webapp_clients
-                    if max_concurrent_webapp_clients_config > 0 and current_webapp_clients >= max_concurrent_webapp_clients_config:
+                    _max_webapp_clients = util.app_config.get(
+                        'server', {}).get('MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
+                    if _max_webapp_clients > 0 and current_webapp_clients >= _max_webapp_clients:
                         logging.info(
-                            f"Webapp接続上限({max_concurrent_webapp_clients_config})に達しました。新規接続を拒否します({addr})")
+                            f"Webapp接続上限({_max_webapp_clients})に達しました。新規接続を拒否します({addr})")
                         client.close()
                         continue
                     current_webapp_clients += 1
+                    # ログ出力のために再度設定値を取得するか、頻繁に使うなら変数で渡す
                     logging.debug(
-                        f"Webapp接続カウンタインクリメント: {current_webapp_clients}/{max_concurrent_webapp_clients_config}")
+                        f"Webapp接続カウンタインクリメント: {current_webapp_clients}/{_max_webapp_clients}")
             else:
                 with current_normal_ssh_clients_lock:
                     global current_normal_ssh_clients
-                    if max_concurrent_normal_ssh_clients_config > 0 and current_normal_ssh_clients >= max_concurrent_normal_ssh_clients_config:
+                    _max_normal_clients = util.app_config.get('server', {}).get(
+                        'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', 0)
+                    if _max_normal_clients > 0 and current_normal_ssh_clients >= _max_normal_clients:
                         logging.info(
-                            f"通常SSH接続上限({max_concurrent_normal_ssh_clients_config})に達しました。新規接続を拒否します({addr})")
+                            f"通常SSH接続上限({_max_normal_clients})に達しました。新規接続を拒否します({addr})")
                         client.close()
                         continue
                     current_normal_ssh_clients += 1
+                    # ログ出力のために再度設定値を取得
                     logging.debug(
-                        f"通常SSH接続カウンタインクリメント: {current_normal_ssh_clients}/{max_concurrent_normal_ssh_clients_config}")
+                        f"通常SSH接続カウンタインクリメント: {current_normal_ssh_clients}/{_max_normal_clients}")
 
             # スレッド開始
             client_thread = threading.Thread(
@@ -755,7 +770,6 @@ def main():
             f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         print(f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         return
-    global max_concurrent_webapp_clients_config, max_concurrent_normal_ssh_clients_config
     server_config = util.app_config.get('server', {})
     webapp_config = util.app_config.get('webapp', {})
 
@@ -767,10 +781,6 @@ def main():
     normal_bind_port_from_config = server_config.get('NORMAL_BIND_PORT_START')
     NORMAL_SSH_PORT_COUNT_from_config = server_config.get(
         'NORMAL_SSH_PORT_COUNT', 1)
-    max_concurrent_webapp_clients_config = server_config.get(
-        'MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
-    max_concurrent_normal_ssh_clients_config = server_config.get(
-        'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', 0)
 
     if not db_name_from_config:
         logging.critical("DB名が設定ファイルにありません")

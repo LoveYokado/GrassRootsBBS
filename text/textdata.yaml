@@ -306,6 +306,10 @@ user_pref_menu:
       mode_1: "ブラックリストの編集をキャンセルしました。"
       mode_2: "Blacklist editing cancelled."
       mode_3: "BLACKLIST EDIT CANCELLED."
+    current_list_display:
+      mode_1: "  {blacklist_users}"
+      mode_2: "  {blacklist_users}"
+      mode_3: "  {blacklist_users}"
   help_h:
     mode_1: ""
     mode_2: ""
