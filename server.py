@@ -14,7 +14,7 @@ import base64
 import datetime
 
 import user_pref_menu
-import sysop_menu
+import server_menu
 import util
 
 CONFIG_FILE_PATH = "setting/config.toml"
@@ -291,6 +291,11 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command == "s" and userlevel >= 5:
             # シスオペメニュー(menu_mode)
             sysop_menu.sysop_menu(chan, dbname, current_loop_menu_mode)
+
+        # サーバ設定メニュー
+        elif command == "v" and userlevel >= 5:
+            # サーバ設定メニュー(menu_mode)
+            server_menu.server_menu(chan, dbname, current_loop_menu_mode)
 
         # オンラインメンバー一覧表示
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):

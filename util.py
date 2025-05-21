@@ -270,13 +270,14 @@ def make_sysop_and_database(dbname):
                 mail INTEGER DEFAULT 1,
                 telegram INTEGER DEFAULT 1,
                 userpref INTEGER DEFAULT 1,
-                who INTEGER DEFAULT 1
+                who INTEGER DEFAULT 1,
+                default_exploration_list TEXT DEFAULT ''
             )'''
         )
         # 初期設定を挿入 (プレースホルダーを使用)
         cur.execute(
-            "INSERT INTO server_pref(bbs, chat, mail, telegram, userpref, who) VALUES(?, ?, ?, ?, ?, ?)",
-            (0, 1, 1, 1, 1, 1)
+            "INSERT INTO server_pref(bbs, chat, mail, telegram, userpref, who, default_exploration_list) VALUES(?, ?, ?, ?, ?, ?, ?)",
+            (0, 1, 1, 1, 1, 1, "")
         )
         print("server_pref table created and initialized.")
 

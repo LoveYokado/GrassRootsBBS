@@ -163,18 +163,18 @@ def fetchall_idbase(dbname, table, key, keyword):
 
 
 def read_server_pref(dbname):
-    """サーバープレフを読み込む (sqlite_execute_query を使用)"""
-    sql = 'SELECT * FROM server_pref'
-    # server_pref は通常1行しかないので fetchone() でも良いかもしれない
+    """サーバー設定を読み込む"""
+    sql = 'SELECT bbs, chat, mail, telegram, userpref, who, default_exploration_list FROM server_pref'
+    # server_pref は通常1行しかないので fetchone() でも良いかも
     results = sqlite_execute_query(dbname, sql, fetch=True)
     if results:
         # results はリストのリスト [(val1, val2, ...)] なので results[0] を返す
         return list(results[0])
     else:
-        # テーブルが存在しないか空の場合
+        # テーブルが存在しないか空の場合(念の為)
         logging.warning("警告: server_pref テーブルが見つからないか、空です。")
         # デフォルト値を返すか、None を返すなどエラー処理を明確にする
-        return [0, 1, 1, 1, 1, 1]  # 例: デフォルト値を返す
+        return [0, 1, 1, 1, 1, 1, ""]  # 例: デフォルト値を返す
 
 
 def save_telegram(dbname, sender_name, recipient_name, message, current_timestamp):
@@ -366,4 +366,16 @@ def set_user_exploration_list(dbname, user_id, exploration_list_str):
     except Exception as e:
         logging.error(
             f"探索リスト更新中にDBエラー (UserID: {user_id},List:{exploration_list_str[:50]}...): {e}")
+        return False
+
+
+def update_server_default_exploration_list(dbname, exploration_list_str):
+    """サーバーのデフォルト探索リストを更新"""
+    try:
+        sql = "UPDATE server_pref SET default_exploration_list=?"
+        sqlite_execute_query(dbname, sql, (exploration_list_str,))
+        logging.info(f"サーバーのデフォルト探索リストを更新しました: {exploration_list_str[:50]}...")
+        return True
+    except Exception as e:
+        logging.error(f"サーバーのデフォルト探索リスト更新中にDBエラー: {e}")
         return False

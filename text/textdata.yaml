@@ -419,11 +419,11 @@ who_menu:
     mode_3: "(USER INFO ERROR)"
 
 # --- シスオペメニュー関連 ---
-sysop_menu:
+server_menu:
   header: # メニュー本体の表示
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        シスオペメニュー
+        サーバ設定メニュー
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       [0] 設定一覧表示
       [1] 各BBSメニューのユーザレベルごとのパーミッション
@@ -432,7 +432,7 @@ sysop_menu:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        Sysop Menu
+        Server Settings
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       [0] Show Settings
       [1] Set Permissions for BBS Menus
@@ -441,7 +441,7 @@ sysop_menu:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
       ╔═══════════════════════════════════════╗
-      ║   \x1b[31mSYSOP MENU\x1b[0m                          ║
+      ║   \x1b[31mSERVER SETTINGS\x1b[0m                          ║
       ╚═══════════════════════════════════════╝
       [0] SHOW SETTINGS
       [1] SET PERMISSIONS
@@ -547,7 +547,67 @@ sysop_menu:
     mode_1: "シスオペメニューを終了します。"
     mode_2: "Exiting sysop menu."
     mode_3: "EXITING SYSOP MENU."
-
+sysop_menu:
+  menu:
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [ALLR] 探索リストを読む
+      [ALLW] 探索リストを書く
+      [DISK] ディスク残量調査
+      [DOWN] システムダウン
+      [LETR] アンケート処理
+      [LOGR] ログを読む
+      [LOGU] ログを消去
+      [PASC] パスワード変更
+      [PASR] パスワードファイル読む
+      [PASU] 会員抹消
+      [REGS] 会員登録
+      [SYMR] シンボルテーブルを読む
+      [SYMW] シンボルテーブルを書く
+      [VOPT] 監視画面行数変更
+      [WOPT] 監視画面オン/オフ
+      [EXIT] 終了
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [ALLR] Read Exploration List
+      [ALLW] Write Exploration List
+      [DISK] Check Disk Space
+      [DOWN] System Down
+      [LETR] Questionnaire
+      [LOGR] Read Log
+      [LOGU] Clear Log
+      [PASC] Change Password
+      [PASR] Read Password File
+      [PASU] Delete User
+      [REGS] Register User
+      [SYMR] Read Symbol Table
+      [SYMW] Write Symbol Table
+      [VOPT] Change View Options
+      [WOPT] Watch Screen On/Off
+      [EXIT] Quit
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
+      ╔═══════════════════════════════════════╗
+      ║   SYSOP MENU                          ║
+      ╚═══════════════════════════════════════╝
+      [ALLR] READ EXPLORATION LIST
+      [ALLW] WRITE EXPLORATION LIST
+      [DISK] CHECK DISK SPACE
+      [DOWN] SYSTEM DOWN
+      [LETR] QUESTIONNAIRE
+      [LOGR] READ LOG
+      [LOGU] CLEAR LOG
+      [PASC] CHANGE PASSWORD
+      [PASR] READ PASSWORD FILE
+      [PASU] DELETE USER
+      [REGS] REGISTER USER
+      [SYMR] READ SYMBOL TABLE
+      [SYMW] WRITE SYMBOL TABLE
+      [VOPT] CHANGE VIEW OPTIONS
+      [WOPT] WATCH SCREEN ON/OFF
+      [EXIT] QUIT
+      ╚═══════════════════════════════════════╝
 # --- メールメニュー関連 ---
 mail_handler:
   main_prompt:
