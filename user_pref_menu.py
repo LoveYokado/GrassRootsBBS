@@ -37,11 +37,12 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
             # 最終ログイン日時仮設定
             set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode)
         elif command == '6':
-            # 探索リスト登録 (未実装)
-            chan.send("探索リスト登録は未実装です。\r\n")
+            # 探索リスト登録
+            register_exploration_list(
+                chan, dbname, login_id, current_menu_mode)
         elif command == '7':
-            # 探索リスト読み出し (未実装)
-            chan.send("探索リスト読み出しは未実装です。\r\n")
+            # 探索リスト読み出し
+            read_exploration_list(chan, dbname, login_id, current_menu_mode)
         elif command == '8':
             # 元探索リスト読み出し (未実装)
             chan.send("元探索リスト読み出しは未実装です。\r\n")
@@ -458,3 +459,76 @@ def edit_blacklist(chan, dbname, login_id, current_menu_mode):
         logging.error(f"ブラックリスト更新時にエラーが発生しました。{login_id}")
         util.send_text_by_key(
             chan, "common_messages.error", current_menu_mode)
+
+
+def register_exploration_list(chan, dbname, login_id, current_menu_mode):
+    """探索リスト登録"""
+    user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
+    if user_id is None:
+        util.send_text_by_key(
+            chan, "common_messages.user_not_found", current_menu_mode)
+        return
+
+    util.send_text_by_key(
+        chan, "user_pref_menu.register_exploration_list.header", current_menu_mode)  # 探索リスト登録ヘッダ
+
+    exploration_items = []
+    item_number = 1
+    while True:
+        # 番号を表示して待つ
+        prompt_text = f"{item_number}: "
+        chan.send(prompt_text.encode('utf-8'))
+        item_input = ssh_input.process_input(chan)
+
+        if item_input is None:
+            return
+
+        # からエンターで終了
+        if not item_input.strip():
+            break
+
+        exploration_items.append(item_input.strip())
+        item_number += 1
+
+    if not exploration_items:  # 何も入力されなかった場合
+        return
+
+    # 保存確認
+    util.send_text_by_key(
+        chan, "user_pref_menu.register_exploration_list.confirm_yn", current_menu_mode, add_newline=False)
+    confirm_choice = ssh_input.process_input(chan)
+
+    if confirm_choice is None:
+        return
+
+    if confirm_choice.lower().strip() == 'y':
+        exploration_list_str = ",".join(exploration_items)
+        if sqlite_tools.set_user_exploration_list(dbname, user_id, exploration_list_str):
+            util.send_text_by_key(
+                chan, "user_pref_menu.register_exploration_list.success", current_menu_mode)  # 成功
+        else:
+            logging.error(f"探索リスト登録時にエラーが発生しました。{login_id}")
+            util.send_text_by_key(
+                chan, "common_messages.error", current_menu_mode)
+
+
+def read_exploration_list(chan, dbname, login_id, current_menu_mode):
+    """探索リスト読み出し"""
+    user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
+    if user_id is None:
+        return
+
+    exploration_list_str = sqlite_tools.get_user_exploration_list(
+        dbname, user_id)
+
+    if exploration_list_str:
+        items = exploration_list_str.split(",")
+        chan.send("\r\n")
+        for item in items:
+            item_stripped = item.strip()
+            if item_stripped:
+                chan.send(item_stripped.encode('utf-8') + b'\r\n')
+        chan.send("\r\n")
+
+    else:
+        pass

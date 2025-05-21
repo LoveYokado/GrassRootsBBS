@@ -115,8 +115,8 @@ user_pref_menu:
       [3] プロフィール変更
       [4] 会員リスト
       [5] 最終ログイン日時仮設定
-      [6] 探索リスト登録 (未実装)
-      [7] 探索リスト読み出し (未実装)
+      [6] 探索リスト登録
+      [7] 探索リスト読み出し
       [8] 元探索リスト読み出し (未実装)
       [9] 電報受信制限
       [10] ブラックリスト編集
@@ -132,8 +132,8 @@ user_pref_menu:
       [3] Change Profile
       [4] Member List
       [5] Set Last Login Time
-      [6] Register Search List (Unimplemented)
-      [7] Load Search List (Unimplemented)
+      [6] Register Search List
+      [7] Load Search List
       [8] Load Original Search List (Unimplemented)
       [9] Telegram Receive Restriction
       [10] Edit Blacklist
@@ -149,8 +149,8 @@ user_pref_menu:
       [3] CHG PROF
       [4] MEMBER LIST
       [5] SET LAST LOGIN
-      [6] REG SEARCH (N/I)
-      [7] LOAD SEARCH (N/I)
+      [6] REG SEARCH
+      [7] LOAD SEARCH
       [8] LOAD ORIG SEARCH (N/I)
       [9] TELEGRAM RESTRICT
       [10] EDIT BLACKLIST
@@ -310,6 +310,20 @@ user_pref_menu:
       mode_1: "  {blacklist_users}"
       mode_2: "  {blacklist_users}"
       mode_3: "  {blacklist_users}"
+  register_exploration_list:
+    header:
+      mode_1: "** 探索リストに登録します **\r\n"
+      mode_2: "** Register exploration list **\r\n"
+      mode_3: "** REGISTER EXPLORATION LIST **\r\n"
+    confirm_yn:
+      mode_1: "この内容で良いですか?(YまたはN): "
+      mode_2: "Is this content OK? (Y or N): "
+      mode_3: "CONTENT OK? (Y OR N): "
+    success:
+      mode_1: "** 探索リストに登録しました **"
+      mode_2: "** Exploration list registered **"
+      mode_3: "** EXPLORATION LIST REGISTERED **"
+
   help_h:
     mode_1: ""
     mode_2: ""

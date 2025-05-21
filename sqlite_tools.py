@@ -341,3 +341,29 @@ def get_user_names_from_user_ids(dbname, user_ids):
         for row in results:
             id_to_name_map[row['id']] = row['name']
     return id_to_name_map
+
+
+def get_user_exploration_list(dbname, user_id):
+    """ユーザの探索リストを取得"""
+    try:
+        sql = "SELECT exploration_list FROM users WHERE id=?"
+        results = sqlite_execute_query(dbname, sql, (user_id,), fetch=True)
+        if results and results[0] and results[0]['exploration_list'] is not None:
+            return results[0]['exploration_list']
+        return ""
+    except Exception as e:
+        logging.error(f"探索リスト取得中にDBエラー (UserID: {user_id}): {e}")
+        return ""
+
+
+def set_user_exploration_list(dbname, user_id, exploration_list_str):
+    """ユーザ探索リストを更新"""
+    try:
+        sql = "UPDATE users SET exploration_list=? WHERE id=?"
+        sqlite_execute_query(dbname, sql, (exploration_list_str, user_id))
+        logging.info(f"ユーザID {user_id} の探索リストを更新しました。")
+        return True
+    except Exception as e:
+        logging.error(
+            f"探索リスト更新中にDBエラー (UserID: {user_id},List:{exploration_list_str[:50]}...): {e}")
+        return False
