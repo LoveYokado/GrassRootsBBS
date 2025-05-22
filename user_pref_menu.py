@@ -45,7 +45,8 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
             read_exploration_list(chan, dbname, login_id, current_menu_mode)
         elif command == '8':
             # 元探索リスト読み出し (未実装)
-            chan.send("元探索リスト読み出しは未実装です。\r\n")
+            read_server_default_exploration_list(
+                chan, dbname, login_id, current_menu_mode)
         elif command == '9':
             # 電報受信制限
             set_telegram_restriction(chan, dbname, login_id, current_menu_mode)
@@ -532,3 +533,21 @@ def read_exploration_list(chan, dbname, login_id, current_menu_mode):
 
     else:
         pass
+
+
+def read_server_default_exploration_list(chan, dbname, login_id, current_menu_mode):
+    """元探索リスト読み出し"""
+    server_prefs = sqlite_tools.read_server_pref(dbname)
+    if server_prefs and len(server_prefs) > 6:
+        default_exploration_list_str = server_prefs[6]
+        if default_exploration_list_str:
+            items = default_exploration_list_str.split(",")
+            chan.send("\r\n")
+            for item in items:
+                item_stripped = item.strip()
+                if item_stripped:
+                    chan.send(item_stripped.encode('utf-8')+b'\r\n')
+            chan.send("\r\n")
+    else:
+        logging.error("サーバ設定の読み込みに失敗したか、共通探索リストの項目がありません。")
+        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)

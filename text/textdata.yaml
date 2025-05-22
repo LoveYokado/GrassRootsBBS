@@ -117,7 +117,7 @@ user_pref_menu:
       [5] 最終ログイン日時仮設定
       [6] 探索リスト登録
       [7] 探索リスト読み出し
-      [8] 元探索リスト読み出し (未実装)
+      [8] 元探索リスト読み出し
       [9] 電報受信制限
       [10] ブラックリスト編集
       [E] 終了
@@ -134,7 +134,7 @@ user_pref_menu:
       [5] Set Last Login Time
       [6] Register Search List
       [7] Load Search List
-      [8] Load Original Search List (Unimplemented)
+      [8] Load Original Search List
       [9] Telegram Receive Restriction
       [10] Edit Blacklist
       [E] Exit
@@ -151,7 +151,7 @@ user_pref_menu:
       [5] SET LAST LOGIN
       [6] REG SEARCH
       [7] LOAD SEARCH
-      [8] LOAD ORIG SEARCH (N/I)
+      [8] LOAD ORIG SEARCH
       [9] TELEGRAM RESTRICT
       [10] EDIT BLACKLIST
       [E] EXIT

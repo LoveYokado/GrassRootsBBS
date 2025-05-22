@@ -16,6 +16,7 @@ import datetime
 import user_pref_menu
 import server_menu
 import util
+import sysop_menu
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
@@ -290,7 +291,8 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
             # シスオペメニュー(menu_mode)
-            sysop_menu.sysop_menu(chan, dbname, current_loop_menu_mode)
+            sysop_menu.sysop_menu(chan, dbname, login_id,
+                                  current_loop_menu_mode)
 
         # サーバ設定メニュー
         elif command == "v" and userlevel >= 5:
@@ -620,13 +622,13 @@ def handle_client(client, addr, host_key, is_web_app=True):
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(db_name_from_config)
-            pref_names = ['bbs', 'chat', 'mail',
-                          'telegram', 'userpref', 'who']
+            # default_exploration_list を追加
+            pref_names = ['bbs', 'chat', 'mail', 'telegram',
+                          'userpref', 'who', 'default_exploration_list']
             if pref_list and len(pref_list) == len(pref_names):
                 server_pref_dict = dict(zip(pref_names, pref_list))
             else:
                 # sqlite_tools.read_server_pref がデフォルト値を返すようになったため、
-                # 基本的にこのelseブロックには入らないはず。
                 logging.error("サーバ設定読み込みエラーです。デフォルト値を使用します。")
                 default_prefs = {'bbs': 0, 'chat': 1, 'mail': 1,
                                  'telegram': 1, 'userpref': 1, 'who': 1}
