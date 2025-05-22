@@ -553,8 +553,6 @@ sysop_menu:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       [ALLR] 探索リストを読む
       [ALLW] 探索リストを書く
-      [DISK] ディスク残量調査
-      [DOWN] システムダウン
       [LETR] アンケート処理
       [LOGR] ログを読む
       [LOGU] ログを消去
@@ -566,14 +564,13 @@ sysop_menu:
       [SYMW] シンボルテーブルを書く
       [VOPT] 監視画面行数変更
       [WOPT] 監視画面オン/オフ
-      [EXIT] 終了
+      [DOWN] ユーザログアウト後に終了
+      [EXIT] システム強制終了
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       [ALLR] Read Exploration List
       [ALLW] Write Exploration List
-      [DISK] Check Disk Space
-      [DOWN] System Down
       [LETR] Questionnaire
       [LOGR] Read Log
       [LOGU] Clear Log
@@ -584,7 +581,8 @@ sysop_menu:
       [SYMR] Read Symbol Table
       [SYMW] Write Symbol Table
       [VOPT] Change View Options
-      [WOPT] Watch Screen On/Off
+      [WOPT] Watch Screen ON/OFF
+      [DOWN] System Down
       [EXIT] Quit
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
@@ -593,8 +591,6 @@ sysop_menu:
       ╚═══════════════════════════════════════╝
       [ALLR] READ EXPLORATION LIST
       [ALLW] WRITE EXPLORATION LIST
-      [DISK] CHECK DISK SPACE
-      [DOWN] SYSTEM DOWN
       [LETR] QUESTIONNAIRE
       [LOGR] READ LOG
       [LOGU] CLEAR LOG
@@ -606,8 +602,18 @@ sysop_menu:
       [SYMW] WRITE SYMBOL TABLE
       [VOPT] CHANGE VIEW OPTIONS
       [WOPT] WATCH SCREEN ON/OFF
+      [DOWN] SYSTEM DOWN
       [EXIT] QUIT
       ╚═══════════════════════════════════════╝
+  system_quit:
+    header:
+      mode_1: "** システムを停止します **\r\n"
+      mode_2: "** System down **\r\n"
+      mode_3: "** SYSTEM DOWN **\r\n"
+    system_down_requested:
+      mode_1: "** システム停止を要求しました **\r\n"
+      mode_2: "** System down requested **\r\n"
+      mode_3: "** SYSTEM DOWN REQUESTED **\r\n"
 # --- メールメニュー関連 ---
 mail_handler:
   main_prompt:
@@ -833,6 +839,10 @@ common_messages:
     mode_2: "An error occurred. Please contact the sysop.\r\n"
     mode_3: "ERROR. CONTACT SYSOP.\r\n"
   # ... 他の共通メッセージも追加
+  confirm_yn:
+    mode_1: "よろしいですか? (Y または N): "
+    mode_2: "Are you sure? (Y or N): "
+    mode_3: "ARE YOU SURE? (Y OR N): "
 
 # --- 認証関連 ---
 auth:

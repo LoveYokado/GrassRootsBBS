@@ -1,9 +1,9 @@
 import ssh_input
 import util
-import datetime
 import sqlite_tools
-import time
 import logging
+import sys
+import os
 
 
 def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
@@ -23,6 +23,13 @@ def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
         elif command == 'allw':
             # 共通探索リストを書き込む
             write_default_exploration_list(chan, dbname, current_menu_mode)
+        elif command == 'exit':
+            # システム強制終了
+            system_quit(chan, dbname, current_menu_mode)
+
+        elif command == 'exit':
+            return  # 終了
+
         else:
             util.send_text_by_key(
                 chan, "common_messages.invalid_command", current_menu_mode)  # 無効なコマンド
@@ -84,3 +91,20 @@ def write_default_exploration_list(chan, dbname, current_menu_mode):
             logging.error(f"共通探索リスト更新時にエラーが発生しました。")
             util.send_text_by_key(
                 chan, "common_messages.error", current_menu_mode)
+
+
+def system_quit(chan, dbname, current_menu_mode):
+    util.send_text_by_key(
+        chan, "sysop_menu.system_quit.header", current_menu_mode)
+    util.send_text_by_key(chan, "common_messages.confirm_yn",
+                          current_menu_mode, add_newline=False)
+    continue_choice = ssh_input.process_input(chan)
+
+    if continue_choice is None:  # 接続切れ
+        return
+
+    if continue_choice.lower().strip() == 'y':
+        util.send_text_by_key(
+            chan, "sysop_menu.system_quit.system_down_requested", current_menu_mode
+        )
+        os.exit(0)
