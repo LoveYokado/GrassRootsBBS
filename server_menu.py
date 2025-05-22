@@ -25,7 +25,7 @@ def server_menu(chan, dbname, current_menu_mode):
 
         command = input_buffer.lower().strip()  # 先に小文字化・空白除去
 
-        if command == "q":
+        if command is None:
             break
         if command == "":  # 空入力の場合
             util.send_text_by_key(chan, "server_menu.header",
