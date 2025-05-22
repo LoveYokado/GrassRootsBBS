@@ -14,7 +14,6 @@ import base64
 import datetime
 
 import user_pref_menu
-import server_menu
 import util
 import sysop_menu
 

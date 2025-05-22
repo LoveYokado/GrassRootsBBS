@@ -446,104 +446,8 @@ server_menu:
       [2] USER EDIT
       ╚═══════════════════════════════════════╝
   # --- 設定一覧表示 ---
-  view_settings:
-    header: # 設定一覧表示時のヘッダー
-      mode_1: |
-        ------------------------------------
-        項目名              値 (レベル)
-        ------------------------------------
-      mode_2: |
-        ------------------------------------
-        Setting Name        Value (Level)
-        ------------------------------------
-      mode_3: |
-        ╔═══════════════════════════════════╗
-        ║   SETTINGS                        ║
-        ╚═══════════════════════════════════╝
-    no_settings_error:
-      mode_1: "設定がありません(または取得エラー)\r\n"
-      mode_2: "No settings found (or error)\r\n"
-      mode_3: "NO SETTINGS (OR ERROR)\r\n"
-
   # --- 各BBSメニューのユーザレベルごとのパーミッション ---
-  set_permissions:
-    header: # メニュー本体の表示
-      mode_1: |
-        各BBSメニューのユーザレベルごとのパーミッションを設定します。
-      mode_2: |
-        Set Permissions for BBS Menus
-      mode_3: |
-        SET PERMISSIONS FOR BBS MENUS
-    prompt:
-      mode_1: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): "
-      mode_2: "Select a feature to set user level for (bbs,chat,mail,telegram,userpref,who): "
-      mode_3: "SELECT A FEATURE TO SET USER LEVEL FOR (bbs,chat,mail,telegram,userpref,who): "
-    user_level_message:
-      mode_1: "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n"
-      mode_2: "0:Disabled 1:Guest 2:User 3:Moderator 4:Sub Operator 5:System Operator\r\n"
-      mode_3: "0:DISABLED 1:GUEST 2:USER 3:MOD 4:SUBOP 5:SYSOP\r\n"
-    user_level_prompt:
-      mode_1: "ユーザレベルを入力してください: "
-      mode_2: "Enter user level: "
-      mode_3: "ENTER USER LEVEL: "
-    user_level_0-5_message:
-      mode_1:"ユーザレベルは0~5の範囲で入力してください\r\n"
-      mode_2:"User level must be between 0 and 5\r\n"
-      mode_3:"USER LEVEL MUST BE BETWEEN 0 AND 5\r\n"
-    user_level_changed:
-      mode_1:"{menu_to_change}メニューのユーザレベルを{user_level}に変更しました\r\n"
-      mode_2:"{menu_to_change} menu's user level changed to {user_level}\r\n"
-      mode_3:"{menu_to_change} MENU'S USER LEVEL CHANGED TO {user_level}\r\n"
 
-  # --- ユーザー編集サブメニュー ---
-  user_edit:
-    header: # ユーザー編集メニュー本体の表示
-      mode_1: |
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          ユーザ情報変更メニュー
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        [1] ユーザ一覧表示
-        [2] ユーザー情報変更 (未実装)
-        [3] ユーザー追加 (未実装)
-        [4] ユーザー削除 (未実装)
-        [Q] 終了
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      mode_2: |
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-          User Edit Menu
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        [1] Show User List
-        [2] Change User Info (Unimplemented)
-        [3] Add User (Unimplemented)
-        [4] Delete User (Unimplemented)
-        [Q] Quit
-        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      mode_3: |
-        ╔═══════════════════════════════════════╗
-        ║   USER EDIT MENU                      ║
-        ╚═══════════════════════════════════════╝
-        [1] SHOW USERS
-        [2] CHG USER INFO (N/I)
-        [3] ADD USER (N/I)
-        [4] DEL USER (N/I)
-        [Q] QUIT
-        ╚═══════════════════════════════════════╝
-    user_list_header: # ユーザー一覧表示時のヘッダー
-      mode_1: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
-      mode_2: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
-      mode_3: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
-    no_users:
-      mode_1: "ユーザがいません。\r\n"
-      mode_2: "No users found.\r\n"
-      mode_3: "NO USERS.\r\n"
-    user_list_error:
-      mode_1: "ユーザ一覧表示中にエラーが発生しました。\r\n" # フォーマット文字列
-      mode_2: "An error occurred while displaying user list.\r\n"
-      mode_3: "USER LIST ERROR.\r\n"
-  exit_sysop_menu:
-    mode_1: "シスオペメニューを終了します。"
-    mode_2: "Exiting sysop menu."
-    mode_3: "EXITING SYSOP MENU."
 sysop_menu:
   menu:
     mode_1: |
@@ -555,8 +459,10 @@ sysop_menu:
       [PASR] パスワードファイル読む
       [PASU] 会員抹消
       [REGS] 会員登録
-      [UMOD] ユーザ情報変更
-      [MMOD] 各メニューのユーザレベルごとの権限
+      [CHGU] ユーザー情報変更 (未実装)
+      [USRL] 会員一覧表示
+      [VSET] 設定一覧表示
+      [MNPM] トップメニューの会員レベル設定
       [VSET] 設定一覧表示
       [EXIT] システム強制終了
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -593,6 +499,65 @@ sysop_menu:
       mode_1: "** システム停止を要求しました **\r\n"
       mode_2: "** System down requested **\r\n"
       mode_3: "** SYSTEM DOWN REQUESTED **\r\n"
+  user_list:
+    header: # ユーザー一覧表示時のヘッダー
+      mode_1: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
+      mode_2: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
+      mode_3: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
+    no_users:
+      mode_1: "ユーザがいません。\r\n"
+      mode_2: "No users found.\r\n"
+      mode_3: "NO USERS.\r\n"
+    error:
+      mode_1: "ユーザ一覧表示中にエラーが発生しました。\r\n" # フォーマット文字列
+      mode_2: "An error occurred while displaying user list.\r\n"
+      mode_3: "USER LIST ERROR.\r\n"
+  view_settings:
+    header: # 設定一覧表示時のヘッダー
+      mode_1: |
+        ------------------------------------
+        項目名              値 (レベル)
+        ------------------------------------
+      mode_2: |
+        ------------------------------------
+        Setting Name        Value (Level)
+        ------------------------------------
+      mode_3: |
+        ╔═══════════════════════════════════╗
+        ║   SETTINGS                        ║
+        ╚═══════════════════════════════════╝
+    no_settings_error:
+      mode_1: "設定がありません(または取得エラー)\r\n"
+      mode_2: "No settings found (or error)\r\n"
+      mode_3: "NO SETTINGS (OR ERROR)\r\n"
+  set_permissions:
+    header: # メニュー本体の表示
+      mode_1: |
+        各BBSメニューのユーザレベルごとのパーミッションを設定します。
+      mode_2: |
+        Set Permissions for BBS Menus
+      mode_3: |
+        SET PERMISSIONS FOR BBS MENUS
+    prompt:
+      mode_1: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): "
+      mode_2: "Select a feature to set user level for (bbs,chat,mail,telegram,userpref,who): "
+      mode_3: "SELECT A FEATURE TO SET USER LEVEL FOR (bbs,chat,mail,telegram,userpref,who): "
+    user_level_message:
+      mode_1: "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n"
+      mode_2: "0:Disabled 1:Guest 2:User 3:Moderator 4:Sub Operator 5:System Operator\r\n"
+      mode_3: "0:DISABLED 1:GUEST 2:USER 3:MOD 4:SUBOP 5:SYSOP\r\n"
+    user_level_prompt:
+      mode_1: "ユーザレベルを入力してください: "
+      mode_2: "Enter user level: "
+      mode_3: "ENTER USER LEVEL: "
+    user_level_0-5_message:
+      mode_1:"ユーザレベルは0~5の範囲で入力してください\r\n"
+      mode_2:"User level must be between 0 and 5\r\n"
+      mode_3:"USER LEVEL MUST BE BETWEEN 0 AND 5\r\n"
+    user_level_changed:
+      mode_1: "メニュー '{menu_to_change}' のアクセス権限をレベル {user_level} に変更しました。"
+      mode_2: "Access permission for menu '{menu_to_change}' has been changed to level {user_level}."
+      mode_3: "ACCESS PERMISSION FOR MENU '{menu_to_change}' HAS BEEN CHANGED TO LEVEL {user_level}."
 # --- メールメニュー関連 ---
 mail_handler:
   main_prompt:
