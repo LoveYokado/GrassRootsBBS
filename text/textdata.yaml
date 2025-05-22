@@ -564,7 +564,6 @@ sysop_menu:
       [SYMW] シンボルテーブルを書く
       [VOPT] 監視画面行数変更
       [WOPT] 監視画面オン/オフ
-      [DOWN] ユーザログアウト後に終了
       [EXIT] システム強制終了
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
@@ -582,7 +581,6 @@ sysop_menu:
       [SYMW] Write Symbol Table
       [VOPT] Change View Options
       [WOPT] Watch Screen ON/OFF
-      [DOWN] System Down
       [EXIT] Quit
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
@@ -602,7 +600,6 @@ sysop_menu:
       [SYMW] WRITE SYMBOL TABLE
       [VOPT] CHANGE VIEW OPTIONS
       [WOPT] WATCH SCREEN ON/OFF
-      [DOWN] SYSTEM DOWN
       [EXIT] QUIT
       ╚═══════════════════════════════════════╝
   system_quit:
