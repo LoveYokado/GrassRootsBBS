@@ -454,12 +454,11 @@ sysop_menu:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       [ALLR] 探索リストを読む
       [ALLW] 探索リストを書く
-      [LETR] アンケート処理
-      [PASC] パスワード変更
-      [PASR] パスワードファイル読む
+      [LETR] アンケート処理(未実装)
+      [PASC] パスワード変更(未実装)
       [PASU] 会員抹消
       [REGS] 会員登録
-      [CHGU] ユーザー情報変更 (未実装)
+      [CHGU] ユーザー情報変更(未実装)
       [USRL] 会員一覧表示
       [VSET] 設定一覧表示
       [MNPM] トップメニューの会員レベル設定
@@ -468,28 +467,37 @@ sysop_menu:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      [ALLR] Read Exploration List
-      [ALLW] Write Exploration List
-      [LETR] Questionnaire
-      [PASC] Change Password
-      [PASR] Read Password File
+      [ALLR] Load Search List
+      [ALLW] Register Search List
+      [LETR] Process Survey
+      [PASC] Change Password (unimplemented)
       [PASU] Delete User
       [REGS] Register User
-      [EXIT] Quit
+      [CHGU] Edit User Info (unimplemented)
+      [USRL] Show User List
+      [VSET] Show Settings
+      [MNPM] Set Member Level Permissions
+      [VSET] Show Settings
+      [EXIT] System Shutdown
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
       ╔═══════════════════════════════════════╗
-      ║   SYSOP MENU                          ║
+      ║   \x1b[31mSYSTEM MENU\x1b[0m                          ║
       ╚═══════════════════════════════════════╝
-      [ALLR] READ EXPLORATION LIST
-      [ALLW] WRITE EXPLORATION LIST
-      [LETR] QUESTIONNAIRE
-      [PASC] CHANGE PASSWORD
-      [PASR] READ PASSWORD FILE
+      [ALLR] LOAD SEARCH LIST
+      [ALLW] REGISTER SEARCH LIST
+      [LETR] PROCESS SURVEY
+      [PASC] CHANGE PASSWORD (UNIMPLEMENTED)
       [PASU] DELETE USER
       [REGS] REGISTER USER
-      [EXIT] QUIT
+      [CHGU] EDIT USER INFO (UNIMPLEMENTED)
+      [USRL] SHOW USER LIST
+      [VSET] SHOW SETTINGS
+      [MNPM] SET MEMBER LEVEL PERMISSIONS
+      [VSET] SHOW SETTINGS
+      [EXIT] SYSTEM SHUTDOWN
       ╚═══════════════════════════════════════╝
+
   system_quit:
     header:
       mode_1: "** システムを停止します **\r\n"
@@ -558,7 +566,69 @@ sysop_menu:
       mode_1: "メニュー '{menu_to_change}' のアクセス権限をレベル {user_level} に変更しました。"
       mode_2: "Access permission for menu '{menu_to_change}' has been changed to level {user_level}."
       mode_3: "ACCESS PERMISSION FOR MENU '{menu_to_change}' HAS BEEN CHANGED TO LEVEL {user_level}."
-# --- メールメニュー関連 ---
+  user_register:
+    header:
+      mode_1: "** 登録手続きを行います **"
+      mode_2: "** User Registration **"
+      mode_3: "** USER REGISTRATION **"
+    user_id_prompt:
+      mode_1: "登録すべきIDを入力してください:"
+      mode_2: "Enter ID to register:"
+      mode_3: "ENTER ID TO REGISTER:"
+    user_id_exists:
+      mode_1: "** すでに登録されています **"
+      mode_2: "** Already registered **"
+      mode_3: "** ALREADY REGISTERED **"
+    user_pass_prompt:
+      mode_1: "パスワードを入力してください:"
+      mode_2: "Enter password:"
+      mode_3: "ENTER PASS:"
+    user_pass_confirm_prompt:
+      mode_1: "確認のため同じパスワードを一度入力:"
+      mode_2: "Re-enter password:"
+      mode_3: "RE-ENTER PASS:"
+    user_pass_mismatch:
+      mode_1: "** パスワードが違います **"
+      mode_2: "** Passwords do not match **"
+      mode_3: "** PASSWORDS DO NOT MATCH **"
+    user_prof_prompt:
+      mode_1: "プロフィールを入力してください:"
+      mode_2: "Enter profile:"
+      mode_3: "ENTER PROFILE:"
+    user_regist_success:
+      mode_1: "** 登録しました **"
+      mode_2: "** Registered **"
+      mode_3: "** REGISTERED **"
+
+    confirm_yn:
+      mode_1: "正しいですか(Y または N):"
+      mode_2: "Is this OK? (Y or N):"
+      mode_3: "IS THIS OK? (Y OR N):"
+  user_delete:
+    header:
+      mode_1: "** 会員の削除を行います **"
+      mode_2: "** User Deletion **"
+      mode_3: "** USER DELETION **"
+    user_id_prompt:
+      mode_1: " 削除すべきIDを入力してください:"
+      mode_2: "Enter ID to delete:"
+      mode_3: "ENTER ID TO DELETE:"
+    user_id_exists:
+      mode_1: "** すでに存在しません **"
+      mode_2: "** Does not exist **"
+      mode_3: "** DOES NOT EXIST **"
+    cannot_delete_sysop:
+      mode_1: "** システムオペレーターは削除できません **"
+      mode_2: "** Cannot delete system operator **"
+      mode_3: "** CANNOT DELETE SYSTEM OPERATOR **"
+    confirm_yn:
+      mode_1: "削除してよいですか(YまたはN):"
+      mode_2: "Delete this user? (Y or N):"
+      mode_3: "DELETE THIS USER? (Y OR N):"
+    user_delete_success:
+      mode_1: "** 削除しました **"
+      mode_2: "** Deleted **"
+      mode_3: "** DELETED **"
 mail_handler:
   main_prompt:
     mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "

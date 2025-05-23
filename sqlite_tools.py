@@ -1,5 +1,6 @@
 import sqlite3
 import logging
+import time
 
 
 def get_user_id_from_user_name(dbname, username):
@@ -128,12 +129,12 @@ def sqlite_execute_query(dbname, sql, params=None, fetch=False):
             return results
         else:
             conn.commit()
-            return None
+            return True
     except sqlite3.Error as e:
-        logging.error(f"SQLiteエラー: {e}")
+        logging.error(f"SQLiteエラー: {e} (SQL: {sql[:100]})")
         if conn:
             conn.rollback()  # 書き込みエラーの場合ロールバック
-        return None
+        return False
     finally:
         if conn:
             conn.close()
@@ -378,4 +379,54 @@ def update_server_default_exploration_list(dbname, exploration_list_str):
         return True
     except Exception as e:
         logging.error(f"サーバーのデフォルト探索リスト更新中にDBエラー: {e}")
+        return False
+
+
+def register_user(dbname, username, hashed_password, salt, comment, level=0,
+                  auth_method='password_only', menu_mode='1', telegram_restriction=0):
+    """新しいユーザーをデータベースに登録する"""
+    registdate = int(time.time())
+    # Ensure consistent mail format, can be changed later by user or sysop
+    mail = f'{username.lower()}@example.com'
+    # Default values for other fields
+    lastlogin = 0
+    lastlogout = 0
+    blacklist = ''
+    exploration_list = ''
+
+    sql = """
+        INSERT INTO users (
+            name, password, salt, registdate, level, lastlogin, lastlogout,
+            comment, mail, auth_method, menu_mode, telegram_restriction,
+            blacklist, exploration_list
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    params = (
+        username, hashed_password, salt, registdate, level, lastlogin, lastlogout,
+        comment, mail, auth_method, menu_mode, telegram_restriction,
+        blacklist, exploration_list
+    )
+
+    if sqlite_execute_query(dbname, sql, params):
+        logging.info(f"新規ユーザー '{username}' を登録しました。")
+        return True
+    else:
+        # The error is already logged by sqlite_execute_query.
+        logging.error(
+            f"ユーザー登録失敗: SQL実行エラーが発生しました (ユーザー: {username})。詳細は先行ログを確認してください。")
+        return False
+
+
+def delete_user(dbname, user_id_to_delete):
+    """ユーザーを削除する。シスオペや場合によってはゲストのフィルタリングはすでに行われている必要があります。"""
+    sql = "DELETE FROM users WHERE id=?"
+    try:
+        if sqlite_execute_query(dbname, sql, (user_id_to_delete,)):
+            logging.info(f"ユーザーID {user_id_to_delete} を削除しました。")
+            return True
+        else:
+            logging.error(f"ユーザID {user_id_to_delete} の削除中にDBエラー")
+            return False
+    except Exception as e:
+        logging.error(f"ユーザID {user_id_to_delete} の削除中にDBエラー: {e}")
         return False

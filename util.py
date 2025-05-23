@@ -512,3 +512,54 @@ def txt_read(filename):
     except FileNotFoundError:
         logging.warning(f"エラー: ファイルが見つかりません - {filepath}")
         return ""  # 空文字列を返すなど、エラー処理を追加
+
+
+def remove_user_public_key(username):
+    """
+    指定されたユーザの公開鍵をファイルから削除する。
+    """
+    if not app_config:
+        logging.error("設定が読み込めないので公開鍵が削除できません。")
+        return None
+    try:
+        ssh_config = app_config.get("ssh", {})
+        key_dir_val = ssh_config.get('key_dir')
+        auth_keys_filename_val = ssh_config.get('auth_keys_filename')
+
+        if not key_dir_val or not auth_keys_filename_val:
+            logging.error(
+                "SSH設定(key_dir or auth_key_filename)がconfig.tomlに設定されていません。")
+            return False
+
+        auth_key_path = os.path.join(key_dir_val, auth_keys_filename_val)
+
+        if not os.path.exists(auth_key_path):
+            logging.info(f"公開鍵ファイル'{auth_key_path}'が見つかりません。公開鍵の削除はスキップしました。")
+            return False
+
+        temp_auth_key_path = auth_key_path + ".tmp"
+        found_and_removed = False
+        with open(auth_key_path, 'r', encoding='utf-8') as infile, \
+                open(temp_auth_key_path, 'w', encoding='utf-8') as outfile:
+            for line in infile:
+                stripped_line = line.strip()
+                if not stripped_line or stripped_line.startswith('#'):
+                    outfile.write(line)
+                    continue
+
+                parts = stripped_line.split()
+                key_comment_user = None
+                if len(parts) > 2:
+                    key_comment_user = parts[2].split('@')[0]
+
+                if key_comment_user == username:
+                    logging.info(
+                        f"ユーザ'{username}'の公開鍵を削除しましす: {stripped_line}")
+                    found_and_removed = True
+                else:
+                    outfile.write(line)
+        os.replace(temp_auth_key_path, auth_key_path)
+        return found_and_removed  # 削除結果を返す
+    except Exception as e:
+        logging.error(f"公開鍵の削除エラー: {e}")
+        return False
