@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado) <hogehoge@gmail.com>
+# SPDX-License-Identifier: MIT
+
 import mail_handler
 import sqlite_tools
 import bbsmenu
