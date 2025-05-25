@@ -2,7 +2,7 @@ import ssh_input
 import util
 import datetime
 import sqlite_tools
-import time
+import re
 import logging
 
 
@@ -53,6 +53,9 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
         elif command == '10':
             # ブラックリスト編集
             edit_blacklist(chan, dbname, login_id, current_menu_mode)
+        elif command == '11':
+            # メールアドレス変更
+            change_email_address(chan, dbname, login_id, current_menu_mode)
         elif command == 'e' or command == '':
             return current_menu_mode  # メニューから抜ける
         elif command == 'h' or command == '?':
@@ -551,3 +554,52 @@ def read_server_default_exploration_list(chan, dbname, login_id, current_menu_mo
     else:
         logging.error("サーバ設定の読み込みに失敗したか、共通探索リストの項目がありません。")
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
+
+
+def _is_valid_email(email: str) -> bool:
+    """メールアドレスの検証(RFC5322)"""
+    if not email:
+        return False
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    if re.match(pattern, email):
+        return True
+    return False
+
+
+def change_email_address(chan, dbname, login_id, current_menu_mode):
+    """メールアドレス変更"""
+    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+    if not user_data:
+        util.send_text_by_key(
+            chan, "common_messages.user_not_found", current_menu_mode)
+        return
+
+    user_id = user_data['id']
+    email_from_db = user_data['email']
+    current_email = email_from_db if email_from_db is not None else ''
+
+    util.send_text_by_key(chan, "user_pref_menu.change_email.current_email",
+                          current_menu_mode, email=current_email)
+    util.send_text_by_key(
+        chan, "user_pref_menu.change_email.new_email_prompt", current_menu_mode, add_newline=False)
+    new_email_input = ssh_input.process_input(chan)
+
+    if new_email_input is None:
+        return
+
+    new_email = new_email_input.strip()
+
+    if not new_email:
+        return
+
+    if not _is_valid_email(new_email):
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_email.invalid_format", current_menu_mode)
+        return
+    if sqlite_tools.update_user_email(dbname, user_id, new_email):
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_email.updated", current_menu_mode)
+        logging.info(f"ユーザID {user_id} のメールアドレスを {new_email} に更新しました。")
+    else:
+        util.send_text_by_key(
+            chan, "common_messages.db_update_error", current_menu_mode)

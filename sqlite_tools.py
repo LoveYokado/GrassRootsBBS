@@ -243,7 +243,7 @@ def update_user_menu_mode(dbname, user_id, new_mode):
     """ユーザーのメニューモードを更新する"""
     ALLOWED_MODES = ['1', '2', '3']
     if new_mode not in ALLOWED_MODES:
-        logging.error(f"無効なメニューモードが指定されました: {new_mode}")
+        logging.warning(f"無効なメニューモードが指定されました: {new_mode}")
         return False
 
     try:
@@ -387,14 +387,14 @@ def register_user(dbname, username, hashed_password, salt, comment, level=0,
     """新しいユーザーをデータベースに登録する"""
     registdate = int(time.time())
     # Ensure consistent mail format, can be changed later by user or sysop
-    mail = f'{username.lower()}@example.com'
+    email_addr = f'{username.lower()}@example.com'
     # Default values for other fields
     lastlogin = 0
     lastlogout = 0
     blacklist = ''
     exploration_list = ''
 
-    sql = """
+    sql_insert_user = """
         INSERT INTO users (
             name, password, salt, registdate, level, lastlogin, lastlogout,
             comment, mail, auth_method, menu_mode, telegram_restriction,
@@ -403,11 +403,11 @@ def register_user(dbname, username, hashed_password, salt, comment, level=0,
     """
     params = (
         username, hashed_password, salt, registdate, level, lastlogin, lastlogout,
-        comment, mail, auth_method, menu_mode, telegram_restriction,
+        comment, email_addr, auth_method, menu_mode, telegram_restriction,
         blacklist, exploration_list
     )
 
-    if sqlite_execute_query(dbname, sql, params):
+    if sqlite_execute_query(dbname, sql_insert_user, params):
         logging.info(f"新規ユーザー '{username}' を登録しました。")
         return True
     else:
@@ -429,4 +429,17 @@ def delete_user(dbname, user_id_to_delete):
             return False
     except Exception as e:
         logging.error(f"ユーザID {user_id_to_delete} の削除中にDBエラー: {e}")
+        return False
+
+
+def update_user_email(dbname, user_id, new_email):
+    """ユーザーのメールアドレスを更新"""
+    try:
+        sql = "UPDATE users SET email=? WHERE id=?"
+        if sqlite_execute_query(dbname, sql, (new_email, user_id)):
+            logging.info(f"ユーザID {user_id} のメールアドレスを更新しました。")
+            return True
+        return False
+    except Exception as e:
+        logging.error(f"メールアドレス更新中にDBエラー (UserID: {user_id}): {e}")
         return False

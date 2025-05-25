@@ -120,6 +120,7 @@ user_pref_menu:
       [8] 元探索リスト読み出し
       [9] 電報受信制限
       [10] ブラックリスト編集
+      [11] メールアドレス変更
       [E] 終了
       [H,?]: ヘルプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -137,6 +138,7 @@ user_pref_menu:
       [8] Load Original Search List
       [9] Telegram Receive Restriction
       [10] Edit Blacklist
+      [11] Change Mail Address
       [E] Exit
       [H,?]: Help
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -154,6 +156,7 @@ user_pref_menu:
       [8] LOAD ORIG SEARCH
       [9] TELEGRAM RESTRICT
       [10] EDIT BLACKLIST
+      [11] CHANGE MAIL
       [E] EXIT
       [H,?]: HELP
       ╚═══════════════════════════════════════╝
@@ -386,7 +389,27 @@ user_pref_menu:
       mode_1: "プロフィールの更新をキャンセルしました。\r\n"
       mode_2: "Profile update cancelled.\r\n"
       mode_3: "PROFILE UPDATE CANCELLED.\r\n"
-
+  change_email:
+    current_email:
+      mode_1: "現在のメールアドレスは「{email}」です。\r\n"
+      mode_2: "Current email address is \"{email}\".\r\n"
+      mode_3: "CURRENT EMAIL IS \"{email}\".\r\n"
+    new_email_prompt:
+      mode_1: "新しいメールアドレスを入力してください (空入力で変更中止): "
+      mode_2: "Enter new email address (leave blank to cancel): "
+      mode_3: "ENTER NEW EMAIL (BLANK TO CANCEL): "
+    invalid_format:
+      mode_1: "無効なメールアドレス形式です。\r\n"
+      mode_2: "Invalid email address format.\r\n"
+      mode_3: "INVALID EMAIL FORMAT.\r\n"
+    updated:
+      mode_1: "メールアドレスを更新しました。\r\n"
+      mode_2: "Email address updated.\r\n"
+      mode_3: "EMAIL UPDATED.\r\n"
+    cancelled:
+      mode_1: "メールアドレスの更新をキャンセルしました。\r\n"
+      mode_2: "Email address update cancelled.\r\n"
+      mode_3: "EMAIL UPDATE CANCELLED.\r\n"
 # --- WHOメニュー関連 ---
 who_menu:
   header:

@@ -201,7 +201,7 @@ def make_sysop_and_database(dbname):
         cur.execute(
             '''CREATE TABLE users(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL,
+                name TEXT UNIQUE NOT NULL COLLATE NOCASE,
                 password TEXT NOT NULL,
                 salt TEXT NOT NULL,
                 registdate INTEGER,
@@ -209,7 +209,7 @@ def make_sysop_and_database(dbname):
                 lastlogin INTEGER,
                 lastlogout INTEGER,
                 comment TEXT,
-                mail TEXT,
+                email TEXT,
                 auth_method TEXT DEFAULT 'password_only' NOT NULL CHECK(auth_method IN ('key_only','password_only','webapp_only','both')),
                 menu_mode TEXT DEFAULT '1' NOT NULL CHECK(menu_mode IN ('1','2','3')),
                 telegram_restriction INTEGER DEFAULT 0 NOT NULL CHECK(telegram_restriction IN (0, 1, 2, 3)),
@@ -238,9 +238,10 @@ def make_sysop_and_database(dbname):
         # シスオペ登録 (saltとハッシュ化パスワード保存)
         print("Registering Sysop...")
         cur.execute(
-            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, mail,auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email,auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (sysopname, sysop_hashed_pass, sysop_salt, 5, registdate, 0, 0,
-             'Sysop', f'{sysopname}@example.com', 'both')  # メールアドレスも動的に、認証は両方
+             # メールアドレスも動的に、認証は両方
+             'Sysop', f'{sysopname.lower()}@example.com', 'both')
         )
 
         # シスオペのSSH鍵を作成
@@ -255,9 +256,9 @@ def make_sysop_and_database(dbname):
         guest_salt, guest_hashed_pass = hash_password('GUEST')
         print("Registering Guest...")
         cur.execute(
-            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, mail, auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email, auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ("GUEST", guest_hashed_pass, guest_salt, 1, registdate, 0, 0,
-             'Guest', 'guest@example.com', 'webapp_only')  # 登録日も設定、ゲストはWebAPPのみ
+             'Guest', 'guest@example.com', 'webapp_only')   # 登録日も設定、ゲストはWebAPPのみ
         )
         print("Guest registered.")
 

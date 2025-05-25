@@ -119,7 +119,7 @@ def write_default_exploration_list(chan, dbname, current_menu_mode):
 def user_list(chan, dbname,  current_menu_mode):
     """ユーザ一覧表示"""
     try:
-        sql = "SELECT id, name, level, registdate, lastlogin, comment, mail FROM users ORDER BY id ASC"
+        sql = "SELECT id, name, level, registdate, lastlogin, comment, email FROM users ORDER BY id ASC"
         # sqlite_tools.sqlite_execute_query が辞書を返すように row_factory を使っている前提
         users = sqlite_tools.sqlite_execute_query(
             dbname, sql, fetch=True)
@@ -144,9 +144,9 @@ def user_list(chan, dbname,  current_menu_mode):
 
                 # 各フィールドの桁数を調整し、None の場合の処理を追加
                 comment_str = user['comment'] if user['comment'] else ''
-                mail_str = user['mail'] if user['mail'] else ''
+                email_str = user['email'] if user['email'] else ''
                 chan.send(
-                    f"{user['id']:<4} {user['name']:<12} {str(user['level']):<6} {regdt_str:<20} {lastlogin_str:<20} {comment_str:<12} {mail_str:<12}\r\n")
+                    f"{user['id']:<4} {user['name']:<12} {str(user['level']):<6} {regdt_str:<20} {lastlogin_str:<20} {comment_str:<12} {email_str:<12}\r\n")
             chan.send(
                 "------------------------------------------------------------------------------------------\r\n")
         else:
