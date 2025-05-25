@@ -35,6 +35,10 @@ def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
         elif command == 'pasc':
             # ユーザパスワード変更(各ユーザのパスワードが変更できるが、SSH鍵は生成しない)
             pass
+        elif command == 'kygn':
+            regenerate_user_ssh_key(
+                chan, dbname, sysop_login_id, current_menu_mode)
+
         elif command == 'vset':
             # 設定一覧
             view_settings(chan, dbname, current_menu_mode)
@@ -326,7 +330,73 @@ def user_delete(chan, dbname, sysop_login_id, current_menu_mode):
         continue
 
 
+def regenerate_user_ssh_key(chan, dbname, sysop_login_id, current_menu_mode):
+    """SSH鍵再生成"""
+    util.send_text_by_key(
+        chan, "sysop_menu.regenerate_key.header", current_menu_mode)  # SSH鍵再生成ヘッダ
+    while True:
+        util.send_text_by_key(
+            chan, "sysop_menu.regenerate_key.user_id_prompt", current_menu_mode, add_newline=False)
+        user_id_input = ssh_input.process_input(chan)
+
+        if user_id_input is None:  # 切断
+            return
+        if not user_id_input.strip():
+            return  # キャンセル
+
+        # 大文字変換
+        user_name_to_regenerate = user_id_input.strip().upper()
+
+        # 存在確認
+        user_data = sqlite_tools.get_user_auth_info(
+            dbname, user_name_to_regenerate)
+        if user_data is None:
+            util.send_text_by_key(
+                chan, "sysop_menu.regenerate_key.user_not_found", current_menu_mode)
+            continue
+
+        # GUEST除外
+        if user_name_to_regenerate == "GUEST":
+            util.send_text_by_key(
+                chan, "sysop_menu.regenerate_key.user_not_found", current_menu_mode)
+            continue
+
+        # 最終確認
+        chan.send(f"\"{user_name_to_regenerate}\"\r\n")
+        util.send_text_by_key(
+            chan, "sysop_menu.regenerate_key.confirm_yn", current_menu_mode, add_newline=False)
+        confirm_choice = ssh_input.process_input(chan)
+
+        if confirm_choice is None:  # 切断
+            return
+        if confirm_choice.lower().strip() != 'y':
+            return
+
+        # SSH鍵再生成
+        try:
+            private_key_pem = util.regenerate_user_ssh_key(
+                user_name_to_regenerate)
+
+            if private_key_pem:
+                chan.send(b'\r\n')
+                for line in private_key_pem.splitlines():
+                    chan.send(line.encode('utf-8')+b'\r\n')
+                chan.send(b'\r\n')
+                util.send_text_by_key(
+                    chan, "sysop_menu.regenerate_key.success", current_menu_mode)
+            else:
+                util.send_text_by_key(
+                    chan, "sysop_menu.regenerate_key.failed", current_menu_mode)
+
+        except Exception as e:
+            logging.error(f"SSH鍵再生成エラー({user_name_to_regenerate}): {e}")
+            util.send_text_by_key(
+                chan, "common_messages.error", current_menu_mode)
+        return
+
+
 def view_settings(chan, dbname, current_menu_mode):
+    """設定一覧表示"""
     server_prefs_list = sqlite_tools.read_server_pref(dbname)
     if server_prefs_list:
         pref_names = ['bbs', 'chat', 'mail',

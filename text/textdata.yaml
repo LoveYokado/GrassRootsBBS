@@ -358,9 +358,9 @@ user_pref_menu:
       mode_2: "Password changed.\r\n"
       mode_3: "PASSWORD CHANGED.\r\n"
     confirm_regenerate_ssh_key_yn:
-      mode_1: "SSH公開鍵を再生成しますか?\r\n"
-      mode_2: "Regenerate SSH public key?\r\n"
-      mode_3: "REGENERATE SSH KEY?\r\n"
+      mode_1: "SSH公開鍵を再生成しますか?"
+      mode_2: "Regenerate SSH public key?"
+      mode_3: "REGENERATE SSH KEY?"
     new_private_key_info:
       mode_1: "新しいSSH秘密鍵を生成しました。\r\n"
       mode_2: "New SSH private key generated.\r\n"
@@ -456,6 +456,7 @@ sysop_menu:
       [ALLW] 探索リストを書く
       [LETR] アンケート処理(未実装)
       [PASC] パスワード変更(未実装)
+      [KYGN] SSH鍵変更
       [PASU] 会員抹消
       [REGS] 会員登録
       [CHGU] ユーザー情報変更(未実装)
@@ -471,6 +472,7 @@ sysop_menu:
       [ALLW] Register Search List
       [LETR] Process Survey
       [PASC] Change Password (unimplemented)
+      [KYGN] Change SSH Key
       [PASU] Delete User
       [REGS] Register User
       [CHGU] Edit User Info (unimplemented)
@@ -488,6 +490,7 @@ sysop_menu:
       [ALLW] REGISTER SEARCH LIST
       [LETR] PROCESS SURVEY
       [PASC] CHANGE PASSWORD (UNIMPLEMENTED)
+      [KYGN] CHANGE SSH KEY
       [PASU] DELETE USER
       [REGS] REGISTER USER
       [CHGU] EDIT USER INFO (UNIMPLEMENTED)
@@ -559,9 +562,9 @@ sysop_menu:
       mode_2: "Enter user level: "
       mode_3: "ENTER USER LEVEL: "
     user_level_0-5_message:
-      mode_1:"ユーザレベルは0~5の範囲で入力してください\r\n"
-      mode_2:"User level must be between 0 and 5\r\n"
-      mode_3:"USER LEVEL MUST BE BETWEEN 0 AND 5\r\n"
+      mode_1: "ユーザレベルは0~5の範囲で入力してください\r\n"
+      mode_2: "User level must be between 0 and 5\r\n"
+      mode_3: "USER LEVEL MUST BE BETWEEN 0 AND 5\r\n"
     user_level_changed:
       mode_1: "メニュー '{menu_to_change}' のアクセス権限をレベル {user_level} に変更しました。"
       mode_2: "Access permission for menu '{menu_to_change}' has been changed to level {user_level}."
@@ -629,6 +632,46 @@ sysop_menu:
       mode_1: "** 削除しました **"
       mode_2: "** Deleted **"
       mode_3: "** DELETED **"
+  regenerate_key:
+    header:
+      mode_1: "** SSHキーを再生成します **"
+      mode_2: "** Regenerate SSH key **"
+      mode_3: "** REGENERATE SSH KEY **"
+    user_id_prompt:
+      mode_1: "再生成すべきIDを入力してください:"
+      mode_2: "Enter ID to regenerate:"
+      mode_3: "ENTER ID TO REGENERATE:"
+    user_not_found:
+      mode_1: "** {user_id} は存在しません **"
+      mode_2: "** {user_id} not found **"
+      mode_3: "** {user_id} NOT FOUND **"
+    cannot_regenerate_guest:
+      mode_1: "GUESTユーザーのSSH鍵は再生成できません。"
+      mode_2: "Cannot regenerate SSH key for GUEST user."
+      mode_3: "GUESTユーザーのSSH鍵は再生成できません。"
+    confirm_yn:
+      mode_1: "再生成してよいですか?以前の設定は上書きされます(YまたはN):"
+      mode_2: "Regenerate this key? Previous settings will be overwritten (Y or N):"
+      mode_3: "REGENERATE THIS KEY? PREVIOUS SETTINGS WILL BE OVERWRITTEN (Y OR N):"
+    new_private_key_info:
+      mode_1: |
+        ** 新しい秘密鍵を生成しました **
+        この内容は一度しか表示されません。安全に保管してください。
+      mode_2: |
+        ** New private key generated **
+        This will only be displayed once. Please keep it safe.
+      mode_3: |
+        ** NEW PRIVATE KEY GENERATED **
+        THIS WILL ONLY BE DISPLAYED ONCE. PLEASE KEEP IT SAFE.
+    success:
+      mode_1: "** 再生成しました **"
+      mode_2: "** Regenerated **"
+      mode_3: "** REGENERATED **"
+    failed:
+      mode_1: "** 再生成に失敗しました **"
+      mode_2: "** Failed to regenerate **"
+      mode_3: "** FAILED TO REGENERATE **"
+
 mail_handler:
   main_prompt:
     mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "
