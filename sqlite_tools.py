@@ -443,3 +443,14 @@ def update_user_email(dbname, user_id, new_email):
     except Exception as e:
         logging.error(f"メールアドレス更新中にDBエラー (UserID: {user_id}): {e}")
         return False
+
+
+def update_user_level(dbname, user_id, new_level):
+    """ユーザーのレベルを更新"""
+    sql = "UPDATE users SET level=? WHERE id=?"
+    try:
+        success = sqlite_execute_query(dbname, sql, (new_level, user_id))
+        return success
+    except Exception as e:
+        logging.error(f"レベル更新中にDBエラー (UserID: {user_id}): {e}")
+        return False

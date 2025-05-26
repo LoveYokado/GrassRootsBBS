@@ -482,7 +482,7 @@ sysop_menu:
       [KYGN] SSH鍵変更
       [PASU] 会員抹消
       [REGS] 会員登録
-      [CHGU] ユーザー情報変更(未実装)
+      [CHGU] ユーザーレベル変更
       [USRL] 会員一覧表示
       [VSET] 設定一覧表示
       [MNPM] トップメニューの会員レベル設定
@@ -498,7 +498,7 @@ sysop_menu:
       [KYGN] Change SSH Key
       [PASU] Delete User
       [REGS] Register User
-      [CHGU] Edit User Info (unimplemented)
+      [CHGU] Edit User Level
       [USRL] Show User List
       [VSET] Show Settings
       [MNPM] Set Member Level Permissions
@@ -516,7 +516,7 @@ sysop_menu:
       [KYGN] CHANGE SSH KEY
       [PASU] DELETE USER
       [REGS] REGISTER USER
-      [CHGU] EDIT USER INFO (UNIMPLEMENTED)
+      [CHGU] EDIT USER LEVEL
       [USRL] SHOW USER LIST
       [VSET] SHOW SETTINGS
       [MNPM] SET MEMBER LEVEL PERMISSIONS
@@ -694,7 +694,47 @@ sysop_menu:
       mode_1: "** 再生成に失敗しました **"
       mode_2: "** Failed to regenerate **"
       mode_3: "** FAILED TO REGENERATE **"
-
+  change_user_level:
+    header:
+      mode_1: "** 会員レベルを変更します **"
+      mode_2: "** Change User Level **"
+      mode_3: "** CHANGE USER LEVEL **"
+    user_name_prompt:
+      mode_1: "変更すべきIDを入力してください:"
+      mode_2: "Enter ID to change:"
+      mode_3: "ENTER ID TO CHANGE:"
+    user_not_found:
+      mode_1: "** {user_id} は存在しません **"
+      mode_2: "** {user_id} not found **"
+      mode_3: "** {user_id} NOT FOUND **"
+    current_level_info:
+      mode_1: "ユーザー '{name}' (ID: {user_id}) の現在の権限レベル: {level}\r\n"
+      mode_2: "User '{name}' (ID: {user_id}) current level: {level}\r\n"
+      mode_3: "USER '{name}' (ID: {user_id}) CURRENT LEVEL: {level}\r\n"
+    new_level_prompt:
+      mode_1: "新しい権限レベルを入力してください (0-5の整数): "
+      mode_2: "Enter new level (0-5 integer): "
+      mode_3: "ENTER NEW LEVEL (0-5 INTEGER): "
+    invalid_level_range:
+      mode_1: "無効な権限レベルです。0から5の範囲で入力してください。\r\n"
+      mode_2: "Invalid level. Please enter within the range of 0 to 5.\r\n"
+      mode_3: "INVALID LEVEL. ENTER BETWEEN 0 AND 5.\r\n"
+    no_change_level_same:
+      mode_1: "新しい権限レベルが現在のレベルと同じため、変更はありません。\r\n"
+      mode_2: "New level is the same as the current level, so no change.\r\n"
+      mode_3: "NEW LEVEL IS THE SAME AS THE CURRENT LEVEL, SO NO CHANGE.\r\n"
+    confirm_yn:
+      mode_1: "ユーザー '{name}' の権限レベルを {old_level} から {new_level} に変更しますか？ (y/n): "
+      mode_2: "Do you want to change the level of user '{name}' from {old_level} to {new_level}? (y/n): "
+      mode_3: "DO YOU WANT TO CHANGE THE LEVEL OF USER '{name}' FROM {old_level} TO {new_level}? (y/n): "
+    success:
+      mode_1: "ユーザーの権限レベルを変更しました。\r\n"
+      mode_2: "User level changed.\r\n"
+      mode_3: "USER LEVEL CHANGED.\r\n"
+    level_update_failed:
+      mode_1: "ユーザー '{name}' の権限レベルの変更に失敗しました。\r\n"
+      mode_2: "ユーザー '{name}' の権限レベルの変更に失敗しました。\r\n"
+      mode_3: "ユーザー '{name}' の権限レベルの変更に失敗しました。\r\n"
 mail_handler:
   main_prompt:
     mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "

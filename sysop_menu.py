@@ -35,7 +35,12 @@ def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
         elif command == 'pasc':
             # ユーザパスワード変更(各ユーザのパスワードが変更できるが、SSH鍵は生成しない)
             pass
+        elif command == 'chgu':
+            # ユーザ権限変更
+            change_user_level(chan, dbname, sysop_login_id, current_menu_mode)
+
         elif command == 'kygn':
+            # SSH鍵再生成
             regenerate_user_ssh_key(
                 chan, dbname, sysop_login_id, current_menu_mode)
 
@@ -484,6 +489,72 @@ def change_top_menu_permission(chan, dbname, current_menu_mode):
         util.send_text_by_key(
             chan, "common_messages.database_update_error", current_menu_mode)  # データベース更新エラー
         logging.error(f"データベース更新エラー: {e}")  # サーバーログ
+
+
+def change_user_level(chan, dbname, sysop_login_id, current_menu_mode):
+    """ユーザレベルの変更"""
+    util.send_text_by_key(
+        chan, "sysop_menu.change_user_level.header", current_menu_mode)  # ユーザレベル変更ヘッダ
+    util.send_text_by_key(
+        chan, "sysop_menu.change_user_level.user_name_prompt", current_menu_mode, add_newline=False
+    )
+    target_user_input = ssh_input.process_input(chan)
+    if target_user_input is None:  # 切断
+        return
+    target_user = target_user_input.strip()
+    if not target_user_input:
+
+        return
+    user_data = sqlite_tools.get_user_auth_info(dbname, target_user_input)
+    if not user_data:
+        util.send_text_by_key(
+            chan, "sysop_menu.change_user_level.user_not_found", current_menu_mode, user_id=target_user_input)
+        return
+
+    user_id_to_change = user_data['id']
+    user_name_to_change = user_data['name']
+    current_level = user_data['level']
+
+    util.send_text_by_key(chan, "sysop_menu.change_user_level.current_level_info", current_menu_mode,
+                          name=user_name_to_change, user_id=user_id_to_change, level=current_level)
+
+    util.send_text_by_key(
+        chan, "sysop_menu.change_user_level.new_level_prompt", current_menu_mode, add_newline=False)
+    new_level_input = ssh_input.process_input(chan)
+    if new_level_input is None:  # 切断
+        return
+    new_level = new_level_input.strip()
+
+    if not new_level_input:
+        return
+
+    try:
+        new_level = int(new_level_input)
+        if not (0 <= new_level <= 5):  # レベル範囲チェック
+            util.send_text_by_key(
+                chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
+            return
+    except ValueError:
+        util.send_text_by_key(
+            chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
+        return
+
+    if new_level == current_level:
+        util.send_text_by_key(
+            chan, "sysop_menu.change_user_level.no_change_level_same", current_menu_mode)
+        return
+
+    util.send_text_by_key(chan, "sysop_menu.change_user_level.confirm_yn", current_menu_mode,
+                          name=user_name_to_change, old_level=current_level, new_level=new_level, add_newline=False)
+    confirm_input = ssh_input.process_input(chan)
+    if confirm_input is None:  # 切断
+        return
+    confirm_input = confirm_input.lower().strip()
+
+    if confirm_input == 'y':
+        if sqlite_tools.update_user_level(dbname, user_id_to_change, new_level):
+            util.send_text_by_key(
+                chan, "sysop_menu.change_user_level.success", current_menu_mode)
 
 
 def system_quit(chan, dbname, current_menu_mode):
