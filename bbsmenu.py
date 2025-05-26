@@ -3,7 +3,6 @@ import util
 import datetime
 import sqlite_tools
 import time
-import yaml
 import logging
 
 import util
