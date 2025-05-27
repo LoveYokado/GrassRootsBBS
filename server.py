@@ -19,6 +19,8 @@ import datetime
 import user_pref_menu
 import util
 import sysop_menu
+import hierarchical_menu
+
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
@@ -299,7 +301,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # サーバ設定メニュー
         elif command == "v" and userlevel >= 5:
             # サーバ設定メニュー(menu_mode)
-            server_menu.server_menu(chan, dbname, current_loop_menu_mode)
+            pass
 
         # オンラインメンバー一覧表示
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
@@ -327,15 +329,55 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
             mail_handler.mail(chan, dbname, login_id, current_loop_menu_mode)
 
-        # 掲示板(テスト実装)
+        # 掲示板
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
-            bbsmenu.bbs_menu(chan, dbname, login_id, current_loop_menu_mode)
+            bbs_config_path = "setting/bbs.yml"  # 掲示板用の設定ファイルを指定
+            selected_item = hierarchical_menu.handle_hierarchical_menu(
+                chan, bbs_config_path, current_loop_menu_mode
+            )
+            if selected_item:
+                terminal_item_type = selected_item.get("type")
+                item_id = selected_item.get("id")
+                item_name_dict = selected_item.get("name", {})
+                item_name = item_name_dict.get(
+                    current_loop_menu_mode, "未定義の項目")
+
+                if terminal_item_type == "board":  # 掲示板機能では "board" type を処理
+                    chan.send(
+                        f"掲示板「{item_name}」(ID: {item_id}) が選択されました。(スレッド一覧表示などは未実装)\r\n")
+                    # TODO: 選択された板のスレッド一覧表示などの処理を実装
+                else:
+                    util.send_text_by_key(
+                        chan, "common_messages.error", current_loop_menu_mode)
+                    logging.warning(
+                        f"掲示板メニュー: 項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。")
 
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
-            # bbsmenu.chat(chan, dbname, login_id)
-            chan.send("チャットはまだ未実装です。\r\n")
-            # bbsmenu.mail_recieve(chan, dbname, login_id) # 不要なら削除
+            chat_config_path = "setting/chatroom.yml"
+            selected_item = hierarchical_menu.handle_hierarchical_menu(
+                chan, chat_config_path, current_loop_menu_mode
+            )
+            if selected_item:
+                # selected_item の type や id に応じた処理
+                terminal_item_type = selected_item.get("type")
+                item_id = selected_item.get("id")
+                item_name_dict = selected_item.get("name", {})
+                item_name = item_name_dict.get(
+                    current_loop_menu_mode, "未定義の項目")
+
+                if terminal_item_type == "room":  # チャットでは "room"
+                    chan.send(
+                        f"チャットルーム「{item_name}」(ID: {item_id}) が選択されました。(実際の処理は未実装)\r\n")
+                    # TODO: 実際のチャットルーム入室処理などを実装
+                else:
+                    # 汎用メニューで選択されたが、チャット機能では解釈できないtypeの場合
+                    util.send_text_by_key(
+                        chan, "common_messages.error",
+                        current_loop_menu_mode
+                    )
+                    logging.warning(
+                        f"項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。\r\n")
 
         # 切断処理
         elif command == "e":

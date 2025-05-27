@@ -853,6 +853,17 @@ mail_handler:
 
   # ... 他のメール関連テキストも追加
 
+#階層構造メニュー
+hierarchical_menu:
+  title: # カテゴリ選択時、ルーム選択時など共通で使えるタイトル
+    mode_1: "--- 項目選択 ---"
+    mode_2: "--- ITEM SELECTION ---"
+    mode_3: "--- ITEM SELECTION ---"
+  prompt: # 共通で使えるプロンプト
+    mode_1: "番号を入力してください (空エンターで戻る): "
+    mode_2: "Enter number (press enter to return): "
+    mode_3: "ENTER NUMBER (PRESS ENTER TO RETURN): "
+
 # --- 電報関連 ---
 telegram:
   send_message:

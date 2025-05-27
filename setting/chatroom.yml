@@ -1,0 +1,123 @@
+# chat_rooms_config.yaml
+
+# 階層の最上位に位置するチャットルームのカテゴリー定義
+categories:
+  - id: "chat_free"
+    number: 1 # 親階層での表示順
+    name:
+      mode_1: "フリーチャットルーム"
+    description: | # カテゴリの概要説明（複数行）
+      話題に限定はありません。
+      初心者の方からベテランまで、どなたでもお気軽にご参加ください。
+
+    # フリーチャットルーム直下のチャットルーム
+    items:
+      - id: "chat_free1"
+        number: 1 # このカテゴリ内での表示順
+        name:
+          mode_1: "フリールーム１"
+        type: "room"
+      - id: "chat_free2"
+        number: 2
+        name:
+          mode_1: "フリールーム２"
+        type: "room"
+      - id: "chat_free3"
+        number: 3
+        name:
+          mode_1: "フリールーム３"
+        type: "room"
+      - id: "chat_deep_dive"
+        number: 4
+        name:
+          mode_1: "フリー深堀りトピック"
+        description: |
+          フリーチャットルームの特定の話題を深く掘り下げる場所です。
+          議論が白熱しやすい内容はこちらへどうぞ。
+        type: "child"
+        items:
+          - id: "chat_deep_a"
+            number: 1
+            name:
+              mode_1: "深掘り部屋A"
+            type: "room"
+          - id: "chat_expert_discussion"
+            number: 2
+            name:
+              mode_1: "フリー専門議論"
+            description: |
+              さらに専門的なフリーテーマを議論する場です。
+              特定の分野に精通した方向け。
+
+            items:
+              - id: "expert_room_alpha"
+                number: 1
+                name:
+                  mode_1: "アルファ専門室"
+                type: "room"
+            type: "child"
+  - id: "chat_specialized"
+    number: 2
+    name:
+      mode_1: "専門チャットルーム"
+    description: |
+      特定のテーマに特化したチャットルームです。
+      専門的な知識や情報交換にご利用ください。
+
+    items: # 専門カテゴリ直下のルーム
+      - id: "chat_military"
+        number: 1
+        name:
+          mode_1: "軍事ルーム"
+        type: "room"
+      - id: "chat_room_pc_related"
+        number: 2
+        name:
+          mode_1: "パソコン関連"
+        description: |
+          パソコンに関する様々な話題を扱うカテゴリです。
+          ハードウェアからソフトウェアまで。
+        type: "child"
+        items: # パソコン関連直下のルーム
+          - id: "chat_pc_gen"
+            number: 1
+            name:
+              mode_1: "パソコン全般ルーム"
+            type: "room"
+          - id: "chat_oldpc"
+            number: 2
+            name:
+              mode_1: "オールドPCルーム"
+            type: "room"
+          - id: "chat_gaming"
+            number: 3
+            name:
+              mode_1: "ゲーミングPCルーム"
+            type: "room"
+          - id: "chat_os"
+            number: 4
+            name:
+              mode_1: "OS別ルーム"
+            description: "特定のOSに特化した議論はこちら。"
+            type: "child"
+            items:
+              - id: "chat_linux"
+                number: 1
+                name: { mode_1: "Linuxルーム" }
+                type: "room"
+              - id: "chat_win"
+                number: 2
+                name: { mode_1: "Windowsルーム" }
+                type: "room"
+
+# カテゴリに属さない、独立したショートカットや特別なルーム
+# 例: 規約違反の報告先、イベント告知専用など
+global:
+  - id: "chat_fight"
+    name:
+      mode_1: "喧嘩用ルーム"
+    description: "議論が白熱した場合の避難所です。ここで好きにやってください。でも後腐れないように。最後は仲直りしましょう"
+  - id: "chat_news"
+    name:
+      mode_1: "最新ニュースについて語る"
+    description: "最新のニュースに関する情報交換や議論にご利用ください。"
