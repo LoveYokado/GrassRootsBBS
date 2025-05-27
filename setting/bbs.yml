@@ -1,0 +1,72 @@
+categories:
+  - id: "bbs_general"
+    number: 1
+    name:
+      mode_1: "総合掲示板"
+    description: "自由な話題で盛り上がりましょう！"
+    items:
+      - id: "bbs_free" # 掲示板の板ID (URLや内部識別子として利用)
+        number: 1
+        name:
+          mode_1: "雑談板"
+        description: "なんでも気軽に話せる板です。"
+        type: "board" # 最終選択肢のタイプを "board" としてみます
+      - id: "bbs_qa"
+        number: 2
+        name:
+          mode_1: "質問＆回答板"
+        description: "分からないことはここで質問してみよう。"
+        type: "board"
+
+  - id: "bbs_hobby"
+    number: 2
+    name:
+      mode_1: "趣味の掲示板"
+    description: "共通の趣味を持つ仲間と交流しましょう。"
+    items:
+      - id: "bbs_hobby_game"
+        number: 1
+        name:
+          mode_1: "ゲーム総合板"
+        description: "最新ゲームからレトロゲームまで。"
+        type: "board"
+      - id: "bbs_hobby_anime"
+        number: 2
+        name:
+          mode_1: "アニメ・漫画板"
+        description: "好きな作品について語り合おう。"
+        type: "board"
+      - id: "bbs_hobby_music_create" # サブカテゴリの例
+        number: 3
+        name:
+          mode_1: "音楽制作"
+        description: "作曲やDTMに関する情報交換。"
+        type: "child" # サブカテゴリなので type: "child"
+        items:
+          - id: "bbs_dtm_general"
+            number: 1
+            name:
+              mode_1: "DTM総合"
+            type: "board"
+          - id: "bbs_vocaloid"
+            number: 2
+            name:
+              mode_1: "ボーカロイド"
+            type: "board"
+
+  - id: "bbs_local"
+    number: 3
+    name:
+      mode_1: "地域掲示板"
+    description: "お住まいの地域の情報交換に。"
+    items:
+      - id: "bbs_local_hokkaido"
+        number: 1
+        name:
+          mode_1: "北海道"
+        type: "board"
+      - id: "bbs_local_tokyo"
+        number: 2
+        name:
+          mode_1: "東京"
+        type: "board"

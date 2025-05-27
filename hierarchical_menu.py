@@ -4,13 +4,11 @@ import yaml
 import util
 import ssh_input
 
-CHATROOM_CONFIG_PATH = "setting/chatroom.yml"
-
 
 def load_menu_config(config_path: str):
     """階層メニュー設定ファイルを読み込む"""
     try:
-        with open(CHATROOM_CONFIG_PATH, "r", encoding="utf-8") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
         return config
     except Exception as e:

@@ -329,9 +329,28 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
             mail_handler.mail(chan, dbname, login_id, current_loop_menu_mode)
 
-        # 掲示板(テスト実装)
+        # 掲示板
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
-            bbsmenu.bbs_menu(chan, dbname, login_id, current_loop_menu_mode)
+            bbs_config_path = "setting/bbs.yml"  # 掲示板用の設定ファイルを指定
+            selected_item = hierarchical_menu.handle_hierarchical_menu(
+                chan, bbs_config_path, current_loop_menu_mode
+            )
+            if selected_item:
+                terminal_item_type = selected_item.get("type")
+                item_id = selected_item.get("id")
+                item_name_dict = selected_item.get("name", {})
+                item_name = item_name_dict.get(
+                    current_loop_menu_mode, "未定義の項目")
+
+                if terminal_item_type == "board":  # 掲示板機能では "board" type を処理
+                    chan.send(
+                        f"掲示板「{item_name}」(ID: {item_id}) が選択されました。(スレッド一覧表示などは未実装)\r\n")
+                    # TODO: 選択された板のスレッド一覧表示などの処理を実装
+                else:
+                    util.send_text_by_key(
+                        chan, "common_messages.error", current_loop_menu_mode)
+                    logging.warning(
+                        f"掲示板メニュー: 項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。")
 
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
