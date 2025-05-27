@@ -19,6 +19,7 @@ import datetime
 import user_pref_menu
 import util
 import sysop_menu
+import chatroom
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
@@ -333,9 +334,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
-            # bbsmenu.chat(chan, dbname, login_id)
-            chan.send("チャットはまだ未実装です。\r\n")
-            # bbsmenu.mail_recieve(chan, dbname, login_id) # 不要なら削除
+            chatroom.chat_menu(chan, dbname, login_id, current_loop_menu_mode)
 
         # 切断処理
         elif command == "e":

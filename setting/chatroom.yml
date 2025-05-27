@@ -2,7 +2,7 @@
 
 # 階層の最上位に位置するチャットルームのカテゴリー定義
 categories:
-  - id: "free"
+  - id: "chat_free"
     number: 1 # 親階層での表示順
     name:
       mode_1: "フリーチャットルーム"
@@ -11,58 +11,52 @@ categories:
       初心者の方からベテランまで、どなたでもお気軽にご参加ください。
 
     # このカテゴリ直下のチャットルーム
-    rooms:
-      - id: "free1"
+    items:
+      - id: "chat_free1"
         number: 1 # このカテゴリ内での表示順
         name:
           mode_1: "フリールーム１"
-        shortcuts: "chat_free1"
-      - id: "free2"
+        type: "room"
+      - id: "chat_free2"
         number: 2
         name:
           mode_1: "フリールーム２"
-        shortcuts: "chat_free2"
-      - id: "free3"
+        type: "room"
+      - id: "chat_free3"
         number: 3
         name:
           mode_1: "フリールーム３"
-        shortcuts: "chat_free3"
-
-    # さらに下位のカテゴリ（サブカテゴリ）をchildrenとして定義
-    children:
-      - id: "free_deep_dive"
-        number: 1
+        type: "room"
+      - id: "chat_deep_dive"
+        number: 4
         name:
           mode_1: "フリー深堀りトピック"
         description: |
           フリーチャットルームの特定の話題を深く掘り下げる場所です。
           議論が白熱しやすい内容はこちらへどうぞ。
-        rooms:
-          - id: "deep_free_room_a"
+        type: "child"
+        items:
+          - id: "chat_deep_a"
             number: 1
             name:
               mode_1: "深掘り部屋A"
-            shortcuts: "chat_deep_A"
-
-        # さらに深い階層もchildrenで継続可能
-        children:
-          - id: "free_expert_discussion"
-            number: 1
+            type: "room"
+          - id: "chat_expert_discussion"
+            number: 2
             name:
               mode_1: "フリー専門議論"
             description: |
               さらに専門的なフリーテーマを議論する場です。
               特定の分野に精通した方向け。
             rooms:
-              - id: "expert_room_alpha"
-                number: 1
-                name:
-                  mode_1: "アルファ専門室"
-                shortcuts: "chat_alpha"
-            # どんなに深い階層でも、この children: リストを繰り返す
-            # 例えば、ここにさらに children: を追加して、さらに深い階層を作る
-
-  - id: "specialized"
+              items:
+                - id: "expert_room_alpha"
+                  number: 1
+                  name:
+                    mode_1: "アルファ専門室"
+                  type: "room"
+            type: "child"
+  - id: "chat_specialized"
     number: 2
     name:
       mode_1: "専門チャットルーム"
@@ -70,68 +64,60 @@ categories:
       特定のテーマに特化したチャットルームです。
       専門的な知識や情報交換にご利用ください。
 
-    rooms: # 専門カテゴリ直下のルーム
-      - id: "military"
+    items: # 専門カテゴリ直下のルーム
+      - id: "chat_military"
         number: 1
         name:
           mode_1: "軍事ルーム"
-        shortcuts: "chat_military"
-
-    children:
-      - id: "pc_related"
-        number: 1
+        type: "room"
+      - id: "chat_room_pc_related"
+        number: 2
         name:
           mode_1: "パソコン関連"
         description: |
           パソコンに関する様々な話題を扱うカテゴリです。
           ハードウェアからソフトウェアまで。
-        rooms:
-          - id: "pc_general"
-            number: 1
+        type: "child"
+        items: # rooms だった部分を items に変更、type を追加
+          - id: "chat_pc_gen"
+            number: 1 # items 内の通し番号
             name:
               mode_1: "パソコン全般ルーム"
-            shortcuts: "chat_pc_general"
-          - id: "oldpc"
+            type: "room"
+          - id: "chat_oldpc"
             number: 2
             name:
               mode_1: "オールドPCルーム"
-            shortcuts: "chat_oldpc"
-          - id: "gamingpc"
+            type: "room"
+          - id: "chat_gaming"
             number: 3
             name:
               mode_1: "ゲーミングPCルーム"
-            shortcuts: "chat_gamingpc"
-
-        children: # パソコン関連のサブカテゴリ
-          - id: "os_specific"
-            number: 1
+            type: "room"
+          - id: "chat_os"
+            number: 4
             name:
               mode_1: "OS別ルーム"
             description: "特定のOSに特化した議論はこちら。"
-            rooms:
-              - id: "linux_room"
-                number: 1
-                name:
-                  mode_1: "Linuxルーム"
-                shortcuts: "chat_linux"
-              - id: "windows_room"
+            type: "child" # rooms の親に type: child 追加
+            items: # rooms だった部分を items に変更
+              - id: "chat_linux"
+                number: 1 # items 内の通し番号
+                name: { mode_1: "Linuxルーム" }
+                type: "room"
+              - id: "chat_win"
                 number: 2
-                name:
-                  mode_1: "Windowsルーム"
-                shortcuts: "chat_windows"
+                name: { mode_1: "Windowsルーム" }
+                type: "room"
 
 # カテゴリに属さない、独立したショートカットや特別なルーム
 # 例: 規約違反の報告先、イベント告知専用など
-global_shortcuts:
-  - id: "fight_room"
-    number: 1 # グローバルショートカット内での表示順
+global:
+  - id: "chat_fight"
     name:
       mode_1: "喧嘩用ルーム"
-    shortcuts: "chat_fight"
-    description: "議論が白熱した場合の避難所です。"
-  - id: "news_room"
-    number: 2
+    description: "議論が白熱した場合の避難所です。ここで好きにやってください。でも後腐れないように。最後は仲直りしましょう"
+  - id: "chat_news"
     name:
       mode_1: "最新ニュースについて語る"
-    shortcuts: "chat_news"
     description: "最新のニュースに関する情報交換や議論にご利用ください。"
