@@ -20,6 +20,7 @@ import user_pref_menu
 import util
 import sysop_menu
 import hierarchical_menu
+import chat_handler
 
 
 CONFIG_FILE_PATH = "setting/config.toml"
@@ -378,6 +379,12 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                     )
                     logging.warning(
                         f"項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。\r\n")
+        # テスト用チャットルーム入室 (Xキー)
+        elif command == "x":  # Xキーでテストチャットルームへ
+            test_room_id = "chat_free1"  # テストで入るチャットルームID
+            # chat_handler.handle_chat_room の中でウェルカムメッセージが表示されます。
+            chat_handler.handle_chat_room(
+                chan, dbname, login_id, current_loop_menu_mode, test_room_id, test_room_id)
 
         # 切断処理
         elif command == "e":

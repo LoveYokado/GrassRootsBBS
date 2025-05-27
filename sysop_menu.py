@@ -253,7 +253,7 @@ def user_register(chan, dbname, current_menu_mode):
         # ユーザ登録
         salt_hex, hashed_password = util.hash_password(password_input)
         # まずはレベル0に設定されます。登録後に変更してください。
-        if sqlite_tools.register_user(dbname, user_id_input,  hashed_password, salt_hex, profile, level=0):
+        if sqlite_tools.register_user(dbname, user_id_input,  hashed_password, salt_hex, profile, level=0, auth_method='both'):
             util.send_text_by_key(
                 chan, "sysop_menu.user_register.user_regist_success", current_menu_mode)
         else:

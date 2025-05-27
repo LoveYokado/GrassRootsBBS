@@ -397,7 +397,7 @@ def register_user(dbname, username, hashed_password, salt, comment, level=0,
     sql_insert_user = """
         INSERT INTO users (
             name, password, salt, registdate, level, lastlogin, lastlogout,
-            comment, mail, auth_method, menu_mode, telegram_restriction,
+            comment, email, auth_method, menu_mode, telegram_restriction,
             blacklist, exploration_list
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """

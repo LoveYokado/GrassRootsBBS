@@ -863,7 +863,27 @@ hierarchical_menu:
     mode_1: "番号を入力してください (空エンターで戻る): "
     mode_2: "Enter number (press enter to return): "
     mode_3: "ENTER NUMBER (PRESS ENTER TO RETURN): "
-
+#チャットルーム
+chat:
+  welcome:
+    mode_1: "チャットルーム「{room_name}」へようこそ！"
+    mode_2: "Welcome to chat room: {room_name}!"
+    # mode_3 も同様に
+  help:
+    mode_1: |
+      チャットコマンド:
+        /exit, /quit, /bye - チャットルームを退出します。
+        /help              - このヘルプを表示します。
+      上記以外は全てチャットメッセージとして送信されます。
+    mode_2: |
+      Chat Commands:
+        /exit, /quit, /bye - Leave the chat room.
+        /help              - Show this help message.
+      Anything else typed will be sent as a chat message.
+    # mode_3 も同様に
+  leaving:
+    mode_1: "チャットルーム「{room_name}」から退出します。"
+    mode_2: "Leaving chat room: {room_name}."
 # --- 電報関連 ---
 telegram:
   send_message:
