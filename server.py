@@ -19,7 +19,8 @@ import datetime
 import user_pref_menu
 import util
 import sysop_menu
-import chatroom
+import hierarchical_menu
+
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
@@ -300,7 +301,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # サーバ設定メニュー
         elif command == "v" and userlevel >= 5:
             # サーバ設定メニュー(menu_mode)
-            server_menu.server_menu(chan, dbname, current_loop_menu_mode)
+            pass
 
         # オンラインメンバー一覧表示
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
@@ -334,7 +335,30 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
-            chatroom.chat_menu(chan, dbname, login_id, current_loop_menu_mode)
+            chat_config_path = "setting/chatroom.yml"
+            selected_item = hierarchical_menu.handle_hierarchical_menu(
+                chan, chat_config_path, current_loop_menu_mode
+            )
+            if selected_item:
+                # selected_item の type や id に応じた処理
+                terminal_item_type = selected_item.get("type")
+                item_id = selected_item.get("id")
+                item_name_dict = selected_item.get("name", {})
+                item_name = item_name_dict.get(
+                    current_loop_menu_mode, "未定義の項目")
+
+                if terminal_item_type == "room":  # チャットでは "room"
+                    chan.send(
+                        f"チャットルーム「{item_name}」(ID: {item_id}) が選択されました。(実際の処理は未実装)\r\n")
+                    # TODO: 実際のチャットルーム入室処理などを実装
+                else:
+                    # 汎用メニューで選択されたが、チャット機能では解釈できないtypeの場合
+                    util.send_text_by_key(
+                        chan, "common_messages.error",
+                        current_loop_menu_mode
+                    )
+                    logging.warning(
+                        f"項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。\r\n")
 
         # 切断処理
         elif command == "e":

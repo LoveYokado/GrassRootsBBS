@@ -10,7 +10,7 @@ categories:
       話題に限定はありません。
       初心者の方からベテランまで、どなたでもお気軽にご参加ください。
 
-    # このカテゴリ直下のチャットルーム
+    # フリーチャットルーム直下のチャットルーム
     items:
       - id: "chat_free1"
         number: 1 # このカテゴリ内での表示順
@@ -48,13 +48,13 @@ categories:
             description: |
               さらに専門的なフリーテーマを議論する場です。
               特定の分野に精通した方向け。
-            rooms:
-              items:
-                - id: "expert_room_alpha"
-                  number: 1
-                  name:
-                    mode_1: "アルファ専門室"
-                  type: "room"
+
+            items:
+              - id: "expert_room_alpha"
+                number: 1
+                name:
+                  mode_1: "アルファ専門室"
+                type: "room"
             type: "child"
   - id: "chat_specialized"
     number: 2
@@ -78,9 +78,9 @@ categories:
           パソコンに関する様々な話題を扱うカテゴリです。
           ハードウェアからソフトウェアまで。
         type: "child"
-        items: # rooms だった部分を items に変更、type を追加
+        items: # パソコン関連直下のルーム
           - id: "chat_pc_gen"
-            number: 1 # items 内の通し番号
+            number: 1
             name:
               mode_1: "パソコン全般ルーム"
             type: "room"
@@ -99,10 +99,10 @@ categories:
             name:
               mode_1: "OS別ルーム"
             description: "特定のOSに特化した議論はこちら。"
-            type: "child" # rooms の親に type: child 追加
-            items: # rooms だった部分を items に変更
+            type: "child"
+            items:
               - id: "chat_linux"
-                number: 1 # items 内の通し番号
+                number: 1
                 name: { mode_1: "Linuxルーム" }
                 type: "room"
               - id: "chat_win"

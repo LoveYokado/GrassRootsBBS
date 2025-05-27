@@ -7,13 +7,14 @@ import ssh_input
 CHATROOM_CONFIG_PATH = "setting/chatroom.yml"
 
 
-def load_chatroom_config():
+def load_menu_config(config_path: str):
+    """階層メニュー設定ファイルを読み込む"""
     try:
         with open(CHATROOM_CONFIG_PATH, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
         return config
     except Exception as e:
-        logging.error(f"チャットルーム設定読み込みエラー: {e}")
+        logging.error(f"メニュー設定ファイル読み込みエラー ({config_path}): {e}")
         return None
 
 
@@ -55,21 +56,22 @@ def navigate_menu(chan, items, menu_mode, title_key, prompt_key):
             )
 
 
-def chat_menu(chan, dbname, login_id, menu_mode):
-    """チャットメニュー(メイン)"""
-    config = load_chatroom_config()
+def handle_hierarchical_menu(chan, config_path: str, menu_mode: str):
+    """階層メニューを処理する"""
+    config = load_menu_config(config_path)
     if not config or 'categories' not in config:
         util.send_text_by_key(
             chan, "common_messages.error", menu_mode
         )
-        return
+        logging.warning("メニュー設定が無効か、カテゴリが定義されていません :{config_path}")
+        return None
 
     initial_level_items = config.get('categories', [])
     if not initial_level_items:
         util.send_text_by_key(
             chan, "common_messages.error", menu_mode
         )
-        logging.warning("階層構造のカテゴリがありません。")
+        logging.warning("階層構造のカテゴリがありません:{config_path}")
         return
     path_stack = []
     current_level_items = initial_level_items
@@ -77,7 +79,7 @@ def chat_menu(chan, dbname, login_id, menu_mode):
     while True:
         # 今の階層の項目でメニュー表示・選択
         selected_item = navigate_menu(
-            chan, current_level_items, menu_mode, "chat.category_title", "chat.category_prompt")
+            chan, current_level_items, menu_mode, "hierarchical_menu.title", "hierarchical_menu.prompt")
 
         if selected_item == "back":
             if not path_stack:  # スタックが空ならトップメニューに戻る
@@ -90,12 +92,8 @@ def chat_menu(chan, dbname, login_id, menu_mode):
         # selected_item が辞書型であることを確認してからキーアクセス
         if isinstance(selected_item, dict):
             if "type" in selected_item:
-                if selected_item["type"] == "room":
-                    chan.send(
-                        f"'{selected_item['name'].get('mode_1', '名前なし')}' に入室します... (未実装)\r\n")
-                    # TODO: 実際のチャットルーム処理を実装する
-                    return  # チャットルーム選択後は一旦メニューを抜ける
-                elif selected_item["type"] == "child":
+                item_type = selected_item["type"]
+                if item_type == "child":
                     if "items" in selected_item:  # 正しい child 構造
                         path_stack.append(current_level_items)
                         current_level_items = selected_item["items"]
@@ -103,28 +101,21 @@ def chat_menu(chan, dbname, login_id, menu_mode):
                         util.send_text_by_key(
                             chan, "common_messages.error", menu_mode)
                         logging.warning(
-                            f"チャットメニュー: 'child' type の項目に 'items' がありません。selected_item: {selected_item}"
+                            f"階層メニュー: 'child' type の項目に 'items' がありません。selected_item: {selected_item}"
                         )
-                else:  # 未知の type
-                    util.send_text_by_key(
-                        chan, "common_messages.error", menu_mode)
-                    logging.warning(
-                        f"チャットメニュー: 不明な 'type' です。selected_item: {selected_item}"
-                    )
-            elif "items" in selected_item:  # type キーなし、items キーあり カテゴリ選択etc
+                else:  # "child" 以外の type は末端項目として扱う
+                    return selected_item  # 呼び出し元がこの type を解釈する
+            elif "items" in selected_item:  # type キーなし、items キーあり (暗黙的なカテゴリ)
                 path_stack.append(current_level_items)
                 current_level_items = selected_item["items"]
-            else:  # 辞書だが、type も items もない予期せぬ構造
-                util.send_text_by_key(
-                    chan, "common_messages.error", menu_mode
-                )
+            else:  # 辞書だが、type も items もない -> 末端項目として扱う
+                return selected_item  # 呼び出し元がこの項目を解釈する
+        else:  # "back", None, dict 以外の場合 (通常ここには来ないはず)
+            # このelseブロックは、navigate_menuが予期せずdictでも"back"でもNoneでもない値を返した場合のフォールバック
+            # 通常は発生しづらいが、念のためエラーログを残す
+            if selected_item is not None and selected_item != "back":  # navigate_menuが空のitemsで"back"を返す場合を除く
+                util.send_text_by_key(chan, "common_messages.error", menu_mode)
                 logging.warning(
-                    f"チャットメニュー: 予期せぬ辞書構造です。selected_item: {selected_item}"
+                    f"階層メニュー: 予期せぬ項目型です。selected_item の型: {type(selected_item)}, 内容: {selected_item}"
                 )
-        else:
-            util.send_text_by_key(
-                chan, "common_messages.error", menu_mode
-            )
-            logging.warning(
-                f"チャットメニュー: 予期せぬ項目型です。selected_item の型: {type(selected_item)}, 内容: {selected_item}"
-            )
+        continue  # エラーケースやナビゲーション後、メニューを再表示するためにループを継続
