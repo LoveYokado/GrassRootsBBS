@@ -884,6 +884,71 @@ chat:
   leaving:
     mode_1: "チャットルーム「{room_name}」から退出します。"
     mode_2: "Leaving chat room: {room_name}."
+  # ブロードキャストされるユーザーメッセージのフォーマット
+  broadcast_user_message_format:
+    mode_1: "{sender}: {message}"
+    mode_2: "{sender}: {message}"
+    mode_3: "{sender}: {message}"
+
+  # ブロードキャストされるシステムメッセージのフォーマット
+  broadcast_system_message_format:
+    mode_1: "System: {message}"
+    mode_2: "System: {message}"
+    mode_3: "SYSTEM: {message}"
+
+  # 自分の発言を自分の画面に表示する際のフォーマット
+  my_message_format:
+    mode_1: "{sender}: {message}"
+    mode_2: "{sender}: {message}"
+    mode_3: "{sender}: {message}"
+
+  # !r コマンドで表示されるルーム状況の各行のフォーマット
+  room_status_line:
+    mode_1: "ルーム: {room_name} [{lock_status}] 参加者: {users}"
+    mode_2: "{room_name:<15} {lock_status}: {users}"
+    mode_3: "{room_name:} {lock_status}: {users}"
+  room_locked: # 入室しようとした部屋がロックされている場合 (他人によって)
+    mode_1: "ルーム「{room_name}」は {owner} によってロックされています。入室できません。\r\n"
+    mode_2: "Room '{room_name}' is locked by {owner}. You cannot enter.\r\n"
+    mode_3: "ROOM '{room_name}' LOCKED BY {owner}. CANNOT ENTER.\r\n"
+
+  # !l コマンド関連 (コマンド実行者へのフィードバック)
+  room_locked_by_you:
+    mode_1: "ルーム「{room_name}」をロックしました。\r\n"
+    mode_2: "You have locked room '{room_name}'.\r\n"
+    mode_3: "ROOM '{room_name}' LOCKED.\r\n"
+  room_already_locked_by_you:
+    mode_1: "ルーム「{room_name}」は既にあなたがロックしています。\r\n"
+    mode_2: "Room '{room_name}' is already locked by you.\r\n"
+    mode_3: "ROOM '{room_name}' ALREADY LOCKED BY YOU.\r\n"
+  room_already_locked_by_other:
+    mode_1: "ルーム「{room_name}」は {owner} によって既にロックされています。あなたがロックすることはできません。\r\n"
+    mode_2: "Room '{room_name}' is already locked by {owner}. You cannot lock it.\r\n"
+    mode_3: "ROOM '{room_name}' ALREADY LOCKED BY {owner}. CANNOT LOCK.\r\n"
+
+  # !u コマンド関連 (コマンド実行者へのフィードバック)
+  room_unlocked_by_you:
+    mode_1: "ルーム「{room_name}」をアンロックしました。\r\n"
+    mode_2: "You have unlocked room '{room_name}'.\r\n"
+    mode_3: "ROOM '{room_name}' UNLOCKED.\r\n"
+  room_not_locked:
+    mode_1: "ルーム「{room_name}」はロックされていません。\r\n"
+    mode_2: "Room '{room_name}' is not locked.\r\n"
+    mode_3: "ROOM '{room_name}' NOT LOCKED.\r\n"
+  room_cannot_unlock_not_owner:
+    mode_1: "ルーム「{room_name}」は {owner} によってロックされており、あなたにはアンロックできません。\r\n"
+    mode_2: "Room '{room_name}' is locked by {owner}, and you cannot unlock it.\r\n"
+    mode_3: "ROOM '{room_name}' LOCKED BY {owner}. CANNOT UNLOCK.\r\n"
+
+  room_not_found_for_lock: # !l コマンドでルームが見つからない場合
+    mode_1: "ロック対象のルーム「{room_name}」が見つかりません。\r\n"
+    mode_2: "Room '{room_name}' to lock not found.\r\n"
+    mode_3: "ROOM '{room_name}' TO LOCK NOT FOUND.\r\n"
+  room_not_found_for_unlock: # !u コマンドでルームが見つからない場合
+    mode_1: "アンロック対象のルーム「{room_name}」が見つかりません。\r\n"
+    mode_2: "Room '{room_name}' to unlock not found.\r\n"
+    mode_3: "ROOM '{room_name}' TO UNLOCK NOT FOUND.\r\n"
+
 # --- 電報関連 ---
 telegram:
   send_message:

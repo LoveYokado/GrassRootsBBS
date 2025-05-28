@@ -41,55 +41,107 @@ def add_message_to_history(room_id: str, sender: str, message: str, is_system_me
 
 
 # room_name_for_prompt は実際には使われません
-def broadcast_to_room(room_id: str, message_to_broadcast: str, exclude_login_id: str = None):
+def broadcast_to_room(room_id: str, dbname: str, sender_name: str, message_body: str, is_system_message: bool, exclude_login_id: str = None):
     """
     ルーム内のすべてのユーザーにメッセージをブロードキャスト。
+    各ユーザーの menu_mode に応じたフォーマットで送信する。
     """
     with chat_rooms_lock:
         if room_id in active_chat_rooms:
-            message_payload = f"{message_to_broadcast.replace('\n', '\r\n')}\r\n"
-            for target_login_id, target_chan in active_chat_rooms[room_id]["users"].items():
+            for target_login_id, user_data in active_chat_rooms[room_id]["users"].items():
                 if target_login_id == exclude_login_id:
                     continue
+
+                target_chan = user_data["chan"]
+                target_menu_mode = user_data["menu_mode"]
+
+                if is_system_message:
+                    # システムメッセージのフォーマットキーを textdata.yaml から取得
+                    base_format_string = util.get_text_by_key(
+                        "chat.broadcast_system_message_format", target_menu_mode
+                    )
+                    if base_format_string:
+                        try:
+                            formatted_message = base_format_string.format(
+                                message=message_body)
+                        except KeyError as e:
+                            logging.error(
+                                f"Formatting error for key 'chat.broadcast_system_message_format' (mode: {target_menu_mode}): {e}. Raw: '{base_format_string}'")
+                            # Fallback
+                            formatted_message = f"System: {message_body}"
+                    else:
+                        logging.warning(
+                            f"Text key 'chat.broadcast_system_message_format' for mode '{target_menu_mode}' not found. Using default.")
+                        # Fallback
+                        formatted_message = f"System: {message_body}"
+                else:
+                    # ユーザーメッセージのフォーマットキーを textdata.yaml から取得
+                    base_format_string = util.get_text_by_key(
+                        "chat.broadcast_user_message_format", target_menu_mode
+                    )
+                    if base_format_string:
+                        try:
+                            formatted_message = base_format_string.format(
+                                sender=sender_name, message=message_body)
+                        except KeyError as e:
+                            logging.error(
+                                f"Formatting error for key 'chat.broadcast_user_message_format' (mode: {target_menu_mode}): {e}. Raw: '{base_format_string}'")
+                            # Fallback
+                            formatted_message = f"{sender_name}: {message_body}"
+                    else:
+                        logging.warning(
+                            f"Text key 'chat.broadcast_user_message_format' for mode '{target_menu_mode}' not found. Using default.")
+                        # Fallback
+                        formatted_message = f"{sender_name}: {message_body}"
+                message_payload = f"{formatted_message.replace('\n', '\r\n')}\r\n"
                 try:
-                    # 1. Save cursor, 2. CR, 3. Insert Line, 4. Send Message, 5. Restore cursor
-                    # Save, CR, Insert Line
-                    # 他のユーザの入力業をクリアしてからメッセージ送信
                     target_chan.send(
-                        b"\r\033[2K" + message_payload.encode('utf-8'))
+                        b"\033[s" +       # カーソル位置保存
+                        b"\r\n" +         # 改行して新しい行へ
+                        b"\r" +           # 念のためカーソルを行頭へ
+                        message_payload.encode('utf-8') +  # メッセージ表示
+                        b"\033[u"         # カーソル位置復元
+                    )
+                    # 他のユーザーからのメッセージ受信後にも電報チェック
+                    # bbsmenu.telegram_recieve は未読がなければ何も表示しない
+                    bbsmenu.telegram_recieve(
+                        target_chan, dbname, target_login_id, target_menu_mode)
                 except Exception as e:
                     logging.error(
                         f"ルーム{room_id}のユーザー{target_login_id}へのメッセージブロードキャスト中にエラー：{e}")
 
 
 def set_online_members_function_for_chat(func):
-
     global ONLINE_MEMBERS_FUNC
     ONLINE_MEMBERS_FUNC = func
 
 
-def user_joins_room(room_id: str, login_id: str, chan, room_name: str):
+def user_joins_room(room_id: str, dbname: str, login_id: str, chan, room_name: str, menu_mode: str):
     """ユーザーがルームに入室したときに呼び出される"""
     with chat_rooms_lock:
         if room_id not in active_chat_rooms:
             active_chat_rooms[room_id] = {"users": {}, "locked_by": None}
-        active_chat_rooms[room_id]["users"][login_id] = chan
+        # チャンネルと一緒に menu_mode も保存
+        active_chat_rooms[room_id]["users"][login_id] = {
+            "chan": chan, "menu_mode": menu_mode}
 
     join_notification = f"{login_id} が入室しました。"
     add_message_to_history(
         room_id, "System", join_notification, is_system_message=True)
-    broadcast_to_room(
-        # room_name_for_prompt 削除
-        room_id, f"System: {join_notification}", exclude_login_id=login_id)
+    # システムメッセージとしてブロードキャスト
+    broadcast_to_room(room_id, dbname, "System", join_notification,
+                      is_system_message=True, exclude_login_id=login_id)
 
 
-def user_leaves_room(room_id: str, login_id: str, room_name: str):
+def user_leaves_room(room_id: str, dbname: str, login_id: str, room_name: str):
     """ユーザーがルームから退室したときに呼び出される"""
     chan_left = None
     user_was_in_room = False
     with chat_rooms_lock:
         if room_id in active_chat_rooms and login_id in active_chat_rooms[room_id]["users"]:
-            chan_left = active_chat_rooms[room_id]["users"].pop(login_id, None)
+            user_data_left = active_chat_rooms[room_id]["users"].pop(
+                login_id, None)
+            chan_left = user_data_left["chan"] if user_data_left else None
             user_was_in_room = True
             if not active_chat_rooms[room_id]["users"]:
                 del active_chat_rooms[room_id]
@@ -104,14 +156,14 @@ def user_leaves_room(room_id: str, login_id: str, room_name: str):
                 add_message_to_history(
                     room_id, "System", owner_left_unlock_message, is_system_message=True)
                 broadcast_to_room(
-                    room_id, f"System: {owner_left_unlock_message}")
+                    room_id, dbname, "System", owner_left_unlock_message, is_system_message=True)
 
     if chan_left:
         leave_notification = f"{login_id} が退室しました。"
         add_message_to_history(
             room_id, "System", leave_notification, is_system_message=True)
-        broadcast_to_room(
-            room_id, f"System: {leave_notification}")
+        broadcast_to_room(room_id, dbname, "System",
+                          leave_notification, is_system_message=True)
 
 
 def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: str, room_name: str):
@@ -127,8 +179,8 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
         if room_data and room_data.get("locked_by") and room_data.get("locked_by") != login_id:
             util.send_text_by_key(chan, "chat.room_locked", menu_mode,
                                   room_name=room_name, owner=room_data.get("locked_by"))
-            return
-    user_joins_room(room_id, login_id, chan, room_name)
+            return  # 入室せずに終了
+    user_joins_room(room_id, dbname, login_id, chan, room_name, menu_mode)
 
     try:
         while True:
@@ -177,15 +229,16 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                         lock_status = f"Locked by {data.get('locked_by')}" if data.get(
                             "locked_by") else "Unlocked"
                         # 後々chatroom.ymlからroom_idに対応するnameを取得して表示する予定。
-                        display_room_name = r_id
-                        chan.send(
-                            f"{display_room_name:<15} {lock_status}: {users_in_room}\r\n".encode('utf-8'))
-                        util.send_text_by_key(
-                            chan, "chat.room_status_footer", menu_mode)
+                        display_room_name_for_status = r_id  # TODO: chatroom.yml から正式名を取得
+                        util.send_text_by_key(chan, "chat.room_status_line", menu_mode,
+                                              room_name=display_room_name_for_status,
+                                              lock_status=lock_status, users=users_in_room)
+                    util.send_text_by_key(
+                        chan, "chat.room_status_footer", menu_mode)
 
             elif user_input.lower() == "!l":
                 # 部屋をロック。途中入室は今のところ未実装。一瞬鍵を開けてから入室することにする。
-                message_to_log_and_broadcast = None
+                message_for_log_and_broadcast_body = None
                 lock_successful = False
 
                 with chat_rooms_lock:
@@ -206,7 +259,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                     add_message_to_history(
                         room_id, "System", message_to_log_and_broadcast, is_system_message=True)
                     broadcast_to_room(
-                        room_id, f"System: {message_to_log_and_broadcast}")
+                        room_id, dbname, "System", message_to_log_and_broadcast, is_system_message=True)
             elif user_input.lower() == "!u":
                 # 部屋をアンロック。
                 message_to_log_and_broadcast_unlock = None
@@ -235,25 +288,49 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                     add_message_to_history(
                         room_id, "System", message_to_log_and_broadcast_unlock, is_system_message=True)
                     broadcast_to_room(
-                        room_id, f"System: {message_to_log_and_broadcast_unlock}")
+                        room_id, dbname, "System", message_to_log_and_broadcast_unlock, is_system_message=True)
             elif user_input.lower() in ("!exit", "!quit", "!bye", "退室"):
                 # ユーザーがチャットルームから退出する
                 util.send_text_by_key(
                     chan, "chat.leaving_room", menu_mode, room_name=room_name)
                 break  # ループを抜けて finally で user_leaves_room が呼ばれる
-
             else:
-                # 自分の画面にも「名前: メッセージ」形式で表示する
-                my_message_display = f"{login_id}: {user_input}"
-                # 他のユーザーへのブロードキャストと同様の表示制御を行う
-                # 現在の入力行(ssh_inputが改行した後)をクリア
+                # 自分の画面に表示するメッセージ (menu_mode 対応)
+                base_my_message_format = util.get_text_by_key(
+                    "chat.my_message_format", menu_mode
+                )
+                if base_my_message_format:
+                    try:
+                        my_message_display = base_my_message_format.format(
+                            sender=login_id, message=user_input)
+                    except KeyError as e:
+                        logging.error(
+                            f"Formatting error for key 'chat.my_message_format' (mode: {menu_mode}): {e}. Raw: '{base_my_message_format}'")
+                        # Fallback
+                        my_message_display = f"{login_id}: {user_input}"
+                else:
+                    logging.warning(
+                        f"Text key 'chat.my_message_format' for mode '{menu_mode}' not found. Using default.")
+                    # Fallback
+                    my_message_display = f"{login_id}: {user_input}"
+                # 自分のメッセージ表示
                 chan.send(b"\r\033[2K" +
                           f"{my_message_display}\r\n".encode('utf-8'))
-                # 他のユーザーにブロードキャスト
-                message_to_send = f"{login_id}: {user_input}"
+
+                # 履歴に追加 (現状のフォーマットを維持)
                 add_message_to_history(room_id, login_id, user_input)
-                broadcast_to_room(room_id, message_to_send,
+
+                # 他のユーザーにブロードキャスト
+                broadcast_to_room(room_id, dbname, login_id, user_input, is_system_message=False,
                                   exclude_login_id=login_id)
+
+            # 各コマンド処理またはメッセージ送信後、新着電報をチェック
+            # この呼び出しは、他のユーザーからのメッセージ受信時にも行われるようになったため、
+            # ここでの呼び出しが重複になる可能性を考慮する。
+            # ただし、telegram_recieve は未読がなければ何もしないので、実害は少ない。
+            if not user_input.lower().startswith("!"):  # 通常メッセージ送信時のみここでチェック（コマンド時はbroadcast内でチェックされる）
+                bbsmenu.telegram_recieve(chan, dbname, login_id, menu_mode)
+
     except ConnectionResetError:
         logging.info(f"ユーザ {login_id} との接続がリセットされました(room_id): {room_id}")
     except BrokenPipeError:
@@ -268,5 +345,5 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                 f"User {login_id} finished chat in room{room_id}: {e_send}")
 
     finally:
-        user_leaves_room(room_id, login_id, room_name)
+        user_leaves_room(room_id, dbname, login_id, room_name)
         logging.info(f"User {login_id} finished chat in room {room_id}.")

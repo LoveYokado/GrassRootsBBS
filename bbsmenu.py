@@ -65,8 +65,6 @@ def telegram_send(chan, dbname, sender_name, online_members, current_menu_mode):
         sqlite_tools.save_telegram(
             dbname, sender_name, recipient_name, message, current_timestamp)
         util.send_text_by_key(chan, "telegram.send_success", current_menu_mode)
-        chan.send("電報を送信しました。\r\n")
-        # オプション: リアルタイム通知が必要なら、ここで受信側スレッドに通知する仕組みを追加
     except Exception as e:
         # サーバーログ
         logging.warning(
