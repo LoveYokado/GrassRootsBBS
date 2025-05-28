@@ -667,6 +667,10 @@ def handle_client(client, addr, host_key, is_web_app=True):
                         f"最終ログイン時刻の変換に失敗しました。 {last_login_time}")
                     last_login_str = "不明な日時"
 
+            # エスケープシーケンステスト: 赤点滅で「テスト」と表示
+            test_message_bytes = "テスト".encode('utf-8')
+            chan.send(b"\x1b[31m\x1b[5m" + test_message_bytes + b"\x1b[0m\r\n")
+
             # ウェルカムメッセージ
             util.send_text_by_key(
                 chan, "login.welcome_message", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
