@@ -230,7 +230,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                             "locked_by") else "Unlocked"
                         # 後々chatroom.ymlからroom_idに対応するnameを取得して表示する予定。
                         display_room_name_for_status = r_id  # TODO: chatroom.yml から正式名を取得
-                        util.send_text_by_key(chan, "chat.room_status_line", menu_mode,
+                        util.send_text_by_key(chan, "chat.room_status", menu_mode,
                                               room_name=display_room_name_for_status,
                                               lock_status=lock_status, users=users_in_room)
                     util.send_text_by_key(

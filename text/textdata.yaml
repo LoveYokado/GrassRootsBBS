@@ -935,11 +935,14 @@ chat:
     mode_1: "ルーム「{room_name}」はロックされていません。\r\n"
     mode_2: "Room '{room_name}' is not locked.\r\n"
     mode_3: "ROOM '{room_name}' NOT LOCKED.\r\n"
-  room_cannot_unlock_not_owner:
-    mode_1: "ルーム「{room_name}」は {owner} によってロックされており、あなたにはアンロックできません。\r\n"
+  room_unlock_not_owner:
+    mode_1: "ルーム'{room_name}'は{owner}によってロックされており、あなたにはアンロックできません。\r\n"
     mode_2: "Room '{room_name}' is locked by {owner}, and you cannot unlock it.\r\n"
-    mode_3: "ROOM '{room_name}' LOCKED BY {owner}. CANNOT UNLOCK.\r\n"
-
+    mode_3: "ROOM '{room_name}' LOCKED BY {owner}, CANNOT UNLOCK.\r\n"
+  room_already_locked:
+    mode_1: "ルーム'{room_name}'は既に{owner}によってロックされています。\r\n"
+    mode_2: "Room '{room_name}' is already locked by {owner}.\r\n"
+    mode_3: "ROOM '{room_name}' ALREADY LOCKED BY {owner}.\r\n"
   room_not_found_for_lock: # !l コマンドでルームが見つからない場合
     mode_1: "ロック対象のルーム「{room_name}」が見つかりません。\r\n"
     mode_2: "Room '{room_name}' to lock not found.\r\n"
@@ -948,6 +951,30 @@ chat:
     mode_1: "アンロック対象のルーム「{room_name}」が見つかりません。\r\n"
     mode_2: "Room '{room_name}' to unlock not found.\r\n"
     mode_3: "ROOM '{room_name}' TO UNLOCK NOT FOUND.\r\n"
+  no_active_rooms:
+    mode_1: "現在アクティブなチャットルームはありません。\r\n"
+    mode_2: "No chat rooms are currently active.\r\n"
+    mode_3: "NO ACTIVE CHAT ROOMS.\r\n"
+  room_status_header:
+    mode_1: "--- チャットルーム状況 ---\r\n"
+    mode_2: "--- Chat Room Status ---\r\n"
+    mode_3: "--- CHAT ROOM STATUS ---\r\n"
+  room_status_footer:
+    mode_1: "-------------------------\r\n"
+    mode_2: "-------------------------\r\n"
+    mode_3: "-------------------------\r\n"
+  room_status:
+    mode_1: "ルーム: {room_name} [{lock_status}] 参加者: {users}\r\n"
+    mode_2: "Room: {room_name} [{lock_status}] Participants: {users}\r\n"
+    mode_3: "ROOM: {room_name} [{lock_status}] USERS: {users}\r\n"
+  room_not_found_error:
+    mode_1: "ルーム '{room_id}' が見つかりません。\r\n"
+    mode_2: "Room '{room_id}' not found.\r\n"
+    mode_3: "ROOM '{room_id}' NOT FOUND.\r\n"
+  leaving_room:
+    mode_1: "チャットルーム「{room_name}」から退出します。"
+    mode_2: "Leaving chat room: {room_name}."
+    mode_3: "LEAVING CHAT ROOM: {room_name}."
 
 # --- 電報関連 ---
 telegram:
