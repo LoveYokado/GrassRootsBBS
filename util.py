@@ -314,6 +314,10 @@ def make_sysop_and_database(dbname):
         )
         print("Telegram table created and initialized.")
 
+        # --- BBS関連テーブル作成 ---
+        print("Creating BBS tables...")
+        sqlite_tools.create_bbs_tables_if_not_exist(cur)
+
         # データベースへコミット
         conn.commit()
         print("Database and tables created successfully.")
