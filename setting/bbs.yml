@@ -7,16 +7,20 @@ categories:
     items:
       - id: "bbs_free" # 掲示板の板ID (URLや内部識別子として利用)
         number: 1
+        operator: yuki
         name:
           mode_1: "雑談板"
         description: "なんでも気軽に話せる板です。"
         type: "board" # 最終選択肢のタイプを "board" としてみます
+        permission: "open"
       - id: "bbs_qa"
         number: 2
+        operator: yuki
         name:
           mode_1: "質問＆回答板"
         description: "分からないことはここで質問してみよう。"
         type: "board"
+        permission: "open"
 
   - id: "bbs_hobby"
     number: 2
@@ -26,18 +30,23 @@ categories:
     items:
       - id: "bbs_hobby_game"
         number: 1
+        operator: yuki
         name:
           mode_1: "ゲーム総合板"
         description: "最新ゲームからレトロゲームまで。"
         type: "board"
+        permission: "open"
       - id: "bbs_hobby_anime"
         number: 2
+        operator: yuki
         name:
           mode_1: "アニメ・漫画板"
         description: "好きな作品について語り合おう。"
         type: "board"
+        permission: "open"
       - id: "bbs_hobby_music_create" # サブカテゴリの例
         number: 3
+        operator: yuki
         name:
           mode_1: "音楽制作"
         description: "作曲やDTMに関する情報交換。"
@@ -45,15 +54,19 @@ categories:
         items:
           - id: "bbs_dtm_general"
             number: 1
+            operator: yuki
             name:
               mode_1: "DTM総合"
             type: "board"
+            permission: "open"
           - id: "bbs_vocaloid"
             number: 2
+            operator: yuki
             name:
               mode_1: "ボーカロイド"
+            description:
             type: "board"
-
+            permission: "open"
   - id: "bbs_local"
     number: 3
     name:
@@ -62,11 +75,15 @@ categories:
     items:
       - id: "bbs_local_hokkaido"
         number: 1
+        operator: HOGE
         name:
           mode_1: "北海道"
         type: "board"
+        permission: "close"
       - id: "bbs_local_tokyo"
         number: 2
+        operator: FUGA
         name:
           mode_1: "東京"
         type: "board"
+        permission: "close"

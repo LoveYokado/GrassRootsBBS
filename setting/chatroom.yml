@@ -117,7 +117,9 @@ global:
     name:
       mode_1: "喧嘩用ルーム"
     description: "議論が白熱した場合の避難所です。ここで好きにやってください。でも後腐れないように。最後は仲直りしましょう"
+    type: "room"
   - id: "chat_news"
     name:
       mode_1: "最新ニュースについて語る"
     description: "最新のニュースに関する情報交換や議論にご利用ください。"
+    type: "room"

@@ -283,6 +283,10 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         command = input_buffer.lower().strip()
 
+        # ショートカット処理
+        if util.handle_shortcut(chan, dbname, login_id, current_loop_menu_mode, command, get_online_members_list):
+            continue
+
         # ヘルプメニュー表示 ヘルプがHと?で別にもできる
         if command in ('h'):
             # ヘルプメニュー表示(menu_mode)
@@ -369,8 +373,11 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
                 if terminal_item_type == "room":  # チャットでは "room"
                     chan.send(
-                        f"チャットルーム「{item_name}」(ID: {item_id}) が選択されました。(実際の処理は未実装)\r\n")
-                    # TODO: 実際のチャットルーム入室処理などを実装
+                        f"チャットルーム「{item_name}」(ID: {item_id}) に入室します。\r\n")
+                    chat_handler.set_online_members_function_for_chat(
+                        get_online_members_list)
+                    chat_handler.handle_chat_room(
+                        chan, dbname, login_id, current_loop_menu_mode, item_id, item_name)
                 else:
                     # 汎用メニューで選択されたが、チャット機能では解釈できないtypeの場合
                     util.send_text_by_key(

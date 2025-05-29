@@ -10,6 +10,7 @@ import yaml
 import bbsmenu
 import sqlite_tools
 
+SETTING_DIR = "setting"
 # テキストデータのキャッシュ用グローバル変数
 _master_text_data_cache = None
 
@@ -564,3 +565,117 @@ def remove_user_public_key(username):
     except Exception as e:
         logging.error(f"公開鍵の削除エラー: {e}")
         return False
+
+
+def load_yaml_file_for_shortcut(filename: str):
+    """設定からYAMLをロードしてショートカット情報を取得する"""
+    filepath = os.path.join(SETTING_DIR, filename)
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        logging.error(f"設定ファイル '{filepath}' が見つかりません。")
+        return None
+    except Exception as e:
+        logging.error(f"設定ファイル '{filepath}' の読み込みエラー: {e}")
+        return None
+
+
+def _search_items_recursive(items_list, target_id, menu_mode, expected_type):
+    """アイテムリストを再帰的に探索するヘルパー関数"""
+    if not items_list:
+        return None, None
+
+    for item_data in items_list:
+        if not isinstance(item_data, dict):
+            continue
+
+        current_item_id = item_data.get("id")
+        current_item_type = item_data.get("type")
+
+        if current_item_id == target_id and current_item_type == expected_type:
+            item_name_data = item_data.get("name", {})
+            # menu_modeに対応する名前を得る。なければIDを返す
+            item_name = item_name_data.get(menu_mode, current_item_id)
+            return item_data, item_name
+
+        # 'items'があれば再帰的に探索
+        if item_data.get("type") == "child" and "items" in item_data and isinstance(item_data["items"], list):
+            found_item, found_item_name = _search_items_recursive(
+                item_data["items"], target_id, menu_mode, expected_type)
+            if found_item:
+                return found_item, found_item_name
+    return None, None
+
+
+def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
+    """YAMLから指定されたIDのアイテムを再帰的に検索、期待されるタイプならアイテムと名前を返す"""
+    if not config_data:
+        return None, None
+
+    # categoriesリスト探索
+    if "categories" in config_data and isinstance(config_data["categories"], list):
+        for category_data in config_data["categories"]:
+            item, name = _search_items_recursive(category_data.get(
+                "items", []), target_id, menu_mode, expected_type)
+            if item:
+                return item, name
+    # globalリスト探索(トップレベルのアイテム)
+    if "global" in config_data and isinstance(config_data["global"], list):
+        # globalアイテムは直接的な子要素として探索
+        for item_global_data in config_data["global"]:
+            if isinstance(item_global_data, dict) and\
+                    item_global_data.get("id") == target_id and\
+                    item_global_data.get("type") == expected_type:
+                item_name_data = item_global_data.get("name", {})
+                item_name = item_name_data.get(
+                    menu_mode, item_global_data.get("id"))
+                return item_global_data, item_name
+    return None, None
+
+
+def handle_shortcut(chan, dbname: str, login_id: str, menu_mode: str, shortcut_input: str, online_members_func: callable):
+    """ショートカットを処理する。ショートカットとして処理が完了したらtrueを返す"""
+    # ショートカットではない
+    if not shortcut_input.startswith(';'):
+        return False
+
+    shortcut_id = shortcut_input[1:]
+    if not shortcut_id:
+        return True  # 空のショートカットは無視
+
+    # chatroomを検索
+    chatroom_config = load_yaml_file_for_shortcut("chatroom.yml")
+    if chatroom_config:
+        target_item, item_name = find_item_in_yaml(
+            chatroom_config, shortcut_id, menu_mode, "room")
+        if target_item:
+            import chat_handler  # 循環参照にならないために関数内でインポートする
+            send_text_by_key(chan, "shortcut.jumping_to_chat",
+                             menu_mode, room_name=item_name)
+            chat_handler.set_online_members_function_for_chat(
+                online_members_func)
+            chat_handler.handle_chat_room(
+                chan, dbname, login_id, menu_mode, shortcut_id, item_name)
+            return True
+
+    # bbsを検索
+    bbs_config = load_yaml_file_for_shortcut("bbs.yml")
+    if bbs_config:
+        target_item, item_name = find_item_in_yaml(
+            bbs_config, shortcut_id, menu_mode, "board")
+        if target_item:
+            # import bbs_handler#循環参照にならないために関数内でインポートする
+            future_description = get_text_by_key(
+                # bbs_future_name -> bbs_feature_name
+                "shortcut.bbs_feature_name", menu_mode, board_name=item_name)
+            send_text_by_key(chan, "shortcut.jumping_to_bbs",  # 新しいキー
+                             menu_mode, board_name=item_name)  # boardname -> board_name
+            send_text_by_key(chan, "unimplemented.message",
+                             menu_mode, feature_name=future_description)
+            return True
+
+    # 対象が見つからない。
+    send_text_by_key(chan, "shortcut.not_found",
+                     menu_mode, shortcut_id=shortcut_id)
+    return True

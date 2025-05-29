@@ -928,19 +928,19 @@ chat:
   room_locked_broadcast:
     mode_1: "ルーム「{room_name}」は {owner} によりロックされました。"
     mode_2: "Room '{room_name}' was locked by {owner}."
-    mode_3: "房间“{room_name}”已由 {owner} 锁定。"
+    mode_3: "ROOM '{room_name}' LOCKED BY {owner}."
   room_unlocked_broadcast:
     mode_1: "ルーム「{room_name}」は {owner} によりアンロックされました。"
     mode_2: "Room '{room_name}' was unlocked by {owner}."
-    mode_3: "房间“{room_name}”已由 {owner} 解锁。"
+    mode_3: "ROOM '{room_name}' UNLOCKED BY {owner}."
   owner_left_unlock_broadcast:
     mode_1: "{owner} が退出したため、ルーム「{room_name}」のロックは解除されました。"
     mode_2: "Room '{room_name}' lock has been released because {owner} left."
-    mode_3: "由于 {owner} 退出，房间“{room_name}”的锁定已解除。"
+    mode_3: "ROOM '{room_name}' LOCK HAS BEEN RELEASED BECAUSE {owner} LEFT."
   broadcast_chatsystem_message_format:
     mode_1: "システム: {message}"
     mode_2: "System: {message}"
-    mode_3: "系统：{message}"
+    mode_3: "SYSTEM: {message}"
   # !u コマンド関連 (コマンド実行者へのフィードバック)
   room_unlocked_by_you:
     mode_1: "ルーム「{room_name}」をアンロックしました。\r\n"
@@ -1057,7 +1057,28 @@ logoff:
     mode_3: |
       LOGGED OFF.
       GOODBYE!
-
+# --- ショートカット関連 ---
+shortcut:
+  empty_id:
+    mode_1: "ショートカットIDが指定されていません。\r\n"
+    mode_2: "Shortcut ID not specified.\r\n"
+    mode_3: "SHORTCUT ID NOT SPECIFIED.\r\n"
+  not_found:
+    mode_1: "ショートカットID '{shortcut_id}' に対応するルームまたは掲示板が見つかりません。\r\n"
+    mode_2: "Room or board for shortcut ID '{shortcut_id}' not found.\r\n"
+    mode_3: "SHORTCUT ID '{shortcut_id}' NOT FOUND.\r\n"
+  jumping_to_chat:
+    mode_1: "チャットルーム「{room_name}」へ移動します...\r\n"
+    mode_2: "Jumping to chat room: {room_name}...\r\n"
+    mode_3: "JUMPING TO CHAT: {room_name}...\r\n"
+  jumping_to_bbs:
+    mode_1: "掲示板「{board_name}」へ移動します...\r\n"
+    mode_2: "Jumping to BBS: {board_name}...\r\n"
+    mode_3: "JUMPING TO BBS: {board_name}...\r\n"
+  bbs_feature_name: # unimplemented.message の feature_name に渡す文字列
+    mode_1: "掲示板「{board_name}」へのショートカット"
+    mode_2: "Shortcut to BBS '{board_name}'"
+    mode_3: "SHORTCUT TO BBS '{board_name}'"
 # --- 共通メッセージ ---
 common_messages:
   select_prompt: # 選択プロンプト
