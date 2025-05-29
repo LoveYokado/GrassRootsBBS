@@ -925,7 +925,22 @@ chat:
     mode_1: "ルーム「{room_name}」は {owner} によって既にロックされています。あなたがロックすることはできません。\r\n"
     mode_2: "Room '{room_name}' is already locked by {owner}. You cannot lock it.\r\n"
     mode_3: "ROOM '{room_name}' ALREADY LOCKED BY {owner}. CANNOT LOCK.\r\n"
-
+  room_locked_broadcast:
+    mode_1: "ルーム「{room_name}」は {owner} によりロックされました。"
+    mode_2: "Room '{room_name}' was locked by {owner}."
+    mode_3: "房间“{room_name}”已由 {owner} 锁定。"
+  room_unlocked_broadcast:
+    mode_1: "ルーム「{room_name}」は {owner} によりアンロックされました。"
+    mode_2: "Room '{room_name}' was unlocked by {owner}."
+    mode_3: "房间“{room_name}”已由 {owner} 解锁。"
+  owner_left_unlock_broadcast:
+    mode_1: "{owner} が退出したため、ルーム「{room_name}」のロックは解除されました。"
+    mode_2: "Room '{room_name}' lock has been released because {owner} left."
+    mode_3: "由于 {owner} 退出，房间“{room_name}”的锁定已解除。"
+  broadcast_chatsystem_message_format:
+    mode_1: "システム: {message}"
+    mode_2: "System: {message}"
+    mode_3: "系统：{message}"
   # !u コマンド関連 (コマンド実行者へのフィードバック)
   room_unlocked_by_you:
     mode_1: "ルーム「{room_name}」をアンロックしました。\r\n"

@@ -41,7 +41,11 @@ def add_message_to_history(room_id: str, sender: str, message: str, is_system_me
 
 
 # room_name_for_prompt は実際には使われません
-def broadcast_to_room(room_id: str, dbname: str, sender_name: str, message_body: str, is_system_message: bool, exclude_login_id: str = None):
+def broadcast_to_room(room_id: str, dbname: str, sender_name: str,
+                      message_body: str, is_system_message: bool,
+                      exclude_login_id: str = None,
+                      message_key_for_system: str = None,
+                      format_args_for_system: dict = None):
     """
     ルーム内のすべてのユーザーにメッセージをブロードキャスト。
     各ユーザーの menu_mode に応じたフォーマットで送信する。
@@ -56,24 +60,48 @@ def broadcast_to_room(room_id: str, dbname: str, sender_name: str, message_body:
                 target_menu_mode = user_data["menu_mode"]
 
                 if is_system_message:
-                    # システムメッセージのフォーマットキーを textdata.yaml から取得
-                    base_format_string = util.get_text_by_key(
-                        "chat.broadcast_system_message_format", target_menu_mode
+                    specific_message_content = ""
+                    if message_key_for_system:  # キーが指定されていれば優先
+                        text_to_format = util.get_text_by_key(
+                            message_key_for_system, target_menu_mode)
+                        if text_to_format:
+                            try:
+                                current_format_args = format_args_for_system if format_args_for_system is not None else {}
+                                specific_message_content = text_to_format.format(
+                                    **current_format_args)
+                            except KeyError as e:
+                                logging.error(
+                                    f"Formatting error for key '{message_key_for_system}' (mode: {target_menu_mode}): {e}")
+                                specific_message_content = f"(Error formatting message for key {message_key_for_system})"
+                        else:
+                            logging.warning(
+                                f"Text key '{message_key_for_system}' for mode '{target_menu_mode}' not found.")
+                            specific_message_content = f"(Message for key {message_key_for_system} not found)"
+                    elif message_body:  # キーがなく、従来の message_body があればそれを使う
+                        specific_message_content = message_body
+                    else:  # キーも従来の body もない
+                        logging.error(
+                            "System message broadcast without key or body.")
+                        specific_message_content = "(System message content error)"
+
+                    # システムメッセージの共通ラッパーを取得して適用
+                    wrapper_format_string = util.get_text_by_key(
+                        "chat.broadcast_chatsystem_message_format", target_menu_mode
                     )
-                    if base_format_string:
+                    if wrapper_format_string:
                         try:
-                            formatted_message = base_format_string.format(
-                                message=message_body)
-                        except KeyError as e:
+                            formatted_message = wrapper_format_string.format(
+                                message=specific_message_content)
+                        except KeyError as e:  # ラッパーのフォーマットエラー
                             logging.error(
-                                f"Formatting error for key 'chat.broadcast_system_message_format' (mode: {target_menu_mode}): {e}. Raw: '{base_format_string}'")
-                            # Fallback
-                            formatted_message = f"System: {message_body}"
-                    else:
+                                f"Formatting error for wrapper 'chat.broadcast_chatsystem_message_format' (mode: {target_menu_mode}): {e}")
+                            # フォールバック
+                            formatted_message = f"System: {specific_message_content}"
+                    else:  # ラッパーがない場合は、内容をそのまま使用（先頭に "System: " などは付かない）
                         logging.warning(
-                            f"Text key 'chat.broadcast_system_message_format' for mode '{target_menu_mode}' not found. Using default.")
-                        # Fallback
-                        formatted_message = f"System: {message_body}"
+                            f"Wrapper 'chat.broadcast_chatsystem_message_format' for mode '{target_menu_mode}' not found. Using content directly.")
+                        formatted_message = specific_message_content
+
                 else:
                     # ユーザーメッセージのフォーマットキーを textdata.yaml から取得
                     base_format_string = util.get_text_by_key(
@@ -126,9 +154,9 @@ def user_joins_room(room_id: str, dbname: str, login_id: str, chan, room_name: s
             "chan": chan, "menu_mode": menu_mode}
 
     join_notification = f"{login_id} が入室しました。"
-    add_message_to_history(
-        room_id, "System", join_notification, is_system_message=True)
-    # システムメッセージとしてブロードキャスト
+    # 履歴には残さず、サーバーログには手動で記録することも可能 (今回はブロードキャストのみ)
+    logging.info(f"ChatEvent[{room_id}]: User {login_id} joined.")
+    # システムメッセージとしてブロードキャスト (画面表示用)
     broadcast_to_room(room_id, dbname, "System", join_notification,
                       is_system_message=True, exclude_login_id=login_id)
 
@@ -150,18 +178,22 @@ def user_leaves_room(room_id: str, dbname: str, login_id: str, room_name: str):
                 logging.info(f"チャットルーム {room_id} が空になったため削除しました。")
             elif active_chat_rooms[room_id]["locked_by"] == login_id:
                 # オーナーが抜けたらロック解除
-                owner_left_unlock_message = f"{login_id} が退出したため、ルーム'{room_name}'のロックは解除されました。"
+                # 履歴には残さず、サーバーログには手動で記録することも可能
+                logging.info(
+                    f"ChatEvent[{room_id}]: Room '{room_name}' unlocked due to owner {login_id} leaving.")
                 # ロッククリア
                 active_chat_rooms[room_id]["locked_by"] = None
-                add_message_to_history(
-                    room_id, "System", owner_left_unlock_message, is_system_message=True)
                 broadcast_to_room(
-                    room_id, dbname, "System", owner_left_unlock_message, is_system_message=True)
+                    room_id, dbname, "System",
+                    message_body="",  # ダミー
+                    is_system_message=True,
+                    message_key_for_system="chat.owner_left_unlock_broadcast",
+                    format_args_for_system={"room_name": room_name, "owner": login_id})
 
     if chan_left:
         leave_notification = f"{login_id} が退室しました。"
-        add_message_to_history(
-            room_id, "System", leave_notification, is_system_message=True)
+        # 履歴には残さず、サーバーログには手動で記録することも可能
+        logging.info(f"ChatEvent[{room_id}]: User {login_id} left.")
         broadcast_to_room(room_id, dbname, "System",
                           leave_notification, is_system_message=True)
 
@@ -249,17 +281,21 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                                 chan, "chat.room_already_locked", menu_mode, owner=room_info.get("locked_by"), room_name=room_name)
                         else:
                             room_info["locked_by"] = login_id
-                            message_to_log_and_broadcast = f"ルーム'{room_name}'は {login_id} によりロックされました。"
+                            # 履歴には残さず、サーバーログには手動で記録することも可能
+                            logging.info(
+                                f"ChatEvent[{room_id}]: Room '{room_name}' locked by {login_id}.")
                             lock_successful = True
                     else:
                         util.send_text_by_key(
                             chan, "chat.room_not_found_error", menu_mode, room_id=room_id)
 
-                if lock_successful and message_to_log_and_broadcast:
-                    add_message_to_history(
-                        room_id, "System", message_to_log_and_broadcast, is_system_message=True)
+                if lock_successful:
                     broadcast_to_room(
-                        room_id, dbname, "System", message_to_log_and_broadcast, is_system_message=True)
+                        room_id, dbname, "System",
+                        message_body="",  # ダミー
+                        is_system_message=True,
+                        message_key_for_system="chat.room_locked_broadcast",
+                        format_args_for_system={"room_name": room_name, "owner": login_id})
             elif user_input.lower() == "!u":
                 # 部屋をアンロック。
                 message_to_log_and_broadcast_unlock = None
@@ -275,7 +311,9 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                                 chan, "chat.room_not_locked", menu_mode, room_name=room_name)
                         elif current_owner == login_id:  # Owner unlocks
                             room_info["locked_by"] = None
-                            message_to_log_and_broadcast_unlock = f"ルーム'{room_name}'は {login_id} によりアンロックされました。"
+                            # 履歴には残さず、サーバーログには手動で記録することも可能
+                            logging.info(
+                                f"ChatEvent[{room_id}]: Room '{room_name}' unlocked by {login_id}.")
                             unlock_successful = True
                         elif current_owner != login_id:  # Someone else tries to unlock a room locked by 'current_owner'
                             util.send_text_by_key(
@@ -284,12 +322,15 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                         util.send_text_by_key(
                             chan, "chat.room_not_found_error", menu_mode, room_id=room_id)  # More specific error
 
-                if unlock_successful and message_to_log_and_broadcast_unlock:
-                    add_message_to_history(
-                        room_id, "System", message_to_log_and_broadcast_unlock, is_system_message=True)
+                if unlock_successful:
                     broadcast_to_room(
-                        room_id, dbname, "System", message_to_log_and_broadcast_unlock, is_system_message=True)
-            elif user_input.lower() in ("!exit", "!quit", "!bye", "退室"):
+                        room_id, dbname, "System",
+                        message_body="",  # ダミー
+                        is_system_message=True,
+                        message_key_for_system="chat.room_unlocked_broadcast",
+                        format_args_for_system={"room_name": room_name, "owner": login_id})
+
+            elif user_input.lower() in ("^"):
                 # ユーザーがチャットルームから退出する
                 util.send_text_by_key(
                     chan, "chat.leaving_room", menu_mode, room_name=room_name)
