@@ -598,9 +598,7 @@ def _search_items_recursive(items_list, target_id, menu_mode, expected_type):
         current_item_type = item_data.get("type")
 
         if current_item_id == target_id and current_item_type == expected_type:
-            item_name_data = item_data.get("name", {})
-            # menu_modeに対応する名前を得る。なければIDを返す
-            item_name = item_name_data.get(menu_mode, current_item_id)
+            item_name = item_data.get("name", current_item_id)
             return item_data, item_name
 
         # 'items'があれば再帰的に探索
@@ -631,9 +629,8 @@ def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
             if isinstance(item_global_data, dict) and\
                     item_global_data.get("id") == target_id and\
                     item_global_data.get("type") == expected_type:
-                item_name_data = item_global_data.get("name", {})
-                item_name = item_name_data.get(
-                    menu_mode, item_global_data.get("id"))
+                item_name = item_global_data.get(
+                    "name", item_global_data.get("id"))
                 return item_global_data, item_name
     return None, None
 

@@ -26,6 +26,15 @@ def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
         elif command == 'usrl':
             # ユーザ一覧表示
             user_list(chan, dbname, current_menu_mode)
+
+        elif command == 'mkbd':
+            # 掲示板作成
+            make_board(chan, dbname, current_menu_mode)
+
+        elif command == 'dlbd':
+            # 掲示板削除
+            delete_board(chan, dbname, current_menu_mode)
+
         elif command == 'pasu':
             # ユーザ削除
             user_delete(chan, dbname, sysop_login_id, current_menu_mode)
@@ -572,3 +581,127 @@ def system_quit(chan, dbname, current_menu_mode):
             chan, "sysop_menu.system_quit.system_down_requested", current_menu_mode
         )
         os.exit(0)
+
+
+def make_board(chan, dbname, current_menu_mode):
+    """掲示板作成(bbs.ymlの内容とも関連するので、忘れないように)"""
+
+    util.send_text_by_key(
+        chan, "sysop_menu.make_board.header_direct", current_menu_mode)
+    shortcut_id = ""
+
+    while not shortcut_id:
+        util.send_text_by_key(
+            chan, "sysop_menu.make_board.shortcut_id_prompt", current_menu_mode, add_newline=False
+        )
+        shortcut_id_input = ssh_input.process_input(chan)
+        if shortcut_id_input is None:
+            return  # 切断
+        shortcut_id = shortcut_id_input.strip()
+        if not shortcut_id:
+            return  # キャンセル
+        if sqlite_tools.get_board_info(dbname, shortcut_id):
+            util.send_text_by_key(
+                chan, "sysop_menu.make_board.shortcut_id_exists", current_menu_mode, shortcut_id=shortcut_id)
+            shortcut_id = ""  # 再入力
+
+    default_permission = ""
+    valid_permissions = ["open", "close", "readonly"]
+    while default_permission not in valid_permissions:
+        util.send_text_by_key(
+            chan, "sysop_menu.make_board.default_permission_prompt", current_menu_mode, permissions=", ".join(valid_permissions), add_newline=False
+        )
+        permission_input = ssh_input.process_input(chan)
+        if permission_input is None:
+            return  # 切断
+        default_permission = permission_input.strip().lower()
+        if default_permission not in valid_permissions:
+            util.send_text_by_key(
+                chan, "sysop_menu.make_board.invalid_permission", current_menu_mode, permission=", ".join(valid_permissions))
+
+    current_sysop_id = sqlite_tools.get_user_id_from_user_name(
+        dbname, sysop_login_id)
+    if not current_sysop_id:  # シスオペIDが取れない場合
+        logging.error("シスオペID{syop_login_id}がDBから取れません")
+        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
+        return
+
+    operators_json = f'["{sysop_login_id}"]'
+
+    category_id = None
+    display_order = 0
+    util.send_text_by_key(chan, "sysop_menu.make_board.confirm_create_yn", current_menu_mode, shortcut_id=shortcut_id,
+                          permission=default_permission, operator=sysop_login_id, add_newline=False)
+    confirm_create = ssh_input.process_input(chan)
+    if confirm_create is None or confirm_create.lower().strip() != 'y':
+        util.send_text_by_key(
+            chan, "sysop_menu.make_board.cancel", current_menu_mode)
+        return
+
+    if sqlite_tools.create_board_entry(dbname, shortcut_id, operators_json, default_permission, category_id, display_order):
+        util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
+                              current_menu_mode, shortcut_id=shortcut_id)
+        util.send_text_by_key(
+            chan, "sysop_menu.make_board.advice_bbs_yml", current_menu_mode)
+    else:
+        util.send_text_by_key(
+            chan, "common_messages.error", current_menu_mode)
+        logging.error("掲示板作成失敗:{shortcut_id}")
+
+
+def delete_board(chan, dbname, current_menu_mode):
+    """掲示板削除(boardsテーブルからレコード削除)"""
+    util.send_text_by_key(
+        chan, "sysop_menu.delete_board.header", current_menu_mode)
+    while True:
+        util.send_text_by_key(
+            chan, "sysop_menu.delete_board.board_id_prompt", current_menu_mode, add_newline=False)
+        board_id_input = ssh_input.process_input(chan)
+
+        if board_id_input is None:  # 切断
+            return
+        if not board_id_input.strip():
+            return  # キャンセル
+
+        shortcut_id_to_delete = board_id_input.strip()
+        # DBにエントリがあるか確認 (オペレーター情報などを取得するため)
+        board_db_entry = sqlite_tools.get_board_by_shortcut_id(
+            dbname, shortcut_id_to_delete)
+
+        # bbs.yml から名前と説明を取得 (表示用)
+        bbs_config = util.load_yaml_file_for_shortcut("bbs.yml")
+        board_info_yml, board_name_yml = util.find_item_in_yaml(
+            bbs_config, shortcut_id_to_delete, current_menu_mode, "board")
+
+        if not board_info_yml:  # bbs.yml に定義がなければエラー
+            util.send_text_by_key(
+                chan, "sysop_menu.delete_board.board_not_found", current_menu_mode)
+            continue
+
+        board_name_to_display = board_name_yml if board_name_yml else shortcut_id_to_delete
+
+        chan.send(f"\"{board_name_to_display}\"\r\n")
+        util.send_text_by_key(chan, "sysop_menu.delete_board.confirm_yn",
+                              current_menu_mode, board_name=board_name_to_display, add_newline=False)
+        confirm_choice = ssh_input.process_input(chan)
+
+        if confirm_choice is None:  # 切断
+            return
+
+        if confirm_choice.lower().strip() == 'y':
+            # データベースから掲示板を削除 (関連記事やパーミッションも削除するかは別途検討)
+            # delete_board -> delete_board_entry に関数名が変更されている想定
+            if sqlite_tools.delete_board_entry(dbname, shortcut_id_to_delete):
+                util.send_text_by_key(
+                    chan, "sysop_menu.delete_board.advise_bbs_yml_delete", current_menu_mode)
+                break  # 削除成功で終了
+            else:
+                util.send_text_by_key(
+                    chan, "common_messages.error", current_menu_mode)
+                logging.error(
+                    f"掲示板の削除に失敗しました(board_id: {shortcut_id_to_delete})")
+                continue  # 削除失敗で繰り返し
+        else:
+            util.send_text_by_key(
+                chan, "common_messages.cancel", current_menu_mode)
+            break

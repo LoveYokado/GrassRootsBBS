@@ -21,6 +21,7 @@ import util
 import sysop_menu
 import hierarchical_menu
 import chat_handler
+import bbs_handler
 
 
 CONFIG_FILE_PATH = "setting/config.toml"
@@ -343,9 +344,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             if selected_item:
                 terminal_item_type = selected_item.get("type")
                 item_id = selected_item.get("id")
-                item_name_dict = selected_item.get("name", {})
-                item_name = item_name_dict.get(
-                    current_loop_menu_mode, "未定義の項目")
+                item_name = selected_item.get("name", "未定義の項目")
 
                 if terminal_item_type == "board":  # 掲示板機能では "board" type を処理
                     chan.send(
@@ -367,9 +366,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                 # selected_item の type や id に応じた処理
                 terminal_item_type = selected_item.get("type")
                 item_id = selected_item.get("id")
-                item_name_dict = selected_item.get("name", {})
-                item_name = item_name_dict.get(
-                    current_loop_menu_mode, "未定義の項目")
+                item_name = selected_item.get("name", "未定義の項目")
 
                 if terminal_item_type == "room":  # チャットでは "room"
                     chan.send(
@@ -387,13 +384,14 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                     logging.warning(
                         f"項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。\r\n")
         # テスト用チャットルーム入室 (Xキー)
-        elif command == "x":  # Xキーでテストチャットルームへ
-            test_room_id = "chat_free1"  # テストで入るチャットルームID
-            # chat_handler.handle_chat_room の中でウェルカムメッセージが表示されます。
-            chat_handler.set_online_members_function_for_chat(
-                get_online_members_list)
-            chat_handler.handle_chat_room(
-                chan, dbname, login_id, current_loop_menu_mode, test_room_id, test_room_id)
+        elif command == "x":  # 仮のメニューモード "x"
+            logging.info(
+                f"掲示板メニュー開始: login_id={login_id}, menu_mode={current_loop_menu_mode}")
+
+            # 掲示板IDを指定して呼び出す場合
+            shortcut_id = "bbs_free"
+            bbs_handler.handle_bbs_menu(
+                chan, dbname, login_id, current_loop_menu_mode, shortcut_id)
 
         # 切断処理
         elif command == "e":

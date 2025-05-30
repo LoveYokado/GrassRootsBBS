@@ -19,9 +19,14 @@ def load_menu_config(config_path: str):
 def display_menu(chan, items, menu_mode, title_key, prompt_key):
     """メニュー表示"""
     util.send_text_by_key(chan, title_key, menu_mode)
+    # item['name'] が直接文字列であることを想定して修正
     for item in items:
+        item_name = item.get('name', 'No name')  # name が直接文字列
+        item_description = item.get('description', 'No description')
+        # description が None の場合や空文字列の場合のフォールバック
+        display_description = item_description if item_description else 'No description'
         chan.send(
-            f"{item['number']}: {item['name'].get('mode_1', 'No name')} - {item.get('description', 'No description')} \r\n")
+            f"{item['number']}: {item_name} - {display_description} \r\n")
     util.send_text_by_key(chan, prompt_key, menu_mode, add_newline=False)
 
 

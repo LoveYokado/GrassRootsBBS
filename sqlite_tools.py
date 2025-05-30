@@ -171,8 +171,6 @@ def create_bbs_tables_if_not_exist(cur):
             CREATE TABLE IF NOT EXISTS boards (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 shortcut_id TEXT UNIQUE NOT NULL,
-                name JSON NOT NULL,
-                description TEXT,
                 operators JSON NOT NULL,
                 default_permission TEXT NOT NULL,
                 category_id TEXT,
@@ -507,3 +505,31 @@ def update_user_level(dbname, user_id, new_level):
     except Exception as e:
         logging.error(f"レベル更新中にDBエラー (UserID: {user_id}): {e}")
         return False
+
+
+def get_board_by_shortcut_id(dbname, shortcut_id):
+    """指定されたショートカットIDの掲示板情報をDBから取得"""
+    sql = "SELECT id, shortcut_id, operators, default_permission, category_id, display_order FROM boards WHERE shortcut_id = ?"
+    results = sqlite_execute_query(dbname, sql, (shortcut_id,), fetch=True)
+    return results[0] if results else None
+
+
+def create_board_entry(dbname, shortcut_id, operators, default_permission, category_id, display_order):
+    """新しい掲示板エントリをboardsテーブルに挿入"""
+    sql = """
+    INSERT INTO boards(shortcut_id, operators, default_permission, category_id, display_order)
+    VALUES(?, ?, ?, ?, ?)
+    """
+    params = (shortcut_id, operators, default_permission,
+              category_id, display_order)
+    return sqlite_execute_query(dbname, sql, params)
+
+
+def delete_board_entry(dbname, shortcut_id):
+    """指定されたショートカットIDの掲示板エントリをboardsテーブルから削除"""
+    # 注意: この関数は boards テーブルのレコードのみを削除します。
+    #       関連する articles や board_user_permissions のレコードは別途削除処理が必要です。
+    #       CASCADE DELETE を設定していればDB側で自動削除されますが、現状のスキーマでは設定されていません。
+    #       ひとまず、boards テーブルからの削除のみとします。
+    sql = "DELETE FROM boards WHERE shortcut_id=?"
+    return sqlite_execute_query(dbname, sql, (shortcut_id,))

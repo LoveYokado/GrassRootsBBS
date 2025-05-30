@@ -735,6 +735,45 @@ sysop_menu:
       mode_1: "ユーザー '{name}' の権限レベルの変更に失敗しました。\r\n"
       mode_2: "ユーザー '{name}' の権限レベルの変更に失敗しました。\r\n"
       mode_3: "ユーザー '{name}' の権限レベルの変更に失敗しました。\r\n"
+  make_board:
+    header_direct:
+      mode_1: "--- 掲示板エントリー作成 ---"
+      mode_2: "--- Create Board Entry ---"
+    shortcut_id_prompt:
+      mode_1: "掲示板ショートカットID: "
+      mode_2: "Board Shortcut ID: "
+    shortcut_id_required:
+      mode_1: "ショートカットIDは必須です。"
+      mode_2: "Shortcut ID is required."
+    shortcut_id_exists:
+      mode_1: "エラー: ショートカットID '{shortcut_id}' は既に使用されています。"
+      mode_2: "Error: Shortcut ID '{shortcut_id}' is already in use."
+    name_prompt_mode1:
+      mode_1: "掲示板名 (表示モード1): "
+      mode_2: "Board Name (Display Mode 1): "
+    name_required:
+      mode_1: "掲示板名は必須です。"
+      mode_2: "Board name is required."
+    permission_prompt:
+      mode_1: "デフォルトパーミッション ({permissions}): "
+      mode_2: "Default Permission ({permissions}): "
+    invalid_permission:
+      mode_1: "無効なパーミッションです。{permissions} から選択してください。"
+      mode_2: "Invalid permission. Please choose from {permissions}."
+    confirm_create_prompt:
+      mode_1: "以下の内容で掲示板を作成しますか？ ID:{shortcut_id}, Perm:{permission}, OP:{operator} (y/N): "
+      mode_2: "Create board with ID:{shortcut_id}, Perm:{permission}, OP:{operator}? (y/N): "
+    success_direct:
+      mode_1: "掲示板エントリー '{shortcut_id}' をデータベースに作成しました。"
+      mode_2: "Board entry '{shortcut_id}' created in the database."
+    advise_bbs_yml:
+      mode_1: "bbs.yml にこの掲示板の詳細設定（カテゴリ、表示順など）を記述してください。\n詳細は bbs.yml 同期コマンド実行時に反映されます。"
+      mode_2: "Please describe the detailed settings (category, display order, etc.) for this board in bbs.yml.\nDetails will be reflected when the bbs.yml synchronization command is executed."
+  delete_board:
+    advise_bbs_yml_delete:
+      mode_1: "bbs.yml からもこの掲示板の定義を削除してください。"
+      mode_2: "Please also delete the definition of this board from bbs.yml."
+
 mail_handler:
   main_prompt:
     mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "
