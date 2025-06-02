@@ -6,55 +6,37 @@ categories:
     items: # items の name も同様に修正
       - id: "bbs_free"
         number: 1
-        name: "雑談板"
-        description: "なんでも気軽に話せる板です。"
         type: "board"
       - id: "bbs_qa"
         number: 2
-        name: "よくある質問"
-        description: "分からないことがあったらここを読んでみよう。"
         type: "board"
 
   - id: "bbs_hobby"
     number: 2
-    name: "趣味の掲示板"
-    description: "共通の趣味を持つ仲間と交流しましょう。"
     items:
       - id: "bbs_hobby_game"
         number: 1
-        name: "ゲーム総合板"
-        description: "最新ゲームからレトロゲームまで。"
         type: "board"
       - id: "bbs_hobby_anime"
         number: 2
-        name: "アニメ・漫画板"
-        description: "好きな作品について語り合おう。"
         type: "board"
       - id: "bbs_hobby_music_create" # サブカテゴリの例
         number: 3
-        name: "音楽制作"
-        description: "作曲やDTMに関する情報交換。"
         type: "child" # サブカテゴリなので type: "child"
         items:
           - id: "bbs_dtm_general"
             number: 1
-            name: "DTM総合"
             type: "board"
           - id: "bbs_vocaloid"
             number: 2
-            name: "ボーカロイド"
             description:
             type: "board"
   - id: "bbs_local"
     number: 3
-    name: "地域掲示板"
-    description: "お住まいの地域の情報交換に。"
     items:
       - id: "bbs_local_hokkaido"
         number: 1
-        name: "北海道"
         type: "board"
       - id: "bbs_local_tokyo"
         number: 2
-        name: "東京"
         type: "board"

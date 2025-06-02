@@ -173,10 +173,12 @@ def create_bbs_tables_if_not_exist(cur):
                 shortcut_id TEXT UNIQUE NOT NULL,
                 operators JSON NOT NULL,
                 default_permission TEXT NOT NULL,
-                kanban_title TEXT,
-                kanban_body TEXT,
-                last_posted_at TIMESTAMP,
-                status TEXT NOT NULL DEFAULT 'active'
+                name TEXT NOT NULL,
+                description TEXT,
+                kanban_title TEXT DEFAULT '',
+                kanban_body TEXT DEFAULT '',
+                last_posted_at INTEGER DEFAULT 0,
+                status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived', 'hidden'))
             )
         ''')
     logging.info("boards テーブルを作成または確認しました。")
@@ -508,19 +510,19 @@ def update_user_level(dbname, user_id, new_level):
 
 def get_board_by_shortcut_id(dbname, shortcut_id):
     """指定されたショートカットIDの掲示板情報をDBから取得"""
-    sql = "SELECT id, shortcut_id, operators, default_permission, category_id, display_order FROM boards WHERE shortcut_id = ?"
+    sql = "SELECT id, shortcut_id, name, description, operators, default_permission, kanban_title, kanban_body, last_posted_at, status FROM boards WHERE shortcut_id = ?"
     results = sqlite_execute_query(dbname, sql, (shortcut_id,), fetch=True)
     return results[0] if results else None
 
 
-def create_board_entry(dbname, shortcut_id, operators, default_permission, category_id, display_order):
+def create_board_entry(dbname, shortcut_id, name, description, operators, default_permission, kanban_title, kanban_body, status):
     """新しい掲示板エントリをboardsテーブルに挿入"""
     sql = """
-    INSERT INTO boards(shortcut_id, operators, default_permission, category_id, display_order)
-    VALUES(?, ?, ?, ?, ?)
+    INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_title, kanban_body, status, last_posted_at)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, 0)
     """
-    params = (shortcut_id, operators, default_permission,
-              category_id, display_order)
+    params = (shortcut_id, name, description, operators,
+              default_permission, kanban_title, kanban_body, status)
     return sqlite_execute_query(dbname, sql, params)
 
 

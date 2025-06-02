@@ -48,20 +48,12 @@ class BoardManager:
                         logging.warning(
                             f"掲示板 {shortcut_id} の name が未定義です。IDを使用します。")
 
-                    boards_from_yml.append({
-                        "shortcut_id": shortcut_id,
-                        "name": board_name_from_yml,  # DBのnameカラムがTEXTの場合
-                        # "name": json.dumps({"mode_1": board_name_from_yml}, ensure_ascii=False), # DBのnameカラムがJSONの場合
-                        "description": item_data.get("description", ""),
-                        # JSON文字列で格納
-                        "operators": json.dumps(item_data.get("operators", [])),
-                        "default_permission": item_data.get("permission", "close"),
-                        "category_id": current_category_id,
-                        "display_order": item_data.get("number", 0)
-                    })
+                    # bbs.yml からは shortcut_id のみを取得。name, description はDBで管理。
+                    # operators, default_permission はDBで直接管理 (sysop_menu.mkbd で初期設定)
+                    # category_id, display_order も bbs.yml で管理
+
                     processed_shortcuts.add(shortcut_id)
                 elif item_data.get("type") == "child" and "items" in item_data:
-                    # 子カテゴリのIDをそのまま使うか、別途 child 用の category_id を持つか検討
                     _parse_items(item_data.get("items", []),
                                  item_data.get("id"))
 
@@ -70,17 +62,17 @@ class BoardManager:
             # カテゴリ自体の情報をDBに入れるかは別途検討
             _parse_items(category.get("items", []), category_id)
 
-        # DBとの同期処理 (sqlite_tools に sync_boards_with_config(dbname, boards_from_yml, processed_shortcuts) のような関数を実装する想定)
-        # この関数内で、ymlに存在するものはINSERT/UPDATE、ymlに存在せずDBにあるものはDELETEまたはフラグ立てを行う
-        # ここでは簡略化のため、成功したとしてTrueを返す
+        # 現状の方針では、この関数は主に「bbs.ymlに定義されているがDBにない掲示板がないか」のチェックや、
+        # 「DBには存在するがbbs.ymlのどこにも属していない掲示板がないか」のチェックになるかもしれません。
         logging.info(
-            f"bbs.ymlから {len(boards_from_yml)} 件の掲示板情報を読み込みました。DB同期処理が必要です。")
-        # return sqlite_tools.sync_boards_with_config(self.dbname, boards_from_yml, processed_shortcuts)
+            f"bbs.ymlから {len(processed_shortcuts)} 件の掲示板ショートカットIDを認識しました: {processed_shortcuts}")
         return True  # 仮
 
     def get_board_info(self, shortcut_id):
         """指定されたショートカットIDの掲示板情報をDBから取得する"""
-        return sqlite_tools.get_board_by_shortcut_id(self.dbname, shortcut_id)
+        board_info = sqlite_tools.get_board_by_shortcut_id(
+            self.dbname, shortcut_id)
+        return board_info  # sqlite3.Row オブジェクトか None をそのまま返す
 
 
 class ArticleManager:
@@ -164,10 +156,11 @@ class CommandHandler:
                 self.chan, "bbs.no_board_selected", self.menu_mode)
             return
 
-        # 現在の掲示板名を表示 (DBのnameカラムの形式に注意)
-        # board_name_display = self.current_board.get('name', '不明な掲示板') # DBのnameがTEXTの場合
-        # board_name_display = json.loads(self.current_board.get('name', '{}')).get('mode_1', '不明な掲示板') # DBのnameがJSONの場合
-        # util.send_text_by_key(self.chan, "bbs.current_board_header", self.menu_mode, board_name=board_name_display)
+        # 現在の掲示板名を表示 (get_board_info で bbs.yml から name がマージされている想定)
+        board_name_display = self.current_board.get('name', '不明な掲示板')
+        # 必要であれば description も表示
+        util.send_text_by_key(self.chan, "bbs.current_board_header",
+                              self.menu_mode, board_name=board_name_display)
 
         self.show_article_list()  # 初期表示として記事一覧
     # 各コマンドに対応するメソッド

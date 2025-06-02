@@ -607,6 +607,30 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
             util.send_text_by_key(
                 chan, "sysop_menu.make_board.shortcut_id_exists", current_menu_mode, shortcut_id=shortcut_id)
             shortcut_id = ""  # 再入力
+    board_name = ""
+    while not board_name:
+        # 掲示板名入力
+        util.send_text_by_key(
+            chan, "sysop_menu.make_board.name_prompt", current_menu_mode, add_newline=False
+        )
+        name_input = ssh_input.process_input(chan)
+        if name_input is None:
+            return  # 切断
+        board_name = name_input.strip()
+        if not board_name:
+            # textdata.yaml に追加が必要
+            util.send_text_by_key(
+                chan, "sysop_menu.make_board.name_required", current_menu_mode)
+
+    description = ""
+    util.send_text_by_key(
+        # textdata.yaml に追加が必要
+        chan, "sysop_menu.make_board.description_prompt", current_menu_mode, add_newline=False
+    )
+    desc_input = ssh_input.process_input(chan)
+    if desc_input is None:
+        return  # 切断
+    description = desc_input.strip()  # 空でもOK
 
     default_permission = ""
     valid_permissions = ["open", "close", "readonly"]
@@ -625,23 +649,28 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     operators_json = f'["{sysop_login_id}"]'
     category_id = None
     display_order = 0
+    # 初期設定
+    kanban_title = ""
+    kanban_body = ""
+    status = "active"
+
     util.send_text_by_key(chan, "sysop_menu.make_board.confirm_create_yn", current_menu_mode, shortcut_id=shortcut_id,
-                          permission=default_permission, operator=sysop_login_id, add_newline=False)
+                          board_name=board_name, permission=default_permission, operator=sysop_login_id, add_newline=False)
     confirm_create = ssh_input.process_input(chan)
     if confirm_create is None or confirm_create.lower().strip() != 'y':
         util.send_text_by_key(
-            chan, "sysop_menu.make_board.cancel", current_menu_mode)
+            chan, "common_messages.cancel", current_menu_mode)  # キャンセルメッセージ
         return
 
-    if sqlite_tools.create_board_entry(dbname, shortcut_id, operators_json, default_permission, category_id, display_order):
+    if sqlite_tools.create_board_entry(dbname, shortcut_id, board_name, description, operators_json, default_permission, kanban_title, kanban_body, status):
         util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
                               current_menu_mode, shortcut_id=shortcut_id)
         util.send_text_by_key(
-            chan, "sysop_menu.make_board.advice_bbs_yml", current_menu_mode)
+            chan, "sysop_menu.make_board.advise_bbs_yml", current_menu_mode)
     else:
         util.send_text_by_key(
             chan, "common_messages.error", current_menu_mode)
-        logging.error("掲示板作成失敗:{shortcut_id}")
+        logging.error(f"掲示板作成失敗:{shortcut_id}")
 
 
 def delete_board(chan, dbname, current_menu_mode):
@@ -650,7 +679,7 @@ def delete_board(chan, dbname, current_menu_mode):
         chan, "sysop_menu.delete_board.header", current_menu_mode)
     while True:
         util.send_text_by_key(
-            chan, "sysop_menu.delete_board.board_id_prompt", current_menu_mode, add_newline=False)
+            chan, "sysop_menu.delete_board.delete_board_prompt", current_menu_mode, add_newline=False)
         board_id_input = ssh_input.process_input(chan)
 
         if board_id_input is None:  # 切断
@@ -668,14 +697,18 @@ def delete_board(chan, dbname, current_menu_mode):
         board_info_yml, board_name_yml = util.find_item_in_yaml(
             bbs_config, shortcut_id_to_delete, current_menu_mode, "board")
 
-        if not board_info_yml:  # bbs.yml に定義がなければエラー
+        if not board_db_entry:  # DBにエントリがなければエラー
             util.send_text_by_key(
                 chan, "sysop_menu.delete_board.board_not_found", current_menu_mode)
             continue
 
-        board_name_to_display = board_name_yml if board_name_yml else shortcut_id_to_delete
+        # DBから名前を取得して表示
+        board_name_to_display = board_db_entry.get('name', shortcut_id_to_delete) if isinstance(
+            board_db_entry, dict) else shortcut_id_to_delete
 
-        chan.send(f"\"{board_name_to_display}\"\r\n")
+        chan.send(
+            f"\"{board_name_to_display}\" (ID: {shortcut_id_to_delete})\r\n")
+
         util.send_text_by_key(chan, "sysop_menu.delete_board.confirm_yn",
                               current_menu_mode, board_name=board_name_to_display, add_newline=False)
         confirm_choice = ssh_input.process_input(chan)
@@ -685,7 +718,7 @@ def delete_board(chan, dbname, current_menu_mode):
 
         if confirm_choice.lower().strip() == 'y':
             # データベースから掲示板を削除 (関連記事やパーミッションも削除するかは別途検討)
-            # delete_board -> delete_board_entry に関数名が変更されている想定
+            # 関連する articles や board_user_permissions の削除も将来的には必要
             if sqlite_tools.delete_board_entry(dbname, shortcut_id_to_delete):
                 util.send_text_by_key(
                     chan, "sysop_menu.delete_board.advise_bbs_yml_delete", current_menu_mode)
@@ -705,7 +738,7 @@ def delete_board(chan, dbname, current_menu_mode):
 def list_boards(chan, dbname, current_menu_mode):
     """DBに登録されている掲示板一覧を表示"""
     # sqlite_tools.get_all_boards は存在しないため、直接クエリを実行
-    sql = "SELECT shortcut_id, operators, default_permission, category_id, display_order FROM boards ORDER BY display_order, shortcut_id"
+    sql = "SELECT shortcut_id, name, operators, default_permission, kanban_title, status, last_posted_at FROM boards ORDER BY shortcut_id"
     boards = sqlite_tools.sqlite_execute_query(dbname, sql, fetch=True)
 
     if not boards:
@@ -717,19 +750,40 @@ def list_boards(chan, dbname, current_menu_mode):
         util.send_text_by_key(
             chan, "sysop_menu.list_boards.header_title", current_menu_mode)
         # テーブルヘッダー
-        header_line = f"{'ShortcutID':<15} {'Operators':<25} {'Permission':<12} {'Category':<10} {'Order':<5}\r\n"
-        separator_line = "-" * (15 + 25 + 12 + 10 + 5 +
-                                4*2) + "\r\n"  # 桁数 + スペーサー分
+        header_line = f"{'ID':<12} {'Name':<20} {'Ops':<15} {'Perm':<10} {'Status':<8} {'Kanban':<15} {'LastPost':<15}\r\n"
+        separator_line = "-" * (12 + 20 + 15 + 10 + 8 +
+                                15 + 15 + 6*2) + "\r\n"  # Adjust length
         chan.send(header_line.encode('utf-8'))
         chan.send(separator_line.encode('utf-8'))
 
         board_list_details = ""
         for board in boards:
-            # operators はJSON文字列なのでそのまま表示するか、パースして整形するか検討
-            operators_str = board.get('operators', '[]')  # JSON文字列のまま
-            category_id_str = str(board.get(
-                'category_id', 'N/A')) if board.get('category_id') is not None else 'N/A'
-            display_order_str = str(board.get('display_order', 0))
-            board_list_details += f"{str(board.get('shortcut_id', 'N/A')):<15} {operators_str:<25} {str(board.get('default_permission', 'N/A')):<12} {category_id_str:<10} {display_order_str:<5}\r\n"
+            shortcut_id_str = board['shortcut_id'] if 'shortcut_id' in board.keys(
+            ) else 'N/A'
+            name_str = board['name'] if 'name' in board.keys() else 'N/A'
+            if len(name_str) > 18:
+                name_str = name_str[:17] + "..."
+            operators_str = board['operators'] if 'operators' in board.keys(
+            ) else '[]'
+            if len(operators_str) > 13:
+                operators_str = operators_str[:12] + "..."
+            default_permission_str = board['default_permission'] if 'default_permission' in board.keys(
+            ) else 'N/A'
+            status_str = board['status'] if 'status' in board.keys() else 'N/A'
+            kanban_title_str = board['kanban_title'] if 'kanban_title' in board.keys(
+            ) else ''
+            if len(kanban_title_str) > 13:  # 表示桁数調整
+                kanban_title_str = kanban_title_str[:12] + "..."
+
+            last_posted_ts = board['last_posted_at'] if 'last_posted_at' in board.keys(
+            ) else 0
+            last_posted_str = "N/A"
+            if last_posted_ts and last_posted_ts > 0:
+                try:
+                    last_posted_str = datetime.datetime.fromtimestamp(
+                        last_posted_ts).strftime('%Y-%m-%d %H:%M')
+                except (ValueError, OSError, TypeError):
+                    last_posted_str = 'Invalid Date'
+            board_list_details += f"{shortcut_id_str:<12} {name_str:<20} {operators_str:<15} {default_permission_str:<10} {status_str:<8} {kanban_title_str:<15} {last_posted_str:<15}\r\n"
         chan.send(board_list_details.encode('utf-8'))
         chan.send(separator_line.encode('utf-8'))  # フッターの区切り線

@@ -748,12 +748,15 @@ sysop_menu:
     shortcut_id_exists:
       mode_1: "エラー: ショートカットID '{shortcut_id}' は既に使用されています。"
       mode_2: "Error: Shortcut ID '{shortcut_id}' is already in use."
-    name_prompt_mode1:
-      mode_1: "掲示板名 (表示モード1): "
-      mode_2: "Board Name (Display Mode 1): "
+    name_prompt:
+      mode_1: "掲示板名: "
+      mode_2: "Board Name: "
     name_required:
       mode_1: "掲示板名は必須です。"
       mode_2: "Board name is required."
+    description_prompt:
+      mode_1: "説明: "
+      mode_2: "Description: "
     default_permission_prompt:
       mode_1: "デフォルトパーミッション ({permissions}): "
       mode_2: "Default Permission ({permissions}): "
@@ -761,19 +764,39 @@ sysop_menu:
       mode_1: "無効なパーミッションです。{permissions} から選択してください。"
       mode_2: "Invalid permission. Please choose from {permissions}."
     confirm_create_yn:
-      mode_1: "以下の内容で掲示板を作成しますか？ ID:{shortcut_id}, Perm:{permission}, OP:{operator} (y/N): "
+      mode_1: "以下の内容で掲示板DBエントリを作成しますか？ ID:{shortcut_id}, Perm:{permission}, OP:{operator} (y/N): "
       mode_2: "Create board with ID:{shortcut_id}, Perm:{permission}, OP:{operator}? (y/N): "
     success_direct:
       mode_1: "掲示板エントリー '{shortcut_id}' をデータベースに作成しました。"
       mode_2: "Board entry '{shortcut_id}' created in the database."
     advise_bbs_yml:
-      mode_1: "bbs.yml にこの掲示板の階層構造を記述してください。\n詳細は bbs.yml 同期コマンド実行時に反映されます。"
+      mode_1: "DBに掲示板エントリを作成しました。bbs.yml にこの掲示板の定義（カテゴリ、表示順）を記述してください。"
       mode_2: "Please describe the detailed settings (category, display order, etc.) for this board in bbs.yml.\nDetails will be reflected when the bbs.yml synchronization command is executed."
   delete_board:
+    header:
+      mode_1: "--- 掲示板削除 ---"
+      mode_2: "--- Delete Board ---"
+    board_id_prompt:
+      mode_1: "削除する掲示板のショートカットID: "
+      mode_2: "Board Shortcut ID to delete: "
+    board_not_found:
+      mode_1: "エラー: ショートカットID '{shortcut_id}' は存在しません。"
+      mode_2: "Error: Shortcut ID '{shortcut_id}' does not exist."
+    delete_board_prompt:
+      mode_1: "削除する掲示板IDを入力してください: "
     advise_bbs_yml_delete:
       mode_1: "bbs.yml からもこの掲示板の定義を削除してください。"
       mode_2: "Please also delete the definition of this board from bbs.yml."
-
+    confirm_yn:
+      mode_1: "この内容で削除しますか? (y/N): "
+      mode_2: "Delete this board? (y/N): "
+  list_boards:
+    header_title:
+      mode_1: "--- 登録済み掲示板一覧 (DB) ---"
+      mode_2: "--- Registered Boards List (DB) ---"
+    no_boards:
+      mode_1: "データベースに登録されている掲示板はありません。"
+      mode_2: "No boards are registered in the database."
 mail_handler:
   main_prompt:
     mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "
