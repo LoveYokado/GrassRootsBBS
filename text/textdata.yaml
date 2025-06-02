@@ -754,20 +754,20 @@ sysop_menu:
     name_required:
       mode_1: "掲示板名は必須です。"
       mode_2: "Board name is required."
-    permission_prompt:
+    default_permission_prompt:
       mode_1: "デフォルトパーミッション ({permissions}): "
       mode_2: "Default Permission ({permissions}): "
     invalid_permission:
       mode_1: "無効なパーミッションです。{permissions} から選択してください。"
       mode_2: "Invalid permission. Please choose from {permissions}."
-    confirm_create_prompt:
+    confirm_create_yn:
       mode_1: "以下の内容で掲示板を作成しますか？ ID:{shortcut_id}, Perm:{permission}, OP:{operator} (y/N): "
       mode_2: "Create board with ID:{shortcut_id}, Perm:{permission}, OP:{operator}? (y/N): "
     success_direct:
       mode_1: "掲示板エントリー '{shortcut_id}' をデータベースに作成しました。"
       mode_2: "Board entry '{shortcut_id}' created in the database."
     advise_bbs_yml:
-      mode_1: "bbs.yml にこの掲示板の詳細設定（カテゴリ、表示順など）を記述してください。\n詳細は bbs.yml 同期コマンド実行時に反映されます。"
+      mode_1: "bbs.yml にこの掲示板の階層構造を記述してください。\n詳細は bbs.yml 同期コマンド実行時に反映されます。"
       mode_2: "Please describe the detailed settings (category, display order, etc.) for this board in bbs.yml.\nDetails will be reflected when the bbs.yml synchronization command is executed."
   delete_board:
     advise_bbs_yml_delete:

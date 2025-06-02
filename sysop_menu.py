@@ -29,7 +29,10 @@ def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
 
         elif command == 'mkbd':
             # 掲示板作成
-            make_board(chan, dbname, current_menu_mode)
+            make_board(chan, dbname, sysop_login_id, current_menu_mode)
+
+        elif command == 'lsbd':
+            list_boards(chan, dbname, current_menu_mode)
 
         elif command == 'dlbd':
             # 掲示板削除
@@ -583,7 +586,7 @@ def system_quit(chan, dbname, current_menu_mode):
         os.exit(0)
 
 
-def make_board(chan, dbname, current_menu_mode):
+def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     """掲示板作成(bbs.ymlの内容とも関連するので、忘れないように)"""
 
     util.send_text_by_key(
@@ -600,7 +603,7 @@ def make_board(chan, dbname, current_menu_mode):
         shortcut_id = shortcut_id_input.strip()
         if not shortcut_id:
             return  # キャンセル
-        if sqlite_tools.get_board_info(dbname, shortcut_id):
+        if sqlite_tools.get_board_by_shortcut_id(dbname, shortcut_id):
             util.send_text_by_key(
                 chan, "sysop_menu.make_board.shortcut_id_exists", current_menu_mode, shortcut_id=shortcut_id)
             shortcut_id = ""  # 再入力
@@ -619,15 +622,7 @@ def make_board(chan, dbname, current_menu_mode):
             util.send_text_by_key(
                 chan, "sysop_menu.make_board.invalid_permission", current_menu_mode, permission=", ".join(valid_permissions))
 
-    current_sysop_id = sqlite_tools.get_user_id_from_user_name(
-        dbname, sysop_login_id)
-    if not current_sysop_id:  # シスオペIDが取れない場合
-        logging.error("シスオペID{syop_login_id}がDBから取れません")
-        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
-        return
-
     operators_json = f'["{sysop_login_id}"]'
-
     category_id = None
     display_order = 0
     util.send_text_by_key(chan, "sysop_menu.make_board.confirm_create_yn", current_menu_mode, shortcut_id=shortcut_id,
@@ -705,3 +700,36 @@ def delete_board(chan, dbname, current_menu_mode):
             util.send_text_by_key(
                 chan, "common_messages.cancel", current_menu_mode)
             break
+
+
+def list_boards(chan, dbname, current_menu_mode):
+    """DBに登録されている掲示板一覧を表示"""
+    # sqlite_tools.get_all_boards は存在しないため、直接クエリを実行
+    sql = "SELECT shortcut_id, operators, default_permission, category_id, display_order FROM boards ORDER BY display_order, shortcut_id"
+    boards = sqlite_tools.sqlite_execute_query(dbname, sql, fetch=True)
+
+    if not boards:
+        util.send_text_by_key(
+            chan, "sysop_menu.list_boards.no_boards", current_menu_mode)
+        return
+    else:
+        # ヘッダーを textdata.yaml から取得する例 (キーは仮)
+        util.send_text_by_key(
+            chan, "sysop_menu.list_boards.header_title", current_menu_mode)
+        # テーブルヘッダー
+        header_line = f"{'ShortcutID':<15} {'Operators':<25} {'Permission':<12} {'Category':<10} {'Order':<5}\r\n"
+        separator_line = "-" * (15 + 25 + 12 + 10 + 5 +
+                                4*2) + "\r\n"  # 桁数 + スペーサー分
+        chan.send(header_line.encode('utf-8'))
+        chan.send(separator_line.encode('utf-8'))
+
+        board_list_details = ""
+        for board in boards:
+            # operators はJSON文字列なのでそのまま表示するか、パースして整形するか検討
+            operators_str = board.get('operators', '[]')  # JSON文字列のまま
+            category_id_str = str(board.get(
+                'category_id', 'N/A')) if board.get('category_id') is not None else 'N/A'
+            display_order_str = str(board.get('display_order', 0))
+            board_list_details += f"{str(board.get('shortcut_id', 'N/A')):<15} {operators_str:<25} {str(board.get('default_permission', 'N/A')):<12} {category_id_str:<10} {display_order_str:<5}\r\n"
+        chan.send(board_list_details.encode('utf-8'))
+        chan.send(separator_line.encode('utf-8'))  # フッターの区切り線

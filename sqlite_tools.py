@@ -173,10 +173,10 @@ def create_bbs_tables_if_not_exist(cur):
                 shortcut_id TEXT UNIQUE NOT NULL,
                 operators JSON NOT NULL,
                 default_permission TEXT NOT NULL,
-                category_id TEXT,
-                display_order INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                kanban_title TEXT,
+                kanban_body TEXT,
+                last_posted_at TIMESTAMP,
+                status TEXT NOT NULL DEFAULT 'active'
             )
         ''')
     logging.info("boards テーブルを作成または確認しました。")
@@ -190,9 +190,9 @@ def create_bbs_tables_if_not_exist(cur):
                 user_id TEXT NOT NULL,
                 title TEXT,
                 body TEXT NOT NULL,
+                ip_address TEXT,
                 is_deleted BOOLEAN DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (board_id) REFERENCES boards(id),
                 UNIQUE (board_id, article_number)
             )
@@ -205,8 +205,7 @@ def create_bbs_tables_if_not_exist(cur):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 board_id INTEGER NOT NULL,
                 user_id TEXT NOT NULL,
-                permission_type TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                access_level TEXT NOT NULL, -- "allow" or "deny"
                 FOREIGN KEY (board_id) REFERENCES boards(id),
                 UNIQUE (board_id, user_id)
             )
@@ -533,3 +532,8 @@ def delete_board_entry(dbname, shortcut_id):
     #       ひとまず、boards テーブルからの削除のみとします。
     sql = "DELETE FROM boards WHERE shortcut_id=?"
     return sqlite_execute_query(dbname, sql, (shortcut_id,))
+
+
+def get_all_boards(dbname):
+    sql = "SELECT id, shortcut_id, operators, default_permission, category_id, display_order FROM boards WHERE category_id=?"
+    return sqlite_execute_query(dbname, sql, (current_menu_mode,), fetch=True)
