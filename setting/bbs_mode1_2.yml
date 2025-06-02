@@ -1,0 +1,53 @@
+# text/manual_bbs_menu.yml
+
+main_bbs_menu:
+  display_text:
+    mode_1: |
+      +---------------------------------------+
+      |          掲示板メインメニュー         |
+      +---------------------------------------+
+      1. 総合カテゴリ
+      2. 趣味カテゴリ
+      E. 終了 (トップメニューへ)
+    mode_2: |
+      +---------------------------------------+
+      |             BBS Main Menu             |
+      +---------------------------------------+
+      1. General Category
+      2. Hobby Category
+      E. Exit (to Top Menu)
+  actions:
+    "1": { type: "submenu", target_menu_id: "general_category_menu" }
+    "2": { type: "submenu", target_menu_id: "hobby_category_menu" }
+    "e": { type: "exit_to_top" } # トップメニューに戻る
+    "": { type: "exit_to_top" } # 空エンターでもトップメニューに戻る (例)
+
+general_category_menu:
+  display_text:
+    mode_1: |
+      --- 総合カテゴリ ---
+      1. 雑談板 (bbs_free)
+      B. 戻る
+    mode_2: |
+      --- General Category ---
+      1. Free Talk (bbs_free)
+      B. Back
+  actions:
+    "1": { type: "board", board_id: "bbs_free" } # まだ実際の遷移はしない
+    "b": { type: "back" }
+    "": { type: "back" } # 空エンターで戻る
+
+hobby_category_menu:
+  display_text:
+    mode_1: |
+      --- 趣味カテゴリ ---
+      1. ゲーム板 (bbs_hobby_game)
+      B. 戻る
+    mode_2: |
+      --- Hobby Category ---
+      1. Game Board (bbs_hobby_game)
+      B. Back
+  actions:
+    "1": { type: "board", board_id: "bbs_hobby_game" } # まだ実際の遷移はしない
+    "b": { type: "back" }
+    "": { type: "back" }

@@ -3,6 +3,7 @@ import yaml
 
 import util
 import ssh_input
+import sqlite_tools
 
 
 def load_menu_config(config_path: str):
@@ -14,6 +15,36 @@ def load_menu_config(config_path: str):
     except Exception as e:
         logging.error(f"メニュー設定ファイル読み込みエラー ({config_path}): {e}")
         return None
+
+
+def _enrich_board_items_with_db_data(items, dbname, menu_mode):
+    """
+    掲示板アイテムのリストにDBから名前と説明を拾う
+    iemsはbbs.ymlを参照する
+    """
+    if not items:
+        return []
+    enriched_items = []
+    for item in items:
+        enriched_item = item.copy()
+        if enriched_item.get('type') == 'board':
+            shortcut_id = enriched_item.get('id')
+            if shortcut_id:
+                board_info_db = sqlite_tools.get_board_by_shortcut_id(
+                    dbname, shortcut_id)
+                if board_info_db:
+                    enriched_item['name'] = board_info_db['name'] if 'name' in board_info_db.keys(
+                    ) else shortcut_id
+                    enriched_item['description'] = board_info_db['description'] if board_info_db.keys(
+                    ) else ''
+                else:  # DBにない場合
+                    enriched_item['name'] = f"{shortcut_id} (unregistered)"
+                    enriched_item['description'] = 'this board is not registered'
+        elif "items" in enriched_item:
+            enriched_item["items"] = _enrich_board_items_with_db_data(
+                enriched_item["items"], dbname, menu_mode)
+        enriched_items.append(enriched_item)
+    return enriched_items
 
 
 def display_menu(chan, items, menu_mode, title_key, prompt_key):
@@ -59,7 +90,7 @@ def navigate_menu(chan, items, menu_mode, title_key, prompt_key):
             )
 
 
-def handle_hierarchical_menu(chan, config_path: str, menu_mode: str):
+def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, dbname: str = None, enrich_boards: bool = False):
     """階層メニューを処理する"""
     config = load_menu_config(config_path)
     if not config or 'categories' not in config:
@@ -78,12 +109,16 @@ def handle_hierarchical_menu(chan, config_path: str, menu_mode: str):
         return
     path_stack = []
     current_level_items = initial_level_items
+    # 掲示板メニューの場合、DBから名前と説明を保管する
+    if enrich_boards and dbname:
+        current_level_items = _enrich_board_items_with_db_data(
+            current_level_items, dbname, menu_mode)
 
     while True:
         # 今の階層の項目でメニュー表示・選択
         selected_item = navigate_menu(
-            chan, current_level_items, menu_mode, "hierarchical_menu.title", "hierarchical_menu.prompt")
-
+            chan, current_level_items, menu_mode,
+            "hierarchical_menu.title", "hierarchical_menu.prompt")
         if selected_item == "back":
             if not path_stack:  # スタックが空ならトップメニューに戻る
                 return
@@ -98,7 +133,9 @@ def handle_hierarchical_menu(chan, config_path: str, menu_mode: str):
                 item_type = selected_item["type"]
                 if item_type == "child":
                     if "items" in selected_item:  # 正しい child 構造
-                        path_stack.append(current_level_items)
+                       # スタックに積む前に、現在のレベルのアイテムも必要なら補完する
+                        # ただし、current_level_items は既に補完済みのはず
+                        path_stack.append(current_level_items)  # 補完済みのものをスタックに
                         current_level_items = selected_item["items"]
                     else:  # child type だが items がない (YAML構造の問題の可能性)
                         util.send_text_by_key(

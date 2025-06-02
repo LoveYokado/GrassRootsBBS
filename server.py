@@ -22,6 +22,7 @@ import sysop_menu
 import hierarchical_menu
 import chat_handler
 import bbs_handler
+import manual_menu_handler
 
 
 CONFIG_FILE_PATH = "setting/config.toml"
@@ -337,25 +338,35 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # 掲示板
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
-            bbs_config_path = "setting/bbs.yml"  # 掲示板用の設定ファイルを指定
-            selected_item = hierarchical_menu.handle_hierarchical_menu(
-                chan, bbs_config_path, current_loop_menu_mode
-            )
-            if selected_item:
-                terminal_item_type = selected_item.get("type")
-                item_id = selected_item.get("id")
-                item_name = selected_item.get("name", "未定義の項目")
-
-                if terminal_item_type == "board":  # 掲示板機能では "board" type を処理
-                    chan.send(
-                        f"掲示板「{item_name}」(ID: {item_id}) が選択されました。(スレッド一覧表示などは未実装)\r\n")
-                    # TODO: 選択された板のスレッド一覧表示などの処理を実装
-                else:
+            if current_loop_menu_mode == '3':
+                bbs_config_path = "setting/bbs_mode3.yml"
+                selected_item = hierarchical_menu.handle_hierarchical_menu(
+                    chan, bbs_config_path, current_loop_menu_mode,
+                    dbname=dbname, enrich_boards=True)
+                if selected_item and selected_item.get("type") == "board":
+                    item_id = selected_item.get("id")
+                    # bbs_handler.handle_bbs_menuを呼ぶ
+                    bbs_handler.handle_bbs_menu(
+                        chan, dbname, login_id, current_loop_menu_mode, item_id)
+                elif selected_item:  # 念の為boardタイプ以外が選択されたとき
                     util.send_text_by_key(
                         chan, "common_messages.error", current_loop_menu_mode)
                     logging.warning(
-                        f"掲示板メニュー: 項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。")
+                        f"階層メニュー(mode3):項目「{selected_item.get('name')}」(ID: {selected_item.get('id')}, Type: {selected_item.get('type')}) が選択されましたが、boardタイプではありません。")
+            else:  # mode1またはmode2の場合は手書きメニュー
+                selected_board_id = manual_menu_handler.process_manual_menu(
+                    chan, dbname, login_id, current_loop_menu_mode, menu_config_path="setting/bbs_mode1_2.yml",
+                    initial_menu_id="main_bbs_menu", menu_type="bbs")
 
+                if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
+                    # Noneチェック追加
+                    bbs_handler.handle_bbs_menu(
+                        chan, dbname, login_id, current_loop_menu_mode, selected_board_id)
+                elif selected_board_id in ("exit_bbs_menu", "back_to_top"):
+                    logging.info(
+                        f"手書きメニューが終了、またはトップに戻りました: {selected_board_id}")
+                elif selected_board_id is None:
+                    logging.info(f"手書きメニュー処理中に切断されました。")
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
             chat_config_path = "setting/chatroom.yml"
