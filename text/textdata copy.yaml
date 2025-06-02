@@ -16,6 +16,49 @@
 
 # --- トップメニュー関連 ---
 top_menu:
+  help_h: # Hキーで表示されるヘルプ
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        コマンド一覧
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      H, ? : ヘルプ表示
+      S    : シスオペメニュー (Sysop以上)
+      W    : オンラインメンバー一覧
+      T, ! : 電報送信
+      U    : ユーザー環境設定
+      M    : メールメニュー
+      B    : 掲示板
+      C    : チャット
+      E    : ログオフ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Command List (English)
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      H, ? : Show Help
+      S    : Sysop Menu (Sysop+)
+      W    : Online Members List
+      T, ! : Send Telegram
+      U    : User Preferences
+      M    : Mail Menu
+      B    : BBS
+      C    : Chat
+      E    : Logoff
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
+      ╔═══════════════════════════════════════╗
+      ║   COMMAND LIST (ANSI)                 ║
+      ╚═══════════════════════════════════════╝
+      H, ? : HELP
+      S    : SYSOP (LVL 5+)
+      W    : WHO
+      T, ! : TELEGRAM
+      U    : USER PREFS
+      M    : MAIL
+      B    : BBS
+      C    : CHAT
+      E    : LOGOFF
+      ╚═══════════════════════════════════════╝
   help_q: # ?キーで表示されるヘルプ (Hと同じ内容で良いか、別途定義するかは要検討)
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -139,6 +182,10 @@ user_pref_menu:
         [2] MODE 2 (US)
         [3] MODE 3 (ANSI)
         [E] CANCEL
+    prompt: # モード選択プロンプト
+      mode_1: "選択してください: "
+      mode_2: "Select: "
+      mode_3: "SELECT > "
     confirm_changed: # 変更成功メッセージ (フォーマット文字列)
       mode_1: "メニューモードを {mode} に変更しました。\r\n"
       mode_2: "Menu mode changed to {mode}.\r\n"
@@ -147,12 +194,26 @@ user_pref_menu:
       mode_1: "メニューモードの変更に失敗しました。\r\n"
       mode_2: "Failed to change menu mode.\r\n"
       mode_3: "MODE CHANGE FAILED.\r\n"
+    cancel: # キャンセルメッセージ
+      mode_1: "メニューモードの変更をキャンセルしました。\r\n"
+      mode_2: "Menu mode change cancelled.\r\n"
+      mode_3: "MODE CHANGE CANCELLED.\r\n"
+    invalid_choice: # 無効な選択肢メッセージ (フォーマット文字列)
+      mode_1: "無効な選択です。{valid_choices} のいずれかを入力してください。\r\n"
+      mode_2: "Invalid choice. Please enter one of {valid_choices}.\r\n"
+      mode_3: "INVALID CHOICE. ENTER {valid_choices}.\r\n"
+
   # --- 会員リストサブメニュー ---
   member_list:
     search_prompt:
       mode_1: "検索ワードを入力してください (未入力で全件表示): "
       mode_2: "Enter search term (leave blank for all): "
       mode_3: "SEARCH TERM > "
+    not_found:
+      mode_1: "会員が見つかりませんでした。\r\n"
+      mode_2: "No members found.\r\n"
+      mode_3: "NO MEMBERS FOUND.\r\n"
+    # 会員情報の表示形式はコード側でフォーマットするので、ここでは不要
   set_lastlogin:
     current_lastlogin:
       mode_1: "設定されている最終ログイン日時は {lastlogin}です。"
@@ -179,6 +240,34 @@ user_pref_menu:
       mode_1: "選択してください([1]全電報を受信 [2]会員からのみ受信 [3]全電報を拒否 [4]ブラックリストからの電報を拒否): "
       mode_2: "Select ([1]All telegrams [2]Only from members [3]Reject all telegrams [4]Reject telegrams from blacklist): "
       mode_3: "SELECT ([1]ALL TELEGRAMS [2]MEMBERS ONLY  [3]REJECT ALL [4]REJECT BLACKLIST): "
+    setting_updated:
+      mode_1: "電報受信制限を「{new_restriction_text}」に変更しました。"
+      mode_2: 'Telegram reception restriction changed to "{new_restriction_text}".'
+      mode_3: 'TELEGRAM RESTRICTION SET TO "{new_restriction_text}".'
+    update_failed:
+      mode_1: "電報受信制限の変更に失敗しました。"
+      mode_2: "Failed to change telegram reception restriction."
+      mode_3: "RESTRICTION CHANGE FAILED."
+    cancelled:
+      mode_1: "電報受信制限の変更をキャンセルしました。"
+      mode_2: "Telegram reception restriction change cancelled."
+      mode_3: "RESTRICTION CHANGE CANCELLED." #ヘルプ
+    recieve_all:
+      mode_1: "** すべての電報を受信します **"
+      mode_2: "** All telegrams **"
+      mode_3: "** ALL TELEGRAMS **"
+    member_only:
+      mode_1: "** ゲストからの電報を拒否します **"
+      mode_2: "** Only from members **"
+      mode_3: "** MEMBERS ONLY **"
+    reject_all:
+      mode_1: "** ゲストおよび会員からの電報を拒否します **"
+      mode_2: "** Reject all telegrams **"
+      mode_3: "** REJECT ALL **"
+    reject_blacklist:
+      mode_1: "** ブラックリストに設定された会員からの電報を拒否します **"
+      mode_2: "** Reject telegrams from blacklist **"
+      mode_3: "** REJECT BLACKLIST **"
   blacklist_edit:
     header:
       mode_1: "--- ブラックリスト編集 ---"
@@ -212,6 +301,10 @@ user_pref_menu:
       mode_1: "ブラックリストを更新しました。"
       mode_2: "Blacklist updated successfully."
       mode_3: "BLACKLIST UPDATED."
+    update_failed:
+      mode_1: "** ブラックリストの更新に失敗しました。 **"
+      mode_2: "** Failed to update blacklist. **"
+      mode_3: "** BLACKLIST UPDATE FAILED. **"
     cancelled:
       mode_1: "ブラックリストの編集をキャンセルしました。"
       mode_2: "Blacklist editing cancelled."
@@ -233,6 +326,11 @@ user_pref_menu:
       mode_1: "** 探索リストに登録しました **"
       mode_2: "** Exploration list registered **"
       mode_3: "** EXPLORATION LIST REGISTERED **"
+
+  help_h:
+    mode_1: ""
+    mode_2: ""
+    mode_3: ""
   change_password:
     current_password:
       mode_1: "現在のパスワードを入力してください: "
@@ -266,6 +364,10 @@ user_pref_menu:
       mode_1: "SSH公開鍵を再生成しますか?"
       mode_2: "Regenerate SSH public key?"
       mode_3: "REGENERATE SSH KEY?"
+    new_private_key_info:
+      mode_1: "新しいSSH秘密鍵を生成しました。\r\n"
+      mode_2: "New SSH private key generated.\r\n"
+      mode_3: "NEW SSH PRIVATE KEY GENERATED.\r\n"
     ssh_key_updated_success:
       mode_1: "この鍵をなくすとSSH接続ができなくなりますので、大切に保管してください。\r\n"
       mode_2: "This key will no longer work for SSH connections, so please keep it safe.\r\n"
@@ -304,6 +406,10 @@ user_pref_menu:
       mode_1: "メールアドレスを更新しました。\r\n"
       mode_2: "Email address updated.\r\n"
       mode_3: "EMAIL UPDATED.\r\n"
+    cancelled:
+      mode_1: "メールアドレスの更新をキャンセルしました。\r\n"
+      mode_2: "Email address update cancelled.\r\n"
+      mode_3: "EMAIL UPDATE CANCELLED.\r\n"
 # --- WHOメニュー関連 ---
 who_menu:
   header:
@@ -326,8 +432,45 @@ who_menu:
       -------------------------------------------------------------------
     mode_3: |
       -------------------------------------------------------------------
+  no_members:
+    mode_1: "現在オンラインのメンバーはいません。\r\n"
+    mode_2: "No members are currently online.\r\n"
+    mode_3: "NO ONLINE MEMBERS.\r\n"
+  user_info_error: # ユーザー情報取得エラー時の表示
+    mode_1: "(ユーザー情報取得エラー)"
+    mode_2: "(User info error)"
+    mode_3: "(USER INFO ERROR)"
 
 # --- シスオペメニュー関連 ---
+server_menu:
+  header: # メニュー本体の表示
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        サーバ設定メニュー
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [0] 設定一覧表示
+      [1] 各BBSメニューのユーザレベルごとのパーミッション
+      [2] ユーザ情報変更メニュー
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Server Settings
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [0] Show Settings
+      [1] Set Permissions for BBS Menus
+      [2] User Edit Menu
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
+      ╔═══════════════════════════════════════╗
+      ║   \x1b[31mSERVER SETTINGS\x1b[0m                          ║
+      ╚═══════════════════════════════════════╝
+      [0] SHOW SETTINGS
+      [1] SET PERMISSIONS
+      [2] USER EDIT
+      ╚═══════════════════════════════════════╝
+  # --- 設定一覧表示 ---
+  # --- 各BBSメニューのユーザレベルごとのパーミッション ---
+
 sysop_menu:
   menu:
     mode_1: |
@@ -525,10 +668,24 @@ sysop_menu:
       mode_1: "** {user_id} は存在しません **"
       mode_2: "** {user_id} not found **"
       mode_3: "** {user_id} NOT FOUND **"
+    cannot_regenerate_guest:
+      mode_1: "GUESTユーザーのSSH鍵は再生成できません。"
+      mode_2: "Cannot regenerate SSH key for GUEST user."
+      mode_3: "GUESTユーザーのSSH鍵は再生成できません。"
     confirm_yn:
       mode_1: "再生成してよいですか?以前の設定は上書きされます(YまたはN):"
       mode_2: "Regenerate this key? Previous settings will be overwritten (Y or N):"
       mode_3: "REGENERATE THIS KEY? PREVIOUS SETTINGS WILL BE OVERWRITTEN (Y OR N):"
+    new_private_key_info:
+      mode_1: |
+        ** 新しい秘密鍵を生成しました **
+        この内容は一度しか表示されません。安全に保管してください。
+      mode_2: |
+        ** New private key generated **
+        This will only be displayed once. Please keep it safe.
+      mode_3: |
+        ** NEW PRIVATE KEY GENERATED **
+        THIS WILL ONLY BE DISPLAYED ONCE. PLEASE KEEP IT SAFE.
     success:
       mode_1: "** 再生成しました **"
       mode_2: "** Regenerated **"
@@ -574,6 +731,10 @@ sysop_menu:
       mode_1: "ユーザーの権限レベルを変更しました。\r\n"
       mode_2: "User level changed.\r\n"
       mode_3: "USER LEVEL CHANGED.\r\n"
+    level_update_failed:
+      mode_1: "ユーザー '{name}' の権限レベルの変更に失敗しました。\r\n"
+      mode_2: "ユーザー '{name}' の権限レベルの変更に失敗しました。\r\n"
+      mode_3: "ユーザー '{name}' の権限レベルの変更に失敗しました。\r\n"
   make_board:
     header_direct:
       mode_1: "--- 掲示板エントリー作成 ---"
@@ -581,6 +742,9 @@ sysop_menu:
     shortcut_id_prompt:
       mode_1: "掲示板ショートカットID: "
       mode_2: "Board Shortcut ID: "
+    shortcut_id_required:
+      mode_1: "ショートカットIDは必須です。"
+      mode_2: "Shortcut ID is required."
     shortcut_id_exists:
       mode_1: "エラー: ショートカットID '{shortcut_id}' は既に使用されています。"
       mode_2: "Error: Shortcut ID '{shortcut_id}' is already in use."
@@ -612,6 +776,9 @@ sysop_menu:
     header:
       mode_1: "--- 掲示板削除 ---"
       mode_2: "--- Delete Board ---"
+    board_id_prompt:
+      mode_1: "削除する掲示板のショートカットID: "
+      mode_2: "Board Shortcut ID to delete: "
     board_not_found:
       mode_1: "エラー: ショートカットID '{shortcut_id}' は存在しません。"
       mode_2: "Error: Shortcut ID '{shortcut_id}' does not exist."
@@ -651,6 +818,10 @@ mail_handler:
     mode_1: "メールはありません。\r\n"
     mode_2: "No mails.\r\n"
     mode_3: "NO MAILS.\r\n"
+  db_error_list:
+    mode_1: "\r\nメール一覧の取得中にエラーが発生しました。\r\n"
+    mode_2: "\r\nAn error occurred while fetching mail list.\r\n"
+    mode_3: "\r\nMAIL LIST ERROR.\r\n"
   mail_deleted:
     mode_1: "メールは削除されています。\r\n\r\n"
     mode_2: "Mail is deleted.\r\n\r\n"
@@ -699,6 +870,10 @@ mail_handler:
     mode_1: "この内容で送信しますか?（Y/N): "
     mode_2: "Send this content? (Y/N): "
     mode_3: "SEND THIS CONTENT? (Y/N): "
+  mail_cancelled:
+    mode_1: "メール送信をキャンセルしました。\r\n"
+    mode_2: "Mail send cancelled.\r\n"
+    mode_3: "MAIL SEND CANCELLED.\r\n"
   send_success:
     mode_1: "メールを送信しました。\r\n"
     mode_2: "Mail sent.\r\n"
@@ -737,6 +912,19 @@ mail_handler:
       H : DISPLAY THIS HELP
       E : EXIT MAIL MENU
       ---------------------------
+
+  # ... 他のメール関連テキストも追加
+
+#階層構造メニュー
+hierarchical_menu:
+  title: # カテゴリ選択時、ルーム選択時など共通で使えるタイトル
+    mode_1: "--- 項目選択 ---"
+    mode_2: "--- ITEM SELECTION ---"
+    mode_3: "--- ITEM SELECTION ---"
+  prompt: # 共通で使えるプロンプト
+    mode_1: "番号を入力してください (空エンターで戻る): "
+    mode_2: "Enter number (press enter to return): "
+    mode_3: "ENTER NUMBER (PRESS ENTER TO RETURN): "
 #チャットルーム
 chat:
   welcome:
@@ -754,10 +942,72 @@ chat:
         /exit, /quit, /bye - Leave the chat room.
         /help              - Show this help message.
       Anything else typed will be sent as a chat message.
+    # mode_3 も同様に
+  leaving:
+    mode_1: "チャットルーム「{room_name}」から退出します。"
+    mode_2: "Leaving chat room: {room_name}."
+  # ブロードキャストされるユーザーメッセージのフォーマット
+  broadcast_user_message_format:
+    mode_1: "{sender}: {message}"
+    mode_2: "{sender}: {message}"
+    mode_3: "{sender}: {message}"
+
+  # ブロードキャストされるシステムメッセージのフォーマット
+  broadcast_system_message_format:
+    mode_1: "System: {message}"
+    mode_2: "System: {message}"
+    mode_3: "SYSTEM: {message}"
+
+  # 自分の発言を自分の画面に表示する際のフォーマット
+  my_message_format:
+    mode_1: "{sender}: {message}"
+    mode_2: "{sender}: {message}"
+    mode_3: "{sender}: {message}"
+
+  # !r コマンドで表示されるルーム状況の各行のフォーマット
+  room_status_line:
+    mode_1: "ルーム: {room_name} [{lock_status}] 参加者: {users}"
+    mode_2: "{room_name:<15} {lock_status}: {users}"
+    mode_3: "{room_name:} {lock_status}: {users}"
   room_locked: # 入室しようとした部屋がロックされている場合 (他人によって)
     mode_1: "ルーム「{room_name}」は {owner} によってロックされています。入室できません。\r\n"
     mode_2: "Room '{room_name}' is locked by {owner}. You cannot enter.\r\n"
     mode_3: "ROOM '{room_name}' LOCKED BY {owner}. CANNOT ENTER.\r\n"
+
+  # !l コマンド関連 (コマンド実行者へのフィードバック)
+  room_locked_by_you:
+    mode_1: "ルーム「{room_name}」をロックしました。\r\n"
+    mode_2: "You have locked room '{room_name}'.\r\n"
+    mode_3: "ROOM '{room_name}' LOCKED.\r\n"
+  room_already_locked_by_you:
+    mode_1: "ルーム「{room_name}」は既にあなたがロックしています。\r\n"
+    mode_2: "Room '{room_name}' is already locked by you.\r\n"
+    mode_3: "ROOM '{room_name}' ALREADY LOCKED BY YOU.\r\n"
+  room_already_locked_by_other:
+    mode_1: "ルーム「{room_name}」は {owner} によって既にロックされています。あなたがロックすることはできません。\r\n"
+    mode_2: "Room '{room_name}' is already locked by {owner}. You cannot lock it.\r\n"
+    mode_3: "ROOM '{room_name}' ALREADY LOCKED BY {owner}. CANNOT LOCK.\r\n"
+  room_locked_broadcast:
+    mode_1: "ルーム「{room_name}」は {owner} によりロックされました。"
+    mode_2: "Room '{room_name}' was locked by {owner}."
+    mode_3: "ROOM '{room_name}' LOCKED BY {owner}."
+  room_unlocked_broadcast:
+    mode_1: "ルーム「{room_name}」は {owner} によりアンロックされました。"
+    mode_2: "Room '{room_name}' was unlocked by {owner}."
+    mode_3: "ROOM '{room_name}' UNLOCKED BY {owner}."
+  owner_left_unlock_broadcast:
+    mode_1: "{owner} が退出したため、ルーム「{room_name}」のロックは解除されました。"
+    mode_2: "Room '{room_name}' lock has been released because {owner} left."
+    mode_3: "ROOM '{room_name}' LOCK HAS BEEN RELEASED BECAUSE {owner} LEFT."
+  broadcast_chatsystem_message_format:
+    mode_1: "システム: {message}"
+    mode_2: "System: {message}"
+    mode_3: "SYSTEM: {message}"
+  # !u コマンド関連 (コマンド実行者へのフィードバック)
+  room_unlocked_by_you:
+    mode_1: "ルーム「{room_name}」をアンロックしました。\r\n"
+    mode_2: "You have unlocked room '{room_name}'.\r\n"
+    mode_3: "ROOM '{room_name}' UNLOCKED.\r\n"
   room_not_locked:
     mode_1: "ルーム「{room_name}」はロックされていません。\r\n"
     mode_2: "Room '{room_name}' is not locked.\r\n"
@@ -770,6 +1020,14 @@ chat:
     mode_1: "ルーム'{room_name}'は既に{owner}によってロックされています。\r\n"
     mode_2: "Room '{room_name}' is already locked by {owner}.\r\n"
     mode_3: "ROOM '{room_name}' ALREADY LOCKED BY {owner}.\r\n"
+  room_not_found_for_lock: # !l コマンドでルームが見つからない場合
+    mode_1: "ロック対象のルーム「{room_name}」が見つかりません。\r\n"
+    mode_2: "Room '{room_name}' to lock not found.\r\n"
+    mode_3: "ROOM '{room_name}' TO LOCK NOT FOUND.\r\n"
+  room_not_found_for_unlock: # !u コマンドでルームが見つからない場合
+    mode_1: "アンロック対象のルーム「{room_name}」が見つかりません。\r\n"
+    mode_2: "Room '{room_name}' to unlock not found.\r\n"
+    mode_3: "ROOM '{room_name}' TO UNLOCK NOT FOUND.\r\n"
   no_active_rooms:
     mode_1: "現在アクティブなチャットルームはありません。\r\n"
     mode_2: "No chat rooms are currently active.\r\n"
@@ -849,12 +1107,6 @@ telegram:
     mode_1: "自分自身に電報を送信することはできません。\r\n"
     mode_2: "You cannot send a telegram to yourself.\r\n"
     mode_3: "CANNOT SEND TO SELF.\r\n"
-bbs:
-  board_not_found:
-    mode_1: "ボードが存在しません。\r\n"
-    mode_2: "Board not found.\r\n"
-    mode_3: ""
-
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)
@@ -869,6 +1121,10 @@ logoff:
       GOODBYE!
 # --- ショートカット関連 ---
 shortcut:
+  empty_id:
+    mode_1: "ショートカットIDが指定されていません。\r\n"
+    mode_2: "Shortcut ID not specified.\r\n"
+    mode_3: "SHORTCUT ID NOT SPECIFIED.\r\n"
   not_found:
     mode_1: "ショートカットID '{shortcut_id}' に対応するルームまたは掲示板が見つかりません。\r\n"
     mode_2: "Room or board for shortcut ID '{shortcut_id}' not found.\r\n"
@@ -881,6 +1137,10 @@ shortcut:
     mode_1: "掲示板「{board_name}」へ移動します...\r\n"
     mode_2: "Jumping to BBS: {board_name}...\r\n"
     mode_3: "JUMPING TO BBS: {board_name}...\r\n"
+  bbs_feature_name: # unimplemented.message の feature_name に渡す文字列
+    mode_1: "掲示板「{board_name}」へのショートカット"
+    mode_2: "Shortcut to BBS '{board_name}'"
+    mode_3: "SHORTCUT TO BBS '{board_name}'"
 # --- 共通メッセージ ---
 common_messages:
   select_prompt: # 選択プロンプト
@@ -903,6 +1163,10 @@ common_messages:
     mode_1: "データベース更新中にエラーが発生しました。\r\n"
     mode_2: "A database update error occurred.\r\n"
     mode_3: "DB UPDATE ERROR.\r\n"
+  permission_denied: # 権限がない場合のメッセージ
+    mode_1: "この操作を行う権限がありません。\r\n"
+    mode_2: "You do not have permission to perform this action.\r\n"
+    mode_3: "PERMISSION DENIED.\r\n"
   cancel: # キャンセルメッセージ
     mode_1: "キャンセルしました。\r\n"
     mode_2: "Canceled.\r\n"
@@ -920,14 +1184,7 @@ common_messages:
     mode_1: "よろしいですか? (Y または N): "
     mode_2: "Are you sure? (Y or N): "
     mode_3: "ARE YOU SURE? (Y OR N): "
-  db_error:
-    mode_1: "データベースエラーが発生しました。\r\n"
-    mode_2: "A database error occurred.\r\n"
-    mode_3: "DB ERROR.\r\n"
-  database_update_error:
-    mode_1: "データベース更新中にエラーが発生しました。\r\n"
-    mode_2: "A database update error occurred.\r\n"
-    mode_3: "DB UPDATE ERROR.\r\n"
+
 # --- 認証関連 ---
 auth:
   connect_message:
@@ -958,6 +1215,10 @@ auth:
     mode_1: "\r\n認証中にエラーが発生しました。切断します。\r\n"
     mode_2: "\r\nAn error occurred during authentication. Disconnecting.\r\n"
     mode_3: "\r\nAUTH ERROR. DISCONNECTING.\r\n"
+  ssh_auth_db_error: # SSH認証時のDBエラーなど
+    mode_1: "サーバ設定エラー。シスオペに連絡してください\r\n"
+    mode_2: "Server configuration error. Please contact the sysop.\r\n"
+    mode_3: "SERVER CONFIG ERROR. CONTACT SYSOP.\r\n"
 
 # --- ログイン後処理関連 ---
 login:

@@ -680,7 +680,7 @@ def mail_write(chan, dbname, login_id, menu_mode='2'):
         except Exception as e:
             logging.error(f"宛先ユーザ検索中にDBエラー({recipient_name_input}): {e}")
             util.send_text_by_key(
-                chan, "common.db_error", menu_mode
+                chan, "common_messages.db_error", menu_mode
             )  # エラー発生
             return
         if not results:
