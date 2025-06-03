@@ -564,8 +564,8 @@ def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body,
     失敗した場合はNoneを返す。
     """
     sql = """
-        INSERT INTO articles (board_id, article_number, user_id, title, body, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO articles (board_id, article_number, user_id, title, body, created_at, ip_address)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """
     params = (board_id_pk, article_number, user_id_pk, title, body, timestamp)
     conn = None

@@ -82,15 +82,20 @@ class ArticleManager:
 
     def get_articles_by_board(self, board_id):
         """指定された掲示板の投稿一覧を取得する"""
-        # TODO: 実装
-        pass
+        # board_idはboardsテーブルの主キー(id)
+        # 投稿順で取得
+        return sqlite_tools.get_articles_by_board(self.dbname, board_idm, order_by="article_number ASC")
 
     def get_article_by_number(self, board_id, article_number):
         """指定された記事番号の記事を取得する"""
-        # TODO: 実装
-        pass
+        # board_idはboardsテーブルの主キー(id)
+        article_data = sqlite_tools.get_article_by_board_and_number(
+            self.dbname, board_id, article_number)
+        if article_data:
+            return article_data
+        return None
 
-    def create_article(self, board_id_pk, user_id_pk, title, body):
+    def create_article(self, board_id_pk, user_id_pk, title, body, ip_address=None):
         """
         記事を新規作成する
         board_id_pkはboardsテーブルの主キー
@@ -110,7 +115,7 @@ class ArticleManager:
             # 記事を挿入
             current_timestamp = int(time.time())
             article_id = sqlite_tools.insert_article(
-                self.dbname, board_id_pk, next_article_number, user_id_pk, title, body, current_timestamp
+                self.dbname, board_id_pk, next_article_number, user_id_pk, title, body, current_timestamp, ip_address
             )
 
             if article_id is not None:
@@ -232,35 +237,276 @@ class CommandHandler:
 
         self._display_kanban()  # 板看板を表示
 
-        while True:
-            util.send_text_by_key(self.chan, "bbs.rw_prompt",
-                                  self.menu_mode, add_newline=False)
-            user_input = ssh_input.process_input(self.chan)
-
-            if user_input is None:
-                return  # 切断
-
-            command = user_input.strip().lower()
-
-            if command == '':
-                break  # 掲示板終了
-            elif command == 'w':
-                self.write_article()  # 記事書き込み
-            elif command == 'r':
-                pass  # 記事読み込み
-
-            else:
-                continue  # コマンド不明
+        # 記事一覧表示と操作へ
+        self.show_article_list()
 
     def show_article_list(self):
         """記事一覧を表示"""
-        # TODO: 実装
-        pass
+        if not self.current_board:
+            util.send_text_by_key(
+                self.chan, "bbs.no_board_selected", self.menu_mode)
+            return
 
-    def read_article(self, article_number):
+        board_id_pk = self.current_board['id']
+        articles = []
+        current_index = 0
+        article_id_width = 5  # 記事番号桁数
+
+        def reload_articles_display(keep_index=True):
+            nonlocal articles, current_index, article_id_width
+            current_article_id_on_reload = None
+            if articles and 0 <= current_index < len(articles):
+                current_article_id_on_reload = articles[current_index]['id']
+
+            fetched_articles = self.article_manager.get_articles_by_board(
+                board_id_pk)
+            articles = fetched_articles if fetched_articles else []
+
+            new_idx = 0
+            if articles:
+                if keep_index and current_article_id_on_reload is not None:
+                    found = False
+                    for i, art in enumerate(articles):
+                        if art['id'] == current_article_id_on_reload:
+                            new_idx = i
+                            found = True
+                            break
+                    if not found:
+                        new_idx = 0
+                article_id_width = max(
+                    5, len(str(len(articles)))) if articles else 5
+            current_index = new_idx
+
+            util.send_text_by_key(
+                self.chan, "bbs.article_list_header", self.menu_mode)
+            if not articles:
+                util.send_text_by_key(
+                    self.chan, "bbs.no_article", self.menu_mode)
+                current_index = 0  # 記事がなかったらインデックスは0
+            else:
+                display_current_article_header()
+
+        def display_current_article_header():
+            nonlocal articles, current_index, article_id_width
+            if current_index == -1:  # 先頭マーカ
+                marker_id_str = " "*(article_id_width-1)+"v"
+                self.chan.send(f"{marker_id_str}\r\n".encode('utf-8'))
+            elif current_index == len(articles):  # 末尾マーカ
+                if not articles:  # 記事がない場合
+                    util.send_text_by_key(
+                        self.chan, "bbs.no_article", self.menu_mode)
+                else:
+                    marker_id_str = " "*(article_id_width-1)+"^"
+                    self.chan.send(f"{marker_id_str}\r\n".encode('utf-8'))
+            elif articles and 0 <= current_index < len(articles):
+                article = articles[current_index]
+                title = article['title'] if article['title'] else "(No Title)"
+                title_short = util.textwrap.shorten(
+                    user_name if user_name else "(Unknown)", width=12, placeholder="...")
+                try:
+                    created_at_str = util.datetime.datetime.fromtimestamp(
+                        article['created_at']).strftime("%Y-%m-%d %H:%M:%S")
+                except:
+                    created_at_str = "---/--/-- --:--:--"
+                self.chan.send(f" {article_no_str} | {title_short:<30} | {user_name_short:<12} {created_at_str}\r\n".encode(
+                    'utf-8') if articles else f" {article_no_str} | {title_short:<30} | {user_name_short:<12} {created_at_str} {title}\r\n".encode('utf-8'))
+            else:
+                util.send_text_by_key(
+                    self.chan, "bbs.no_article", self.menu_mode)
+
+        reload_articles_display(keep_index=False)
+
+        while True:
+            util.send_text_by_key(
+                self.chan, "bbs.article_list_prompt", self.menu_mode, add_newline=False)
+            key_input_data = self.chan.recv(1024)  # 矢印キー対応のため複数バイト読み取り
+            if not key_input_data:
+                logging.info(
+                    f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
+                return  # 切断
+
+            key_input = None
+            if key_input_data == b'\x1b':  # ESC
+                self.chan.settimeout(0.05)
+                try:
+                    next_byte1 = self.chan.recv(1)
+                    if next_byte1 == b'[':
+                        next_byte2 = self.chan.recv(1)
+                        if next_byte2 == b'A':
+                            key_input = "KEY_UP"
+                        elif next_byte2 == b'B':
+                            key_input = "KEY_DOWN"
+                        # KEY_RIGHT, KEY_LEFT はここでは使わない
+                    else:
+                        key_input = '\x1b'  # ESC
+                except socket.timeout:
+                    key_input = '\x1b'  # ESC
+                finally:
+                    self.chan.settimeout(None)
+            elif key_input_data in (b'\r', b'\n'):
+                key_input = "ENTER"
+            elif key_input_data == b' ':
+                key_input = "SPACE"
+            else:
+                try:
+                    key_input = key_input_data.decode('ascii').strip().lower()
+                except UnicodeDecodeError:
+                    self.chan.send(b'\a')  # Beep
+                    continue
+
+            if key_input == "k" or key_input == "KEY_UP":
+                if not articles:
+                    self.chan.send(b'\a')
+                    continue
+                if current_index > -1:
+                    current_index -= 1
+                    display_current_article_header()
+                else:
+                    self.chan.send(b'\a')
+
+            elif key_input == "j" or key_input == "SPACE" or key_input == "KEY_DOWN":
+                if not articles:
+                    self.chan.send(b'\a')
+                    continue
+                if current_index < len(articles):
+                    current_index += 1
+                    display_current_article_header()
+                else:
+                    self.chan.send(b'\a')
+
+            elif key_input == "ENTER":
+                if articles and 0 <= current_index < len(articles):
+                    self.read_article(
+                        articles[current_index]['article_number'])
+                    reload_articles_display(keep_index=True)  # 記事読了後、一覧を再表示
+                elif not articles or current_index == -1 or current_index == len(articles):
+                    self.chan.send(b'\a')  # マーカー位置では読めない
+
+            elif key_input == "w":
+                self.write_article()
+                reload_articles_display(keep_index=False)  # 新規投稿後は先頭から再表示
+
+            elif key_input == "e" or key_input == '\x1b':  # ESCでも終了
+                return  # command_loop に戻る
+
+            elif key_input == "?":
+                self.chan.send(b'\r\n')
+                util.send_text_by_key(
+                    self.chan, "bbs.article_list_help", self.menu_mode)
+                display_current_article_header()  # ヘルプ表示後に現在の行を再表示
+
+            elif key_input == "t":  # タイトル一覧 (連続スクロール)
+                if not articles:
+                    self.chan.send(b'\a')
+                    continue
+                start_idx = current_index if 0 <= current_index < len(
+                    articles) else 0
+                if start_idx == -1:
+                    start_idx = 0  # 先頭マーカーなら0から
+
+                self.chan.send(b'\r\n')
+                util.send_text_by_key(
+                    self.chan, "bbs.article_list_header", self.menu_mode)
+                for i in range(start_idx, len(articles)):
+                    article = articles[i]
+                    article_no_str = f"{article['article_number']:<{article_id_width}}"
+                    title = article['title'] if article['title'] else "(No Title)"
+                    title_short = util.textwrap.shorten(
+                        title, width=30, placeholder="...")
+                    user_name = sqlite_tools.get_user_name_from_user_id(
+                        self.dbname, article['user_id'])
+                    user_name_short = util.textwrap.shorten(
+                        user_name if user_name else "(不明)", width=12, placeholder="...")
+                    try:
+                        created_at_str = util.datetime.datetime.fromtimestamp(
+                            article['created_at']).strftime('%y/%m/%d %H:%M')
+                    except:
+                        created_at_str = "----/--/-- --:--"
+                    self.chan.send(
+                        f" {article_no_str} | {title_short:<30} | {user_name_short:<12} | {created_at_str}\r\n".encode('utf-8'))
+                current_index = len(articles)  # 末尾マーカーへ
+                display_current_article_header()
+
+            elif key_input == "r":  # 連続読み
+                if not articles:
+                    self.chan.send(b'\a')
+                    continue
+                start_idx = current_index if 0 <= current_index < len(
+                    articles) else 0
+                if start_idx == -1:
+                    start_idx = 0
+
+                self.chan.send(b'\r\n')
+                for i in range(start_idx, len(articles)):
+                    current_index = i  # 内部的にカーソルを動かす
+                    display_current_article_header()  # まずヘッダ表示
+                    # 本文表示 (戻るプロンプトなし)
+                    self.read_article(
+                        articles[i]['article_number'], show_back_prompt=False)
+                    self.chan.send(b'\r\n')  # 記事間に空行
+                current_index = len(articles)  # 末尾マーカーへ
+                display_current_article_header()
+
+            else:
+                self.chan.send(b'\a')
+
+    def read_article(self, article_number, show_back_prompt=True):
         """記事を読む"""
-        # TODO: 実装
-        pass
+        if not self.current_board:
+            util.send_text_by_key(
+                self.chan, "bbs.no_board_selected", self.menu_mode)
+            return
+
+        board_id_pk = self.current_board['id']
+        article = self.article_manager.get_article_by_number(
+            board_id_pk, article_number)
+
+        if not article:
+            util.send_text_by_key(
+                self.chan, "bbs.article_not_found", self.menu_mode)
+            return
+
+        title = article['title'] if article['title'] else "(No Title)"
+        util.send_text_by_key(self.chan, "bbs.read_article_header", self.menu_mode,
+                              article_number=article['article_number'], title=title)
+        user_name = sqlite_tools.get_user_name_from_user_id(
+            self.dbname, article['user_id'])
+        try:
+            created_at_str = util.datetime.datetime.fromtimestamp(
+                article['created_at']).strftime('%Y-%m-%d %H:%M:%S')
+        except:  # pylint: disable=bare-except
+            created_at_str = "----/--/-- --:--:--"
+
+        self.chan.send(
+            f"投稿者: {user_name if user_name else '(不明)'}\r\n".encode('utf-8'))
+        self.chan.send(f"投稿日時: {created_at_str}\r\n".encode('utf-8'))
+        self.chan.send(b"\r\n")  # ヘッダーと本文の間に空行
+
+        body_to_send = article['body'].replace(
+            '\r\n', '\n').replace('\n', '\r\n')
+        # textwrap を使って本文を折り返す
+        wrapped_body_lines = util.textwrap.wrap(
+            body_to_send, width=78, replace_whitespace=False, drop_whitespace=False)
+        for line in wrapped_body_lines:
+            self.chan.send(line.encode('utf-8') + b'\r\n')
+
+        if not body_to_send.endswith('\r\n'):  # 念のため
+            self.chan.send(b'\r\n')
+        self.chan.send(b'\r\n')  # 本文後にも空行
+
+        if show_back_prompt:
+            while True:
+                util.send_text_by_key(
+                    self.chan, "bbs.back_to_list_prompt", self.menu_mode, add_newline=False)
+                user_input = ssh_input.process_input(self.chan)
+                if user_input is None:
+                    return  # 切断
+                command = user_input.strip().lower()
+                if command == 'e' or command == '':
+                    return
+                else:
+                    util.send_text_by_key(
+                        self.chan, "common_messages.invalid_command", self.menu_mode)
 
     def write_article(self):
         """記事を新規作成"""
@@ -270,6 +516,12 @@ class CommandHandler:
             return
 
         board_id_pk = self.current_board['id']  # sqlite3のオブジェクトを取得
+        client_ip = None
+        try:
+            client_ip = self.chan.getpeername(
+            )[0] if self.chan.getpeername() else None
+        except Exception:  # getpeername が失敗するケースも考慮
+            client_ip = None
         # TODO:将来的にはPermissionManagerで書き込み権限チェック
         # if not self.permission_manager.check_permission(board_id_pk, self.user_id_pk, "write"):
         #    util.send_text_by_key(self.chan, "bbs.permission_denied_write", self.menu_mode)
@@ -307,7 +559,7 @@ class CommandHandler:
             util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
             return  # キャンセル
 
-        if self.article_manager.create_article(board_id_pk, self.user_id_pk, title, body):
+        if self.article_manager.create_article(board_id_pk, self.user_id_pk, title, body, ip_address=client_ip):
             util.send_text_by_key(
                 self.chan, "bbs.post_success", self.menu_mode)
         else:

@@ -880,8 +880,60 @@ bbs:
     mode_3: "ARTICLE POSTING CANCELLED.\r\n"
   post_failed:
     mode_1: "** 登録に失敗しました **\r\n"
-
-
+  article_list_header: # 記事一覧のヘッダー
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
+    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
+    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
+  no_articles: # 記事がない場合
+    mode_1: "この記事はありません。\r\n"
+    mode_2: "There are no articles on this board.\r\n"
+    mode_3: "NO ARTICLES ON THIS BOARD.\r\n"
+  read_article_header: # 個別記事表示時のヘッダー
+    mode_1: "\r\n--- 記事 {article_number} ({title}) ---\r\n" # タイトルも表示
+    mode_2: "\r\n--- Article {article_number} ({title}) ---\r\n"
+    mode_3: "\r\n--- ARTICLE {article_number} ({title}) ---\r\n"
+  article_list_help: # 記事一覧でのヘルプ
+    mode_1: |
+      --- 記事一覧 ヘルプ ---
+      J, Space, ↓ : 次の記事へ
+      K,        ↑ : 前の記事へ
+      Enter        : 表示中の記事を読む
+      W            : 新しい記事を書く
+      T            : 現在位置から全記事タイトル表示 (連続スクロール)
+      R            : 現在位置から全記事連続読み (本文込み)
+      ?            : このヘルプを表示
+      E            : 掲示板メニューを終了
+      ---------------------------
+    mode_2: |
+      --- Article List Help ---
+      J, Space, ↓ : Next article
+      K,        ↑ : Previous article
+      Enter        : Read current article
+      W            : Write new article
+      T            : Show all titles from current (scroll)
+      R            : Read all articles from current (with body)
+      ?            : Display this help
+      E            : Exit BBS menu
+      ---------------------------
+    mode_3: |
+      --- ARTICLE LIST HELP ---
+      J, SPACE, DOWN : NEXT
+      K,        UP   : PREVIOUS
+      ENTER          : READ CURRENT
+      W              : WRITE NEW
+      T              : TITLES FROM CURRENT
+      R              : READ ALL FROM CURRENT
+      ?              : HELP
+      E              : EXIT BBS
+      ---------------------------
+  current_board_header: # 既存だが確認
+    mode_1: "--- {board_name} ---\r\n"
+    mode_2: "--- {board_name} ---\r\n"
+    mode_3: "--- {board_name} ---\r\n"
+  permission_denied_read: # 既存だが確認
+    mode_1: "この掲示板を閲覧する権限がありません。\r\n"
+    mode_2: "You do not have permission to view this board.\r\n"
+    mode_3: "PERMISSION DENIED TO VIEW THIS BOARD.\r\n"
 
 # --- ログオフ関連 ---
 logoff:
