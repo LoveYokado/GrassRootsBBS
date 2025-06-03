@@ -850,10 +850,38 @@ telegram:
     mode_2: "You cannot send a telegram to yourself.\r\n"
     mode_3: "CANNOT SEND TO SELF.\r\n"
 bbs:
-  board_not_found:
+  rw_prompt: # 看板表示後のプロンプト
+    mode_1: "[W]書く [R]読む : "
+    mode_2: "[W]Write [R]Read : "
+    mode_3: "[W] WRITE [R] READ : "
+  no_board_selected:
     mode_1: "ボードが存在しません。\r\n"
     mode_2: "Board not found.\r\n"
     mode_3: ""
+  post_header:
+    mode_1: "** 提供に感謝します **\r\n"
+  post_subject:
+    mode_1: "タイトルを入力してください : "
+  post_body:
+    mode_1: |
+      内容を入力してください : 
+      ----------------------------------
+      終了は、[^]だけの行を入力してください。
+      ----------------------------------
+  confirm_post_yn:
+    mode_1: "この内容を登録してよいですか (Y または N) : "
+    mode_2: "Post? (y/n) : "
+    mode_3: "POST? (y/n) : "
+  post_success:
+    mode_1: "** 登録しました **\r\n"
+  post_cancel: # 記事投稿をキャンセルした場合
+    mode_1: "** 登録をとりやめました **\r\n"
+    mode_2: "Article posting cancelled.\r\n"
+    mode_3: "ARTICLE POSTING CANCELLED.\r\n"
+  post_failed:
+    mode_1: "** 登録に失敗しました **\r\n"
+
+
 
 # --- ログオフ関連 ---
 logoff:

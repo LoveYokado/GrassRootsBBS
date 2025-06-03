@@ -1,10 +1,9 @@
 # bbs_handler.py (骨格)
-
+import sqlite3
 import logging
-import textwrap
+import time
 import sqlite_tools  # データベース操作用
 import util  # 共通関数 (設定読み込み、テキスト表示など)
-import json  # operators の処理や、もしDBのnameがJSONのままなら必要
 import ssh_input  # ユーザー入力処理
 
 # クラスや関数は、以下の構成で定義していく
@@ -91,10 +90,46 @@ class ArticleManager:
         # TODO: 実装
         pass
 
-    def create_article(self, board_id, user_id, title, body):
-        """記事を新規作成する"""
-        # TODO: 実装
-        pass
+    def create_article(self, board_id_pk, user_id_pk, title, body):
+        """
+        記事を新規作成する
+        board_id_pkはboardsテーブルの主キー
+        user_id_pkはusersテーブルの主キー
+        戻り値は作成された記事のID、失敗したらNone
+        """
+        conn = None
+        try:
+            # 次の記事番号取得
+            next_article_number = sqlite_tools.get_next_article_number(
+                self.dbname, board_id_pk)
+            if next_article_number is None:
+                logging.error(
+                    f"記事の作成に失敗しました(BoardID:{board_id_pk}, UserID:{user_id_pk}): 次の記事番号の取得に失敗")
+                return None
+
+            # 記事を挿入
+            current_timestamp = int(time.time())
+            article_id = sqlite_tools.insert_article(
+                self.dbname, board_id_pk, next_article_number, user_id_pk, title, body, current_timestamp
+            )
+
+            if article_id is not None:
+                # 掲示板の最終投稿日時を更新
+                sqlite_tools.update_board_last_posted_at(
+                    self.dbname, board_id_pk, current_timestamp)
+                logging.info(
+                    f"記事を作成しました(BoardID:{board_id_pk}, ArticleNo:{next_article_number}, UserID:{user_id_pk}, ArticleDBID:{article_id})")
+                return article_id
+            else:
+                return None
+
+        except Exception as e:
+            logging.error(
+                f"記事の作成に失敗しました(BoardID:{board_id_pk}, UserID:{user_id_pk}): {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
 
     def update_article(self, article_id, title, body):
         """記事を更新する（主に看板用）"""
@@ -148,6 +183,37 @@ class CommandHandler:
         self.article_manager = ArticleManager(dbname)
         self.permission_manager = PermissionManager(dbname)
         self.current_board = None  # 現在の掲示板
+        self.user_id_pk = sqlite_tools.get_user_id_from_user_name(
+            dbname, login_id)
+
+    def _display_kanban(self):
+        """看板を表示する"""
+        if not self.current_board:
+            return
+
+        kanban_title = self.current_board['kanban_title'] if 'kanban_title' in self.current_board.keys(
+        ) else ''
+        kanban_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board.keys(
+        ) else ''
+
+        if not kanban_title and not kanban_body:
+            return  # 看板がなければ表示しない
+
+        if kanban_title:
+            processed_title = kanban_title.replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            self.chan.send(processed_title.encode('utf-8'))
+            if not processed_title.endswith('\r\n'):
+                self.chan.send(b'\r\n')
+
+        if kanban_body:
+            processed_body = kanban_body.replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            self.chan.send(processed_body.encode('utf-8'))
+            if not processed_body.endswith('\r\n'):
+                self.chan.send(b'\r\n')
+        if kanban_title or kanban_body:
+            self.chan.send(b'\r\n')
 
     def command_loop(self):
         """コマンド処理のメインループ (mail_handler.py を参考に実装)"""
@@ -156,14 +222,35 @@ class CommandHandler:
                 self.chan, "bbs.no_board_selected", self.menu_mode)
             return
 
-        # 現在の掲示板名を表示 (get_board_info で bbs.yml から name がマージされている想定)
-        board_name_display = self.current_board.get('name', '不明な掲示板')
-        # 必要であれば description も表示
-        util.send_text_by_key(self.chan, "bbs.current_board_header",
-                              self.menu_mode, board_name=board_name_display)
+        board_name_display = self.current_board['name'] if 'name' in self.current_board.keys(
+        ) else 'unknown board'
+        # 説明表示が必要ならコメント外す
+        util.send_text_by_key(
+            self.chan, "bbs.current_board_header",
+            self.menu_mode, board_name=board_name_display
+        )
 
-        self.show_article_list()  # 初期表示として記事一覧
-    # 各コマンドに対応するメソッド
+        self._display_kanban()  # 板看板を表示
+
+        while True:
+            util.send_text_by_key(self.chan, "bbs.rw_prompt",
+                                  self.menu_mode, add_newline=False)
+            user_input = ssh_input.process_input(self.chan)
+
+            if user_input is None:
+                return  # 切断
+
+            command = user_input.strip().lower()
+
+            if command == '':
+                break  # 掲示板終了
+            elif command == 'w':
+                self.write_article()  # 記事書き込み
+            elif command == 'r':
+                pass  # 記事読み込み
+
+            else:
+                continue  # コマンド不明
 
     def show_article_list(self):
         """記事一覧を表示"""
@@ -177,8 +264,54 @@ class CommandHandler:
 
     def write_article(self):
         """記事を新規作成"""
-        # TODO: 実装
-        pass
+        if not self.current_board:
+            util.send_text_by_key(
+                self.chan, "bbs.no_board_selected", self.menu_mode)
+            return
+
+        board_id_pk = self.current_board['id']  # sqlite3のオブジェクトを取得
+        # TODO:将来的にはPermissionManagerで書き込み権限チェック
+        # if not self.permission_manager.check_permission(board_id_pk, self.user_id_pk, "write"):
+        #    util.send_text_by_key(self.chan, "bbs.permission_denied_write", self.menu_mode)
+        #    return
+
+        util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
+        util.send_text_by_key(self.chan, "bbs.post_subject",
+                              self.menu_mode, add_newline=False)
+        title = ssh_input.process_input(self.chan)
+        if title is None:
+            return  # 切断
+        title = title.strip()
+
+        if not title:
+            return  # タイトルがなければキャンセル
+
+        util.send_text_by_key(self.chan, "bbs.post_body", self.menu_mode)
+        body_lines = []
+        while True:
+            line = ssh_input.process_input(self.chan)
+            if line is None:
+                return  # 切断
+            if line == '^':
+                break
+            body_lines.append(line)
+        body = '\r\n'.join(body_lines)
+
+        if not body.strip():
+            title = title+'(T/O)'  # タイトルをタイトルオンリーに更新
+
+        util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
+                              self.menu_mode, add_newline=False)
+        confirm = ssh_input.process_input(self.chan)
+        if confirm is None or confirm.strip().lower() != 'y':
+            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
+            return  # キャンセル
+
+        if self.article_manager.create_article(board_id_pk, self.user_id_pk, title, body):
+            util.send_text_by_key(
+                self.chan, "bbs.post_success", self.menu_mode)
+        else:
+            util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
 
     # ... 他のコマンドに対応するメソッドを定義
 

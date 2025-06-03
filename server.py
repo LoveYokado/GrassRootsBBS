@@ -191,6 +191,10 @@ class Server(paramiko.ServerInterface):
 
         # 通常接続時はDBからユーザの認証設定を取
         user_auth_info = sqlite_tools.get_user_auth_info(db_name, username)
+        logging.debug(
+            # デバッグログ追加
+            f"get_allowed_auths: username='{username}', user_auth_info type: {type(user_auth_info)}, content: {user_auth_info}")
+
         if user_auth_info:
             auth_method = user_auth_info['auth_method']
             if auth_method == 'key_only':
@@ -400,7 +404,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                 f"掲示板メニュー開始: login_id={login_id}, menu_mode={current_loop_menu_mode}")
 
             # 掲示板IDを指定して呼び出す場合
-            shortcut_id = "bbs_free"
+            shortcut_id = "free"
             bbs_handler.handle_bbs_menu(
                 chan, dbname, login_id, current_loop_menu_mode, shortcut_id)
 

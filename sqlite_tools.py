@@ -539,3 +539,48 @@ def delete_board_entry(dbname, shortcut_id):
 def get_all_boards(dbname):
     sql = "SELECT id, shortcut_id, operators, default_permission, category_id, display_order FROM boards WHERE category_id=?"
     return sqlite_execute_query(dbname, sql, (current_menu_mode,), fetch=True)
+
+
+def get_next_article_number(dbname, board_id_pk):
+    sql = "SELECT COALESCE(MAX(article_number), 0) + 1 FROM articles WHERE board_id=?"
+    results = sqlite_execute_query(
+        dbname, sql, (board_id_pk,), fetch=True)
+    if results and results[0] is not None:
+        return results[0][0]
+    return 1  # エラー、または記事がないなら1から
+
+
+def update_board_last_posted_at(dbname, board_id_pk, timestamp=None):
+    # boardsテーブルのlast_posted_atを更新
+    if timestamp is None:
+        timestamp = int(time.time())
+    sql = "UPDATE boards SET last_posted_at=? WHERE id=?"
+    return sqlite_execute_query(dbname, sql, (timestamp, board_id_pk))
+
+
+def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body, timestamp):
+    """
+    articlesテーブルに新しい記事を挿入し、挿入された記事のIDを返す。
+    失敗した場合はNoneを返す。
+    """
+    sql = """
+        INSERT INTO articles (board_id, article_number, user_id, title, body, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """
+    params = (board_id_pk, article_number, user_id_pk, title, body, timestamp)
+    conn = None
+    try:
+        conn = sqlite3.connect(dbname)
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        article_id = cur.lastrowid
+        conn.commit()
+        return article_id
+    except sqlite3.Error as e:
+        logging.error(f"記事挿入中にSQLiteエラー: {e} (SQL: {sql}, Params: {params})")
+        if conn:
+            conn.rollback()
+        return None
+    finally:
+        if conn:
+            conn.close()
