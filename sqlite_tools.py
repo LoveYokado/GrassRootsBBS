@@ -558,7 +558,7 @@ def update_board_last_posted_at(dbname, board_id_pk, timestamp=None):
     return sqlite_execute_query(dbname, sql, (timestamp, board_id_pk))
 
 
-def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body, timestamp):
+def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body, timestamp, ip_address=None):
     """
     articlesテーブルに新しい記事を挿入し、挿入された記事のIDを返す。
     失敗した場合はNoneを返す。
@@ -567,7 +567,8 @@ def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body,
         INSERT INTO articles (board_id, article_number, user_id, title, body, created_at, ip_address)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """
-    params = (board_id_pk, article_number, user_id_pk, title, body, timestamp)
+    params = (board_id_pk, article_number, user_id_pk,
+              title, body, timestamp, ip_address)
     conn = None
     try:
         conn = sqlite3.connect(dbname)
@@ -584,3 +585,28 @@ def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body,
     finally:
         if conn:
             conn.close()
+
+
+def get_articles_by_board_id(dbname, board_id_pk, order_by="article_number ASC"):
+    """指定された掲示板IDの記事リストを取得する"""
+    # is_deleted が 0 (または FALSE) の記事のみ取得するのを基本とするか、
+    # deleted フラグも含めて取得し、表示側で制御するかは要件による。
+    # ここでは簡単のため is_deleted を考慮しない。
+    sql = f"SELECT id, article_number, user_id, title, created_at FROM articles WHERE board_id = ? ORDER BY {order_by}"
+    results = sqlite_execute_query(dbname, sql, (board_id_pk,), fetch=True)
+    return results if results else []
+
+
+def get_article_by_board_and_number(dbname, board_id_pk, article_number):
+    """指定された掲示板IDと記事番号の記事を取得する"""
+    # is_deleted が 0 (または FALSE) の記事のみ取得
+    sql = "SELECT id, article_number, user_id, title, body, created_at, ip_address FROM articles WHERE board_id = ? AND article_number = ? AND is_deleted = 0"
+    # sqlite_execute_query は fetchone=True で単一の sqlite3.Row オブジェクトを返す想定
+    # もし sqlite_execute_query が fetchone をサポートしていない場合は、fetch=True で取得し、結果リストの最初の要素を使う
+    # ここでは fetchone があると仮定
+    # result = sqlite_execute_query(dbname, sql, (board_id_pk, article_number), fetchone=True)
+    # fetchoneがない場合の代替
+    results = sqlite_execute_query(
+        dbname, sql, (board_id_pk, article_number), fetch=True)
+    result = results[0] if results else None
+    return result

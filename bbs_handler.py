@@ -1,10 +1,12 @@
 # bbs_handler.py (骨格)
-import sqlite3
 import logging
 import time
 import sqlite_tools  # データベース操作用
 import util  # 共通関数 (設定読み込み、テキスト表示など)
 import ssh_input  # ユーザー入力処理
+import socket
+import textwrap
+import datetime
 
 # クラスや関数は、以下の構成で定義していく
 # - BoardManager: 掲示板のメタ情報管理、bbs.yml との同期
@@ -83,8 +85,8 @@ class ArticleManager:
     def get_articles_by_board(self, board_id):
         """指定された掲示板の投稿一覧を取得する"""
         # board_idはboardsテーブルの主キー(id)
-        # 投稿順で取得
-        return sqlite_tools.get_articles_by_board(self.dbname, board_idm, order_by="article_number ASC")
+        # 投稿順（古いものが先）で取得
+        return sqlite_tools.get_articles_by_board_id(self.dbname, board_id, order_by="created_at ASC, article_number ASC")
 
     def get_article_by_number(self, board_id, article_number):
         """指定された記事番号の記事を取得する"""
@@ -301,15 +303,28 @@ class CommandHandler:
             elif articles and 0 <= current_index < len(articles):
                 article = articles[current_index]
                 title = article['title'] if article['title'] else "(No Title)"
-                title_short = util.textwrap.shorten(
-                    user_name if user_name else "(Unknown)", width=12, placeholder="...")
+
+                user_name = sqlite_tools.get_user_name_from_user_id(
+                    self.dbname, article['user_id'])
+                user_name_short = textwrap.shorten(
+                    user_name if user_name else "(Unknown)", width=7, placeholder="..")
                 try:
-                    created_at_str = util.datetime.datetime.fromtimestamp(
-                        article['created_at']).strftime("%Y-%m-%d %H:%M:%S")
+                    created_at_ts = article['created_at']
+                    r_date_str = datetime.datetime.fromtimestamp(
+                        created_at_ts).strftime("%y/%m/%d")
+                    r_time_str = datetime.datetime.fromtimestamp(
+                        created_at_ts).strftime("%H:%M")
                 except:
-                    created_at_str = "---/--/-- --:--:--"
-                self.chan.send(f" {article_no_str} | {title_short:<30} | {user_name_short:<12} {created_at_str}\r\n".encode(
-                    'utf-8') if articles else f" {article_no_str} | {title_short:<30} | {user_name_short:<12} {created_at_str} {title}\r\n".encode('utf-8'))
+                    r_date_str = "--/--/--"
+                    r_time_str = "--:--"
+
+                title_short = textwrap.shorten(
+                    title, width=38, placeholder="...")
+                # 左寄せ、指定幅
+                article_no_str = f"{article['article_number']:0{article_id_width}d}"
+
+                self.chan.send(
+                    f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {title_short}\r\n".encode('utf-8'))
             else:
                 util.send_text_by_key(
                     self.chan, "bbs.no_article", self.menu_mode)
@@ -409,21 +424,26 @@ class CommandHandler:
                     self.chan, "bbs.article_list_header", self.menu_mode)
                 for i in range(start_idx, len(articles)):
                     article = articles[i]
-                    article_no_str = f"{article['article_number']:<{article_id_width}}"
+                    # 左寄せ、指定幅
+                    article_no_str = f"{article['article_number']:0{article_id_width}d}"
                     title = article['title'] if article['title'] else "(No Title)"
-                    title_short = util.textwrap.shorten(
-                        title, width=30, placeholder="...")
+                    title_short = textwrap.shorten(
+                        title, width=38, placeholder="...")
                     user_name = sqlite_tools.get_user_name_from_user_id(
                         self.dbname, article['user_id'])
-                    user_name_short = util.textwrap.shorten(
-                        user_name if user_name else "(不明)", width=12, placeholder="...")
+                    user_name_short = textwrap.shorten(
+                        user_name if user_name else "(不明)", width=7, placeholder="..")
                     try:
-                        created_at_str = util.datetime.datetime.fromtimestamp(
-                            article['created_at']).strftime('%y/%m/%d %H:%M')
+                        created_at_ts = article['created_at']
+                        r_date_str = datetime.datetime.fromtimestamp(
+                            created_at_ts).strftime('%y/%m/%d')
+                        r_time_str = datetime.datetime.fromtimestamp(
+                            created_at_ts).strftime('%H:%M')
                     except:
-                        created_at_str = "----/--/-- --:--"
+                        r_date_str = "----/--/--"
+                        r_time_str = "--:--"
                     self.chan.send(
-                        f" {article_no_str} | {title_short:<30} | {user_name_short:<12} | {created_at_str}\r\n".encode('utf-8'))
+                        f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {title_short}\r\n".encode('utf-8'))
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
 
@@ -472,7 +492,7 @@ class CommandHandler:
         user_name = sqlite_tools.get_user_name_from_user_id(
             self.dbname, article['user_id'])
         try:
-            created_at_str = util.datetime.datetime.fromtimestamp(
+            created_at_str = datetime.datetime.fromtimestamp(
                 article['created_at']).strftime('%Y-%m-%d %H:%M:%S')
         except:  # pylint: disable=bare-except
             created_at_str = "----/--/-- --:--:--"
@@ -485,7 +505,7 @@ class CommandHandler:
         body_to_send = article['body'].replace(
             '\r\n', '\n').replace('\n', '\r\n')
         # textwrap を使って本文を折り返す
-        wrapped_body_lines = util.textwrap.wrap(
+        wrapped_body_lines = textwrap.wrap(
             body_to_send, width=78, replace_whitespace=False, drop_whitespace=False)
         for line in wrapped_body_lines:
             self.chan.send(line.encode('utf-8') + b'\r\n')
