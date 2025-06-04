@@ -291,15 +291,16 @@ class CommandHandler:
         def display_current_article_header():
             nonlocal articles, current_index, article_id_width
             if current_index == -1:  # 先頭マーカ
-                marker_id_str = " "*(article_id_width-1)+"v"
-                self.chan.send(f"{marker_id_str}\r\n".encode('utf-8'))
+                marker_num_str = "0" * article_id_width
+                self.chan.send(f"{marker_num_str} v\r\n".encode('utf-8'))
             elif current_index == len(articles):  # 末尾マーカ
                 if not articles:  # 記事がない場合
                     util.send_text_by_key(
                         self.chan, "bbs.no_article", self.menu_mode)
                 else:
-                    marker_id_str = " "*(article_id_width-1)+"^"
-                    self.chan.send(f"{marker_id_str}\r\n".encode('utf-8'))
+                    marker_num_display = len(articles) + 1
+                    marker_num_str = f"{marker_num_display:0{article_id_width}d}"
+                    self.chan.send(f"{marker_num_str} ^\r\n".encode('utf-8'))
             elif articles and 0 <= current_index < len(articles):
                 article = articles[current_index]
                 title = article['title'] if article['title'] else "(No Title)"
@@ -391,9 +392,15 @@ class CommandHandler:
 
             elif key_input == "ENTER":
                 if articles and 0 <= current_index < len(articles):
+                    display_current_article_header()  # 1. 1行ヘッダを表示 (末尾に改行を含む)
+                    self.chan.send(b'\r\n')          # 2. 1行ヘッダと本文の間に空行を追加
                     self.read_article(
-                        articles[current_index]['article_number'])
-                    reload_articles_display(keep_index=True)  # 記事読了後、一覧を再表示
+                        articles[current_index]['article_number'],
+                        show_header=False,
+                        show_back_prompt=False
+                    )  # 3. 本文を表示 (このメソッドの末尾で改行が1つ入る)
+                    # 4. 記事一覧の全体ヘッダは再表示せず、ループ末尾のプロンプト表示に任せる
+                    reload_articles_display(keep_index=True)
                 elif not articles or current_index == -1 or current_index == len(articles):
                     self.chan.send(b'\a')  # マーカー位置では読めない
 
@@ -470,7 +477,7 @@ class CommandHandler:
             else:
                 self.chan.send(b'\a')
 
-    def read_article(self, article_number, show_back_prompt=True):
+    def read_article(self, article_number, show_header=True, show_back_prompt=True):
         """記事を読む"""
         if not self.current_board:
             util.send_text_by_key(
@@ -486,21 +493,24 @@ class CommandHandler:
                 self.chan, "bbs.article_not_found", self.menu_mode)
             return
 
-        title = article['title'] if article['title'] else "(No Title)"
-        util.send_text_by_key(self.chan, "bbs.read_article_header", self.menu_mode,
-                              article_number=article['article_number'], title=title)
-        user_name = sqlite_tools.get_user_name_from_user_id(
-            self.dbname, article['user_id'])
-        try:
-            created_at_str = datetime.datetime.fromtimestamp(
-                article['created_at']).strftime('%Y-%m-%d %H:%M:%S')
-        except:  # pylint: disable=bare-except
-            created_at_str = "----/--/-- --:--:--"
+        if show_header:
+            title = article['title'] if article['title'] else "(No Title)"
+            util.send_text_by_key(
+                self.chan, "bbs.article_header", self.menu_mode,
+                article_number=article['article_number'], title=title)
+            user_name = sqlite_tools.get_user_name_from_user_id(
+                self.dbname, article['user_id'])
+            try:
+                created_at_str = datetime.datetime.fromtimestamp(
+                    article['created_at']).strftime("%Y-/%m-/%d %H:%M:%S")
+            except:
+                created_at_str = "----/--/-- --:--:--"
 
-        self.chan.send(
-            f"投稿者: {user_name if user_name else '(不明)'}\r\n".encode('utf-8'))
-        self.chan.send(f"投稿日時: {created_at_str}\r\n".encode('utf-8'))
-        self.chan.send(b"\r\n")  # ヘッダーと本文の間に空行
+            self.chan.send(
+                f"Sender: {user_name if user_name else 'Unknown'}\r\n".encode('utf-8'))
+            self.chan.send(
+                f"Date: {created_at_str}\r\n".encode('utf-8'))
+            self.chan.send(b'\r\n')
 
         body_to_send = article['body'].replace(
             '\r\n', '\n').replace('\n', '\r\n')
@@ -510,9 +520,8 @@ class CommandHandler:
         for line in wrapped_body_lines:
             self.chan.send(line.encode('utf-8') + b'\r\n')
 
-        if not body_to_send.endswith('\r\n'):  # 念のため
-            self.chan.send(b'\r\n')
-        self.chan.send(b'\r\n')  # 本文後にも空行
+        # 本文表示後、改行を1行だけ入れる
+        self.chan.send(b'\r\n')
 
         if show_back_prompt:
             while True:
