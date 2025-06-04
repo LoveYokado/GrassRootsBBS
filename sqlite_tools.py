@@ -33,6 +33,22 @@ def get_user_name_from_user_id(dbname, user_id):
         return "(エラー)"
 
 
+def get_user_level_from_user_id(dbname, user_id):
+    """ユーザIDからユーザレベルを取得する"""
+    try:
+        results = fetchall_idbase(  # fetchall_idbase はリストを返すので results[0] を使う
+            dbname, 'users', 'id', user_id)
+        if results:
+            return results[0]['level']
+        else:
+            logging.warning(f"ユーザレベル取得失敗: ユーザID '{user_id}'が見つかりません。")
+            # 送信者が削除された場合など
+            return 0
+    except Exception as e:
+        logging.error(f"ユーザレベル取得中にDBエラー (ID: {user_id}): {e}")
+        return 0
+
+
 def get_user_auth_info(dbname, username):
     """
     ユーザ名から認証情報を含むユーザデータ取得。
@@ -587,17 +603,23 @@ def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body,
             conn.close()
 
 
-def get_articles_by_board_id(dbname, board_id_pk, order_by="article_number ASC"):
-    """指定された掲示板IDの記事リストを取得する"""
-    # is_deleted が 0 (または FALSE) の記事のみ取得するのを基本とするか、
-    # deleted フラグも含めて取得し、表示側で制御するかは要件による。
-    # ここでは簡単のため is_deleted を考慮しない。
-    sql = f"SELECT id, article_number, user_id, title, created_at FROM articles WHERE board_id = ? ORDER BY {order_by}"
-    results = sqlite_execute_query(dbname, sql, (board_id_pk,), fetch=True)
+def get_articles_by_board_id(dbname, board_id_pk, order_by="article_number ASC", include_deleted=False):
+    """
+    指定された掲示板IDの記事リストを取得する。
+    include_deleted=True の場合、削除済み記事も含む。
+    """
+    sql = f"SELECT id, article_number, user_id, title, created_at, is_deleted FROM articles WHERE board_id = ?"
+    params = [board_id_pk]
+
+    if not include_deleted:
+        sql += " AND is_deleted = 0"
+
+    sql += f" ORDER BY {order_by}"
+    results = sqlite_execute_query(dbname, sql, tuple(params), fetch=True)
     return results if results else []
 
 
-def get_article_by_board_and_number(dbname, board_id_pk, article_number):
+def get_article_by_board_and_number(dbname, board_id_pk, article_number, include_deleted=False):
     """指定された掲示板IDと記事番号の記事を取得する"""
     # is_deleted が 0 (または FALSE) の記事のみ取得
     sql = "SELECT id, article_number, user_id, title, body, created_at, ip_address FROM articles WHERE board_id = ? AND article_number = ? AND is_deleted = 0"
@@ -605,8 +627,44 @@ def get_article_by_board_and_number(dbname, board_id_pk, article_number):
     # もし sqlite_execute_query が fetchone をサポートしていない場合は、fetch=True で取得し、結果リストの最初の要素を使う
     # ここでは fetchone があると仮定
     # result = sqlite_execute_query(dbname, sql, (board_id_pk, article_number), fetchone=True)
-    # fetchoneがない場合の代替
+    sql = "SELECT id, article_number, user_id, title, body, created_at, ip_address, is_deleted FROM articles WHERE board_id = ? AND article_number = ?"
+    params = [board_id_pk, article_number]
+    if not include_deleted:
+        sql += " AND is_deleted = 0"
     results = sqlite_execute_query(
         dbname, sql, (board_id_pk, article_number), fetch=True)
     result = results[0] if results else None
     return result
+
+
+def toggle_article_deleted_status(dbname, article_id):
+    """記事の is_deleted フラグをトグルする"""
+    conn = None
+    try:
+        conn = sqlite3.connect(dbname)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        # 現在の is_deleted の値を取得
+        cur.execute("SELECT is_deleted FROM articles WHERE id = ?",
+                    (article_id,))
+        result = cur.fetchone()
+
+        if result is None:
+            logging.warning(f"記事削除フラグのトグル失敗: 記事ID '{article_id}' が見つかりません。")
+            return False
+
+        new_status = 1 - result['is_deleted']  # 0なら1に、1なら0に
+        cur.execute("UPDATE articles SET is_deleted = ? WHERE id = ?",
+                    (new_status, article_id))
+        conn.commit()
+        logging.info(f"記事ID {article_id} の is_deleted を {new_status} に変更しました。")
+        return True
+    except sqlite3.Error as e:
+        logging.error(f"記事削除フラグのトグル中にDBエラー (記事ID: {article_id}): {e}")
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if conn:
+            conn.close()

@@ -82,17 +82,17 @@ class ArticleManager:
     def __init__(self, dbname):
         self.dbname = dbname
 
-    def get_articles_by_board(self, board_id):
+    def get_articles_by_board(self, board_id, include_deleted=False):
         """指定された掲示板の投稿一覧を取得する"""
         # board_idはboardsテーブルの主キー(id)
         # 投稿順（古いものが先）で取得
-        return sqlite_tools.get_articles_by_board_id(self.dbname, board_id, order_by="created_at ASC, article_number ASC")
+        return sqlite_tools.get_articles_by_board_id(self.dbname, board_id, order_by="created_at ASC, article_number ASC", include_deleted=include_deleted)
 
-    def get_article_by_number(self, board_id, article_number):
+    def get_article_by_number(self, board_id, article_number, include_deleted=False):
         """指定された記事番号の記事を取得する"""
         # board_idはboardsテーブルの主キー(id)
         article_data = sqlite_tools.get_article_by_board_and_number(
-            self.dbname, board_id, article_number)
+            self.dbname, board_id, article_number, include_deleted=include_deleted)
         if article_data:
             return article_data
         return None
@@ -144,11 +144,11 @@ class ArticleManager:
         pass
 
     def toggle_delete_article(self, article_id):
-        """記事の削除フラグをトグルする"""
-        # TODO: 実装
-        pass
+        """記事の削除フラグをトグルする(論理削除)"""
+        return sqlite_tools.toggle_article_deleted_status(self.dbname, article_id)
 
     def search_articles(self, board_id, keyword, search_body=False):
+        # TODO: 検索機能の実装時に include_deleted を考慮する
         """記事を検索する（タイトルまたは本文）"""
         # TODO: 実装
         pass
@@ -193,6 +193,8 @@ class CommandHandler:
         self.just_displayed_header_from_tail_h = False  # 読み戻り時の状態フラグ
         self.user_id_pk = sqlite_tools.get_user_id_from_user_name(
             dbname, login_id)
+        self.userlevel = sqlite_tools.get_user_level_from_user_id(
+            dbname, self.user_id_pk)
 
     def _display_kanban(self):
         """看板を表示する"""
@@ -255,18 +257,21 @@ class CommandHandler:
         current_index = 0
         article_id_width = 5  # 記事番号桁数
 
+        # シスオペは削除記事も表示する
+        show_deleted_articles = self.userlevel >= 5  # TODO:権限設定で変更可能にする
+
         def reload_articles_display(keep_index=True):
             nonlocal articles, current_index, article_id_width
             current_article_id_on_reload = None
-            if articles and 0 <= current_index < len(articles):
+            if articles and 0 <= current_index < len(articles) and keep_index:
                 current_article_id_on_reload = articles[current_index]['id']
 
             fetched_articles = self.article_manager.get_articles_by_board(
-                board_id_pk)
+                board_id_pk, include_deleted=show_deleted_articles)  # 削除済み記事表示設定を渡す
             articles = fetched_articles if fetched_articles else []
 
             new_idx = 0
-            if articles:
+            if articles and keep_index:
                 if keep_index and current_article_id_on_reload is not None:
                     found = False
                     for i, art in enumerate(articles):
@@ -276,10 +281,11 @@ class CommandHandler:
                             break
                     if not found:
                         new_idx = 0
-                article_id_width = max(
-                    5, len(str(len(articles)))) if articles else 5
+            article_id_width = max(
+                5, len(str(len(articles)))) if articles else 5
             current_index = new_idx
 
+            # 画面クリアしてヘッダ再表示
             util.send_text_by_key(
                 self.chan, "bbs.article_list_header", self.menu_mode)
             if not articles:
@@ -290,7 +296,7 @@ class CommandHandler:
                 display_current_article_header()
 
         def display_current_article_header():
-            nonlocal articles, current_index, article_id_width
+            nonlocal articles, current_index, article_id_width, show_deleted_articles
             if current_index == -1:  # 先頭マーカ
                 marker_num_str = "0" * article_id_width
                 self.chan.send(f"{marker_num_str} v\r\n".encode('utf-8'))
@@ -306,6 +312,8 @@ class CommandHandler:
                 article = articles[current_index]
                 title = article['title'] if article['title'] else "(No Title)"
 
+                # 削除済みマーク
+                deleted_mark = "*" if article['is_deleted'] else ""
                 user_name = sqlite_tools.get_user_name_from_user_id(
                     self.dbname, article['user_id'])
                 user_name_short = textwrap.shorten(
@@ -326,7 +334,7 @@ class CommandHandler:
                 article_no_str = f"{article['article_number']:0{article_id_width}d}"
 
                 self.chan.send(
-                    f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {title_short}\r\n".encode('utf-8'))
+                    f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {deleted_mark}{title_short}\r\n".encode('utf-8'))
             else:
                 util.send_text_by_key(
                     self.chan, "bbs.no_article", self.menu_mode)
@@ -367,6 +375,16 @@ class CommandHandler:
                         key_input = '\x1b'  # タイムアウトもesc扱い
                     finally:
                         self.chan.settimeout(None)  # タイムアウトを解除
+                elif data == b'\x05':  # CTRL+E
+                    key_input = '\x05'
+                elif data == b'\x12':  # CTRL+R
+                    key_input = '\x12'
+                elif data == b'\x18':  # CTRL+X
+                    key_input = '\x18'
+                elif data == b'\x06':  # CTRL+F
+                    key_input = '\x06'
+                elif data == b'\x04':  # CTRL+D
+                    key_input = '\x04'
                 elif data == b'\t':
                     key_input = "\t"  # タブキー
                 elif data in (b'\r', b'\n'):
@@ -387,7 +405,8 @@ class CommandHandler:
             if key_input is None:  # キーが取得できなかった場合 (通常は発生しないはず)
                 continue
 
-            if key_input == "k" or key_input == "KEY_UP":
+            # 旧方向へ進む[ctrl+e][k][上カーソル]
+            if key_input == '\x05' or key_input == "k" or key_input == "KEY_UP":
                 if not articles:
                     self.chan.send(b'\a')
                     continue
@@ -409,7 +428,8 @@ class CommandHandler:
                     self.chan.send(b'\a')
                 self.just_displayed_header_from_tail_h = False
 
-            elif key_input == "ENTER":
+            # 現在位置を読む[ctrl+d][enter]
+            elif key_input == '\x04' or key_input == "ENTER":
                 if articles and 0 <= current_index < len(articles):
                     display_current_article_header()  # 1. 1行ヘッダを表示 (末尾に改行を含む)
                     self.chan.send(b'\r\n')          # 2. 1行ヘッダと本文の間に空行を追加
@@ -418,7 +438,7 @@ class CommandHandler:
                         show_header=False,
                         show_back_prompt=False
                     )  # 3. 本文を表示 (このメソッドの末尾で改行が1つ入る)
-                    # 4. 記事一覧の全体ヘッダは再表示せず、ループ末尾のプロンプト表示に任せる
+                    # 4. 記事一覧の全体ヘッダは再表示せず、現在のカーソル位置のヘッダ表示とループ末尾のプロンプト表示に任せる
                     reload_articles_display(keep_index=True)
                 elif not articles or current_index == -1 or current_index == len(articles):
                     self.chan.send(b'\a')  # マーカー位置では読めない
@@ -462,7 +482,8 @@ class CommandHandler:
                     # else current_index が範囲外のケースは通常発生しない
                     self.just_displayed_header_from_tail_h = False
 
-            elif key_input == "l" or key_input == "KEY_RIGHT" or key_input == "\t":  # 読み進み
+            # 読み進み[ctrl+f][l][右カーソル][タブ]
+            elif key_input == '\x06' or key_input == "l" or key_input == "KEY_RIGHT" or key_input == "\t":
                 if not articles:
                     self.chan.send(b'\a')
                     self.just_displayed_header_from_tail_h = False
@@ -505,9 +526,58 @@ class CommandHandler:
                     display_current_article_header()  # とりあえず現在の状態を表示
                 self.just_displayed_header_from_tail_h = False
 
+            # 削除[*]
+            elif key_input == "*":
+                if not articles or current_index == -1 or current_index == len(articles):
+                    self.chan.send(b'\a')  # マーカ位置では無効
+                    self.just_displayed_header_from_tail_h = False
+                    continue
+
+                article_to_delete = articles[current_index]
+                article_id_pk = article_to_delete['id']
+                article_number = article_to_delete['article_number']
+                article_user_id = article_to_delete['user_id']
+
+                # 権限チェック:シスオペ(LV5)または記事の投稿者
+                if self.userlevel >= 5 or article_user_id == self.user_id_pk:
+                    if self.article_manager.toggle_delete_article(article_id_pk):
+                        # トグル前の状態
+                        was_deleted = article_to_delete['is_deleted'] == 1
+                        # 削除状態が切り替わった
+                        if was_deleted:  # 復旧された
+                            util.send_text_by_key(
+                                self.chan, "bbs.article_restored_success", self.menu_mode, article_number=article_number)
+                        else:  # 削除された
+                            util.send_text_by_key(
+                                self.chan, "bbs.article_deleted_success", self.menu_mode, article_number=article_number)
+                        reload_articles_display(
+                            keep_index=True)  # カーソル位置を維持して再表示
+                    else:
+                        # 削除/復旧に失敗した場合
+                        util.send_text_by_key(
+                            self.chan, "common_messages.error", self.menu_mode)
+                        logging.warning(
+                            f"記事の削除/復旧が失敗しました。:(記事id {article_id_pk},記事番号 {article_number},投稿者ID {article_user_id}"
+                        )
+                        display_current_article_header()  # 失敗したら現在の行を再表示
+                else:
+                    # 権限なし
+                    self.chan.send(b'\a')  # 権限なし
+                    util.send_text_by_key(
+                        self.chan, "bbs.permission_denied_delete", self.menu_mode)
+                    display_current_article_header()  # 権限なしメッセージの後、現在の行を再表示
+                self.just_displayed_header_from_tail_h = False
+
             elif key_input == "w":
                 self.write_article()
                 reload_articles_display(keep_index=False)  # 新規投稿後は先頭から再表示
+                self.just_displayed_header_from_tail_h = False
+
+            elif key_input == "s":  # シグ看板表示
+                self.chan.send(b'\r\n')
+                # 看板表示前に現在の記事ヘッダを消す必要はない（看板は別領域に表示される想定）
+                self._display_kanban()
+                display_current_article_header()  # 看板表示後はリストモードに戻る
                 self.just_displayed_header_from_tail_h = False
 
             elif key_input == "e" or key_input == '\x1b':  # ESCでも終了
@@ -517,6 +587,7 @@ class CommandHandler:
                 self.chan.send(b'\r\n')
                 util.send_text_by_key(
                     self.chan, "bbs.article_list_help", self.menu_mode)
+                # ヘルプ表示後に現在の行を再表示
                 self.just_displayed_header_from_tail_h = False
                 display_current_article_header()  # ヘルプ表示後に現在の行を再表示
 
@@ -554,6 +625,7 @@ class CommandHandler:
                         r_time_str = "--:--"
                     self.chan.send(
                         f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {title_short}\r\n".encode('utf-8'))
+                self.chan.send(b'\r\n')  # タイトル一覧の最後に空行
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
@@ -575,6 +647,7 @@ class CommandHandler:
                     self.read_article(
                         articles[i]['article_number'], show_back_prompt=False)
                     self.chan.send(b'\r\n')  # 記事間に空行
+                # 連続読み終了後、末尾マーカーへ移動
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
@@ -592,7 +665,7 @@ class CommandHandler:
 
         board_id_pk = self.current_board['id']
         article = self.article_manager.get_article_by_number(
-            board_id_pk, article_number)
+            board_id_pk, article_number, include_deleted=True)  # 読むときは削除済みでも取得する
 
         if not article:
             util.send_text_by_key(
@@ -600,6 +673,14 @@ class CommandHandler:
             return
 
         if show_header:
+            # 削除済み記事の場合、ヘッダにマークをつける
+            deleted_mark = "*" if article['is_deleted'] else ""
+            util.send_text_by_key(
+                self.chan, "bbs.article_header", self.menu_mode,
+                article_number=article['article_number'],
+                title=article['title'] if article['title'] else "(No Title)",
+            )
+
             title = article['title'] if article['title'] else "(No Title)"
             util.send_text_by_key(
                 self.chan, "bbs.article_header", self.menu_mode,
@@ -616,6 +697,10 @@ class CommandHandler:
                 f"Sender: {user_name if user_name else 'Unknown'}\r\n".encode('utf-8'))
             self.chan.send(
                 f"Date: {created_at_str}\r\n".encode('utf-8'))
+            self.chan.send(b'\r\n')
+
+        # 削除済み記事の本文表示
+        if article['is_deleted'] and self.userlevel < 5:  # シスオペ以外には本文を表示しない
             self.chan.send(b'\r\n')
 
         body_to_send = article['body'].replace(
@@ -662,43 +747,45 @@ class CommandHandler:
         #    util.send_text_by_key(self.chan, "bbs.permission_denied_write", self.menu_mode)
         #    return
 
-        util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
-        util.send_text_by_key(self.chan, "bbs.post_subject",
-                              self.menu_mode, add_newline=False)
-        title = ssh_input.process_input(self.chan)
-        if title is None:
+
+def get_article_by_number(self, board_id, article_number):
+    util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
+    util.send_text_by_key(self.chan, "bbs.post_subject",
+                          self.menu_mode, add_newline=False)
+    title = ssh_input.process_input(self.chan)
+    if title is None:
+        return  # 切断
+    title = title.strip()
+
+    if not title:
+        return  # タイトルがなければキャンセル
+
+    util.send_text_by_key(self.chan, "bbs.post_body", self.menu_mode)
+    body_lines = []
+    while True:
+        line = ssh_input.process_input(self.chan)
+        if line is None:
             return  # 切断
-        title = title.strip()
+        if line == '^':
+            break
+        body_lines.append(line)
+    body = '\r\n'.join(body_lines)
 
-        if not title:
-            return  # タイトルがなければキャンセル
+    if not body.strip():
+        title = title+'(T/O)'  # タイトルをタイトルオンリーに
 
-        util.send_text_by_key(self.chan, "bbs.post_body", self.menu_mode)
-        body_lines = []
-        while True:
-            line = ssh_input.process_input(self.chan)
-            if line is None:
-                return  # 切断
-            if line == '^':
-                break
-            body_lines.append(line)
-        body = '\r\n'.join(body_lines)
+    util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
+                          self.menu_mode, add_newline=False)
+    confirm = ssh_input.process_input(self.chan)
+    if confirm is None or confirm.strip().lower() != 'y':
+        util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
+        return  # キャンセル
 
-        if not body.strip():
-            title = title+'(T/O)'  # タイトルをタイトルオンリーに
-
-        util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
-                              self.menu_mode, add_newline=False)
-        confirm = ssh_input.process_input(self.chan)
-        if confirm is None or confirm.strip().lower() != 'y':
-            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
-            return  # キャンセル
-
-        if self.article_manager.create_article(board_id_pk, self.user_id_pk, title, body, ip_address=client_ip):
-            util.send_text_by_key(
-                self.chan, "bbs.post_success", self.menu_mode)
-        else:
-            util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
+    if self.article_manager.create_article(board_id_pk, self.user_id_pk, title, body, ip_address=client_ip):
+        util.send_text_by_key(
+            self.chan, "bbs.post_success", self.menu_mode)
+    else:
+        util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
 
     # ... 他のコマンドに対応するメソッドを定義
 

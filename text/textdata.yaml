@@ -894,27 +894,45 @@ bbs:
     mode_3: "\r\n--- ARTICLE {article_number} ({title}) ---\r\n"
   article_list_help: # 記事一覧でのヘルプ
     mode_1: |
-      --- 記事一覧 ヘルプ ---
-      J, Space, ↓ : 次の記事へ
-      K,        ↑ : 前の記事へ
-      Enter        : 表示中の記事を読む
-      W            : 新しい記事を書く
-      T            : 現在位置から全記事タイトル表示 (連続スクロール)
-      R            : 現在位置から全記事連続読み (本文込み)
-      ?            : このヘルプを表示
-      E            : 掲示板メニューを終了
-      ---------------------------
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [CTRL+E][↑][K]      旧方向へ進む
+      [CTRL+R][←][H]      旧方向へ読み進む
+      [CTRL+D][RETURN]    現在位置を読む
+      [CTRL+F][→][L][TAB] 新方向へ読み進む
+      [CTRL+X][↓][J][ ]   新方向へ進む
+      [CTRL+C][ESC][E]    終了
+      [*]                 削除
+      [W]                 記事を書く
+      [S]                 シグ看板
+      [T]                 タイトル一覧
+      [?]                 説明
+      -----------------------------------
+      番号[RETURN]        番号指定
+      "キーワード[RETURN]  タイトル検索
+      'キーワード[RETURN]  全文検索
+      ;ジャンプ先[RETURN]  シグ間ジャンプ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
-      --- Article List Help ---
-      J, Space, ↓ : Next article
-      K,        ↑ : Previous article
-      Enter        : Read current article
-      W            : Write new article
-      T            : Show all titles from current (scroll)
-      R            : Read all articles from current (with body)
-      ?            : Display this help
-      E            : Exit BBS menu
-      ---------------------------
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      電子掲示板の使い方
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [CTRL+E][↑][K]      旧方向へ進む
+      [CTRL+R][←][H]      旧方向へ読み進む
+      [CTRL+D][RETURN]    現在位置を読む
+      [CTRL+F][→][L][TAB] 新方向へ読み進む
+      [CTRL+X][↓][J][ ]   新方向へ進む
+      [CTRL+C][ESC][E]    終了
+      [*]                 削除
+      [W]                 記事を書く
+      [S]                 シグ看板
+      [T]                 タイトル一覧
+      [?]                 説明
+      -----------------------------------
+      番号[RETURN]        番号指定
+      "キーワード[RETURN]  タイトル検索
+      'キーワード[RETURN]  全文検索
+      ;ジャンプ先[RETURN]  シグ間ジャンプ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
       --- ARTICLE LIST HELP ---
       J, SPACE, DOWN : NEXT
@@ -934,7 +952,22 @@ bbs:
     mode_1: "この掲示板を閲覧する権限がありません。\r\n"
     mode_2: "You do not have permission to view this board.\r\n"
     mode_3: "PERMISSION DENIED TO VIEW THIS BOARD.\r\n"
-
+  article_deleted_body: # 削除済み記事の本文（シスオペ以外）
+    mode_1: "** この記事は削除されています **\r\n"
+    mode_2: "** This article has been deleted **\r\n"
+    mode_3: "** THIS ARTICLE HAS BEEN DELETED **\r\n"
+  article_deleted_success:
+    mode_1: "記事 {article_number} を削除しました。\r\n"
+    mode_2: "Article {article_number} has been deleted.\r\n"
+    mode_3: "ARTICLE {article_number} DELETED.\r\n"
+  article_restored_success:
+    mode_1: "記事 {article_number} を復旧しました。\r\n"
+    mode_2: "Article {article_number} has been restored.\r\n"
+    mode_3: "ARTICLE {article_number} RESTORED.\r\n"
+  permission_denied_delete:
+    mode_1: "この記事を削除する権限がありません。\r\n"
+    mode_2: "You do not have permission to delete this article.\r\n"
+    mode_3: "PERMISSION DENIED TO DELETE THIS ARTICLE.\r\n"
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)
