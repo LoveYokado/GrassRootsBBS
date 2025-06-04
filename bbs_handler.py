@@ -190,6 +190,7 @@ class CommandHandler:
         self.article_manager = ArticleManager(dbname)
         self.permission_manager = PermissionManager(dbname)
         self.current_board = None  # 現在の掲示板
+        self.just_displayed_header_from_tail_h = False  # 読み戻り時の状態フラグ
         self.user_id_pk = sqlite_tools.get_user_id_from_user_name(
             dbname, login_id)
 
@@ -331,44 +332,60 @@ class CommandHandler:
                     self.chan, "bbs.no_article", self.menu_mode)
 
         reload_articles_display(keep_index=False)
+        self.just_displayed_header_from_tail_h = False  # フラグをリセット
 
         while True:
             util.send_text_by_key(
                 self.chan, "bbs.article_list_prompt", self.menu_mode, add_newline=False)
-            key_input_data = self.chan.recv(1024)  # 矢印キー対応のため複数バイト読み取り
-            if not key_input_data:
+            key_input = None
+            try:
+                data = self.chan.recv(1)  # 1バイトずつデータを受信
+                if not data:
+                    logging.info(
+                        f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
+                    return  # 切断
+
+                if data == b'\x1b':  # esc - 矢印の可能性
+                    self.chan.settimeout(0.05)  # 短いタイムアウトを設定
+                    try:
+                        next_byte1 = self.chan.recv(1)
+                        if next_byte1 == b'[':
+                            next_byte2 = self.chan.recv(1)
+                            if next_byte2 == b'A':
+                                key_input = "KEY_UP"
+                            elif next_byte2 == b'B':
+                                key_input = "KEY_DOWN"
+                            elif next_byte2 == b'C':  # KEY_RIGHT
+                                key_input = "KEY_RIGHT"
+                            elif next_byte2 == b'D':  # KEY_LEFT
+                                key_input = "KEY_LEFT"
+                            else:
+                                key_input = '\x1b'  # 不明なのはesc扱い
+                        else:
+                            key_input = '\x1b'  # escのあとに[以外が来た場合
+                    except socket.timeout:
+                        key_input = '\x1b'  # タイムアウトもesc扱い
+                    finally:
+                        self.chan.settimeout(None)  # タイムアウトを解除
+                elif data == b'\t':
+                    key_input = "\t"  # タブキー
+                elif data in (b'\r', b'\n'):
+                    key_input = "ENTER"  # エンターキー
+                elif data == b' ':
+                    key_input = "SPACE"  # スペースキー
+                else:
+                    try:
+                        key_input = data.decode('ascii').strip().lower()
+                    except UnicodeDecodeError:
+                        self.chan.send(b'\a')  # デコードできないときはビープ音
+                        continue  # 次のループへ
+            except Exception as e:
                 logging.info(
                     f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
                 return  # 切断
 
-            key_input = None
-            if key_input_data == b'\x1b':  # ESC
-                self.chan.settimeout(0.05)
-                try:
-                    next_byte1 = self.chan.recv(1)
-                    if next_byte1 == b'[':
-                        next_byte2 = self.chan.recv(1)
-                        if next_byte2 == b'A':
-                            key_input = "KEY_UP"
-                        elif next_byte2 == b'B':
-                            key_input = "KEY_DOWN"
-                        # KEY_RIGHT, KEY_LEFT はここでは使わない
-                    else:
-                        key_input = '\x1b'  # ESC
-                except socket.timeout:
-                    key_input = '\x1b'  # ESC
-                finally:
-                    self.chan.settimeout(None)
-            elif key_input_data in (b'\r', b'\n'):
-                key_input = "ENTER"
-            elif key_input_data == b' ':
-                key_input = "SPACE"
-            else:
-                try:
-                    key_input = key_input_data.decode('ascii').strip().lower()
-                except UnicodeDecodeError:
-                    self.chan.send(b'\a')  # Beep
-                    continue
+            if key_input is None:  # キーが取得できなかった場合 (通常は発生しないはず)
+                continue
 
             if key_input == "k" or key_input == "KEY_UP":
                 if not articles:
@@ -379,6 +396,7 @@ class CommandHandler:
                     display_current_article_header()
                 else:
                     self.chan.send(b'\a')
+                self.just_displayed_header_from_tail_h = False
 
             elif key_input == "j" or key_input == "SPACE" or key_input == "KEY_DOWN":
                 if not articles:
@@ -389,6 +407,7 @@ class CommandHandler:
                     display_current_article_header()
                 else:
                     self.chan.send(b'\a')
+                self.just_displayed_header_from_tail_h = False
 
             elif key_input == "ENTER":
                 if articles and 0 <= current_index < len(articles):
@@ -403,10 +422,93 @@ class CommandHandler:
                     reload_articles_display(keep_index=True)
                 elif not articles or current_index == -1 or current_index == len(articles):
                     self.chan.send(b'\a')  # マーカー位置では読めない
+                self.just_displayed_header_from_tail_h = False
+
+            elif key_input == "h" or key_input == "KEY_LEFT":  # 読み戻り
+                if not articles:
+                    self.chan.send(b'\a')
+                    self.just_displayed_header_from_tail_h = False
+                    continue
+
+                if current_index == len(articles):  # 末尾マーカーにいる場合
+                    if not articles:  # 記事がなければ何もしない
+                        self.chan.send(b'\a')
+                        self.just_displayed_header_from_tail_h = False
+                        continue
+                    current_index = len(articles) - 1  # 最終記事へ
+                    display_current_article_header()    # 最終記事のヘッダ表示
+                    self.just_displayed_header_from_tail_h = True
+                elif self.just_displayed_header_from_tail_h:  # 末尾からhでヘッダ表示した直後
+                    # この時点で current_index は最終記事を指している
+                    self.read_article(
+                        articles[current_index]['article_number'],
+                        show_header=False,
+                        show_back_prompt=False
+                    )
+                    current_index -= 1  # 一つ前の記事へ
+                    display_current_article_header()  # 一つ前の記事のヘッダ表示
+                    self.just_displayed_header_from_tail_h = False
+                else:  # 通常の読み戻り (記事ヘッダが表示されている状態から h)
+                    if 0 <= current_index < len(articles):  # 有効な記事位置
+                        self.read_article(
+                            articles[current_index]['article_number'],
+                            show_header=False,
+                            show_back_prompt=False
+                        )
+                        current_index -= 1  # 一つ前の記事へ (最初の記事を読んだ後は-1になる)
+                        display_current_article_header()  # 一つ前の記事のヘッダ or 先頭マーカー表示
+                    elif current_index == -1:  # 先頭マーカー
+                        self.chan.send(b'\a')
+                    # else current_index が範囲外のケースは通常発生しない
+                    self.just_displayed_header_from_tail_h = False
+
+            elif key_input == "l" or key_input == "KEY_RIGHT" or key_input == "\t":  # 読み進み
+                if not articles:
+                    self.chan.send(b'\a')
+                    self.just_displayed_header_from_tail_h = False
+                    continue
+
+                if current_index == -1:  # 先頭マーカーの場合
+                    if not articles:  # 記事がない
+                        self.chan.send(b'\a')
+                        display_current_article_header()  # マーカー再表示
+                        self.just_displayed_header_from_tail_h = False
+                        continue
+                    current_index = 0  # 最初の記事へ
+                    display_current_article_header()
+                    self.chan.send(b'\r\n')  # ヘッダと本文の間に空行を挿入
+
+                    display_current_article_header()
+                    self.chan.send(b'\r\n')  # ヘッダと本文の間に空行を挿入
+
+                    self.read_article(
+                        articles[current_index]['article_number'],
+                        show_header=False,  # 本文表示時にはヘッダを表示しない
+                        show_back_prompt=False
+                    )
+
+                    current_index += 1
+                    display_current_article_header()  # 次の記事ヘッダ or 末尾マーカー
+                elif 0 <= current_index < len(articles):  # 有効な記事位置
+                    self.chan.send(b'\r\n')  # ヘッダと本文の間に空行
+                    self.read_article(
+                        articles[current_index]['article_number'],
+                        show_header=False,
+                        show_back_prompt=False
+                    )
+                    current_index += 1
+                    display_current_article_header()  # 次の記事ヘッダ or 末尾マーカー
+                elif current_index == len(articles):  # 末尾マーカーの場合
+                    self.chan.send(b'\a')
+                else:  # 予期せぬ状態
+                    self.chan.send(b'\a')
+                    display_current_article_header()  # とりあえず現在の状態を表示
+                self.just_displayed_header_from_tail_h = False
 
             elif key_input == "w":
                 self.write_article()
                 reload_articles_display(keep_index=False)  # 新規投稿後は先頭から再表示
+                self.just_displayed_header_from_tail_h = False
 
             elif key_input == "e" or key_input == '\x1b':  # ESCでも終了
                 return  # command_loop に戻る
@@ -415,6 +517,7 @@ class CommandHandler:
                 self.chan.send(b'\r\n')
                 util.send_text_by_key(
                     self.chan, "bbs.article_list_help", self.menu_mode)
+                self.just_displayed_header_from_tail_h = False
                 display_current_article_header()  # ヘルプ表示後に現在の行を再表示
 
             elif key_input == "t":  # タイトル一覧 (連続スクロール)
@@ -453,6 +556,7 @@ class CommandHandler:
                         f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {title_short}\r\n".encode('utf-8'))
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
+                self.just_displayed_header_from_tail_h = False
 
             elif key_input == "r":  # 連続読み
                 if not articles:
@@ -473,9 +577,11 @@ class CommandHandler:
                     self.chan.send(b'\r\n')  # 記事間に空行
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
+                self.just_displayed_header_from_tail_h = False
 
             else:
                 self.chan.send(b'\a')
+                self.just_displayed_header_from_tail_h = False
 
     def read_article(self, article_number, show_header=True, show_back_prompt=True):
         """記事を読む"""
