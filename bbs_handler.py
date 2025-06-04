@@ -579,7 +579,7 @@ class CommandHandler:
         body = '\r\n'.join(body_lines)
 
         if not body.strip():
-            title = title+'(T/O)'  # タイトルをタイトルオンリーに更新
+            title = title+'(T/O)'  # タイトルをタイトルオンリーに
 
         util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
                               self.menu_mode, add_newline=False)
