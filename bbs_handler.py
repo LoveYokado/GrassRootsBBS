@@ -7,6 +7,7 @@ import ssh_input  # ユーザー入力処理
 import socket
 import textwrap
 import datetime
+import json
 
 # クラスや関数は、以下の構成で定義していく
 # - BoardManager: 掲示板のメタ情報管理、bbs.yml との同期
@@ -630,6 +631,11 @@ class CommandHandler:
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
 
+            elif key_input == "c":  # シグオペ変更
+                self.edit_board_operators()
+                display_current_article_header()
+                self.just_displayed_header_from_tail_h = False
+
             elif key_input == "r":  # 連続読み
                 if not articles:
                     self.chan.send(b'\a')
@@ -656,6 +662,142 @@ class CommandHandler:
                 self.chan.send(b'\a')
                 self.just_displayed_header_from_tail_h = False
 
+    def edit_board_operators(self):
+        """現在の掲示板のオペレータの編集"""
+        if not self.current_board:  # 念の為
+            util.send_text_by_key(
+                self.chan, "bbs.no_board_selected", self.menu_mode)
+            return
+
+        board_id_pk = self.current_board['id']
+
+        # === デバッグログと型チェックの強化 ===
+        try:
+            operators_raw_value = self.current_board['operators']
+        except KeyError:
+            operators_raw_value = None  # 'operators' キーが存在しない場合は None
+        logging.debug(
+            f"DEBUG edit_board_operators: board_id={board_id_pk}, "
+            f"operators_raw_value type={type(operators_raw_value)}, value='{operators_raw_value}'"
+        )
+
+        current_operator_ids = []
+        # try:
+        #    current_operator_ids = json.loads(self.current_board['operators'])
+        # except (json.JSONDecodeError, TypeError):
+        #    logging.info(
+        #        f"掲示板ID {board_id_pk} のオペレーターリストが不正です: {self.current_board['operators']}")
+        if isinstance(operators_raw_value, str):
+            try:
+                current_operator_ids = json.loads(operators_raw_value)
+            except (json.JSONDecodeError, TypeError) as e:
+                logging.warning(
+                    f"掲示板ID {board_id_pk} のオペレーターリスト(str) '{operators_raw_value}' のJSONデコードに失敗: {e}")
+                # current_operator_ids は [] のまま (フォールバック)
+        elif isinstance(operators_raw_value, (list, tuple)):
+            # 通常はDBから文字列で取得されるはず。もしリストならそのまま使うが、警告を出す。
+            logging.warning(
+                f"掲示板ID {board_id_pk} のオペレーターリストが予期せず {type(operators_raw_value)} 型です: {operators_raw_value}。そのまま使用します。")
+            current_operator_ids = list(operators_raw_value)  # 念のためリストに変換
+        elif operators_raw_value is None:
+            logging.warning(
+                f"掲示板ID {board_id_pk} のオペレーターリストがNoneです。DBスキーマではNOT NULLのはずです。")
+            # current_operator_ids は [] のまま
+        else:
+            logging.warning(
+                f"掲示板ID {board_id_pk} のオペレーターリストの型が不明または予期せぬ値です: {type(operators_raw_value)}, value: {operators_raw_value}")
+            # current_operator_ids は [] のまま
+        # === デバッグログと型チェックの強化ここまで ===
+
+        # 権限チェック:lv5(Sysop)
+        can_edit = self.userlevel >= 5
+        if not can_edit:
+            util.send_text_by_key(
+                self.chan, "bbs.permission_denied_edit_operators", self.menu_mode)
+            return
+        # 編集画面表示
+        util.send_text_by_key(
+            self.chan, "bbs.edit_operators_header", self.menu_mode)
+
+        if current_operator_ids:
+            operator_names = [sqlite_tools.get_user_name_from_user_id(
+                self.dbname, uid) or f"(ID:{uid})" for uid in current_operator_ids]
+            util.send_text_by_key(
+                self.chan, "bbs.current_operators_list", self.menu_mode, operators_list_str=", ".join(operator_names))
+        else:
+            util.send_text_by_key(
+                self.chan, "bbs.no_operators_assigned", self.menu_mode)
+
+        util.send_text_by_key(
+            self.chan, "bbs.confirm_edit_operators_yn", self.menu_mode, add_newline=False)
+        confirm_edit = ssh_input.process_input(self.chan)
+        if confirm_edit is None or confirm_edit.strip().lower() != 'y':
+            util.send_text_by_key(
+                self.chan, "common_messages.cancel", self.menu_mode)
+            return
+
+        util.send_text_by_key(
+            self.chan, "bbs.prompt_new_operators", self.menu_mode, add_newline=False)
+        new_operators_input_str = ssh_input.process_input(self.chan)
+        if new_operators_input_str is None:
+            return  # 切断
+        if not new_operators_input_str.strip():  # からはキャンセル
+            util.send_text_by_key(
+                self.chan, "common_messages.cancel", self.menu_mode)
+            return
+
+        new_operator_names = [
+            name.strip() for name in new_operators_input_str.split(',')if name.strip()]
+        new_operator_ids = []
+        valid_input = True
+        for name in new_operator_names:
+            user_id = sqlite_tools.get_user_id_from_user_name(
+                self.dbname, name)
+            if user_id is None:
+                util.send_text_by_key(
+                    self.chan, "bbs.operator_user_not_found", self.menu_mode, username=name)
+                valid_input = False
+                break
+            new_operator_ids.append(user_id)
+
+        if not valid_input:
+            return  # ユーザが見つからず処理中断
+
+        # 重複削除
+        new_operator_ids_unique = sorted(
+            list(set(new_operator_ids)), key=new_operator_ids.index)
+
+        new_operator_names_display = [sqlite_tools.get_user_name_from_user_id(
+            self.dbname, uid) or f"(ID:{uid})" for uid in new_operator_ids_unique]
+
+        util.send_text_by_key(
+            self.chan, "common_messages.confirm_yn", self.menu_mode, add_newline=False)  # 確認
+        self.chan.send(
+            f" (New_Operators: {', '.join(new_operator_names_display) if new_operator_names_display else 'なし'}): ".encode('utf-8'))
+
+        final_confirm = ssh_input.process_input(self.chan)
+        if final_confirm is None or final_confirm.strip().lower() != 'y':
+            util.send_text_by_key(
+                self.chan, "common_messages.cancel", self.menu_mode)
+            return
+
+        new_operators_json = json.dumps(new_operator_ids_unique)
+        if sqlite_tools.update_board_operators(self.dbname, board_id_pk, new_operators_json):
+            util.send_text_by_key(
+                self.chan, "bbs.operators_updated_success", self.menu_mode)
+            # 即時反映
+            updated_board_info = self.board_manager.get_board_info(
+                self.current_board['shortcut_id'])
+            if updated_board_info:
+                self.current_board = updated_board_info
+            else:
+                logging.error(
+                    f"オペレータ更新後掲示板情報 {self.current_board['shortcut_id']} を取得できません")
+        else:
+            util.send_text_by_key(
+                self.chan, "common_messages.db_update_error", self.menu_mode
+            )
+
     def read_article(self, article_number, show_header=True, show_back_prompt=True):
         """記事を読む"""
         if not self.current_board:
@@ -664,6 +806,7 @@ class CommandHandler:
             return
 
         board_id_pk = self.current_board['id']
+
         article = self.article_manager.get_article_by_number(
             board_id_pk, article_number, include_deleted=True)  # 読むときは削除済みでも取得する
 

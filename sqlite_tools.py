@@ -1,6 +1,7 @@
 import sqlite3
 import logging
 import time
+import json
 
 
 def get_user_id_from_user_name(dbname, username):
@@ -668,3 +669,29 @@ def toggle_article_deleted_status(dbname, article_id):
     finally:
         if conn:
             conn.close()
+
+
+def update_board_operators(dbname, board_id_pk, operator_user_ids_json_string):
+    """
+    指定された掲示板のオペレーターリストを更新する。
+
+    Args:
+        dbname (str): データベースファイル名。
+        board_id_pk (int): 更新対象の掲示板の主キー(id)。
+        operator_user_ids_json_string (str): オペレーターのユーザーIDリストをJSON文字列化したもの。
+                                            例: '[1, 2, 3]' や '[]'
+
+    Returns:
+        bool: 更新に成功した場合はTrue、失敗した場合はFalse。
+    """
+    sql = "UPDATE boards SET operators=? WHERE id=?"
+    try:
+        params = (
+            operator_user_ids_json_string if operator_user_ids_json_string is not None else '[]', board_id_pk)
+        sqlite_execute_query(dbname, sql, params, fetch=False)
+        logging.info(
+            f"掲示板ID {board_id_pk} のオペレーターリストを更新しました: {operator_user_ids_json_string}")
+        return True
+    except Exception as e:
+        logging.error(f"掲示板ID {board_id_pk} のオペレーターリスト更新中にDBエラー: {e}")
+        return False

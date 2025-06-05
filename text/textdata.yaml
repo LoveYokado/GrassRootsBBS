@@ -906,6 +906,9 @@ bbs:
       [S]                 シグ看板
       [T]                 タイトル一覧
       [?]                 説明
+      [U]Sysop            B/Wリスト編集
+      [C]sysop            シグオペ変更
+      [K]sysop/sigop      シグ看板編集
       -----------------------------------
       番号[RETURN]        番号指定
       "キーワード[RETURN]  タイトル検索
@@ -968,6 +971,37 @@ bbs:
     mode_1: "この記事を削除する権限がありません。\r\n"
     mode_2: "You do not have permission to delete this article.\r\n"
     mode_3: "PERMISSION DENIED TO DELETE THIS ARTICLE.\r\n"
+
+  edit_operators_header:
+    mode_1: "\r\n--- 掲示板管理者変更 ---\r\n"
+    mode_2: "\r\n--- Edit Board Operators ---\r\n"
+    mode_3: "\r\n--- EDIT BOARD OPERATORS ---\r\n"
+  current_operators_list:
+    mode_1: "現在の管理者: {operators_list_str}\r\n"
+    mode_2: "Current Operators: {operators_list_str}\r\n"
+    mode_3: "CURRENT OPERATORS: {operators_list_str}\r\n"
+  no_operators_assigned:
+    mode_1: "現在、この掲示板に管理者はいません。\r\n"
+    mode_2: "No operators are currently assigned to this board.\r\n"
+    mode_3: "NO OPERATORS ASSIGNED.\r\n"
+  confirm_edit_operators_yn:
+    mode_1: "管理者を変更しますか？ (y/N): "
+    mode_2: "Do you want to change the operators? (y/N): "
+    mode_3: "CHANGE OPERATORS? (Y/N): "
+  prompt_new_operators:
+    mode_1: "新しい管理者のユーザー名をカンマ区切りで入力してください (空入力で変更中止): "
+    mode_2: "Enter new operator usernames, comma-separated (empty to cancel): "
+    mode_3: "NEW OPERATORS (USERNAMES, COMMA-SEP, EMPTY TO CANCEL): "
+  operator_user_not_found:
+    mode_1: "エラー: ユーザー '{username}' が見つかりません。リストを確認してください。\r\n"
+    mode_2: "Error: User '{username}' not found. Please check the list.\r\n"
+    mode_3: "ERROR: USER '{username}' NOT FOUND. CHECK LIST.\r\n"
+  operators_updated_success:
+    mode_1: "掲示板の管理者を更新しました。\r\n"
+    mode_2: "Board operators updated successfully.\r\n"
+    mode_3: "BOARD OPERATORS UPDATED.\r\n"
+  permission_denied_edit_operators:
+    mode_1: "この掲示板の管理者を変更する権限がありません。\r\n"    
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)
