@@ -671,50 +671,24 @@ class CommandHandler:
 
         board_id_pk = self.current_board['id']
 
-        # === デバッグログと型チェックの強化 ===
-        try:
-            operators_raw_value = self.current_board['operators']
-        except KeyError:
-            operators_raw_value = None  # 'operators' キーが存在しない場合は None
-        logging.debug(
-            f"DEBUG edit_board_operators: board_id={board_id_pk}, "
-            f"operators_raw_value type={type(operators_raw_value)}, value='{operators_raw_value}'"
-        )
-
         current_operator_ids = []
-        # try:
-        #    current_operator_ids = json.loads(self.current_board['operators'])
-        # except (json.JSONDecodeError, TypeError):
-        #    logging.info(
-        #        f"掲示板ID {board_id_pk} のオペレーターリストが不正です: {self.current_board['operators']}")
-        if isinstance(operators_raw_value, str):
-            try:
-                current_operator_ids = json.loads(operators_raw_value)
-            except (json.JSONDecodeError, TypeError) as e:
-                logging.warning(
-                    f"掲示板ID {board_id_pk} のオペレーターリスト(str) '{operators_raw_value}' のJSONデコードに失敗: {e}")
-                # current_operator_ids は [] のまま (フォールバック)
-        elif isinstance(operators_raw_value, (list, tuple)):
-            # 通常はDBから文字列で取得されるはず。もしリストならそのまま使うが、警告を出す。
+        try:
+            # self.current_board['operators'] はJSON文字列であることを期待
+            current_operator_ids = json.loads(self.current_board['operators'])
+        except (json.JSONDecodeError, TypeError, KeyError) as e:
             logging.warning(
-                f"掲示板ID {board_id_pk} のオペレーターリストが予期せず {type(operators_raw_value)} 型です: {operators_raw_value}。そのまま使用します。")
-            current_operator_ids = list(operators_raw_value)  # 念のためリストに変換
-        elif operators_raw_value is None:
-            logging.warning(
-                f"掲示板ID {board_id_pk} のオペレーターリストがNoneです。DBスキーマではNOT NULLのはずです。")
-            # current_operator_ids は [] のまま
-        else:
-            logging.warning(
-                f"掲示板ID {board_id_pk} のオペレーターリストの型が不明または予期せぬ値です: {type(operators_raw_value)}, value: {operators_raw_value}")
-            # current_operator_ids は [] のまま
-        # === デバッグログと型チェックの強化ここまで ===
+                f"掲示板ID {board_id_pk} のオペレーターリストの読み込み/デコードに失敗: {e} (operators: {self.current_board.get('operators')})")
+            # フォールバックとして空リスト扱い
 
         # 権限チェック:lv5(Sysop)
         can_edit = self.userlevel >= 5
         if not can_edit:
             util.send_text_by_key(
                 self.chan, "bbs.permission_denied_edit_operators", self.menu_mode)
+            util.send_text_by_key(
+                self.chan, "bbs.article_list_header", self.menu_mode)
             return
+
         # 編集画面表示
         util.send_text_by_key(
             self.chan, "bbs.edit_operators_header", self.menu_mode)
@@ -734,6 +708,8 @@ class CommandHandler:
         if confirm_edit is None or confirm_edit.strip().lower() != 'y':
             util.send_text_by_key(
                 self.chan, "common_messages.cancel", self.menu_mode)
+            util.send_text_by_key(
+                self.chan, "bbs.article_list_header", self.menu_mode)
             return
 
         util.send_text_by_key(
@@ -744,6 +720,8 @@ class CommandHandler:
         if not new_operators_input_str.strip():  # からはキャンセル
             util.send_text_by_key(
                 self.chan, "common_messages.cancel", self.menu_mode)
+            util.send_text_by_key(
+                self.chan, "bbs.article_list_header", self.menu_mode)
             return
 
         new_operator_names = [
@@ -761,6 +739,8 @@ class CommandHandler:
             new_operator_ids.append(user_id)
 
         if not valid_input:
+            util.send_text_by_key(
+                self.chan, "bbs.article_list_header", self.menu_mode)
             return  # ユーザが見つからず処理中断
 
         # 重複削除
@@ -779,12 +759,16 @@ class CommandHandler:
         if final_confirm is None or final_confirm.strip().lower() != 'y':
             util.send_text_by_key(
                 self.chan, "common_messages.cancel", self.menu_mode)
+            util.send_text_by_key(
+                self.chan, "bbs.article_list_header", self.menu_mode)
             return
 
         new_operators_json = json.dumps(new_operator_ids_unique)
         if sqlite_tools.update_board_operators(self.dbname, board_id_pk, new_operators_json):
             util.send_text_by_key(
                 self.chan, "bbs.operators_updated_success", self.menu_mode)
+            util.send_text_by_key(
+                self.chan, "bbs.article_list_header", self.menu_mode)
             # 即時反映
             updated_board_info = self.board_manager.get_board_info(
                 self.current_board['shortcut_id'])
