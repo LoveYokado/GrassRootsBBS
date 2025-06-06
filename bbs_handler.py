@@ -242,9 +242,27 @@ class CommandHandler:
         )
 
         self._display_kanban()  # 板看板を表示
+        while True:
+            # メニュー表示
+            util.send_text_by_key(
+                self.chan, "bbs.main_prompt", self.menu_mode, add_newline=False
+            )
+            choice = ssh_input.process_input(self.chan)
+            if choice is None:
+                return  # 切断
+            choice = choice.lower().strip()
 
-        # 記事一覧表示と操作へ
-        self.show_article_list()
+            if choice == 'w':
+                self.write_article()
+                return  # command_loop を抜けて handle_bbs_menu に戻る
+            elif choice == 'r':
+                self.show_article_list()
+                return  # command_loop を抜けて handle_bbs_menu に戻る
+            elif choice == 'e' or choice == '':
+                return
+            else:
+                util.send_text_by_key(
+                    self.chan, "common_messages.invalid_command", self.menu_mode)
 
     def show_article_list(self):
         """記事一覧を表示"""
@@ -874,49 +892,43 @@ class CommandHandler:
         #    util.send_text_by_key(self.chan, "bbs.permission_denied_write", self.menu_mode)
         #    return
 
-
-def get_article_by_number(self, board_id, article_number):
-    util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
-    util.send_text_by_key(self.chan, "bbs.post_subject",
-                          self.menu_mode, add_newline=False)
-    title = ssh_input.process_input(self.chan)
-    if title is None:
-        return  # 切断
-    title = title.strip()
-
-    if not title:
-        return  # タイトルがなければキャンセル
-
-    util.send_text_by_key(self.chan, "bbs.post_body", self.menu_mode)
-    body_lines = []
-    while True:
-        line = ssh_input.process_input(self.chan)
-        if line is None:
+        util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
+        util.send_text_by_key(self.chan, "bbs.post_subject",
+                              self.menu_mode, add_newline=False)
+        title = ssh_input.process_input(self.chan)
+        if title is None:
             return  # 切断
-        if line == '^':
-            break
-        body_lines.append(line)
-    body = '\r\n'.join(body_lines)
+        title = title.strip()
 
-    if not body.strip():
-        title = title+'(T/O)'  # タイトルをタイトルオンリーに
+        if not title:
+            return  # タイトルがなければキャンセル
 
-    util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
-                          self.menu_mode, add_newline=False)
-    confirm = ssh_input.process_input(self.chan)
-    if confirm is None or confirm.strip().lower() != 'y':
-        util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
-        return  # キャンセル
+        util.send_text_by_key(self.chan, "bbs.post_body", self.menu_mode)
+        body_lines = []
+        while True:
+            line = ssh_input.process_input(self.chan)
+            if line is None:
+                return  # 切断
+            if line == '^':
+                break
+            body_lines.append(line)
+        body = '\r\n'.join(body_lines)
 
-    if self.article_manager.create_article(board_id_pk, self.user_id_pk, title, body, ip_address=client_ip):
-        util.send_text_by_key(
-            self.chan, "bbs.post_success", self.menu_mode)
-    else:
-        util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
+        if not body.strip():
+            title = title+'(T/O)'  # タイトルをタイトルオンリーに
 
-    # ... 他のコマンドに対応するメソッドを定義
+        util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
+                              self.menu_mode, add_newline=False)
+        confirm = ssh_input.process_input(self.chan)
+        if confirm is None or confirm.strip().lower() != 'y':
+            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
+            return  # キャンセル
 
-# 外部から呼び出す関数 (例: server.py から)
+        if self.article_manager.create_article(board_id_pk, self.user_id_pk, title, body, ip_address=client_ip):
+            util.send_text_by_key(
+                self.chan, "bbs.post_success", self.menu_mode)
+        else:
+            util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
 
 
 def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):

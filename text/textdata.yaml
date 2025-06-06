@@ -947,11 +947,19 @@ bbs:
       ?              : HELP
       E              : EXIT BBS
       ---------------------------
-  current_board_header: # 既存だが確認
+  main_prompt:
+    mode_1: "選択してください ([W]書き込み [R]読み出し [E]終了): "
+    mode_2: "Select ([W]Write [R]Read [E]Exit): "
+    mode_3: "SELECT ([W]WRITE [R]READ [E]EXIT): "
+  no_article:
+    mode_1: "記事がありません。\r\n"
+    mode_2: "There are no articles on this board.\r\n"
+    mode_3: "NO ARTICLES ON THIS BOARD.\r\n"
+  current_board_header: 
     mode_1: "--- {board_name} ---\r\n"
     mode_2: "--- {board_name} ---\r\n"
     mode_3: "--- {board_name} ---\r\n"
-  permission_denied_read: # 既存だが確認
+  permission_denied_read:
     mode_1: "この掲示板を閲覧する権限がありません。\r\n"
     mode_2: "You do not have permission to view this board.\r\n"
     mode_3: "PERMISSION DENIED TO VIEW THIS BOARD.\r\n"
