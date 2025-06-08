@@ -272,12 +272,12 @@ class CommandHandler:
             return
 
         board_id_pk = self.current_board['id']
-        articles = []
+        articles = []  # この行で articles を初期化
         current_index = 0
         article_id_width = 5  # 記事番号桁数
 
-        # シスオペは削除記事も表示する
-        show_deleted_articles = self.userlevel >= 5  # TODO:権限設定で変更可能にする
+        # 常に削除済み記事も取得するが、表示方法は権限によって変える
+        # show_deleted_articles 変数はここでは直接使わない
 
         def reload_articles_display(keep_index=True):
             nonlocal articles, current_index, article_id_width
@@ -286,7 +286,7 @@ class CommandHandler:
                 current_article_id_on_reload = articles[current_index]['id']
 
             fetched_articles = self.article_manager.get_articles_by_board(
-                board_id_pk, include_deleted=show_deleted_articles)  # 削除済み記事表示設定を渡す
+                board_id_pk, include_deleted=True)  # 常に削除済み記事も取得
             articles = fetched_articles if fetched_articles else []
 
             new_idx = 0
@@ -315,7 +315,7 @@ class CommandHandler:
                 display_current_article_header()
 
         def display_current_article_header():
-            nonlocal articles, current_index, article_id_width, show_deleted_articles
+            nonlocal articles, current_index, article_id_width
             if current_index == -1:  # 先頭マーカ
                 marker_num_str = "0" * article_id_width
                 self.chan.send(f"{marker_num_str} v\r\n".encode('utf-8'))
@@ -332,7 +332,8 @@ class CommandHandler:
                 title = article['title'] if article['title'] else "(No Title)"
 
                 # 削除済みマーク
-                deleted_mark = "*" if article['is_deleted'] else ""
+                # is_deleted は 0 or 1
+                deleted_mark = "*" if article['is_deleted'] == 1 else ""
                 user_name = sqlite_tools.get_user_name_from_user_id(
                     self.dbname, article['user_id'])
                 user_name_short = textwrap.shorten(
@@ -555,10 +556,20 @@ class CommandHandler:
                 article_to_delete = articles[current_index]
                 article_id_pk = article_to_delete['id']
                 article_number = article_to_delete['article_number']
-                article_user_id = article_to_delete['user_id']
+                # DBのarticles.user_id (TEXT型)
+                article_user_id_from_db = article_to_delete['user_id']
 
                 # 権限チェック:シスオペ(LV5)または記事の投稿者
-                if self.userlevel >= 5 or article_user_id == self.user_id_pk:
+                is_owner = False
+                try:
+                    # articles.user_id は TEXT 型だが、数値のIDが格納されている想定なのでintに変換して比較
+                    # self.user_id_pk は users.id (INTEGER)
+                    is_owner = (int(article_user_id_from_db)
+                                == self.user_id_pk)
+                except ValueError:
+                    logging.warning(
+                        f"記事(ID:{article_id_pk})の投稿者ID({article_user_id_from_db})を数値に変換できませんでした。")
+                if self.userlevel >= 5 or is_owner:
                     if self.article_manager.toggle_delete_article(article_id_pk):
                         # トグル前の状態
                         was_deleted = article_to_delete['is_deleted'] == 1
@@ -576,7 +587,7 @@ class CommandHandler:
                         util.send_text_by_key(
                             self.chan, "common_messages.error", self.menu_mode)
                         logging.warning(
-                            f"記事の削除/復旧が失敗しました。:(記事id {article_id_pk},記事番号 {article_number},投稿者ID {article_user_id}"
+                            f"記事の削除/復旧が失敗しました。:(記事id {article_id_pk},記事番号 {article_number},投稿者ID {article_user_id_from_db}"
                         )
                         display_current_article_header()  # 失敗したら現在の行を再表示
                 else:
@@ -625,10 +636,13 @@ class CommandHandler:
                 for i in range(start_idx, len(articles)):
                     article = articles[i]
                     # 左寄せ、指定幅
+                    # sqlite3.Row object
                     article_no_str = f"{article['article_number']:0{article_id_width}d}"
                     title = article['title'] if article['title'] else "(No Title)"
                     title_short = textwrap.shorten(
                         title, width=38, placeholder="...")
+                    deleted_mark_list = "*" if article['is_deleted'] == 1 else ""
+
                     user_name = sqlite_tools.get_user_name_from_user_id(
                         self.dbname, article['user_id'])
                     user_name_short = textwrap.shorten(
@@ -643,7 +657,7 @@ class CommandHandler:
                         r_date_str = "----/--/--"
                         r_time_str = "--:--"
                     self.chan.send(
-                        f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {title_short}\r\n".encode('utf-8'))
+                        f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {deleted_mark_list}{title_short}\r\n".encode('utf-8'))
                 self.chan.send(b'\r\n')  # タイトル一覧の最後に空行
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
