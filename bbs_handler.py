@@ -348,8 +348,25 @@ class CommandHandler:
                     r_date_str = "--/--/--"
                     r_time_str = "--:--"
 
-                title_short = textwrap.shorten(
-                    title, width=38, placeholder="...")
+                # タイトル表示の調整
+                if article['is_deleted'] == 1:
+                    can_see_deleted_title = False
+                    if self.userlevel >= 5:  # シスオペ
+                        can_see_deleted_title = True
+                    else:
+                        try:
+                            if int(article['user_id']) == self.user_id_pk:  # 投稿者本人
+                                can_see_deleted_title = True
+                        except ValueError:
+                            pass  # ID変換失敗時は見せない
+                    if can_see_deleted_title:
+                        title_short = textwrap.shorten(
+                            title, width=36, placeholder="...")  # "* " を考慮して少し短く
+                    else:
+                        title_short = ""  # 一般ユーザーには表示しない
+                else:
+                    title_short = textwrap.shorten(
+                        title, width=38, placeholder="...")
                 # 左寄せ、指定幅
                 article_no_str = f"{article['article_number']:0{article_id_width}d}"
 
@@ -639,10 +656,27 @@ class CommandHandler:
                     # sqlite3.Row object
                     article_no_str = f"{article['article_number']:0{article_id_width}d}"
                     title = article['title'] if article['title'] else "(No Title)"
-                    title_short = textwrap.shorten(
-                        title, width=38, placeholder="...")
                     deleted_mark_list = "*" if article['is_deleted'] == 1 else ""
 
+                    # タイトル表示の調整 (記事一覧表示と同様のロジック)
+                    if article['is_deleted'] == 1:
+                        can_see_deleted_title_list = False
+                        if self.userlevel >= 5:  # シスオペ
+                            can_see_deleted_title_list = True
+                        else:
+                            try:
+                                if int(article['user_id']) == self.user_id_pk:  # 投稿者本人
+                                    can_see_deleted_title_list = True
+                            except ValueError:
+                                pass
+                        if can_see_deleted_title_list:
+                            title_short = textwrap.shorten(
+                                title, width=36, placeholder="...")
+                        else:
+                            title_short = ""
+                    else:
+                        title_short = textwrap.shorten(
+                            title, width=38, placeholder="...")
                     user_name = sqlite_tools.get_user_name_from_user_id(
                         self.dbname, article['user_id'])
                     user_name_short = textwrap.shorten(
@@ -833,17 +867,32 @@ class CommandHandler:
 
         if show_header:
             # 削除済み記事の場合、ヘッダにマークをつける
-            deleted_mark = "*" if article['is_deleted'] else ""
+            deleted_mark = "*" if article['is_deleted'] == 1 else ""
+            display_title = article['title'] if article['title'] else "(No Title)"
+
+            if article['is_deleted'] == 1:
+                can_see_deleted_title_header = False
+                if self.userlevel >= 5:  # シスオペ
+                    can_see_deleted_title_header = True
+                else:
+                    try:
+                        if int(article['user_id']) == self.user_id_pk:  # 投稿者本人
+                            can_see_deleted_title_header = True
+                    except ValueError:
+                        pass
+                if not can_see_deleted_title_header:
+                    display_title = ""  # 一般ユーザーには表示しない
+
             util.send_text_by_key(
                 self.chan, "bbs.article_header", self.menu_mode,
                 article_number=article['article_number'],
-                title=article['title'] if article['title'] else "(No Title)",
+                title=f"{deleted_mark}{display_title}",  # 削除マークと調整済みタイトル
             )
-
-            title = article['title'] if article['title'] else "(No Title)"
-            util.send_text_by_key(
-                self.chan, "bbs.article_header", self.menu_mode,
-                article_number=article['article_number'], title=title)
+            # util.send_text_by_key でタイトル行は表示されるので、以下の個別のタイトル表示は不要
+            # title = article['title'] if article['title'] else "(No Title)"
+            # util.send_text_by_key(
+            #     self.chan, "bbs.article_header", self.menu_mode,
+            #     article_number=article['article_number'], title=title)
             user_name = sqlite_tools.get_user_name_from_user_id(
                 self.dbname, article['user_id'])
             try:
