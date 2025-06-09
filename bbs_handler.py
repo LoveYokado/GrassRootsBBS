@@ -1212,7 +1212,7 @@ class CommandHandler:
         registered_user_names = []
         if current_permissions_db:
             for perm_entry in current_permissions_db:
-                if perm_entry.get('access_level') == "allow":
+                if 'access_level' in perm_entry.keys() and perm_entry['access_level'] == "allow":
                     user_name = sqlite_tools.get_user_name_from_user_id(
                         self.dbname, perm_entry['user_id'])
                     if user_name and user_name != "unknown":
