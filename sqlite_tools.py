@@ -713,3 +713,21 @@ def update_board_kanban(dbname, board_id_pk, new_kanban_title, new_kanban_body):
     except Exception as e:
         logging.error(f"掲示板ID {board_id_pk} の看板タイトルと本文更新中にDBエラー: {e}")
         return False
+
+
+def get_board_userlist(dbname, board_id_pk):
+    sql = "SELECT user_id, access_level FROM board_user_permissions WHERE board_id = ? AND access_level = 'allow'"
+    results = sqlite_execute_query(dbname, sql, (board_id_pk,), fetch=True)
+    return results if results else []
+
+
+def delete_board_permissions_by_board_id(dbname, board_id_pk):
+    """指定された掲示板IDのパーミッションを全て削除する"""
+    sql = "DELETE FROM board_user_permissions WHERE board_id = ?"
+    return sqlite_execute_query(dbname, sql, (board_id_pk,))
+
+
+def add_board_permission(dbname, board_id_pk, user_id_pk_str, access_level):
+    """board_user_permissions テーブルに新しい権限エントリを追加する"""
+    sql = "INSERT INTO board_user_permissions (board_id, user_id,access_level) VALUES (?, ?, ?)"
+    return sqlite_execute_query(dbname, sql, (board_id_pk, user_id_pk_str, access_level))

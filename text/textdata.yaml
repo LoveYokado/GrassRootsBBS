@@ -1034,7 +1034,6 @@ bbs:
     mode_1: "------------新しい看板(^で終了）------------\r\n"
     mode_2: "------------New Kanban(^ to exit)------------\r\n"    
     mode_3: "------------NEW KANBAN(^ TO EXIT)------------\r\n"  
-
   edit_kanban_header:
     mode_1: "看板編集\r\n"
     mode_2: "Edit Kanban\r"
@@ -1047,6 +1046,51 @@ bbs:
     mode_1: "看板を保存しました。\r\n"
     mode_2: "Kanban saved successfully.\r\n"
     mode_3: "KANBAN SAVED.\r\n"
+
+  edit_userlist_header: # bbs_handler.py側のキー名と合わせる
+    mode_1: "== 掲示板ユーザーリスト編集 ==\r\n"
+    mode_2: "== Edit Board User List ==\r\n"
+    mode_3: "== EDIT BOARD USER LIST ==\r\n"
+  edit_userlist_header_info_open:
+    mode_1: "(この掲示板は[Open]設定です。このリストは実質的なブラックリストとして機能します)\r\n"
+    mode_2: "(This board is set to [Open]. This list acts as a blacklist)\r\n"
+    mode_3: "(BOARD:OPEN - LIST IS BLACKLIST)\r\n"
+  edit_userlist_header_info_closed:
+    mode_1: "(この掲示板は[Closed]設定です。このリストは実質的なホワイトリストとして機能します)\r\n"
+    mode_2: "(This board is set to [Closed]. This list acts as a whitelist)\r\n"
+    mode_3: "(BOARD:CLOSED - LIST IS WHITELIST)\r\n"
+  edit_userlist_header_info_readonly:
+    mode_1: "(この掲示板は[Readonly]設定です。このリストは実質的な編集許可リストとして機能します)\r\n"
+    mode_2: "(This board is set to [Readonly]. This list acts as an edit permission list)\r\n"
+    mode_3: "(BOARD:READONLY - LIST IS EDIT PERMISSION LIST)\r\n"
+  edit_userlist_header_info_unknown: # default_permission が不明な場合
+    mode_1: "(掲示板のパーミッションタイプ: {board_permission_type})\r\n"
+    mode_2: "(Board permission type: {board_permission_type})\r\n"
+    mode_3: "(BOARD PERMISSION: {board_permission_type})\r\n"
+  current_userlist_header: # 旧 current_permissions_list_header
+    mode_1: "現在の登録ユーザーリスト:\r\n"
+    mode_2: "Current Registered User List:\r\n"
+    mode_3: "CURRENT REGISTERED USER LIST:\r\n"
+  no_users_in_list: # 旧 no_permissions_assigned
+    mode_1: "  (現在リストに登録されているユーザーはいません)\r\n\r\n"
+    mode_2: "  (No users currently registered in this list)\r\n\r\n"
+    mode_3: "  (NO USERS IN LIST)\r\n\r\n"
+  confirm_edit_userlist_yn: # 旧 confirm_edit_permissions_yn
+    mode_1: "ユーザーリストを編集しますか? (Y/N): "
+    mode_2: "Edit user list? (Y/N): "
+    mode_3: "EDIT USER LIST? (Y/N): "
+  prompt_new_userlist: # 旧 prompt_new_permissions
+    mode_1: "新しいユーザーをカンマ区切りで入力 (例: user1,user2 空入力でリストクリア): "
+    mode_2: "Enter new users (comma-separated, e.g., user1,user2. Empty to clear list): "
+    mode_3: "NEW USERS (COMMA-SEP, E.G., USER1,USER2. EMPTY TO CLEAR): "
+  user_not_found_in_list: # 旧 permission_user_not_found
+    mode_1: "** ユーザー '{username}' が見つかりません **\r\n"
+    mode_2: "** User '{username}' not found **\r\n"
+    mode_3: "** USER '{username}' NOT FOUND **\r\n"
+  userlist_updated_success: # 旧 permissions_updated_success
+    mode_1: "** 掲示板のユーザーリストを更新しました **\r\n"
++    mode_2: "** Board user list updated successfully **\r\n"
++    mode_3: "** BOARD USER LIST UPDATED SUCCESSFULLY **\r\n"
 
 # --- ログオフ関連 ---
 logoff:
@@ -1121,6 +1165,11 @@ common_messages:
     mode_1: "データベース更新中にエラーが発生しました。\r\n"
     mode_2: "A database update error occurred.\r\n"
     mode_3: "DB UPDATE ERROR.\r\n"
+  permission_denied:
+    mode_1: "権限がありません。\r\n"
+    mode_2: "Permission denied.\r\n"
+    mode_3: "PERMISSION DENIED.\r\n"
+
 # --- 認証関連 ---
 auth:
   connect_message:

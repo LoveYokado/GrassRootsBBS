@@ -202,10 +202,8 @@ class CommandHandler:
         if not self.current_board:
             return
 
-        kanban_title = self.current_board['kanban_title'] if 'kanban_title' in self.current_board.keys(
-        ) else ''
-        kanban_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board.keys(
-        ) else ''
+        kanban_title = self.current_board['kanban_title'] if 'kanban_title' in self.current_board else ''
+        kanban_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board else ''
 
         if not kanban_title and not kanban_body:
             return  # 看板がなければ表示しない
@@ -233,8 +231,7 @@ class CommandHandler:
                 self.chan, "bbs.no_board_selected", self.menu_mode)
             return
 
-        board_name_display = self.current_board['name'] if 'name' in self.current_board.keys(
-        ) else 'unknown board'
+        board_name_display = self.current_board['name'] if 'name' in self.current_board else 'unknown board'
         # 説明表示が必要ならコメント外す
         util.send_text_by_key(
             self.chan, "bbs.current_board_header",
@@ -916,6 +913,12 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
                 continue
 
+            elif key_input == "u":
+                self.edit_board_userlist()
+                display_current_article_header()
+                self.just_displayed_header_from_tail_h = False
+                continue
+
             elif key_input == "r":  # 連続読み
                 if not articles:
                     self.chan.send(b'\a')
@@ -957,8 +960,7 @@ class CommandHandler:
             can_edit = True
         else:
             try:
-                operator_ids_json = self.current_board['operators'] if 'operators' in self.current_board.keys(
-                ) else '[]'
+                operator_ids_json = self.current_board['operators'] if 'operators' in self.current_board else '[]'
                 operator_ids = json.loads(operator_ids_json)
                 if self.user_id_pk in operator_ids:
                     can_edit = True
@@ -976,10 +978,8 @@ class CommandHandler:
 
         util.send_text_by_key(
             self.chan, "bbs.edit_kanban_header", self.menu_mode)
-        existing_kanban_title = self.current_board['kanban_title'] if 'kanban_title' in self.current_board.keys(
-        ) else ''
-        current_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board.keys(
-        ) else ''
+        existing_kanban_title = self.current_board['kanban_title'] if 'kanban_title' in self.current_board else ''
+        current_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board else ''
 
         # タイトルはなしの方向にしよう
         # new_title = new_title_input.strip() if new_title_input.strip() else current_title
@@ -1053,10 +1053,12 @@ class CommandHandler:
         current_operator_ids = []
         try:
             # self.current_board['operators'] はJSON文字列であることを期待
-            current_operator_ids = json.loads(self.current_board['operators'])
+            current_operator_ids_json = self.current_board[
+                'operators'] if 'operators' in self.current_board else '[]'
+            current_operator_ids = json.loads(current_operator_ids_json)
         except (json.JSONDecodeError, TypeError, KeyError) as e:
             logging.warning(
-                f"掲示板ID {board_id_pk} のオペレーターリストの読み込み/デコードに失敗: {e} (operators: {self.current_board.get('operators')})")
+                f"掲示板ID {board_id_pk} のオペレーターリストの読み込み/デコードに失敗: {e} (operators: {self.current_board['operators'] if 'operators' in self.current_board else 'N/A'})")
             # フォールバックとして空リスト扱い
 
         # 権限チェック:lv5(Sysop)
@@ -1160,6 +1162,130 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "common_messages.db_update_error", self.menu_mode
             )
+
+    def edit_board_userlist(self):
+        """
+        現在の掲示板のブラック/ホワイトリストを編集。詳細なパーミッションはボードパーミッションによって変化する。
+        今後の拡張性を残すため、access_level="allow"が設定されている。
+        """
+        if not self.current_board:
+            util.send_text_by_key(
+                self.chan, "bbs.no_board_selected", self.menu_mode)
+            return
+
+        board_id_pk = self.current_board['id']
+        board_default_permission = self.current_board[
+            'default_permission'] if 'default_permission' in self.current_board else 'unknown'
+
+        # 権限チェック
+        can_edit = False
+        if self.userlevel >= 5:
+            can_edit = True
+        else:
+            try:
+                operator_ids_json = self.current_board['operators'] if 'operators' in self.current_board else '[]'
+                operator_ids = json.loads(operator_ids_json)
+                if self.user_id_pk in operator_ids:
+                    can_edit = True
+            except (json.JSONDecodeError, TypeError) as e:
+                logging.error(f"掲示板ID {board_id_pk} のオペレーターリストのデコードに失敗: {e}")
+
+        if not can_edit:  # 権限がない場合
+            util.send_text_by_key(
+                self.chan, "common_messages.permission_denied", self.menu_mode)
+            return
+
+        # ボードのパーミッションに応じたヘッダを取得
+        header_info_key = f"bbs.edit_userlist_header_info_{board_default_permission.lower()}"
+        if not util.get_text_by_key(header_info_key, self.menu_mode):  # 対応するものがない場合
+            header_info_key = "bbs.edit_userlist_header_info_unknown"
+
+        util.send_text_by_key(
+            self.chan, "bbs.edit_userlist_header", self.menu_mode)
+        util.send_text_by_key(
+            self.chan, header_info_key, self.menu_mode, board_default_permission_type=board_default_permission)
+
+        # 現在のユーザリストを表示
+        current_permissions_db = sqlite_tools.get_board_userlist(
+            self.dbname, board_id_pk)
+
+        registered_user_names = []
+        if current_permissions_db:
+            for perm_entry in current_permissions_db:
+                if perm_entry.get('access_level') == "allow":
+                    user_name = sqlite_tools.get_user_name_from_user_id(
+                        self.dbname, perm_entry['user_id'])
+                    if user_name and user_name != "unknown":
+                        registered_user_names.append(user_name)
+                    elif user_name == '(unknown)':
+                        logging.warning(
+                            f"掲示板{board_id_pk}に不明なユーザID {perm_entry['user_id']}が登録されています。")
+
+        if registered_user_names:
+            util.send_text_by_key(
+                self.chan, "bbs.current_userlist_header", self.menu_mode,
+            )
+            for name in sorted(list(set(registered_user_names))):
+                self.chan.send(f" - {name}\r\n".encode('utf-8'))
+            self.chan.send(b'\r\n')
+        else:
+            util.send_text_by_key(
+                self.chan, "bbs.no_users_in_list", self.menu_mode)
+
+        util.send_text_by_key(
+            self.chan, "bbs.confirm_edit_userlist_ym", self.menu_mode)
+        confirm_edit = ssh_input.process_input(self.chan)
+        if confirm_edit is None or confirm_edit.strip().lower() != 'y':
+            util.send_text_by_key(
+                self.chan, "common_messages.cancel", self.menu_mode)
+            return
+
+        # ユーザリストを更新
+        util.send_text_by_key(
+            self.chan, "bbs.prompt_new_userlist", self.menu_mode, add_newline=False)
+        new_userlist_input_str = ssh_input.process_input(self.chan)
+
+        if new_userlist_input_str is None:
+            return  # 切断
+
+        parsed_user_ids_to_add = []
+        if not new_userlist_input_str.strip():
+            pass
+        else:
+            new_user_names_input = [
+                name.strip() for name in new_userlist_input_str.split(',') if name.strip()]
+            valid_input = True
+            for user_name_input in new_user_names_input:
+                target_user_id_pk_int = sqlite_tools.get_user_id_from_user_name(
+                    self.dbname, user_name_input)
+                if target_user_id_pk_int is None:
+                    util.send_text_by_key(
+                        self.chan, "bbs.user_not_found_in_list", self.menu_mode, username=user_name_input)
+                    valid_input = False
+                    break
+                parsed_user_ids_to_add.append(str(target_user_id_pk_int))
+
+            if not valid_input:
+                return
+
+        # DB更新
+        if not sqlite_tools.delete_board_permissions_by_board_id(self.dbname, board_id_pk):
+            util.send_text_by_key(
+                self.chan, "common_messages.db_update_error", self.menu_mode)
+            logging.error(f"掲示板ID {board_id_pk} のユーザリストを削除できませんでした。")
+
+        if parsed_user_ids_to_add:
+            unique_sorted_user_ids = sorted(list(set(parsed_user_ids_to_add)))
+            for user_id_to_add_str in unique_sorted_user_ids:
+                if not sqlite_tools.add_board_permission(self.dbname, board_id_pk, user_id_to_add_str, "allow"):
+                    util.send_text_by_key(
+                        self.chan, "common_messages.db_update_error", self.menu_mode)
+                    logging.error(
+                        f"掲示板ID {board_id_pk} のユーザリストにユーザID {user_id_to_add_str} を追加できませんでした。")
+                    return
+
+        util.send_text_by_key(
+            self.chan, "bbs.userlist_updated_success", self.menu_mode)
 
     def read_article(self, article_number, show_header=True, show_back_prompt=True):
         """記事を読む"""
