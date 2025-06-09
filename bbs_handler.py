@@ -858,9 +858,28 @@ class CommandHandler:
                 f"Date: {created_at_str}\r\n".encode('utf-8'))
             self.chan.send(b'\r\n')
 
-        # 削除済み記事の本文表示
-        if article['is_deleted'] and self.userlevel < 5:  # シスオペ以外には本文を表示しない
-            self.chan.send(b'\r\n')
+        # 削除済み記事の本文表示に関する権限チェック
+        if article['is_deleted']:
+            can_read_deleted_body = False
+            if self.userlevel >= 5:  # シスオペは読める
+                can_read_deleted_body = True
+            else:
+                try:
+                    # 記事の投稿者ID (DBからはTEXT型で取得される可能性がある)
+                    # self.user_id_pk は users.id (INTEGER)
+                    article_owner_id = int(article['user_id'])
+                    if article_owner_id == self.user_id_pk:  # 投稿者本人は読める
+                        can_read_deleted_body = True
+                except ValueError:
+                    logging.warning(
+                        f"記事(ID:{article['id']})の投稿者ID({article['user_id']})を数値に変換できませんでした（本文閲覧チェック時）。")
+
+            if not can_read_deleted_body:
+                # 権限がない場合はメッセージを表示して本文表示をスキップ
+                util.send_text_by_key(
+                    self.chan, "bbs.article_deleted_body", self.menu_mode)
+                # show_back_prompt が True の場合でも、この後のプロンプトループは実行されない
+                return
 
         body_to_send = article['body'].replace(
             '\r\n', '\n').replace('\n', '\r\n')
