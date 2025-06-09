@@ -908,7 +908,7 @@ bbs:
       [?]                 説明
       [U]Sysop            B/Wリスト編集
       [C]sysop            シグオペ変更
-      [K]sysop/sigop      シグ看板編集
+      [G]sysop/sigop      シグ看板編集
       -----------------------------------
       番号[RETURN]        番号指定
       "キーワード[RETURN]  タイトル検索
@@ -1010,6 +1010,44 @@ bbs:
     mode_3: "BOARD OPERATORS UPDATED.\r\n"
   permission_denied_edit_operators:
     mode_1: "この掲示板の管理者を変更する権限がありません。\r\n"    
+  search_title_prompt:
+    mode_1: "検索文字列を入力してください:"
+    mode_2: "検索文字列を入力してください:"
+    mode_3: "検索文字列を入力してください:"
+  search_results_header:
+    mode_1: "「{search_term}」の検索結果:"
+    mode_2: "「{search_term}」の検索結果:"
+    mode_3: "「{search_term}」の検索結果:"
+  search_no_results:
+    mode_1: "該当する記事は見つかりませんでした。"
+    mode_2: "該当する記事は見つかりませんでした。"
+    mode_3: "該当する記事は見つかりませんでした。"
+  permission_denied_edit_kanban:
+    mode_1: "看板を編集する権限がありません。\r\n"
+    mode_2: "You do not have permission to edit the kanban.\r\n"
+    mode_3: "PERMISSION DENIED TO EDIT THE KANBAN.\r\n"
+  current_kanban_body_prompt:
+    mode_1: "------------現在の看板------------\r\n"
+    mode_2: "------------Current Kanban------------\r\n"    
+    mode_3: "------------CURRENT KANBAN------------\r\n"
+  new_kanban_body_prompt:
+    mode_1: "------------新しい看板(^で終了）------------\r\n"
+    mode_2: "------------New Kanban(^ to exit)------------\r\n"    
+    mode_3: "------------NEW KANBAN(^ TO EXIT)------------\r\n"  
+
+  edit_kanban_header:
+    mode_1: "看板編集\r\n"
+    mode_2: "Edit Kanban\r"
+    mode_3: "EDIT KANBAN\r\n"
+  confirm_save_kanban_yn:
+    mode_1: "看板を保存しますか？ (y/N): "
+    mode_2: "Do you want to save the kanban? (y/N): "
+    mode_3: "SAVE KANBAN? (Y/N): "
+  kanban_save_success:
+    mode_1: "看板を保存しました。\r\n"
+    mode_2: "Kanban saved successfully.\r\n"
+    mode_3: "KANBAN SAVED.\r\n"
+
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)

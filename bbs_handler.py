@@ -367,11 +367,13 @@ class CommandHandler:
                 else:
                     title_short = textwrap.shorten(
                         title, width=38, placeholder="...")
+                # ユーザー名の後のスペースを調整
+                spaces_before_title_field = "  " if deleted_mark else "   "
                 # 左寄せ、指定幅
                 article_no_str = f"{article['article_number']:0{article_id_width}d}"
 
                 self.chan.send(
-                    f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {deleted_mark}{title_short}\r\n".encode('utf-8'))
+                    f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}{spaces_before_title_field}{deleted_mark}{title_short}\r\n".encode('utf-8'))
             else:
                 util.send_text_by_key(
                     self.chan, "bbs.no_article", self.menu_mode)
@@ -383,12 +385,19 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "bbs.article_list_prompt", self.menu_mode, add_newline=False)
             key_input = None
+            decoded_char_for_check = None  # 番号ジャンプ用数字判定
             try:
                 data = self.chan.recv(1)  # 1バイトずつデータを受信
                 if not data:
                     logging.info(
                         f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
                     return  # 切断
+
+                # ASCIIデコード判定
+                try:
+                    decoded_char_for_check = data.decode('ascii')
+                except UnicodeDecodeError:
+                    decoded_char_for_check = None  # 失敗したとき
 
                 if data == b'\x1b':  # esc - 矢印の可能性
                     self.chan.settimeout(0.05)  # 短いタイムアウトを設定
@@ -442,8 +451,205 @@ class CommandHandler:
             if key_input is None:  # キーが取得できなかった場合 (通常は発生しないはず)
                 continue
 
+            # 数字キーによる記事ジャンプ処理
+            if decoded_char_for_check and decoded_char_for_check.isdigit():
+                num_input_buffer = decoded_char_for_check
+                self.chan.send(data)  # 最初の数字をエコー
+
+                max_digits = 5  # 記事番号の最大桁数（記事数に応じて調整しても良い）
+
+                while True:  # Enterが押されるか、不正な入力があるまでループ
+                    char_data = self.chan.recv(1)
+                    if not char_data:
+                        return  # 切断
+
+                    try:
+                        char = char_data.decode('ascii')
+                        if char in ('\r', '\n'):
+                            self.chan.send(b'\r\n')  # Enterをエコー
+                            break
+                        elif char.isdigit():
+                            if len(num_input_buffer) < max_digits:
+                                num_input_buffer += char
+                                self.chan.send(char_data)  # 入力された数字をエコー
+                            else:
+                                self.chan.send(b'\a')  # 桁数オーバーでビープ
+                        else:  # 数字でもEnterでもバックスペースでもない
+                            self.chan.send(b'\a')  # ビープ音
+                            num_input_buffer = ""  # 入力を無効化してループを抜ける
+                            break
+                    except UnicodeDecodeError:  # ASCIIデコード失敗
+                        self.chan.send(b'\a')  # ビープ音
+                        num_input_buffer = ""  # 入力を無効化してループを抜ける
+                        break
+
+                if num_input_buffer:  # 何か有効な数字が入力されていれば
+                    try:
+                        target_article_number = int(num_input_buffer)
+                        target_article_index = -1
+                        for i, art_item in enumerate(articles):
+                            if art_item['article_number'] == target_article_number:
+                                target_article_index = i
+                                break
+                        if target_article_index != -1:
+                            current_index = target_article_index
+                            # self.read_article(target_article_number, show_header=True, show_back_prompt=True) # 本文読み込みはしない
+                            # reload_articles_display(keep_index=True) # リスト全体の再読み込みも不要
+                            # ジャンプ先表示前にリストヘッダを再表示
+                            util.send_text_by_key(
+                                self.chan, "bbs.article_list_header", self.menu_mode)
+                            display_current_article_header()  # 該当記事のヘッダを表示
+                        else:
+                            util.send_text_by_key(
+                                self.chan, "bbs.article_not_found", self.menu_mode)
+                            display_current_article_header()
+                    except ValueError:  # int変換失敗 (通常は起こらないはず)
+                        util.send_text_by_key(
+                            self.chan, "common_messages.invalid_input", self.menu_mode)
+                        display_current_article_header()
+                self.just_displayed_header_from_tail_h = False
+                continue  # 数字ジャンプ処理後はループの先頭へ
+            elif decoded_char_for_check == '"':  # タイトル検索
+                self.chan.send(b'"\r\n')  # 入力された " をエコーして改行
+                util.send_text_by_key(
+                    self.chan, "bbs.search_title_prompt", self.menu_mode, add_newline=False)
+                search_term_raw = ssh_input.process_input(self.chan)
+
+                if search_term_raw is None:
+                    return  # 切断
+                search_term = search_term_raw.strip().lower()
+
+                if not search_term:
+                    # 検索文字列が空なら元のリストヘッダを再表示して継続
+                    util.send_text_by_key(
+                        self.chan, "bbs.article_list_header", self.menu_mode)
+                    display_current_article_header()
+                    self.just_displayed_header_from_tail_h = False
+                    continue
+
+                # DBから全記事を再取得してフィルタリング
+                all_articles_from_db_for_search = self.article_manager.get_articles_by_board(
+                    board_id_pk, include_deleted=True)  # 常に削除済みも取得
+
+                filtered_articles_list = []
+                if all_articles_from_db_for_search:  # DBに記事があればフィルタリング
+                    for article_item in all_articles_from_db_for_search:
+                        # 検索対象のタイトル文字列を準備
+                        title_to_check = (
+                            article_item['title'] if article_item['title'] else "").lower()
+                        # 削除済みタイトルの可視性チェック
+                        if article_item['is_deleted'] == 1:
+                            can_see_deleted_title_search = False
+                            if self.userlevel >= 5:  # シスオペ
+                                can_see_deleted_title_search = True
+                            else:
+                                try:
+                                    # 投稿者本人
+                                    if int(article_item['user_id']) == self.user_id_pk:
+                                        can_see_deleted_title_search = True
+                                except ValueError:
+                                    pass  # ID変換失敗時は見せない
+                            if not can_see_deleted_title_search:
+                                title_to_check = ""  # 見えないタイトルは検索対象外
+
+                        if search_term in title_to_check:
+                            filtered_articles_list.append(article_item)
+
+                articles = filtered_articles_list  # 表示用リストを検索結果で上書き
+                current_index = 0  # 検索結果の先頭に
+
+                if articles:
+                    # フィルタリングされた記事リスト内の最大の記事番号の桁数を計算
+                    max_num_val = 0
+                    for art_item_for_width in articles:
+                        if art_item_for_width['article_number'] > max_num_val:
+                            max_num_val = art_item_for_width['article_number']
+                    article_id_width = max(5, len(str(max_num_val)))
+                else:
+                    article_id_width = 5  # 記事がない場合はデフォルト
+
+                util.send_text_by_key(
+                    self.chan, "bbs.search_results_header", self.menu_mode, search_term=search_term_raw)
+                util.send_text_by_key(  # 検索結果表示の前に、共通のリストヘッダを表示
+                    self.chan, "bbs.article_list_header", self.menu_mode)
+
+                if not articles:
+                    util.send_text_by_key(
+                        self.chan, "bbs.search_no_results", self.menu_mode)
+                else:
+                    display_current_article_header()  # 検索結果の先頭記事ヘッダを表示
+                self.just_displayed_header_from_tail_h = False
+                continue
+            elif decoded_char_for_check == "'":  # 全文検索
+                self.chan.send(b"'\r\n")  # 入力された ' をエコーして改行
+                util.send_text_by_key(
+                    self.chan, "bbs.search_title_prompt", self.menu_mode, add_newline=False)  # タイトル検索と同じプロンプト
+                search_term_raw = ssh_input.process_input(self.chan)
+
+                if search_term_raw is None:
+                    return  # 切断
+                search_term = search_term_raw.strip().lower()
+
+                if not search_term:
+                    util.send_text_by_key(
+                        self.chan, "bbs.article_list_header", self.menu_mode)
+                    display_current_article_header()
+                    self.just_displayed_header_from_tail_h = False
+                    continue
+
+                all_articles_from_db_for_search = self.article_manager.get_articles_by_board(
+                    board_id_pk, include_deleted=True)
+
+                filtered_articles_list = []
+                if all_articles_from_db_for_search:
+                    for article_item in all_articles_from_db_for_search:
+                        title_to_check = (
+                            article_item['title'] if article_item['title'] else "").lower()
+                        # sqlite3.Rowからは辞書形式でアクセス
+                        body_from_row = article_item['body']
+                        body_to_check = (
+                            body_from_row if body_from_row else "").lower()
+
+                        if article_item['is_deleted'] == 1:
+                            can_see_deleted_content = False
+                            if self.userlevel >= 5:  # シスオペ
+                                can_see_deleted_content = True
+                            else:
+                                try:
+                                    # 投稿者本人
+                                    if int(article_item['user_id']) == self.user_id_pk:
+                                        can_see_deleted_content = True
+                                except ValueError:
+                                    pass
+                            if not can_see_deleted_content:
+                                title_to_check = ""
+                                body_to_check = ""  # 見えない記事はタイトルも本文も検索対象外
+
+                        if search_term in title_to_check or search_term in body_to_check:
+                            filtered_articles_list.append(article_item)
+
+                articles = filtered_articles_list
+                current_index = 0
+                if articles:
+                    max_num_val = max(art['article_number']
+                                      for art in articles) if articles else 0
+                    article_id_width = max(5, len(str(max_num_val)))
+                else:
+                    article_id_width = 5
+
+                util.send_text_by_key(
+                    self.chan, "bbs.search_results_header", self.menu_mode, search_term=search_term_raw)
+                util.send_text_by_key(
+                    self.chan, "bbs.article_list_header", self.menu_mode)
+                if not articles:
+                    util.send_text_by_key(
+                        self.chan, "bbs.search_no_results", self.menu_mode)
+                else:
+                    display_current_article_header()
+                self.just_displayed_header_from_tail_h = False
+                continue
             # 旧方向へ進む[ctrl+e][k][上カーソル]
-            if key_input == '\x05' or key_input == "k" or key_input == "KEY_UP":
+            elif key_input == '\x05' or key_input == "k" or key_input == "KEY_UP":
                 if not articles:
                     self.chan.send(b'\a')
                     continue
@@ -656,7 +862,6 @@ class CommandHandler:
                     # sqlite3.Row object
                     article_no_str = f"{article['article_number']:0{article_id_width}d}"
                     title = article['title'] if article['title'] else "(No Title)"
-                    deleted_mark_list = "*" if article['is_deleted'] == 1 else ""
 
                     # タイトル表示の調整 (記事一覧表示と同様のロジック)
                     if article['is_deleted'] == 1:
@@ -677,8 +882,11 @@ class CommandHandler:
                     else:
                         title_short = textwrap.shorten(
                             title, width=38, placeholder="...")
+                    # title_short の後に評価
+                    deleted_mark_list = "*" if article['is_deleted'] == 1 else ""
                     user_name = sqlite_tools.get_user_name_from_user_id(
                         self.dbname, article['user_id'])
+                    spaces_before_title_field_list = "  " if deleted_mark_list else "   "
                     user_name_short = textwrap.shorten(
                         user_name if user_name else "(不明)", width=7, placeholder="..")
                     try:
@@ -691,7 +899,7 @@ class CommandHandler:
                         r_date_str = "----/--/--"
                         r_time_str = "--:--"
                     self.chan.send(
-                        f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}   {deleted_mark_list}{title_short}\r\n".encode('utf-8'))
+                        f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}{spaces_before_title_field_list}{deleted_mark_list}{title_short}\r\n".encode('utf-8'))
                 self.chan.send(b'\r\n')  # タイトル一覧の最後に空行
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
@@ -701,6 +909,12 @@ class CommandHandler:
                 self.edit_board_operators()
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
+
+            elif key_input == "g":  # シグ看板編集
+                self.edit_kanban()
+                display_current_article_header()
+                self.just_displayed_header_from_tail_h = False
+                continue
 
             elif key_input == "r":  # 連続読み
                 if not articles:
@@ -727,6 +941,105 @@ class CommandHandler:
             else:
                 self.chan.send(b'\a')
                 self.just_displayed_header_from_tail_h = False
+
+    def edit_kanban(self):
+        """看板編集"""
+        if not self.current_board:  # 念の為
+            util.send_text_by_key(
+                self.chan, "bbs.no_board_selected", self.menu_mode)
+            return
+
+        board_id_pk = self.current_board['id']
+
+        # 権限チェック
+        can_edit = False
+        if self.userlevel >= 5:
+            can_edit = True
+        else:
+            try:
+                operator_ids_json = self.current_board['operators'] if 'operators' in self.current_board.keys(
+                ) else '[]'
+                operator_ids = json.loads(operator_ids_json)
+                if self.user_id_pk in operator_ids:
+                    can_edit = True
+            except json.JSONDecodeError:
+                logging.error(
+                    f"掲示板ID {board_id_pk} のオペレーターリストのデコード失敗: {operator_ids_json}")
+            except TypeError:
+                logging.error(
+                    f"掲示板ID {board_id_pk} のオペレーターリストが不正な型: {operator_ids_json}")
+
+        if not can_edit:
+            util.send_text_by_key(
+                self.chan, "bbs.permission_denied_edit_kanban", self.menu_mode)
+            return
+
+        util.send_text_by_key(
+            self.chan, "bbs.edit_kanban_header", self.menu_mode)
+        existing_kanban_title = self.current_board['kanban_title'] if 'kanban_title' in self.current_board.keys(
+        ) else ''
+        current_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board.keys(
+        ) else ''
+
+        # タイトルはなしの方向にしよう
+        # new_title = new_title_input.strip() if new_title_input.strip() else current_title
+
+        # 看板本体
+        self.chan.send(b'\r\n')
+        util.send_text_by_key(
+            self.chan, "bbs.current_kanban_body_prompt", self.menu_mode)
+        if current_body:
+            processed_current_body = current_body.replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            self.chan.send(processed_current_body.encode('utf-8'))
+            if not processed_current_body.endswith('\r\n'):
+                self.chan.send(b'\r\n')
+        util.send_text_by_key(
+            self.chan, "bbs.new_kanban_body_prompt", self.menu_mode)
+        body_lines = []
+        while True:
+            line = ssh_input.process_input(self.chan)
+            if line is None:
+                return  # 切断
+            if line == '^':
+                break
+            body_lines.append(line)
+        new_body = '\r\n'.join(body_lines)
+        if not new_body.strip() and not body_lines:  # 何も入力されず^だけの場合
+            new_body = current_body
+
+        # 確認と保存
+#        self.chan.send(b'New Title: ' + new_title.encode('utf-8') + b'\r\n')
+        self.chan.send(b'New Body:\r\n')
+        # 本文が空でも改行は入れる
+        self.chan.send(new_body.encode('utf-8') +
+                       (b'\r\n' if new_body else b''))
+        util.send_text_by_key(
+            self.chan, "bbs.confirm_save_kanban_yn", self.menu_mode, add_newline=False)
+        confirm = ssh_input.process_input(self.chan)
+
+        if confirm is None or confirm.strip().lower() != 'y':
+            util.send_text_by_key(
+                self.chan, "common_messages.cancel", self.menu_mode)
+            return
+
+        if sqlite_tools.update_board_kanban(self.dbname, board_id_pk, existing_kanban_title, new_body):
+            util.send_text_by_key(
+                self.chan, "bbs.kanban_save_success", self.menu_mode)
+            updated_board_info = self.board_manager.get_board_info(
+                self.current_board['shortcut_id'])
+            if updated_board_info:
+                self.current_board = updated_board_info
+            else:
+                logging.error(
+                    f"看板更新後、掲示板情報 {self.current_board['shortcut_id']} の再取得に失敗。")
+            self.chan.send(b'\r\n')
+            self._display_kanban()  # 更新された看板を即時表示
+            util.send_text_by_key(  # 記事一覧ヘッダを再表示
+                self.chan, "bbs.article_list_header", self.menu_mode)
+        else:
+            util.send_text_by_key(
+                self.chan, "bbs.kanban_save_failed", self.menu_mode)
 
     def edit_board_operators(self):
         """現在の掲示板のオペレータの編集"""

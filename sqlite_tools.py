@@ -609,7 +609,7 @@ def get_articles_by_board_id(dbname, board_id_pk, order_by="article_number ASC",
     指定された掲示板IDの記事リストを取得する。
     include_deleted=True の場合、削除済み記事も含む。
     """
-    sql = f"SELECT id, article_number, user_id, title, created_at, is_deleted FROM articles WHERE board_id = ?"
+    sql = f"SELECT id, article_number, user_id, title, body, created_at, is_deleted FROM articles WHERE board_id = ?"
     params = [board_id_pk]
 
     if not include_deleted:
@@ -694,4 +694,22 @@ def update_board_operators(dbname, board_id_pk, operator_user_ids_json_string):
         return True
     except Exception as e:
         logging.error(f"掲示板ID {board_id_pk} のオペレーターリスト更新中にDBエラー: {e}")
+        return False
+
+
+def update_board_kanban(dbname, board_id_pk, new_kanban_title, new_kanban_body):
+    """掲示板の看板タイトルと本文更新"""
+    sql = "UPDATE boards SET kanban_title=?,kanban_body=? WHERE id=?"
+    try:
+        params = sqlite_execute_query(
+            dbname, sql, (new_kanban_title, new_kanban_body, board_id_pk))
+        if params:
+            logging.info(f"掲示板ID {board_id_pk} の看板タイトルと本文を更新しました")
+            return True
+        else:
+            logging.error(
+                f"掲示板ID {board_id_pk} の看板タイトルと本文更新中にDBエラー")
+        return params
+    except Exception as e:
+        logging.error(f"掲示板ID {board_id_pk} の看板タイトルと本文更新中にDBエラー: {e}")
         return False
