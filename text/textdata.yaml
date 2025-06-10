@@ -123,22 +123,22 @@ user_pref_menu:
     header: # モード選択肢の表示
       mode_1: |
         メニューモードを選択してください:
-        [1] モード1 (日本語)
-        [2] モード2 (英語)
-        [3] モード3 (ANSI)
+        [1] モード1 (GR-BBS)
+        [2] モード2 (Big-Model)
+        [3] モード3 (English)
         [E] キャンセル
       mode_2: |
-        Select Menu Mode:
-        [1] Mode 1 (Japanese)
-        [2] Mode 2 (English)
-        [3] Mode 3 (ANSI)
-        [E] Cancel
+        メニューモードを選択してください:
+        [1] モード1 (GR-BBS)
+        [2] モード2 (Big-Model)
+        [3] モード3 (English)
+        [E] キャンセル
       mode_3: |
-        SELECT MODE:
-        [1] MODE 1 (JP)
-        [2] MODE 2 (US)
-        [3] MODE 3 (ANSI)
-        [E] CANCEL
+        Select Menu Mode:
+        [1] Mode 1 (GR-BBS)
+        [2] Mode 2 (Big-Model)
+        [3] Mode 3 (English)
+        [E] Cancel
     confirm_changed: # 変更成功メッセージ (フォーマット文字列)
       mode_1: "メニューモードを {mode} に変更しました。\r\n"
       mode_2: "Menu mode changed to {mode}.\r\n"
@@ -755,14 +755,42 @@ chat:
   help:
     mode_1: |
       チャットコマンド:
-        /exit, /quit, /bye - チャットルームを退出します。
-        /help              - このヘルプを表示します。
-      上記以外は全てチャットメッセージとして送信されます。
+       行中 [CTRL+C]      - 入力行キャンセル(未実装)
+       [CTRL+R]           - 入力行リプリント(未実装)
+       ^,行頭[CTRL+C]     - チャットルームを退室します。
+       !?,!h              - このヘルプを表示します。
+       ![RETURN]          - 電報機能
+       !L[RETURN]         - 鍵をかける
+       !R[RETURN]         - チャットルームの状況
+       !U[RETURN]         - 鍵を開ける
+       !W[RETURN]         - 現在のアクセス状況
+       上記以外は全てチャットメッセージとして送信されます。
     mode_2: |
-      Chat Commands:
-        /exit, /quit, /bye - Leave the chat room.
-        /help              - Show this help message.
-      Anything else typed will be sent as a chat message.
+      ------------------------------------
+       行中 [CTRL+C] 入力行キャンセル(未実装)
+       [CTRL+R]      入力行リプリント(未実装)
+       行頭 [CTRL+C] チャットルームを退室
+       ^[RETURN]     同上
+       ![RETURN]     電報機能
+       !?[RETURN]    コマンドヘルプ
+       !L[RETURN]    鍵をかける
+       !R[RETURN]    チャットルームの状況
+       !U[RETURN]    鍵を開ける
+       !W[RETURN]    現在のアクセス状況
+      ------------------------------------
+    mode_3: |
+      ----------------------------------------------
+       In-line [CTRL+C]       Cancel input line (not implemented)
+       [CTRL+R]               Reprint input line (not implemented)
+       At line start [CTRL+C] Exit chat room
+       ^[RETURN]              Same as above
+       ![RETURN]              Telegram function
+       !?[RETURN]             Command help
+       !L[RETURN]             Lock
+       !R[RETURN]             Chat room status
+       !U[RETURN]             Unlock
+       !W[RETURN]             Current access status
+      ----------------------------------------------
   room_locked: # 入室しようとした部屋がロックされている場合 (他人によって)
     mode_1: "ルーム「{room_name}」は {owner} によってロックされています。入室できません。\r\n"
     mode_2: "Room '{room_name}' is locked by {owner}. You cannot enter.\r\n"
