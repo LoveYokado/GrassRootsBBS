@@ -162,10 +162,70 @@ class PermissionManager:
         self.dbname = dbname
 
     def check_permission(self, board_id, user_id, action):
-        """指定されたアクションの実行権限があるかチェックする"""
-        # action: "read", "write", "delete", "edit_kanban", "edit_permission"
-        # TODO: 実装
-        pass
+        """
+        指定されたアクションの実行権限があるかチェックする
+        将来的に詳細な権限管理に使用する予定。
+        現状はcan_view_board,can_write_to_boardを使用
+        """
+        return True
+
+    def can_view_board(self, board_info, user_id_pk, user_level):
+        """指定された掲示板の閲覧権限があるかチェックする"""
+        if user_level >= 5:
+            return True
+
+        board_id_pk = board_info["id"]
+        default_perm = board_info['default_permission'] if 'default_permission' in board_info.keys(
+        ) else 'unknown'
+        user_specific_perm = sqlite_tools.get_user_permission_for_board(
+            self.dbname, board_id_pk, str(user_id_pk))
+
+        if user_specific_perm == "deny":  # 明示的な拒否はNG
+            return False
+
+        if default_perm == "open":
+            return True  # denyじゃないならOK
+        elif default_perm == "closed":
+            return user_specific_perm == "allow"  # allowされてればOK
+        elif default_perm == "readonly":
+            return True  # deny#じゃないなら閲覧OK
+        else:  # unknownなどなど
+            logging.warning(
+                f"掲示板ID {board_id_pk} のdefault_permissionが不明です: {default_perm}")
+            return False  # 不明だとNG
+
+    def can_write_to_board(self, board_info, user_id_pk, user_level):
+        """指定された掲示板の書き込み権限があるかチェックする"""
+        if user_level >= 5:
+            return True
+
+        board_id_pk = board_info["id"]
+        default_perm = board_info['default_permission'] if 'default_permission' in board_info.keys(
+        ) else 'unknown'
+        user_specific_perm = sqlite_tools.get_user_permission_for_board(
+            self.dbname, board_id_pk, str(user_id_pk))
+
+        # シグオペかをチェック
+        try:
+            operator_ids_json = board_info['operators'] if 'operators' in board_info.keys(
+            ) else '[]'
+            operator_ids = json.loads(operator_ids_json)
+            if user_id_pk in operator_ids:
+                return True  # シグオペならOK
+        except (json.JSONDecodeError, TypeError):
+            pass  # エラー対策
+
+        if default_perm == "deny":  # 明示的な拒否はNG
+            return False
+
+        if default_perm == "open":
+            return True  # denyじゃないならOK
+        elif default_perm == "closed" or default_perm == "readonly":  # closed, readonlyは同じロジック
+            return user_specific_perm == "allow"  # allowされてればOK
+        else:  # unknownなどなど
+            logging.warning(
+                f"掲示板ID {board_id_pk} のdefault_permissionが不明です: {default_perm}")
+            return False  # 不明だとNG
 
     def get_permission_list(self, board_id):
         """指定された掲示板のパーミッションリストを取得する"""
@@ -231,6 +291,12 @@ class CommandHandler:
                 self.chan, "bbs.no_board_selected", self.menu_mode)
             return
 
+        # 掲示板閲覧権限チェック
+        if not self.permission_manager.can_view_board(self.current_board, self.user_id_pk, self.userlevel):
+            util.send_text_by_key(
+                self.chan, "bbs.permission_denied_read_board", self.menu_mode)
+            return
+
         board_name_display = self.current_board['name'] if 'name' in self.current_board else 'unknown board'
         # 説明表示が必要ならコメント外す
         util.send_text_by_key(
@@ -266,6 +332,12 @@ class CommandHandler:
         if not self.current_board:
             util.send_text_by_key(
                 self.chan, "bbs.no_board_selected", self.menu_mode)
+            return
+
+        # 掲示板閲覧権限チェック(念の為)
+        if not self.permission_manager.can_view_board(self.current_board, self.user_id_pk, self.userlevel):
+            util.send_text_by_key(
+                self.chan, "bbs.permission_denied_read_board", self.menu_mode)
             return
 
         board_id_pk = self.current_board['id']
@@ -1205,7 +1277,7 @@ class CommandHandler:
             self.chan, header_info_key, self.menu_mode, board_permission_type=board_default_permission)
 
         # 現在のユーザリストを表示
-        current_permissions_db = sqlite_tools.get_board_userlist(
+        current_permissions_db = sqlite_tools.get_board_permissions(  # "allow"だけでなく"deny"も取得するように変更
             self.dbname, board_id_pk)
 
         registered_permissions = []
@@ -1433,10 +1505,10 @@ class CommandHandler:
             )[0] if self.chan.getpeername() else None
         except Exception:  # getpeername が失敗するケースも考慮
             client_ip = None
-        # TODO:将来的にはPermissionManagerで書き込み権限チェック
-        # if not self.permission_manager.check_permission(board_id_pk, self.user_id_pk, "write"):
-        #    util.send_text_by_key(self.chan, "bbs.permission_denied_write", self.menu_mode)
-        #    return
+
+        if not self.permission_manager.can_write_to_board(self.current_board, self.user_id_pk, self.userlevel):
+            util.send_text_by_key(
+                self.chan, "bbs.permission_denied_write_article", self.menu_mode)
 
         util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
         util.send_text_by_key(self.chan, "bbs.post_subject",
@@ -1485,10 +1557,10 @@ def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
         board_data_from_db = handler.board_manager.get_board_info(shortcut_id)
         if board_data_from_db:
             handler.current_board = board_data_from_db
-            # TODO: ここでパーミッションチェックを行う
-            # if not handler.permission_manager.check_permission(handler.current_board['id'], login_id, "read"):
-            #     util.send_text_by_key(chan, "bbs.permission_denied_read", menu_mode)
-            #     return
+            if not handler.permission_manager.can_view_board(handler.current_board, handler.user_id_pk, handler.userlevel):
+                util.send_text_by_key(
+                    chan, "bbs.permission_denied_read_board", menu_mode)
+                return
             handler.command_loop()
         else:
             # TODO: textdata.yaml に追加

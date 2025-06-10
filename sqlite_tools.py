@@ -715,10 +715,11 @@ def update_board_kanban(dbname, board_id_pk, new_kanban_title, new_kanban_body):
         return False
 
 
-def get_board_userlist(dbname, board_id_pk):
-    sql = "SELECT user_id, access_level FROM board_user_permissions WHERE board_id = ? AND access_level = 'allow'"
+def get_board_permissions(dbname, board_id_pk):
+    """指定された掲示板IDのパーミッションリスト（user_idとaccess_level）を全て取得する"""
+    sql = "SELECT user_id, access_level FROM board_user_permissions WHERE board_id = ?"
     results = sqlite_execute_query(dbname, sql, (board_id_pk,), fetch=True)
-    return results if results else []
+    return results if results else []  # sqlite_execute_query は sqlite3.Row のリストを返す
 
 
 def delete_board_permissions_by_board_id(dbname, board_id_pk):
@@ -731,3 +732,11 @@ def add_board_permission(dbname, board_id_pk, user_id_pk_str, access_level):
     """board_user_permissions テーブルに新しい権限エントリを追加する"""
     sql = "INSERT INTO board_user_permissions (board_id, user_id,access_level) VALUES (?, ?, ?)"
     return sqlite_execute_query(dbname, sql, (board_id_pk, user_id_pk_str, access_level))
+
+
+def get_user_permission_for_board(dbname, board_id_pk, user_id_pk_str):
+    """指定された掲示板とユーザのアクセスレベルを取得"""
+    sql = "SELECT access_level FROM board_user_permissions WHERE board_id=? AND user_id=?"
+    result = sqlite_execute_query(
+        dbname, sql, (board_id_pk, user_id_pk_str), fetch=True)
+    return result[0]['access_level']if result else None

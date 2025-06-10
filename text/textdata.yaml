@@ -1106,7 +1106,14 @@ bbs:
     mode_1: "** この掲示板のユーザーリストを編集する権限がありません **\r\n"
     mode_2: "** You do not have permission to edit the user list for this board **\r\n"
     mode_3: "** PERMISSION DENIED TO EDIT USER LIST FOR THIS BOARD **\r\n"
-
+  permission_denied_read_board: 
+    mode_1: "** この掲示板を閲覧する権限がありません **\r\n"
+    mode_2: "** You do not have permission to view this board **\r\n"
+    mode_3: "** PERMISSION DENIED TO VIEW THIS BOARD **\r\n"
+  permission_denied_write_article: 
+    mode_1: "** この掲示板に書き込む権限がありません **\r\n"
+    mode_2: "** You do not have permission to write to this board **\r\n"
+    mode_3: "** PERMISSION DENIED TO WRITE TO THIS BOARD **\r\n"
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)
