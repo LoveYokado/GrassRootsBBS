@@ -82,6 +82,13 @@ user_pref_menu:
       [H,?]: ヘルプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9] 電報受信制限       ●
+      ●[2] パスワード変更    [6] 探索リスト登録         [10] プロトコル設定    ○
+      ○[3] プロフィール変更   [7] 探索リスト読み出し     [11] メールアドレス変更 ●
+      ●[4] 会員リスト        [8] 元探索リスト読み出し                        ○
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         Terminal Environment Settings
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -99,25 +106,6 @@ user_pref_menu:
       [E] Exit
       [H,?]: Help
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_3: |
-      ╔═══════════════════════════════════════╗
-      ║   USER PREFS                          ║
-      ╚═══════════════════════════════════════╝
-      [1] CHG MODE
-      [2] CHG PASS
-      [3] CHG PROF
-      [4] MEMBER LIST
-      [5] SET LAST LOGIN
-      [6] REG SEARCH
-      [7] LOAD SEARCH
-      [8] LOAD ORIG SEARCH
-      [9] TELEGRAM RESTRICT
-      [10] EDIT BLACKLIST
-      [11] CHANGE MAIL
-      [E] EXIT
-      [H,?]: HELP
-      ╚═══════════════════════════════════════╝
-
   # --- メニューモード変更サブメニュー ---
   mode_selection:
     header: # モード選択肢の表示
@@ -351,6 +339,18 @@ sysop_menu:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      □[ALLR] 探索リストを読む              [USRL] 会員一覧表示          ■
+      ■[ALLW] 探索リストを書く              [KYGN] SSH鍵変更            □
+      □[MKBD] 掲示板作成                   [PASC] パスワード変更        ■
+      ■[LSBD] 掲示板一覧                   [CHGU] ユーザーレベル変更     □
+      □[DLBD] 掲示板削除                   [PASU] 会員抹消             ■
+      ■[VSET] 設定一覧表示                 [REGS] 会員登録              □
+      □[TREE] 階層構造マップ               [SYMR] シンボルテーブルを読む   ■
+      ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く   □
+      □[EXIT] システム強制終了              [LETR] アンケート処理         ■
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       [ALLR] Load Search List
       [ALLW] Register Search List
       [LETR] Process Survey
@@ -368,28 +368,6 @@ sysop_menu:
       [VSET] Show Settings
       [EXIT] System Shutdown
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_3: |
-      ╔═══════════════════════════════════════╗
-      ║   \x1b[31mSYSTEM MENU\x1b[0m                          ║
-      ╚═══════════════════════════════════════╝
-      [ALLR] LOAD SEARCH LIST
-      [ALLW] REGISTER SEARCH LIST
-      [LETR] PROCESS SURVEY
-      [PASC] CHANGE PASSWORD (UNIMPLEMENTED)
-      [KYGN] CHANGE SSH KEY
-      [MKBD] CREATE BOARD
-      [LSBD] LIST BOARDS
-      [DLBD] DELETE BOARD
-      [REGS] REGISTER USER
-      [PASU] DELETE USER
-      [CHGU] EDIT USER LEVEL
-      [USRL] SHOW USER LIST
-      [VSET] SHOW SETTINGS
-      [MNPM] SET MEMBER LEVEL PERMISSIONS
-      [VSET] SHOW SETTINGS
-      [EXIT] SYSTEM SHUTDOWN
-      ╚═══════════════════════════════════════╝
-
   system_quit:
     header:
       mode_1: "** システムを停止します **\r\n"
@@ -714,17 +692,46 @@ mail_handler:
     mode_3: "MAIL SENT.\r\n"
   mail_help:
     mode_1: |
-      --- メールメニュー ヘルプ ---
-      j : 次のメールへ (古い方へ)
-      k : 前のメールへ (新しい方へ)
-      Enter: 表示中のメールを読む
-      d : 表示中のメールを削除 / 削除取消 (トグル)
-      s : 受信箱 / 送信済み箱 を切り替え
-      w : 新しいメールを書く
-      h : このヘルプを表示
-      e : メールメニューを終了
-      ---------------------------
+      --------- メールメニュー ヘルプ ---------
+      [CTRL+E][↑][K]     : 旧方向へ進む
+      [CTRL+R][←][H]     : 旧方向へ読み進む
+      [CTRL+D][RETURN]    : 現在位置を読む
+      [CTRL+F][→][L][TAB]: 新方向へ読み進む
+      [CTRL+X][↓][J][ ]  : 新方向へ進む
+      [CTRL+C][ESC][E]   :  終了
+      [*]                :  削除
+      [W]                :  書く
+      [R]                :  新方向へ読み続ける
+      [T]                :  タイトル一覧
+      [?]                :  説明
+      --------------------------------------
+      番号[RETURN]         番号指定
+      "キーワード[RETURN]  タイトル検索
+      'キーワード[RETURN]  全文検索
+      ;ジャンプ先[RETURN]  シグ間ジャンプ
+      --------------------------------------
     mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━
+       一覧形式でのメールの読み出しの使い方
+      ━━━━━━━━━━━━━━━━━━━━
+       [CTRL+E][↑][K]      旧方向へ進む
+       [CTRL+R][←][H]      旧方向へ読み進む
+       [CTRL+D][RETURN]     現在位置を読む
+       [CTRL+F][→][L][TAB] 新方向へ読み進む
+       [CTRL+X][↓][J][ ]   新方向へ進む
+       [CTRL+C][ESC][E]     終了
+       [*]                  削除
+       [W]                  書く
+       [R]                  新方向へ読み続ける
+       [T]                  タイトル一覧
+       [?]                  説明
+      ----------------------------------------
+       番号[RETURN]         番号指定
+       "キーワード[RETURN]  タイトル検索
+       'キーワード[RETURN]  全文検索
+       ;ジャンプ先[RETURN]  シグ間ジャンプ
+      ━━━━━━━━━━━━━━━━━━━━
+    mode_3: |
       --- MAIL MENU HELP ---
       j : Next mail (older)
       k : Previous mail (newer)
@@ -735,18 +742,11 @@ mail_handler:
       h : Display this help
       e : Exit mail menu
       ---------------------------
-    mode_3: |
-      --- MAIL MENU HELP ---
-      J : NEXT MAIL (OLDER)
-      K : PREVIOUS MAIL (NEWER)
-      ENTER: READ CURRENT MAIL
-      D : DELETE CURRENT MAIL / TOGGLE DELETE STATUS
-      S : TOGGLE INBOX / SENTBOX
-      W : WRITE NEW MAIL
-      H : DISPLAY THIS HELP
-      E : EXIT MAIL MENU
-      ---------------------------
-#チャットルーム
+      Search:
+        n : Search by number
+        " : Search by subject
+        ' : Search by body
+      ; : Jump to another sig
 chat:
   welcome:
     mode_1: "チャットルーム「{room_name}」へようこそ！"
@@ -931,26 +931,30 @@ bbs:
     mode_3: "\r\n--- ARTICLE {article_number} ({title}) ---\r\n"
   article_list_help: # 記事一覧でのヘルプ
     mode_1: |
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      [CTRL+E][↑][K]      旧方向へ進む
-      [CTRL+R][←][H]      旧方向へ読み進む
-      [CTRL+D][RETURN]    現在位置を読む
-      [CTRL+F][→][L][TAB] 新方向へ読み進む
-      [CTRL+X][↓][J][ ]   新方向へ進む
-      [CTRL+C][ESC][E]    終了
-      [*]                 削除
-      [W]                 記事を書く
-      [S]                 シグ看板
-      [T]                 タイトル一覧
-      [?]                 説明
-      [U]Sysop            B/Wリスト編集
-      [C]sysop            シグオペ変更
-      [G]sysop/sigop      シグ看板編集
+      --------- 掲示板メニュー ヘルプ ---------
+      [CTRL+E][↑][K]     : 旧方向へ進む
+      [CTRL+R][←][H]     : 旧方向へ読み進む
+      [CTRL+D][RETURN]    : 現在位置を読む
+      [CTRL+F][→][L][TAB]: 新方向へ読み進む
+      [CTRL+X][↓][J][ ]  : 新方向へ進む
+      [CTRL+C][ESC][E]   :  終了
+      [*]                :  削除
+      [W]                :  書く
+      [R]                :  新方向へ読み続ける
+      [T]                :  タイトル一覧
+      [?]                :  説明
+      [W]                : 記事を書く
+      [S]                : シグ看板
+      [T]                : タイトル一覧
+      [?]                : 説明
+      [U]Sysop           : B/Wリスト編集
+      [C]Sysop           : シグオペ変更
+      [G]Sysop/Sigop     : シグ看板編集
       -----------------------------------
-      番号[RETURN]        番号指定
-      "キーワード[RETURN]  タイトル検索
-      'キーワード[RETURN]  全文検索
-      ;ジャンプ先[RETURN]  シグ間ジャンプ
+      番号[RETURN]        : 番号指定
+      "キーワード[RETURN]  : タイトル検索
+      'キーワード[RETURN]  : 全文検索
+      ;ジャンプ先[RETURN]  : シグ間ジャンプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -967,6 +971,9 @@ bbs:
       [S]                 シグ看板
       [T]                 タイトル一覧
       [?]                 説明
+      [U]Sysop            B/Wリスト編集
+      [C]Sysop            シグオペ変更
+      [G]Sysop/Sigop      シグ看板編集
       -----------------------------------
       番号[RETURN]        番号指定
       "キーワード[RETURN]  タイトル検索
@@ -974,16 +981,27 @@ bbs:
       ;ジャンプ先[RETURN]  シグ間ジャンプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
-      --- ARTICLE LIST HELP ---
-      J, SPACE, DOWN : NEXT
-      K,        UP   : PREVIOUS
-      ENTER          : READ CURRENT
-      W              : WRITE NEW
-      T              : TITLES FROM CURRENT
-      R              : READ ALL FROM CURRENT
-      ?              : HELP
-      E              : EXIT BBS
-      ---------------------------
+      --- Article List Help ---
+      [CTRL+E][↑][K]      Old 
+      [CTRL+R][←][H]      Read to Old Article
+      [CTRL+D][RETURN]    Read Current Article
+      [CTRL+F][→][L][TAB] Read to New Article
+      [CTRL+X][↓][J][ ]   Read to Newer Article
+      [CTRL+C][ESC][E]    Exit
+      [*]                 Delete
+      [W]                 Write
+      [S]                 Sig Kanban
+      [T]                 Title List
+      [?]                 Help
+      [U]Sysop/Sigop      B/W List Edit
+      [C]Sysop            Sigop Change
+      [G]Sysop/Sigop      Sig Kanban Edit
+      -----------------------------------
+      Number[RETURN]      Article Jump
+      "Keyword[RETURN]    Title Search
+      'Keyword[RETURN]    Text Search
+      ;Jump[RETURN]       Sig Jump
+      -----------------------------------
   main_prompt:
     mode_1: "選択してください ([W]書き込み [R]読み出し [E]終了): "
     mode_2: "Select ([W]Write [R]Read [E]Exit): "
@@ -1269,11 +1287,37 @@ login:
       ようこそ、{login_id}さん！
       最終ログイン: {last_login_str}
     mode_2: |
-      Welcome, {login_id}!
-      Last login: {last_login_str}
+      ** Connect **
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      ────────────────────────────────────────
+      　　 ★ 　☆ 　★ 　☆ 　★ 　☆ 　★ 　☆
+        ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
+      ☆・ＢＩＧ−Ｍｏｄｅｌお試し版ネット・★
+        ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
+      　　 ★ 　☆ 　★ 　☆ 　★ 　☆ 　★ 　☆
+      ────────────────────────────────────────
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        ・guestID　　　　  = `GUEST`      ・
+      　・usersID/PASSWORD = `USERS/USERS`・
+      　・sysopID/PASSWORD = `SYSOP/SYSOP`・
+      IDを入力してください: {login_id}
+      パスワードを入力してください: SSH Key Authenticated
     mode_3: |
-      WELCOME, {login_id}!
-      LAST LOGIN: {last_login_str}
+      ** Connect **
+      ━━━━━━━━━━━━━━━━━━━━
+      ────────────────────
+      　　 ★　☆　★　☆　★　☆　★　☆
+        ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
+      ☆・BIG-Model Trial Version Net・★
+        ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
+      　☆　★　☆　★　☆　★　☆　★
+      ────────────────────
+      ━━━━━━━━━━━━━━━━━━━━
+        ・guestID      = `GUEST`      ・
+      　・usersID/PASSWORD = `USERS/USERS`・
+      　・sysopID/PASSWORD = `SYSOP/SYSOP`・
+      Enter your ID: {login_id}!
+      Enter your password: SSH Key Authenticated
 
 # --- 未実装機能のプレースホルダー ---
 unimplemented:
