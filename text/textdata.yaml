@@ -1129,9 +1129,9 @@ logoff:
 # --- ショートカット関連 ---
 shortcut:
   not_found:
-    mode_1: "ショートカットID '{shortcut_id}' に対応するルームまたは掲示板が見つかりません。\r\n"
-    mode_2: "Room or board for shortcut ID '{shortcut_id}' not found.\r\n"
-    mode_3: "SHORTCUT ID '{shortcut_id}' NOT FOUND.\r\n"
+    mode_1: "ショートカット '{shortcut_id}' が見つかりません。\r\n"
+    mode_2: "Shortcut '{shortcut_id}' not found.\r\n"
+    mode_3: "SHORTCUT '{shortcut_id}' NOT FOUND.\r\n"
   jumping_to_chat:
     mode_1: "チャットルーム「{room_name}」へ移動します...\r\n"
     mode_2: "Jumping to chat room: {room_name}...\r\n"
