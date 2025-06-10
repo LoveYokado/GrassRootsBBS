@@ -337,8 +337,11 @@ sysop_menu:
       [LETR] アンケート処理(未実装)
       [PASC] パスワード変更(未実装)
       [KYGN] SSH鍵変更
-      [PASU] 会員抹消
+      [MKBD] 掲示板作成
+      [LSBD] 掲示板一覧
+      [DLBD] 掲示板削除
       [REGS] 会員登録
+      [PASU] 会員抹消
       [CHGU] ユーザーレベル変更
       [USRL] 会員一覧表示
       [VSET] 設定一覧表示
@@ -353,8 +356,11 @@ sysop_menu:
       [LETR] Process Survey
       [PASC] Change Password (unimplemented)
       [KYGN] Change SSH Key
-      [PASU] Delete User
+      [MKBD] Create Board
+      [LSBD] List Boards
+      [DLBD] Delete Board
       [REGS] Register User
+      [PASU] Delete User
       [CHGU] Edit User Level
       [USRL] Show User List
       [VSET] Show Settings
@@ -371,8 +377,11 @@ sysop_menu:
       [LETR] PROCESS SURVEY
       [PASC] CHANGE PASSWORD (UNIMPLEMENTED)
       [KYGN] CHANGE SSH KEY
-      [PASU] DELETE USER
+      [MKBD] CREATE BOARD
+      [LSBD] LIST BOARDS
+      [DLBD] DELETE BOARD
       [REGS] REGISTER USER
+      [PASU] DELETE USER
       [CHGU] EDIT USER LEVEL
       [USRL] SHOW USER LIST
       [VSET] SHOW SETTINGS
@@ -1012,16 +1021,17 @@ bbs:
     mode_1: "この掲示板の管理者を変更する権限がありません。\r\n"    
   search_title_prompt:
     mode_1: "検索文字列を入力してください:"
-    mode_2: "検索文字列を入力してください:"
-    mode_3: "検索文字列を入力してください:"
+    mode_2: "Enter search string:"
+    mode_3: "ENTER SEARCH STRING:"
+
   search_results_header:
     mode_1: "「{search_term}」の検索結果:"
-    mode_2: "「{search_term}」の検索結果:"
-    mode_3: "「{search_term}」の検索結果:"
+    mode_2: "Search results for '{search_term}':"
+    mode_3: "SEARCH RESULTS FOR '{search_term}':"
   search_no_results:
     mode_1: "該当する記事は見つかりませんでした。"
-    mode_2: "該当する記事は見つかりませんでした。"
-    mode_3: "該当する記事は見つかりませんでした。"
+    mode_2: "No matching articles found."
+    mode_3: "NO MATCHING ARTICLES FOUND."
   permission_denied_edit_kanban:
     mode_1: "看板を編集する権限がありません。\r\n"
     mode_2: "You do not have permission to edit the kanban.\r\n"
@@ -1036,7 +1046,7 @@ bbs:
     mode_3: "------------NEW KANBAN(^ TO EXIT)------------\r\n"  
   edit_kanban_header:
     mode_1: "看板編集\r\n"
-    mode_2: "Edit Kanban\r"
+    mode_2: "Edit Kanban\r\n"
     mode_3: "EDIT KANBAN\r\n"
   confirm_save_kanban_yn:
     mode_1: "看板を保存しますか？ (y/N): "
@@ -1063,34 +1073,39 @@ bbs:
     mode_1: "(この掲示板は[Readonly]設定です。このリストは実質的な編集許可リストとして機能します)\r\n"
     mode_2: "(This board is set to [Readonly]. This list acts as an edit permission list)\r\n"
     mode_3: "(BOARD:READONLY - LIST IS EDIT PERMISSION LIST)\r\n"
-  edit_userlist_header_info_unknown: # default_permission が不明な場合
+  edit_userlist_header_info_unknown: 
     mode_1: "(掲示板のパーミッションタイプ: {board_permission_type})\r\n"
     mode_2: "(Board permission type: {board_permission_type})\r\n"
     mode_3: "(BOARD PERMISSION: {board_permission_type})\r\n"
-  current_userlist_header: # 旧 current_permissions_list_header
+  current_userlist_header: 
     mode_1: "現在の登録ユーザーリスト:\r\n"
     mode_2: "Current Registered User List:\r\n"
     mode_3: "CURRENT REGISTERED USER LIST:\r\n"
-  no_users_in_list: # 旧 no_permissions_assigned
+  no_users_in_list: 
     mode_1: "  (現在リストに登録されているユーザーはいません)\r\n\r\n"
     mode_2: "  (No users currently registered in this list)\r\n\r\n"
     mode_3: "  (NO USERS IN LIST)\r\n\r\n"
-  confirm_edit_userlist_yn: # 旧 confirm_edit_permissions_yn
+  confirm_edit_userlist_yn: 
     mode_1: "ユーザーリストを編集しますか? (Y/N): "
     mode_2: "Edit user list? (Y/N): "
     mode_3: "EDIT USER LIST? (Y/N): "
-  prompt_new_userlist: # 旧 prompt_new_permissions
-    mode_1: "新しいユーザーをカンマ区切りで入力 (例: user1,user2 空入力でリストクリア): "
-    mode_2: "Enter new users (comma-separated, e.g., user1,user2. Empty to clear list): "
-    mode_3: "NEW USERS (COMMA-SEP, E.G., USER1,USER2. EMPTY TO CLEAR): "
-  user_not_found_in_list: # 旧 permission_user_not_found
+  prompt_new_userlist: 
+    mode_1: "ユーザー名をカンマ区切りで入力 (例: user1,user2。空入力でリストクリア): "
+    mode_2: "Enter usernames (comma-separated, e.g., user1,user2. Empty to clear list): "
+    mode_3: "USERNAMES (COMMA-SEP, E.G., USER1,USER2. EMPTY TO CLEAR): "
+
+  user_not_found_in_list: 
     mode_1: "** ユーザー '{username}' が見つかりません **\r\n"
     mode_2: "** User '{username}' not found **\r\n"
     mode_3: "** USER '{username}' NOT FOUND **\r\n"
-  userlist_updated_success: # 旧 permissions_updated_success
+  userlist_updated_success: 
     mode_1: "** 掲示板のユーザーリストを更新しました **\r\n"
-+    mode_2: "** Board user list updated successfully **\r\n"
-+    mode_3: "** BOARD USER LIST UPDATED SUCCESSFULLY **\r\n"
+    mode_2: "** Board user list updated successfully **\r\n"
+    mode_3: "** BOARD USER LIST UPDATED SUCCESSFULLY **\r\n"
+  permission_denied_edit_userlist: 
+    mode_1: "** この掲示板のユーザーリストを編集する権限がありません **\r\n"
+    mode_2: "** You do not have permission to edit the user list for this board **\r\n"
+    mode_3: "** PERMISSION DENIED TO EDIT USER LIST FOR THIS BOARD **\r\n"
 
 # --- ログオフ関連 ---
 logoff:

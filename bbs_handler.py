@@ -8,7 +8,7 @@ import socket
 import textwrap
 import datetime
 import json
-
+import sqlite3  # デバッグ用
 # クラスや関数は、以下の構成で定義していく
 # - BoardManager: 掲示板のメタ情報管理、bbs.yml との同期
 # - ArticleManager: 記事のCRUD操作、表示
@@ -1165,8 +1165,8 @@ class CommandHandler:
 
     def edit_board_userlist(self):
         """
-        現在の掲示板のブラック/ホワイトリストを編集。詳細なパーミッションはボードパーミッションによって変化する。
-        今後の拡張性を残すため、access_level="allow"が設定されている。
+        現在の掲示板のユーザーパーミッションリスト（ユーザー名とallow/deny）を編集する。
+        ユーザーはユーザー名のみを入力し、ボードタイプによってallow/denyが自動設定される。
         """
         if not self.current_board:
             util.send_text_by_key(
@@ -1175,8 +1175,7 @@ class CommandHandler:
 
         board_id_pk = self.current_board['id']
         board_default_permission = self.current_board[
-            'default_permission'] if 'default_permission' in self.current_board else 'unknown'
-
+            'default_permission'] if 'default_permission' in self.current_board.keys() else 'unknown'
         # 権限チェック
         can_edit = False
         if self.userlevel >= 5:
@@ -1192,7 +1191,7 @@ class CommandHandler:
 
         if not can_edit:  # 権限がない場合
             util.send_text_by_key(
-                self.chan, "common_messages.permission_denied", self.menu_mode)
+                self.chan, "bbs.permission_denied_edit_userlist", self.menu_mode)
             return
 
         # ボードのパーミッションに応じたヘッダを取得
@@ -1203,37 +1202,39 @@ class CommandHandler:
         util.send_text_by_key(
             self.chan, "bbs.edit_userlist_header", self.menu_mode)
         util.send_text_by_key(
-            self.chan, header_info_key, self.menu_mode, board_default_permission_type=board_default_permission)
+            self.chan, header_info_key, self.menu_mode, board_permission_type=board_default_permission)
 
         # 現在のユーザリストを表示
         current_permissions_db = sqlite_tools.get_board_userlist(
             self.dbname, board_id_pk)
 
-        registered_user_names = []
+        registered_permissions = []
         if current_permissions_db:
             for perm_entry in current_permissions_db:
-                if 'access_level' in perm_entry.keys() and perm_entry['access_level'] == "allow":
-                    user_name = sqlite_tools.get_user_name_from_user_id(
-                        self.dbname, perm_entry['user_id'])
-                    if user_name and user_name != "unknown":
-                        registered_user_names.append(user_name)
-                    elif user_name == '(unknown)':
-                        logging.warning(
-                            f"掲示板{board_id_pk}に不明なユーザID {perm_entry['user_id']}が登録されています。")
+                user_name = sqlite_tools.get_user_name_from_user_id(
+                    self.dbname, perm_entry['user_id'])
+                access_level = perm_entry['access_level'] if 'access_level' in perm_entry.keys(
+                ) else "unknown"
+                if user_name and user_name != "(不明)":  # 比較文字列を修正
+                    registered_permissions.append(
+                        (user_name, access_level))
+                elif user_name == "(不明)":  # ユーザー名が実際に "(不明)" の場合に警告
+                    logging.warning(
+                        f"掲示板 {board_id_pk} のパーミッションリストに不明なユーザID {perm_entry['user_id']} (access_level: {access_level}) が含まれています。")
 
-        if registered_user_names:
+        if registered_permissions:
             util.send_text_by_key(
                 self.chan, "bbs.current_userlist_header", self.menu_mode,
             )
-            for name in sorted(list(set(registered_user_names))):
-                self.chan.send(f" - {name}\r\n".encode('utf-8'))
+            for name, level in sorted(list(set(registered_permissions))):
+                self.chan.send(f" - {name}: {level}\r\n".encode('utf-8'))
             self.chan.send(b'\r\n')
         else:
             util.send_text_by_key(
                 self.chan, "bbs.no_users_in_list", self.menu_mode)
 
         util.send_text_by_key(
-            self.chan, "bbs.confirm_edit_userlist_ym", self.menu_mode)
+            self.chan, "bbs.confirm_edit_userlist_yn", self.menu_mode)
         confirm_edit = ssh_input.process_input(self.chan)
         if confirm_edit is None or confirm_edit.strip().lower() != 'y':
             util.send_text_by_key(
@@ -1248,14 +1249,34 @@ class CommandHandler:
         if new_userlist_input_str is None:
             return  # 切断
 
-        parsed_user_ids_to_add = []
-        if not new_userlist_input_str.strip():
+        parsed_permissions_to_add = []  # user_id_str,access_level_strのタプル
+        if not new_userlist_input_str.strip():  # 空入力はクリア
             pass
         else:
-            new_user_names_input = [
-                name.strip() for name in new_userlist_input_str.split(',') if name.strip()]
+
+            # usere1,user2のような形式を期待
+            input_user_names = [
+                name.strip() for name in new_userlist_input_str.split(',')if name.strip()]
+
             valid_input = True
-            for user_name_input in new_user_names_input:
+            for user_name_input in input_user_names:
+                # ユーザネーム画からならスキップ",,"って感じの入力の対策
+                if not user_name_input:
+                    continue
+
+                # board_default_permissionによってアクセスレベルを決定
+                access_level_to_set = ""
+                if board_default_permission == "open":
+                    access_level_to_set = "deny"
+                elif board_default_permission == "closed":
+                    access_level_to_set = "allow"
+                elif board_default_permission == "readonly":
+                    access_level_to_set = "allow"
+                else:
+                    access_level_to_set = "allow"
+                    logging.info(
+                        f"掲示板タイプ {board_default_permission} に対応するアクセスレベルを決定できませんでした。ユーザ {user_name_input} のアクセスレベルは'allow'に設定されました。")
+
                 target_user_id_pk_int = sqlite_tools.get_user_id_from_user_name(
                     self.dbname, user_name_input)
                 if target_user_id_pk_int is None:
@@ -1263,7 +1284,8 @@ class CommandHandler:
                         self.chan, "bbs.user_not_found_in_list", self.menu_mode, username=user_name_input)
                     valid_input = False
                     break
-                parsed_user_ids_to_add.append(str(target_user_id_pk_int))
+                parsed_permissions_to_add.append(
+                    (str(target_user_id_pk_int), access_level_to_set))
 
             if not valid_input:
                 return
@@ -1273,15 +1295,18 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "common_messages.db_update_error", self.menu_mode)
             logging.error(f"掲示板ID {board_id_pk} のユーザリストを削除できませんでした。")
+            return
 
-        if parsed_user_ids_to_add:
-            unique_sorted_user_ids = sorted(list(set(parsed_user_ids_to_add)))
-            for user_id_to_add_str in unique_sorted_user_ids:
-                if not sqlite_tools.add_board_permission(self.dbname, board_id_pk, user_id_to_add_str, "allow"):
+        if parsed_permissions_to_add:
+            # 重複を除いてソート
+            unique_sorted_permissions = sorted(
+                list(set(parsed_permissions_to_add)), key=lambda x: x[0])
+            for user_id_to_add_str, access_level_to_add in unique_sorted_permissions:
+                if not sqlite_tools.add_board_permission(self.dbname, board_id_pk, user_id_to_add_str, access_level_to_add):
                     util.send_text_by_key(
                         self.chan, "common_messages.db_update_error", self.menu_mode)
                     logging.error(
-                        f"掲示板ID {board_id_pk} のユーザリストにユーザID {user_id_to_add_str} を追加できませんでした。")
+                        f"掲示板ID {board_id_pk} のパーミッションリストにユーザID {user_id_to_add_str} (level {access_level_to_add})を追加できませんでした。")
                     return
 
         util.send_text_by_key(
