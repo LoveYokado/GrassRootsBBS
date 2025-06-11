@@ -16,49 +16,184 @@
 
 # --- トップメニュー関連 ---
 top_menu:
-  help_q: # ?キーで表示されるヘルプ (Hと同じ内容で良いか、別途定義するかは要検討)
+  menu:
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━
+      top_menu
+      ----------------------------------------------------
+      [A] 掲示板自動巡回         [M] メールボックス
+      [B] 電子掲示板             [N] 新アーティクル探索
+      [C] チャット               [O] 新アーティクル見出し
+      [L] オンラインサインアップ [U] 端末環境変更
+      [E] 終了                   [W] オンラインメンバー一覧
+      [?] ヘルプ                 [X] 全シグ探索
+      [#] 電報                   [Z] ハムレットゲーム
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      ☆ [A] 自動ダウンロード     [L] オンラインサインアップ [#] 電報              ★
+      ★ [B] 電子掲示板           [M] メールボックス         [U] 端末環境変更      ☆
+      ☆ [C] チャット             [N] 新アーティクル探索     [W] アクセス状況通知  ★
+      ★ [D] *書籍データベース    [O] 新アーティクル見出し   [X] 全シグ探索        ☆
+      ☆ [E] 終了                 [P] *プログラムコーナー    [Z] ハムレットゲーム  ★
+      ★ [H] ヘルプファイル       [Q] *企業内BBSサンプル     [?] ヘルプ            ☆
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      *は実装していません。
+    mode_3: | 
+      +--------------------------------------------+
+      | 🚀 Welcome to the GRBBS Command Center!   🚀 |
+      +--------------------+-----------------------+
+      | [A] Auto Board Scan| [M] Mailbox           |
+      | [B] Bulletin Board | [N] New Article Hunt  |
+      | [C] Live Chat      | [O] New Article News  |
+      | [L] Online Signup  | [U] Terminal Setup    |
+      | [E] Exit System    | [W] Online Crew       |
+      | [?] Help Desk      | [X] Full SIG Search   |
+      | [#] Telegram       | [Z] Hamlet Game       |
+      +--------------------+-----------------------+  help_q: # ?キーで表示されるヘルプ (Hと同じ内容で良いか、別途定義するかは要検討)
+  help_h:
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         コマンド一覧
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      A    : 掲示板自動巡回
+      B    : 電子掲示板
+      C    : チャット
       H, ? : ヘルプ表示
+      L    : オンラインサインアップ
+      M    : メールボックス
+      N    : 新アーティクル探索
+      O    : 新アーティクル見出し
       S    : シスオペメニュー (Sysop以上)
       W    : オンラインメンバー一覧
-      T, ! : 電報送信
+      #, ! : 電報送信
       U    : ユーザー環境設定
-      M    : メールメニュー
-      B    : 掲示板
+      X    : 全シグ探索
+      Z    : ハムレットゲーム
+      E    : ログオフ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      BIG-Modelの階層構造
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [B] 電子掲示板(階層構造は可変します)
+
+      [C] チャット(階層構造は可変します)
+
+      [Q] *企業内BBSサンプル【BIG通信】
+        ├─[1] ネット事務局から
+        ├─[2] 情報交換広場
+        ├─[3] 総務部からのお知らせ
+        ├─[4] 営業部内連絡掲示板
+        └─[5] 編集部内連絡掲示板
+
+      [P] *プログラムコーナー
+
+      [D] *書籍データベース
+          ├─[1] パソコン関連                   ├─[6] データベースソフト
+          │      ├─[1] ハンディ・シリーズ     ├─[7] 表計算ソフト
+          │      ├─[2] 機種別／周辺機器       ├─[8] エディタ/グラフィック/統合型/
+          │      ├─[3] OS                     │  ユーティリティ/オンラインソフト/パソコン通信
+          │      ├─[4] 言語                   ├─[9] パソコン一般／辞典
+          │      └─[5] ワープロソフト         └─[10]ワープロ検定／情報処理
+          │
+          ├─[2] 実用書関連                     ├─[10] 娯楽・ゲーム
+                  ├─[1] クルマ・バイク関連     ├─[11] ビジネス・実務
+                  ├─[2] 写真                   ├─[12] 文章・論文・手紙
+                  ├─[3] スピーチ・マナー       ├─[13] 辞典
+                  ├─[4] 出産・育児・名前       ├─[14] 雑学
+                  ├─[5] 健康                   ├─[15] 資格・就職
+                  ├─[6] ペット                 ├─[16] 音楽
+                  ├─[7] スポーツ               ├─[17] 海外旅行
+                  ├─[8] 占い・まじない         ├─[18] 語学・会話
+                  └─[9] 折り紙・あやとり・工作 └─[19] その他
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      *は未実装です
+    mode_3: |
+      +-----------------------------------------------------------------------+
+      | Command | Description                                                 |
+      +---------+-------------------------------------------------------------+
+      | A       | Auto Board Scan: Reads configured search path automatically |
+      | B       | Bulletin Board: Access the BBS system                       |
+      | C       | Live Chat: Join real-time chat rooms                        |
+      | E       | Logoff: Exit the GRBBS system                               |
+      | H, ?    | Help Desk: Display this help menu                           |
+      | L       | Online Signup: Register new users                           |
+      | M       | Mailbox: Check your messages                                |
+      | N       | New Article Hunt: Read only new info from search path       |
+      | O       | New Article News: View new entry headlines                  |
+      | S       | Sysop Menu: Admin controls (Sysop+ only)                    |
+      | T, #    | Telegram: Send quick messages                               |
+      | U       | User Preferences: Customize terminal settings               |
+      | W       | Online Crew: List active members                            |
+      | X       | Full SIG Search: Scan all corners automatically             |
+      | Z       | Hamlet Game: Play 2D 4-way adventure                        |
+      +---------+-------------------------------------------------------------+
+  help_q:
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        コマンド一覧
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      A    : 掲示板自動巡回
+      B    : 電子掲示板
       C    : チャット
+      H, ? : ヘルプ表示
+      L    : オンラインサインアップ
+      M    : メールボックス
+      N    : 新アーティクル探索
+      O    : 新アーティクル見出し
+      S    : シスオペメニュー (Sysop以上)
+      W    : オンラインメンバー一覧
+      #, ! : 電報送信
+      U    : ユーザー環境設定
+      X    : 全シグ探索
+      Z    : ハムレットゲーム
       E    : ログオフ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        Command List (English)
+        メインメニューの説明
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      H, ? : Show Help
-      S    : Sysop Menu (Sysop+)
-      W    : Online Members List
-      T, ! : Send Telegram
-      U    : User Preferences
-      M    : Mail Menu
-      B    : BBS
-      C    : Chat
-      E    : Logoff
+        [A] 自動ダウンロード       (設定された探索経路を自動的に読み出します   )
+        [B] 電子掲示板             (文章を読み書きするコーナーです             )
+        [C] チャット               (会員同士でおしゃべりをするコーナーです     )
+        [D] *書籍ﾃﾞｰﾀﾍﾞｰｽ          (出版物のデータベースです                   )
+        [E] 終了                   (アクセスを終了します                       )
+        [H] ヘルプファイル         (このネットのマップを表示します             )
+        [L] オンラインサインアップ (入会のためのアンケートに答えます           )
+        [M] メールボックス         (会員同士が電子郵便を送ります               )
+        [N] 新アーティクル探索     (探索経路から新しい情報だけを読み出します   )
+        [O] 新アーティクル見出し   (探索経路から新しい見出しだけを読み出します )
+        [P] *プログラムコーナー    (プログラムやデータを蓄積するコーナーです   )
+        [Q] *企業内BBSサンプル     (企業内BBSのサンプルです                    )
+        [#] 電報                   (BIG-Modelお試し版では使えません            )
+        [U] 端末環境変更           (通信する環境を変更する                     )
+        [W] アクセス状況通知       (現在アクセスしている会員を調べます         )
+        [X] 全シグ探索             (すべてのコーナーを自動的に読み出します     )
+        [Z] ハムレットゲーム       (２次元４目並べ                             )
+        [?] ヘルプ                 (この文章を表示します                       )
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
     mode_3: |
-      ╔═══════════════════════════════════════╗
-      ║   COMMAND LIST (ANSI)                 ║
-      ╚═══════════════════════════════════════╝
-      H, ? : HELP
-      S    : SYSOP (LVL 5+)
-      W    : WHO
-      T, ! : TELEGRAM
-      U    : USER PREFS
-      M    : MAIL
-      B    : BBS
-      C    : CHAT
-      E    : LOGOFF
-      ╚═══════════════════════════════════════╝
+      +-----------------------------------------------------------------------+
+      | Command | Description                                                 |
+      +---------+-------------------------------------------------------------+
+      | A       | Auto Board Scan: Reads configured search path automatically |
+      | B       | Bulletin Board: Access the BBS system                       |
+      | C       | Live Chat: Join real-time chat rooms                        |
+      | E       | Logoff: Exit the GRBBS system                               |
+      | H, ?    | Help Desk: Display this help menu                           |
+      | L       | Online Signup: Register new users                           |
+      | M       | Mailbox: Check your messages                                |
+      | N       | New Article Hunt: Read only new info from search path       |
+      | O       | New Article News: View new entry headlines                  |
+      | S       | Sysop Menu: Admin controls (Sysop+ only)                    |
+      | T, #    | Telegram: Send quick messages                               |
+      | U       | User Preferences: Customize terminal settings               |
+      | W       | Online Crew: List active members                            |
+      | X       | Full SIG Search: Scan all corners automatically             |
+      | Z       | Hamlet Game: Play 2D 4-way adventure                        |
+      +---------+-------------------------------------------------------------+
 
 # --- ユーザー設定メニュー関連 ---
 user_pref_menu:
@@ -83,29 +218,29 @@ user_pref_menu:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9] 電報受信制限       ●
-      ●[2] パスワード変更    [6] 探索リスト登録         [10] プロトコル設定    ○
-      ○[3] プロフィール変更   [7] 探索リスト読み出し     [11] メールアドレス変更 ●
-      ●[4] 会員リスト        [8] 元探索リスト読み出し                        ○
+      ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9] 電報受信制限           ●
+      ●[2] パスワード変更     [6] 探索リスト登録          [10] ブラックリスト編集    ○
+      ○[3] プロフィール変更   [7] 探索リスト読み出し      [11] メールアドレス変更    ●
+      ●[4] 会員リスト         [8] 元探索リスト読み出し                               ○
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        Terminal Environment Settings
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      [1] Change Menu Mode
-      [2] Change Password
-      [3] Change Profile
-      [4] Member List
-      [5] Set Last Login Time
-      [6] Register Search List
-      [7] Load Search List
-      [8] Load Original Search List
-      [9] Telegram Receive Restriction
-      [10] Edit Blacklist
-      [11] Change Mail Address
-      [E] Exit
-      [H,?]: Help
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      +----------------------------------------------------------+
+      | Command | Description                                    |
+      +---------+------------------------------------------------+
+      | 1       | Switch Menu Mode: Change display style         |
+      | 2       | Change Password: Update login password         |
+      | 3       | Edit Profile: Modify user info                 |
+      | 4       | Member List: View registered users             |
+      | 5       | Set Last Login: Update login time              |
+      | 6       | Register Search List: Save search paths        |
+      | 7       | Load Search List: Apply saved searches         |
+      | 8       | Load Default Search: Reset to original paths   |
+      | 9       | Telegram Restrictions: Limit incoming messages |
+      | 10      | Edit Blacklist: Manage blocked users           |
+      | 11      | Change Email: Update mail address              |
+      | E       | Exit: Return to main menu                      |
+      | H, ?    | Help: Display this help menu                   |
+      +---------+------------------------------------------------+
   # --- メニューモード変更サブメニュー ---
   mode_selection:
     header: # モード選択肢の表示
@@ -113,19 +248,19 @@ user_pref_menu:
         メニューモードを選択してください:
         [1] モード1 (GR-BBS)
         [2] モード2 (Big-Model)
-        [3] モード3 (English)
+        [3] モード3 (GR-BBS English)
         [E] キャンセル
       mode_2: |
         メニューモードを選択してください:
         [1] モード1 (GR-BBS)
         [2] モード2 (Big-Model)
-        [3] モード3 (English)
+        [3] モード3 (GR-BBS English)
         [E] キャンセル
       mode_3: |
         Select Menu Mode:
         [1] Mode 1 (GR-BBS)
         [2] Mode 2 (Big-Model)
-        [3] Mode 3 (English)
+        [3] Mode 3 (GR-BBS English)
         [E] Cancel
     confirm_changed: # 変更成功メッセージ (フォーマット文字列)
       mode_1: "メニューモードを {mode} に変更しました。\r\n"
@@ -296,7 +431,7 @@ user_pref_menu:
 who_menu:
   header:
     mode_1: |
-      オンラインメンバー一覧 (日本語)
+      オンラインメンバー一覧
       NAME            COMMENT
       -------------------------------------------------------------------
     mode_2: |
@@ -304,7 +439,7 @@ who_menu:
       NAME            COMMENT
       -------------------------------------------------------------------
     mode_3: |
-      ONLINE MEMBERS (ANSI)
+      Online Members List
       NAME            COMMENT
       -------------------------------------------------------------------
   footer:
@@ -319,6 +454,8 @@ who_menu:
 sysop_menu:
   menu:
     mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      シスオペメニュー
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       [ALLR] 探索リストを読む
       [ALLW] 探索リストを書く
@@ -339,35 +476,36 @@ sysop_menu:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      □[ALLR] 探索リストを読む              [USRL] 会員一覧表示          ■
-      ■[ALLW] 探索リストを書く              [KYGN] SSH鍵変更            □
-      □[MKBD] 掲示板作成                   [PASC] パスワード変更        ■
-      ■[LSBD] 掲示板一覧                   [CHGU] ユーザーレベル変更     □
-      □[DLBD] 掲示板削除                   [PASU] 会員抹消             ■
-      ■[VSET] 設定一覧表示                 [REGS] 会員登録              □
-      □[TREE] 階層構造マップ               [SYMR] シンボルテーブルを読む   ■
-      ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く   □
-      □[EXIT] システム強制終了              [LETR] アンケート処理         ■
+      □[ALLR] 探索リストを読む                [USRL] 会員一覧表示                ■
+      ■[ALLW] 探索リストを書く                [KYGN] SSH鍵変更                   □
+      □[MKBD] 掲示板作成                      [PASC] パスワード変更              ■
+      ■[LSBD] 掲示板一覧                      [CHGU] ユーザーレベル変更          □
+      □[DLBD] 掲示板削除                      [PASU] 会員抹消                    ■
+      ■[VSET] 設定一覧表示                    [REGS] 会員登録                    □
+      □[TREE] 階層構造マップ                  [SYMR] シンボルテーブルを読む      ■
+      ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く      □
+      □[EXIT] システム強制終了                [LETR] アンケート処理              ■
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      [ALLR] Load Search List
-      [ALLW] Register Search List
-      [LETR] Process Survey
-      [PASC] Change Password (unimplemented)
-      [KYGN] Change SSH Key
-      [MKBD] Create Board
-      [LSBD] List Boards
-      [DLBD] Delete Board
-      [REGS] Register User
-      [PASU] Delete User
-      [CHGU] Edit User Level
-      [USRL] Show User List
-      [VSET] Show Settings
-      [MNPM] Set Member Level Permissions
-      [VSET] Show Settings
-      [EXIT] System Shutdown
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      +---------+-------------------------------------------+
+      | Command | Description                               |
+      +---------+-------------------------------------------+
+      | ALLR    | Read Search List: Load search paths       |
+      | ALLW    | Write Search List: Save search paths      |
+      | LETR    | Process Survey: Manage polls (TBD)        |
+      | PASC    | Change Password: Update sysop pass (TBD)  |
+      | KYGN    | Update SSH Key: Change SSH key            |
+      | MKBD    | Create Board: Make new bulletin board     |
+      | LSBD    | List Boards: View all boards              |
+      | DLBD    | Delete Board: Remove bulletin board       |
+      | REGS    | Register User: Add new member             |
+      | PASU    | Delete User: Remove member account        |
+      | CHGU    | Change User Level: Adjust user perms      |
+      | USRL    | List Users: Show all members              |
+      | VSET    | View Settings: Display system config      |
+      | MNPM    | Set Menu Perms: Configure top menu access |
+      | EXIT    | Force Shutdown: Terminate system          |
+      +---------+-------------------------------------------+
   system_quit:
     header:
       mode_1: "** システムを停止します **\r\n"
@@ -931,7 +1069,9 @@ bbs:
     mode_3: "\r\n--- ARTICLE {article_number} ({title}) ---\r\n"
   article_list_help: # 記事一覧でのヘルプ
     mode_1: |
-      --------- 掲示板メニュー ヘルプ ---------
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      掲示板メニュー ヘルプ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       [CTRL+E][↑][K]     : 旧方向へ進む
       [CTRL+R][←][H]     : 旧方向へ読み進む
       [CTRL+D][RETURN]    : 現在位置を読む
@@ -981,27 +1121,30 @@ bbs:
       ;ジャンプ先[RETURN]  シグ間ジャンプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
-      --- Article List Help ---
-      [CTRL+E][↑][K]      Old 
-      [CTRL+R][←][H]      Read to Old Article
-      [CTRL+D][RETURN]    Read Current Article
-      [CTRL+F][→][L][TAB] Read to New Article
-      [CTRL+X][↓][J][ ]   Read to Newer Article
-      [CTRL+C][ESC][E]    Exit
-      [*]                 Delete
-      [W]                 Write
-      [S]                 Sig Kanban
-      [T]                 Title List
-      [?]                 Help
-      [U]Sysop/Sigop      B/W List Edit
-      [C]Sysop            Sigop Change
-      [G]Sysop/Sigop      Sig Kanban Edit
-      -----------------------------------
-      Number[RETURN]      Article Jump
-      "Keyword[RETURN]    Title Search
-      'Keyword[RETURN]    Text Search
-      ;Jump[RETURN]       Sig Jump
-      -----------------------------------
+      +--------------------+-----------------------------------------+
+      | Command            | Description                             |
+      +--------------------+-----------------------------------------+
+      | CTRL+E, ↑, K       | Move Up: Go to previous post           |
+      | CTRL+R, ←, H       | Read Up: Read in previous direction    |
+      | CTRL+D, ENTER      | Read Current: View current post         |
+      | CTRL+F, →, L, TAB  | Read Down: Read in next direction      |
+      | CTRL+X, ↓, J, SPACE| Move Down: Go to next post             |
+      | CTRL+C, ESC, E     | Exit: Leave bulletin board              |
+      | *                  | Delete: Remove post (Sysop only)        |
+      | W                  | Write: Create new post                  |
+      | R                  | Continue Reading: Read next posts       |
+      | T                  | Title List: Show all post titles        |
+      | ?                  | Help: Display this help menu            |
+      | S                  | SIG Banner: View SIG board info         |
+      | U (Sysop)          | Edit B/W List: Manage block/allow lists |
+      | C (Sysop)          | Change SIG Operator: Update SIG admin   |
+      | G (Sysop/Sigop)    | Edit SIG Banner: Modify SIG info        |
+      +--------------------+-----------------------------------------+
+      | Number + ENTER     | Jump to Post: Go to specific post       |
+      | "Keyword + ENTER   | Title Search: Find posts by title       |
+      | 'Keyword + ENTER   | Full-Text Search: Search post content   |
+      | ;Target + ENTER    | SIG Jump: Switch between SIGs           |
+      +--------------------+-----------------------------------------+
   main_prompt:
     mode_1: "選択してください ([W]書き込み [R]読み出し [E]終了): "
     mode_2: "Select ([W]Write [R]Read [E]Exit): "
@@ -1290,34 +1433,33 @@ login:
       ** Connect **
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       ────────────────────────────────────────
-      　　 ★ 　☆ 　★ 　☆ 　★ 　☆ 　★ 　☆
+           ★   ☆   ★   ☆   ★   ☆   ★   ☆
         ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
-      ☆・ＢＩＧ−Ｍｏｄｅｌお試し版ネット・★
+      ☆ ・ＢＩＧ−Ｍｏｄｅｌお試し版ネット・ ★
         ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
-      　　 ★ 　☆ 　★ 　☆ 　★ 　☆ 　★ 　☆
+           ★  ☆  ★  ☆  ★  ☆  ★  ☆
       ────────────────────────────────────────
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        ・guestID　　　　  = `GUEST`      ・
-      　・usersID/PASSWORD = `USERS/USERS`・
-      　・sysopID/PASSWORD = `SYSOP/SYSOP`・
+        ・guestID          = `GUEST`      ・
+        ・usersID/PASSWORD = `USERS/USERS`・
+        ・sysopID/PASSWORD = `SYSOP/SYSOP`・
       IDを入力してください: {login_id}
       パスワードを入力してください: SSH Key Authenticated
     mode_3: |
-      ** Connect **
-      ━━━━━━━━━━━━━━━━━━━━
-      ────────────────────
-      　　 ★　☆　★　☆　★　☆　★　☆
-        ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
-      ☆・BIG-Model Trial Version Net・★
-        ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
-      　☆　★　☆　★　☆　★　☆　★
-      ────────────────────
-      ━━━━━━━━━━━━━━━━━━━━
-        ・guestID      = `GUEST`      ・
-      　・usersID/PASSWORD = `USERS/USERS`・
-      　・sysopID/PASSWORD = `SYSOP/SYSOP`・
-      Enter your ID: {login_id}!
-      Enter your password: SSH Key Authenticated
+      ..... Connected!      
+
+      ========================================
+      ||   *** GRBBS - GrassRoots BBS ***   ||
+      ||       Connected to the Grid!       ||
+      ========================================
+
+      +---------------------------------+
+      | User: {login_id}                |
+      | Password: SSH Key Authenticated |
+      +---------------------------------+
+
+      *** Welcome to GRBBS, {login_id}! ***
+      Last Login: {last_login_str}
 
 # --- 未実装機能のプレースホルダー ---
 unimplemented:

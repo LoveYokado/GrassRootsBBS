@@ -289,6 +289,12 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         command = input_buffer.lower().strip()
 
+        # 空エンターの場合はトップメニューを再表示
+        if command == "":
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
+            continue
+
         # ショートカット処理
         if util.handle_shortcut(chan, dbname, login_id, current_loop_menu_mode, command, get_online_members_list):
             continue
@@ -366,6 +372,9 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                     # Noneチェック追加
                     bbs_handler.handle_bbs_menu(
                         chan, dbname, login_id, current_loop_menu_mode, selected_board_id)
+                    # 戻るときのトップメニュー表示
+                    util.send_text_by_key(
+                        chan, "top_menu.menu", current_loop_menu_mode)
                 elif selected_board_id in ("exit_bbs_menu", "back_to_top"):
                     logging.info(
                         f"手書きメニューが終了、またはトップに戻りました: {selected_board_id}")
@@ -689,13 +698,13 @@ def handle_client(client, addr, host_key, is_web_app=True):
                         f"最終ログイン時刻の変換に失敗しました。 {last_login_time}")
                     last_login_str = "不明な日時"
 
-            # エスケープシーケンステスト: 赤点滅で「テスト」と表示
-            test_message_bytes = "テスト".encode('utf-8')
-            chan.send(b"\x1b[31m\x1b[5m" + test_message_bytes + b"\x1b[0m\r\n")
-
             # ウェルカムメッセージ
             util.send_text_by_key(
                 chan, "login.welcome_message", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
+
+            # ログイン直後のトップメニュー表示
+            util.send_text_by_key(
+                chan, "top_menu.menu", initial_user_menu_mode)
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(db_name_from_config)
