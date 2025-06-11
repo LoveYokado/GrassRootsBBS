@@ -1575,8 +1575,8 @@ def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
         logging.info(
             f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
         selected_item = hierarchical_menu.handle_hierarchical_menu(
-            # dbnameとenrich_boardsを渡すように修正
-            chan, bbs_config_path, menu_mode, dbname=dbname, enrich_boards=True
+            chan, bbs_config_path, menu_mode, menu_type="BBS",  # menu_type を追加
+            dbname=dbname, enrich_boards=True
         )
         logging.info(
             f"bbs_handler: hierarchical_menu.handle_hierarchical_menu returned: {selected_item}")

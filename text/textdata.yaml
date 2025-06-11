@@ -1334,15 +1334,10 @@ prompt:
     mode_1: "[TOP]選択してください: "
     mode_2: "選択してください ( [?] ヘルプ ) :  "
     mode_3: "[TOP]Select( [?] HELP ) > "
-  boardmenu:
-    mode_1: "[BOARD({hierarchy})]選択してください: "
-    mode_2: "選択してください ( [RET] 戻る ) : "
-    mode_3: "[BOARD({hierarchy})]Select( [RET] BACK ) > "
-  chatmenu:
-    mode_1: "[CHAT({hierarchy})]選択してください: "
-    mode_2: "選択してください ( [RET] 戻る [?] ヘルプ ) :  "
-    mode_3: "[CHAT({hierarchy})]Select( [RET] BACK ) > "
-
+  hierarchy:
+    mode_1: "[{menu_name}({hierarchy})]選択してください: "
+    mode_2: "選択してください ( [RET] 戻る [?] ヘルプ ) : "
+    mode_3: "[{menu_name}({hierarchy})]Select( [RET] BACK ) > "
 # ** 探索リストは登録されていません **¥n
 # ** 探索リストに登録します **¥n
 # この内容でよいですか ( Y または N ) : 

@@ -350,7 +350,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command in ("u") and userlevel >= 1:
             previous_menu_mode_before_userpref = current_loop_menu_mode
             # userpref_menu は現在のメニューモードを返す
-            user_pref_result = user_pref_menu.userpref_menu(
+            returned_menu_mode = user_pref_menu.userpref_menu(
                 chan, dbname, login_id, current_loop_menu_mode)
             if returned_menu_mode:
                 current_loop_menu_mode = returned_menu_mode
@@ -368,7 +368,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             if current_loop_menu_mode == '3':
                 bbs_config_path = "setting/bbs_mode3.yml"
                 selected_item = hierarchical_menu.handle_hierarchical_menu(
-                    chan, bbs_config_path, current_loop_menu_mode,
+                    chan, bbs_config_path, current_loop_menu_mode, menu_type="BBS",
                     dbname=dbname, enrich_boards=True)
                 if selected_item and selected_item.get("type") == "board":
                     item_id = selected_item.get("id")
@@ -401,7 +401,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
             chat_config_path = "setting/chatroom.yml"
             selected_item = hierarchical_menu.handle_hierarchical_menu(
-                chan, chat_config_path, current_loop_menu_mode
+                chan, chat_config_path, current_loop_menu_mode, menu_type="CHAT"
             )
             if selected_item:
                 # selected_item の type や id に応じた処理
@@ -450,7 +450,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # 各ハンドラから "back_to_top" が返ってきた場合にトップメニューを表示
         if bbs_handler_result == "back_to_top" or chat_handler_result == "back_to_top" or \
            mail_handler_result == "back_to_top" or user_pref_result == "back_to_top" or \
-           sysop_menu_result == "back_to_top":  # user_pref と sysop_menu も条件に追加
+           sysop_menu_result == "back_to_top" or (returned_menu_mode == "back_to_top" if 'returned_menu_mode' in locals() and returned_menu_mode else False):  # user_pref と sysop_menu も条件に追加
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
         # コマンドループ終了 (while True)

@@ -47,28 +47,35 @@ def _enrich_board_items_with_db_data(items, dbname, menu_mode):
     return enriched_items
 
 
-def display_menu(chan, items, menu_mode, title_key, prompt_key):
+def display_menu(chan, items, menu_mode, title_key, prompt_key, menu_name_for_prompt: str, hierarchy_str_for_prompt: str):
     """メニュー表示"""
-    util.send_text_by_key(chan, title_key, menu_mode)
+    # title_key は "hierarchy" などのベースキーを期待。menu_mode は util.send_text_by_key 内部で解決。
+    # util.send_text_by_key(chan, title_key, menu_mode) # タイトルはプロンプトに含める形に変更
+
     # item['name'] が直接文字列であることを想定して修正
     for item in items:
         item_name = item.get('name', 'No name')  # name が直接文字列
         item_description = item.get('description', 'No description')
         # description が None の場合や空文字列の場合のフォールバック
         display_description = item_description if item_description else 'No description'
+        # メニュー項目自体の表示は textdata.yaml に依存しないことが多いので、直接送信
         chan.send(
-            f"{item['number']}: {item_name} - {display_description} \r\n")
-    util.send_text_by_key(chan, prompt_key, menu_mode, add_newline=False)
+            f"{item['number']}: {item_name} - {display_description}\r\n".encode('utf-8'))
+
+    # プロンプト表示 (menu_name と hierarchy を渡す)
+    util.send_text_by_key(chan, prompt_key, menu_mode, add_newline=False,
+                          menu_name=menu_name_for_prompt, hierarchy=hierarchy_str_for_prompt)
 
 
-def navigate_menu(chan, items, menu_mode, title_key, prompt_key):
+def navigate_menu(chan, items, menu_mode, title_key, prompt_key, menu_name_for_prompt: str, hierarchy_str_for_prompt: str):
     """メニューナビゲート"""
     # items が存在しない場合のエラーハンドリング
     if not items:
         logging.error("メニュー項目が空です。")
         return "back"
     while True:
-        display_menu(chan, items, menu_mode, title_key, prompt_key)
+        display_menu(chan, items, menu_mode, title_key, prompt_key,
+                     menu_name_for_prompt, hierarchy_str_for_prompt)
         user_input = ssh_input.process_input(chan)
         if user_input is None:
             return None  # 切断
@@ -90,7 +97,7 @@ def navigate_menu(chan, items, menu_mode, title_key, prompt_key):
             )
 
 
-def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, dbname: str = None, enrich_boards: bool = False):
+def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, menu_type: str, dbname: str = None, enrich_boards: bool = False):
     """階層メニューを処理する"""
     config = load_menu_config(config_path)
     if not config or 'categories' not in config:
@@ -109,16 +116,26 @@ def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, dbname: str
         return
     path_stack = []
     current_level_items = initial_level_items
+    current_path_names = []  # パンくずリスト用の表示名スタック
+
     # 掲示板メニューの場合、DBから名前と説明を保管する
     if enrich_boards and dbname:
         current_level_items = _enrich_board_items_with_db_data(
             current_level_items, dbname, menu_mode)
 
     while True:
+        # パンくずリスト文字列の生成
+        hierarchy_display_str = "/".join(current_path_names)
+
         # 今の階層の項目でメニュー表示・選択
+        # title_key は直接使わず、prompt_key で指定されるプロンプトにタイトル情報が含まれる想定
+        # prompt_key は "hierarchy" のようなベースキーを渡す
         selected_item = navigate_menu(
             chan, current_level_items, menu_mode,
-            "hierarchical_menu.title", "hierarchical_menu.prompt")
+            # title_key は実質使われない, prompt_key を "prompt.hierarchy" に変更
+            "hierarchy", "prompt.hierarchy",
+            menu_type.upper(), hierarchy_display_str
+        )
         if selected_item == "back":
             if not path_stack:  # スタックが空ならトップメニューに戻る
                 return
@@ -135,6 +152,8 @@ def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, dbname: str
                     if "items" in selected_item:  # 正しい child 構造
                        # スタックに積む前に、現在のレベルのアイテムも必要なら補完する
                         # ただし、current_level_items は既に補完済みのはず
+                        current_path_names.append(
+                            selected_item.get('name', 'Unknown'))
                         path_stack.append(current_level_items)  # 補完済みのものをスタックに
                         current_level_items = selected_item["items"]
                     else:  # child type だが items がない (YAML構造の問題の可能性)
@@ -146,6 +165,7 @@ def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, dbname: str
                 else:  # "child" 以外の type は末端項目として扱う
                     return selected_item  # 呼び出し元がこの type を解釈する
             elif "items" in selected_item:  # type キーなし、items キーあり (暗黙的なカテゴリ)
+                current_path_names.append(selected_item.get('name', 'Unknown'))
                 path_stack.append(current_level_items)
                 current_level_items = selected_item["items"]
             else:  # 辞書だが、type も items もない -> 末端項目として扱う
