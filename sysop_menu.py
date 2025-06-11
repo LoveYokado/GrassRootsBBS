@@ -68,7 +68,7 @@ def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
             system_quit(chan, dbname, current_menu_mode)
 
         elif command == '':
-            return  # 終了
+            return "back_to_top"  # 終了
 
         else:
             util.send_text_by_key(

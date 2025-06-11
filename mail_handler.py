@@ -38,7 +38,7 @@ def mail(chan, dbname, login_id, menu_mode):
             view_mode = 'reader'
             break
         elif choice == '':
-            return
+            return "back_to_top"  # トップメニューに戻ることを示す
         else:
             pass
 
@@ -560,6 +560,7 @@ def mail(chan, dbname, login_id, menu_mode):
             elif key_input == '?':
                 chan.send('\r\n')
                 util.send_text_by_key(
+                    # TODO: mail_handler.mail_help を textdata.yaml に追加
                     chan, "mail_handler.mail_help", menu_mode
                 )  # メール説明
                 update_current_display()
@@ -567,7 +568,7 @@ def mail(chan, dbname, login_id, menu_mode):
             else:
                 chan.send('\a')
                 continue
-    return
+    return "back_to_top"  # 通常終了時もトップメニューに戻る
 
 
 def format_mail_header_str(mail_data, dbname, view_mode='inbox', mail_id_width=5):

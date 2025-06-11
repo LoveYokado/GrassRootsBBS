@@ -278,7 +278,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         util.prompt_handler(chan, dbname, login_id, current_loop_menu_mode)
 
         # プロンプト表示
-        util.send_text_by_key(chan, "common_messages.select_prompt",
+        util.send_text_by_key(chan, "prompt.topmenu",
                               current_loop_menu_mode, add_newline=False)
         input_buffer = ssh_input.process_input(chan)
 
@@ -289,6 +289,12 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         command = input_buffer.lower().strip()
 
+        # bbs_handler_result をループの先頭で初期化
+        bbs_handler_result = None
+        chat_handler_result = None
+        mail_handler_result = None
+        user_pref_result = None  # user_pref_menu の結果用
+        sysop_menu_result = None  # sysop_menu の結果用
         # 空エンターの場合はトップメニューを再表示
         if command == "":
             util.send_text_by_key(chan, "top_menu.menu",
@@ -307,13 +313,16 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command in ('?'):
             util.send_text_by_key(chan, "top_menu.help_q",
                                   current_loop_menu_mode)
-            chan.send("\r\n")
+            # ヘルプ表示後はトップメニューを再表示
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
 
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
             # シスオペメニュー(menu_mode)
-            sysop_menu.sysop_menu(chan, dbname, login_id,
-                                  current_loop_menu_mode)
+            # sysop_menu から戻ってきたらトップメニューを表示するため、結果を受け取る
+            sysop_menu_result = sysop_menu.sysop_menu(chan, dbname, login_id,
+                                                      current_loop_menu_mode)
 
         # サーバ設定メニュー
         elif command == "v" and userlevel >= 5:
@@ -324,17 +333,24 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
             online_list = get_online_members_list()
             bbsmenu.who_menu(chan, dbname, online_list, current_loop_menu_mode)
+            # who_menu 表示後はトップメニューを再表示
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
 
         # 電報送信
         elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
             online_list = get_online_members_list()
             bbsmenu.telegram_send(chan, dbname, login_id,
                                   online_list, current_loop_menu_mode)
+            # telegram_send 後はトップメニューを再表示
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
 
         # 　ユーザ環境設定(ゲスト以上すべて)
         elif command in ("u") and userlevel >= 1:
             previous_menu_mode_before_userpref = current_loop_menu_mode
-            returned_menu_mode = user_pref_menu.userpref_menu(
+            # userpref_menu は現在のメニューモードを返す
+            user_pref_result = user_pref_menu.userpref_menu(
                 chan, dbname, login_id, current_loop_menu_mode)
             if returned_menu_mode:
                 current_loop_menu_mode = returned_menu_mode
@@ -345,7 +361,8 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
             mail_handler.mail(chan, dbname, login_id, current_loop_menu_mode)
-
+            mail_handler_result = mail_handler.mail(
+                chan, dbname, login_id, current_loop_menu_mode)
         # 掲示板
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
             if current_loop_menu_mode == '3':
@@ -356,7 +373,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                 if selected_item and selected_item.get("type") == "board":
                     item_id = selected_item.get("id")
                     # bbs_handler.handle_bbs_menuを呼ぶ
-                    bbs_handler.handle_bbs_menu(
+                    bbs_handler_result = bbs_handler.handle_bbs_menu(  # 結果を受け取る
                         chan, dbname, login_id, current_loop_menu_mode, item_id)
                 elif selected_item:  # 念の為boardタイプ以外が選択されたとき
                     util.send_text_by_key(
@@ -370,14 +387,14 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
                 if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
                     # Noneチェック追加
-                    bbs_handler.handle_bbs_menu(
+                    bbs_handler_result = bbs_handler.handle_bbs_menu(  # 結果を受け取る
                         chan, dbname, login_id, current_loop_menu_mode, selected_board_id)
-                    # 戻るときのトップメニュー表示
-                    util.send_text_by_key(
-                        chan, "top_menu.menu", current_loop_menu_mode)
                 elif selected_board_id in ("exit_bbs_menu", "back_to_top"):
                     logging.info(
                         f"手書きメニューが終了、またはトップに戻りました: {selected_board_id}")
+                    # 手書きメニューから戻ってきた場合もトップメニューを表示
+                    util.send_text_by_key(
+                        chan, "top_menu.menu", current_loop_menu_mode)
                 elif selected_board_id is None:
                     logging.info(f"手書きメニュー処理中に切断されました。")
         # チャット
@@ -397,7 +414,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                         f"チャットルーム「{item_name}」(ID: {item_id}) に入室します。\r\n")
                     chat_handler.set_online_members_function_for_chat(
                         get_online_members_list)
-                    chat_handler.handle_chat_room(
+                    chat_handler_result = chat_handler.handle_chat_room(  # 結果を受け取る
                         chan, dbname, login_id, current_loop_menu_mode, item_id, item_name)
                 else:
                     # 汎用メニューで選択されたが、チャット機能では解釈できないtypeの場合
@@ -414,7 +431,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
             # 掲示板IDを指定して呼び出す場合
             shortcut_id = "free"
-            bbs_handler.handle_bbs_menu(
+            bbs_handler_result = bbs_handler.handle_bbs_menu(  # 結果を受け取る
                 chan, dbname, login_id, current_loop_menu_mode, shortcut_id)
 
         # 切断処理
@@ -425,6 +442,16 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         else:
             util.send_text_by_key(chan, "top_menu.help_h",
+                                  current_loop_menu_mode)
+            # 不明なコマンドの後もトップメニューを表示（ヘルプ表示と同じ扱い）
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
+
+        # 各ハンドラから "back_to_top" が返ってきた場合にトップメニューを表示
+        if bbs_handler_result == "back_to_top" or chat_handler_result == "back_to_top" or \
+           mail_handler_result == "back_to_top" or user_pref_result == "back_to_top" or \
+           sysop_menu_result == "back_to_top":  # user_pref と sysop_menu も条件に追加
+            util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
         # コマンドループ終了 (while True)
 

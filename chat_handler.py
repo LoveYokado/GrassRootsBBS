@@ -334,7 +334,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                 # ユーザーがチャットルームから退出する
                 util.send_text_by_key(
                     chan, "chat.leaving_room", menu_mode, room_name=room_name)
-                break  # ループを抜けて finally で user_leaves_room が呼ばれる
+                return "back_to_top"  # ループを抜けて finally で user_leaves_room が呼ばれる
             else:
                 # 自分の画面に表示するメッセージ (menu_mode 対応)
                 base_my_message_format = util.get_text_by_key(
@@ -388,3 +388,4 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
     finally:
         user_leaves_room(room_id, dbname, login_id, room_name)
         logging.info(f"User {login_id} finished chat in room {room_id}.")
+        # finallyブロックでは明示的な戻り値を返さない（例外発生時などはNoneが返る）

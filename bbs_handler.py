@@ -322,7 +322,7 @@ class CommandHandler:
                 self.show_article_list()
                 return  # command_loop を抜けて handle_bbs_menu に戻る
             elif choice == 'e' or choice == '':
-                return
+                return "empty_exit"
             else:
                 util.send_text_by_key(
                     self.chan, "common_messages.invalid_command", self.menu_mode)
@@ -1561,7 +1561,10 @@ def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
                 util.send_text_by_key(
                     chan, "bbs.permission_denied_read_board", menu_mode)
                 return
-            handler.command_loop()
+            loop_result = handler.command_loop()
+            if loop_result == "empty_exit":
+                return "back_to_top"
+
         else:
             # TODO: textdata.yaml に追加
             util.send_text_by_key(chan, "bbs.board_not_found", menu_mode)
@@ -1569,12 +1572,21 @@ def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
         # 指定がなければ、カテゴリ選択 or 掲示板一覧表示からの遷移
         # hierarchical_menu を使って掲示板を選択させる
         bbs_config_path = "setting/bbs.yml"
+        logging.info(
+            f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
         selected_item = hierarchical_menu.handle_hierarchical_menu(
-            chan, bbs_config_path, menu_mode
+            # dbnameとenrich_boardsを渡すように修正
+            chan, bbs_config_path, menu_mode, dbname=dbname, enrich_boards=True
         )
+        logging.info(
+            f"bbs_handler: hierarchical_menu.handle_hierarchical_menu returned: {selected_item}")
+
         if selected_item and selected_item.get("type") == "board":
             shortcut_id_selected = selected_item.get("id")
             # 再度 handle_bbs_menu を呼び出すか、直接 CommandHandler の処理を続ける
-            handle_bbs_menu(chan, dbname, login_id,
-                            menu_mode, shortcut_id_selected)
+            # handle_bbs_menu からの戻り値をそのまま返す
+            return handle_bbs_menu(chan, dbname, login_id,
+                                   menu_mode, shortcut_id_selected)
         # else: 選択されなかったか、boardタイプではなかった場合。handle_hierarchical_menu内でメッセージ表示済みのはず。
+        # hierarchical_menu から戻ってきた場合は、通常トップメニュー表示で問題ない想定
+        return "back_to_top"

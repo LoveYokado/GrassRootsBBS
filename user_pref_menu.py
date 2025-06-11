@@ -57,7 +57,7 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
             # メールアドレス変更
             change_email_address(chan, dbname, login_id, current_menu_mode)
         elif command == 'e' or command == '':
-            return current_menu_mode  # メニューから抜ける
+            return "back_to_top"  # メニューから抜ける
         elif command == 'h' or command == '?':
             util.send_text_by_key(
                 chan, "user_pref_menu.help", current_menu_mode)  # メニュー再表示
@@ -92,7 +92,7 @@ def change_menu_mode(chan, dbname, login_id, current_menu_mode):
         elif choice == '3':
             new_menu_mode = '3'
         elif choice == 'e' or choice == '':
-            return None
+            return "back_to_top"
         else:
             continue
 
@@ -104,7 +104,7 @@ def change_menu_mode(chan, dbname, login_id, current_menu_mode):
             else:
                 util.send_text_by_key(
                     chan, "user_pref_menu.mode_selection.confirm_failed", current_menu_mode)  # メニューモードの変更に失敗
-            return None
+            return "back_to_top"
 
 
 def show_member_list(chan, dbname, current_menu_mode):
