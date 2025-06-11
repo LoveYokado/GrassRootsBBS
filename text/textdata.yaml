@@ -5,8 +5,8 @@
 ## 構造:
 ## feature_name: # 例: user_pref_menu, sysop_menu, common_messages
 ##   element_name: # 例: header, prompt, options, messages
-##     mode_2: "モード1のテキスト"
-##     mode_1: "モード2のテキスト"
+##     mode_1: "モード1のテキスト"
+##     mode_2: "モード2のテキスト"
 ##     mode_3: "モード3のテキスト"
 ##     # 複数行の場合は | または > を使用
 ##     mode_2: |
@@ -17,6 +17,16 @@
 # --- トップメニュー関連 ---
 top_menu:
   menu:
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      ☆ [A] 自動ダウンロード     [L] オンラインサインアップ [#] 電報              ★
+      ★ [B] 電子掲示板           [M] メールボックス         [U] 端末環境変更      ☆
+      ☆ [C] チャット             [N] 新アーティクル探索     [W] アクセス状況通知  ★
+      ★ [D] *書籍データベース    [O] 新アーティクル見出し   [X] 全シグ探索        ☆
+      ☆ [E] 終了                 [P] *プログラムコーナー    [Z] ハムレットゲーム  ★
+      ★ [H] ヘルプファイル       [Q] *企業内BBSサンプル     [?] ヘルプ            ☆
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      *は実装していません。
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━
       top_menu
@@ -29,16 +39,6 @@ top_menu:
       [?] ヘルプ                 [X] 全シグ探索
       [#] 電報                   [Z] ハムレットゲーム
       ━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_1: |
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      ☆ [A] 自動ダウンロード     [L] オンラインサインアップ [#] 電報              ★
-      ★ [B] 電子掲示板           [M] メールボックス         [U] 端末環境変更      ☆
-      ☆ [C] チャット             [N] 新アーティクル探索     [W] アクセス状況通知  ★
-      ★ [D] *書籍データベース    [O] 新アーティクル見出し   [X] 全シグ探索        ☆
-      ☆ [E] 終了                 [P] *プログラムコーナー    [Z] ハムレットゲーム  ★
-      ★ [H] ヘルプファイル       [Q] *企業内BBSサンプル     [?] ヘルプ            ☆
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      *は実装していません。
     mode_3: | 
       +--------------------------------------------+
       | 🚀 Welcome to the GRBBS Command Center!   🚀 |
@@ -50,28 +50,8 @@ top_menu:
       | [E] Exit System    | [W] Online Crew       |
       | [?] Help Desk      | [X] Full SIG Search   |
       | [#] Telegram       | [Z] Hamlet Game       |
-      +--------------------+-----------------------+  help_q: # ?キーで表示されるヘルプ (Hと同じ内容で良いか、別途定義するかは要検討)
+      +--------------------+-----------------------+
   help_h:
-    mode_2: |
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        コマンド一覧
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      A    : 掲示板自動巡回
-      B    : 電子掲示板
-      C    : チャット
-      H, ? : ヘルプ表示
-      L    : オンラインサインアップ
-      M    : メールボックス
-      N    : 新アーティクル探索
-      O    : 新アーティクル見出し
-      S    : シスオペメニュー (Sysop以上)
-      W    : オンラインメンバー一覧
-      #, ! : 電報送信
-      U    : ユーザー環境設定
-      X    : 全シグ探索
-      Z    : ハムレットゲーム
-      E    : ログオフ
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       BIG-Modelの階層構造
@@ -109,6 +89,26 @@ top_menu:
                   └─[9] 折り紙・あやとり・工作 └─[19] その他
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       *は未実装です
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        コマンド一覧
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      A    : 掲示板自動巡回
+      B    : 電子掲示板
+      C    : チャット
+      H, ? : ヘルプ表示
+      L    : オンラインサインアップ
+      M    : メールボックス
+      N    : 新アーティクル探索
+      O    : 新アーティクル見出し
+      S    : シスオペメニュー (Sysop以上)
+      W    : オンラインメンバー一覧
+      #, ! : 電報送信
+      U    : ユーザー環境設定
+      X    : 全シグ探索
+      Z    : ハムレットゲーム
+      E    : ログオフ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
       +-----------------------------------------------------------------------+
       | Command | Description                                                 |
@@ -130,26 +130,6 @@ top_menu:
       | Z       | Hamlet Game: Play 2D 4-way adventure                        |
       +---------+-------------------------------------------------------------+
   help_q:
-    mode_2: |
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        コマンド一覧
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      A    : 掲示板自動巡回
-      B    : 電子掲示板
-      C    : チャット
-      H, ? : ヘルプ表示
-      L    : オンラインサインアップ
-      M    : メールボックス
-      N    : 新アーティクル探索
-      O    : 新アーティクル見出し
-      S    : シスオペメニュー (Sysop以上)
-      W    : オンラインメンバー一覧
-      #, ! : 電報送信
-      U    : ユーザー環境設定
-      X    : 全シグ探索
-      Z    : ハムレットゲーム
-      E    : ログオフ
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         メインメニューの説明
@@ -173,7 +153,26 @@ top_menu:
         [Z] ハムレットゲーム       (２次元４目並べ                             )
         [?] ヘルプ                 (この文章を表示します                       )
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
+    mode_2: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        コマンド一覧
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      A    : 掲示板自動巡回
+      B    : 電子掲示板
+      C    : チャット
+      H, ? : ヘルプ表示
+      L    : オンラインサインアップ
+      M    : メールボックス
+      N    : 新アーティクル探索
+      O    : 新アーティクル見出し
+      S    : シスオペメニュー (Sysop以上)
+      W    : オンラインメンバー一覧
+      #, ! : 電報送信
+      U    : ユーザー環境設定
+      X    : 全シグ探索
+      Z    : ハムレットゲーム
+      E    : ログオフ
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
       +-----------------------------------------------------------------------+
       | Command | Description                                                 |
@@ -194,10 +193,16 @@ top_menu:
       | X       | Full SIG Search: Scan all corners automatically             |
       | Z       | Hamlet Game: Play 2D 4-way adventure                        |
       +---------+-------------------------------------------------------------+
-
 # --- ユーザー設定メニュー関連 ---
 user_pref_menu:
   header: # メニュー本体の表示
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9] 電報受信制限           ●
+      ●[2] パスワード変更     [6] 探索リスト登録          [10] ブラックリスト編集    ○
+      ○[3] プロフィール変更   [7] 探索リスト読み出し      [11] メールアドレス変更    ●
+      ●[4] 会員リスト         [8] 元探索リスト読み出し                               ○
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         端末環境設定の説明
@@ -216,13 +221,6 @@ user_pref_menu:
       [E] 終了
       [H,?]: ヘルプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_1: |
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9] 電報受信制限           ●
-      ●[2] パスワード変更     [6] 探索リスト登録          [10] ブラックリスト編集    ○
-      ○[3] プロフィール変更   [7] 探索リスト読み出し      [11] メールアドレス変更    ●
-      ●[4] 会員リスト         [8] 元探索リスト読み出し                               ○
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
       +----------------------------------------------------------+
       | Command | Description                                    |
@@ -244,13 +242,13 @@ user_pref_menu:
   # --- メニューモード変更サブメニュー ---
   mode_selection:
     header: # モード選択肢の表示
-      mode_2: |
+      mode_1: |
         メニューモードを選択してください:
         [1] モード1 (Big-Model)
         [2] モード2 (GR-BBS)
         [3] モード3 (GR-BBS English)
         [E] キャンセル
-      mode_1: |
+      mode_2: |
         メニューモードを選択してください:
         [1] モード1 (Big-Model)
         [2] モード2 (GR-BBS)
@@ -263,179 +261,179 @@ user_pref_menu:
         [3] Mode 3 (GR-BBS English)
         [E] Cancel
     confirm_changed: # 変更成功メッセージ (フォーマット文字列)
+      mode_1: "メニューモードを {mode} に変更しました。\r\n"
       mode_2: "メニューモードを {mode} に変更しました。\r\n"
-      mode_1: "Menu mode changed to {mode}.\r\n"
-      mode_3: "MODE CHANGED TO {mode}.\r\n"
+      mode_3: "Menu mode changed to {mode}.\r\n"
     confirm_failed: # 変更失敗メッセージ
+      mode_1: "メニューモードの変更に失敗しました。\r\n"
       mode_2: "メニューモードの変更に失敗しました。\r\n"
-      mode_1: "Failed to change menu mode.\r\n"
-      mode_3: "MODE CHANGE FAILED.\r\n"
+      mode_3: "Failed to change menu mode.\r\n"
   # --- 会員リストサブメニュー ---
   member_list:
     search_prompt:
+      mode_1: "検索ワードを入力してください (未入力で全件表示): "
       mode_2: "検索ワードを入力してください (未入力で全件表示): "
-      mode_1: "Enter search term (leave blank for all): "
-      mode_3: "SEARCH TERM > "
+      mode_3: "Enter search term (leave blank for all): "
   set_lastlogin:
     current_lastlogin:
+      mode_1: "設定されている最終ログイン日時は {lastlogin}です。"
       mode_2: "設定されている最終ログイン日時は {lastlogin}です。"
-      mode_1: "The last login time is {lastlogin}."
-      mode_3: "LAST LOGIN TIME IS {lastlogin}."
+      mode_3: "The last login time is {lastlogin}."
     newe_datetime:
+      mode_1: "新しい最終ログイン日時を入力してください(YYYY-MM-DD HH:MM:SS): "
       mode_2: "新しい最終ログイン日時を入力してください(YYYY-MM-DD HH:MM:SS): "
-      mode_1: "Enter new last login time(YYYY-MM-DD HH:MM:SS): "
-      mode_3: "ENTER NEW LAST LOGIN TIME(YYYY-MM-DD HH:MM:SS): "
+      mode_3: "Enter new last login time(YYYY-MM-DD HH:MM:SS): "
     cancelled:
+      mode_1: "最終ログイン日時の設定をキャンセルしました。\r\n"
       mode_2: "最終ログイン日時の設定をキャンセルしました。\r\n"
-      mode_1: "Last login time change cancelled.\r\n"
-      mode_3: "LAST LOGIN TIME CHANGE CANCELLED.\r\n"
+      mode_3: "Last login time change cancelled.\r\n"
     invalid_format:
+      mode_1: "無効な日時フォーマットです。YYYY-MM-DD HH:MM:SS で入力してください。\r\n"
       mode_2: "無効な日時フォーマットです。YYYY-MM-DD HH:MM:SS で入力してください。\r\n"
-      mode_1: "Invalid date format. Please enter in YYYY-MM-DD HH:MM:SS format.\r\n"
-      mode_3: "INVALID DATE FORMAT. ENTER YYYY-MM-DD HH:MM:SS.\r\n"
+      mode_3: "Invalid date format. Please enter in YYYY-MM-DD HH:MM:SS format.\r\n"
     updated:
+      mode_1: "最終ログイン日時を更新しました。\r\n"
       mode_2: "最終ログイン日時を更新しました。\r\n"
-      mode_1: "Last login time updated.\r\n"
-      mode_3: "LAST LOGIN TIME UPDATED.\r\n"
+      mode_3: "Last login time updated.\r\n"
   telegram_restriction:
     prompt:
+      mode_1: "選択してください([1]全電報を受信 [2]会員からのみ受信 [3]全電報を拒否 [4]ブラックリストからの電報を拒否): "
       mode_2: "選択してください([1]全電報を受信 [2]会員からのみ受信 [3]全電報を拒否 [4]ブラックリストからの電報を拒否): "
-      mode_1: "Select ([1]All telegrams [2]Only from members [3]Reject all telegrams [4]Reject telegrams from blacklist): "
-      mode_3: "SELECT ([1]ALL TELEGRAMS [2]MEMBERS ONLY  [3]REJECT ALL [4]REJECT BLACKLIST): "
+      mode_3: "Select ([1]All telegrams [2]Only from members [3]Reject all telegrams [4]Reject telegrams from blacklist): "
   blacklist_edit:
     header:
+      mode_1: "--- ブラックリスト編集 ---"
       mode_2: "--- ブラックリスト編集 ---"
-      mode_1: "--- Edit Blacklist ---"
-      mode_3: "--- EDIT BLACKLIST ---"
+      mode_3: "--- Edit Blacklist ---"
     current_blacklist_header:
+      mode_1: "現在のブラックリスト (ユーザーID):"
       mode_2: "現在のブラックリスト (ユーザーID):"
-      mode_1: "Current Blacklist (User IDs):"
-      mode_3: "CURRENT BLACKLIST (USER IDS):"
+      mode_3: "Current Blacklist (User IDs):"
     no_blacklist:
-      mode_2: "  (現在ブラックリストに登録されているユーザーはいません)"
-      mode_1: "  (No users currently on the blacklist)"
-      mode_3: "  (NO USERS ON BLACKLIST)"
+      mode_1: "(現在ブラックリストに登録されているユーザーはいません)"
+      mode_2: "(現在ブラックリストに登録されているユーザーはいません)"
+      mode_3: "(No users currently on the blacklist)"
     confirm_change_prompt:
+      mode_1: "ブラックリストを変更しますか？ (y/n): "
       mode_2: "ブラックリストを変更しますか？ (y/n): "
-      mode_1: "Do you want to change the blacklist? (y/n): "
-      mode_3: "CHANGE BLACKLIST? (Y/N): "
+      mode_3: "Do you want to change the blacklist? (y/n): "
     new_list_prompt:
+      mode_1: "新しいブラックリストをカンマ区切りで入力してください (例: user1,test,guest 空入力でクリア): "
       mode_2: "新しいブラックリストをカンマ区切りで入力してください (例: user1,test,guest 空入力でクリア): "
-      mode_1: "Enter new blacklist as comma-separated User Logins (e.g., user1,test,guest. Empty to clear): "
-      mode_3: "NEW BLACKLIST (LOGINS, COMMA-SEP. EMPTY TO CLEAR): "
+      mode_3: "Enter new blacklist as comma-separated User Logins (e.g., user1,test,guest. Empty to clear): "
     invalid_id_format:
+      mode_1: "** 不正な入力形式です。ユーザー名をカンマで区切って入力してください。 **"
       mode_2: "** 不正な入力形式です。ユーザー名をカンマで区切って入力してください。 **"
-      mode_1: "** Invalid input format. Please enter usernames separated by commas. **"
-      mode_3: "** INVALID INPUT. ENTER USERNAMES, COMMA-SEP. **"
+      mode_3: "** Invalid input format. Please enter usernames separated by commas. **"
     user_id_not_found:
+      mode_1: "** 存在しないユーザー「{user_id}」が含まれています。 **"
       mode_2: "** 存在しないユーザー「{user_id}」が含まれています。 **"
-      mode_1: '** User "{user_id}" not found. **'
-      mode_3: '** USER "{user_id}" NOT FOUND. **'
+      mode_3: "** User '{user_id}' not found. **"
     update_success:
+      mode_1: "ブラックリストを更新しました。"
       mode_2: "ブラックリストを更新しました。"
-      mode_1: "Blacklist updated successfully."
-      mode_3: "BLACKLIST UPDATED."
+      mode_3: "Blacklist updated successfully."
     cancelled:
+      mode_1: "ブラックリストの編集をキャンセルしました。"
       mode_2: "ブラックリストの編集をキャンセルしました。"
-      mode_1: "Blacklist editing cancelled."
-      mode_3: "BLACKLIST EDIT CANCELLED."
+      mode_3: "Blacklist editing cancelled."
     current_list_display:
-      mode_2: "  {blacklist_users}"
       mode_1: "  {blacklist_users}"
+      mode_2: "  {blacklist_users}"
       mode_3: "  {blacklist_users}"
   register_exploration_list:
     header:
+      mode_1: "** 探索リストに登録します **\r\n"
       mode_2: "** 探索リストに登録します **\r\n"
-      mode_1: "** Register exploration list **\r\n"
-      mode_3: "** REGISTER EXPLORATION LIST **\r\n"
+      mode_3: "** Register exploration list **\r\n"
     confirm_yn:
+      mode_1: "この内容で良いですか?(YまたはN): "
       mode_2: "この内容で良いですか?(YまたはN): "
-      mode_1: "Is this content OK? (Y or N): "
-      mode_3: "CONTENT OK? (Y OR N): "
+      mode_3: "Is this content OK? (Y or N): "
     success:
+      mode_1: "** 探索リストに登録しました **"
       mode_2: "** 探索リストに登録しました **"
-      mode_1: "** Exploration list registered **"
-      mode_3: "** EXPLORATION LIST REGISTERED **"
+      mode_3: "** Exploration list registered **"
   change_password:
     current_password:
+      mode_1: "現在のパスワードを入力してください: "
       mode_2: "現在のパスワードを入力してください: "
-      mode_1: "Enter current password: "
-      mode_3: "ENTER CURRENT PASS: "
+      mode_3: "Enter current password: "
     invalid_password:
+      mode_1: "パスワードが違います。\r\n"
       mode_2: "パスワードが違います。\r\n"
-      mode_1: "Invalid password.\r\n"
-      mode_3: "INVALID PASS.\r\n"
+      mode_3: "Invalid password.\r\n"
     new_password:
+      mode_1: "新しいパスワードを入力してください: "
       mode_2: "新しいパスワードを入力してください: "
-      mode_1: "Enter new password: "
-      mode_3: "ENTER NEW PASS: "
+      mode_3: "Enter new password: "
     password_too_short:
+      mode_1: "パスワードは8文字以上にしてください。\r\n"
       mode_2: "パスワードは8文字以上にしてください。\r\n"
-      mode_1: "Password must be at least 8 characters long.\r\n"
-      mode_3: "PASSWORD TOO SHORT.\r\n"
+      mode_3: "Password must be at least 8 characters long.\r\n"
     new_password_confirm:
+      mode_1: "新しいパスワードをもう一度入力してください: "
       mode_2: "新しいパスワードをもう一度入力してください: "
-      mode_1: "Re-enter new password: "
-      mode_3: "RE-ENTER NEW PASS: "
+      mode_3: "Re-enter new password: "
     password_mismatch:
+      mode_1: "パスワードが一致しません。\r\n"
       mode_2: "パスワードが一致しません。\r\n"
-      mode_1: "Passwords do not match.\r\n"
-      mode_3: "PASSWORD MISMATCH.\r\n"
+      mode_3: "Passwords do not match.\r\n"
     password_changed:
+      mode_1: "パスワードを変更しました。\r\n"
       mode_2: "パスワードを変更しました。\r\n"
-      mode_1: "Password changed.\r\n"
-      mode_3: "PASSWORD CHANGED.\r\n"
+      mode_3: "Password changed.\r\n"
     confirm_regenerate_ssh_key_yn:
+      mode_1: "SSH公開鍵を再生成しますか?"
       mode_2: "SSH公開鍵を再生成しますか?"
-      mode_1: "Regenerate SSH public key?"
-      mode_3: "REGENERATE SSH KEY?"
+      mode_3: "Regenerate SSH public key?"
     ssh_key_updated_success:
+      mode_1: "この鍵をなくすとSSH接続ができなくなりますので、大切に保管してください。\r\n"
       mode_2: "この鍵をなくすとSSH接続ができなくなりますので、大切に保管してください。\r\n"
-      mode_1: "This key will no longer work for SSH connections, so please keep it safe.\r\n"
-      mode_3: "THIS KEY WILL NO LONGER WORK FOR SSH CONNECTIONS, SO KEEP IT SAFE.\r\n"
+      mode_3: "This key will no longer work for SSH connections, so please keep it safe.\r\n"
   change_profile:
     current_profile:
+      mode_1: "現在のプロフィールは「{comment}」です。\r\n"
       mode_2: "現在のプロフィールは「{comment}」です。\r\n"
-      mode_1: "Current profile is \"{comment}\".\r\n"
-      mode_3: "CURRENT PROFILE IS \"{comment}\".\r\n"
+      mode_3: "Current profile is \"{comment}\".\r\n"
     new_profile:
+      mode_1: "新しいプロフィールを入力してください: "
       mode_2: "新しいプロフィールを入力してください: "
-      mode_1: "Enter new profile: "
-      mode_3: "ENTER NEW PROFILE: "
+      mode_3: "Enter new profile: "
     profile_updated:
+      mode_1: "プロフィールを更新しました。\r\n"
       mode_2: "プロフィールを更新しました。\r\n"
-      mode_1: "Profile updated.\r\n"
-      mode_3: "PROFILE UPDATED.\r\n"
+      mode_3: "Profile updated.\r\n"
     cancelled:
+      mode_1: "プロフィールの更新をキャンセルしました。\r\n"
       mode_2: "プロフィールの更新をキャンセルしました。\r\n"
-      mode_1: "Profile update cancelled.\r\n"
-      mode_3: "PROFILE UPDATE CANCELLED.\r\n"
+      mode_3: "Profile update cancelled.\r\n"
   change_email:
     current_email:
+      mode_1: "現在のメールアドレスは「{email}」です。\r\n"
       mode_2: "現在のメールアドレスは「{email}」です。\r\n"
-      mode_1: "Current email address is \"{email}\".\r\n"
-      mode_3: "CURRENT EMAIL IS \"{email}\".\r\n"
+      mode_3: "Current email address is \"{email}\".\r\n"
     new_email_prompt:
+      mode_1: "新しいメールアドレスを入力してください (空入力で変更中止): "
       mode_2: "新しいメールアドレスを入力してください (空入力で変更中止): "
-      mode_1: "Enter new email address (leave blank to cancel): "
-      mode_3: "ENTER NEW EMAIL (BLANK TO CANCEL): "
+      mode_3: "Enter new email address (leave blank to cancel): "
     invalid_format:
+      mode_1: "無効なメールアドレス形式です。\r\n"
       mode_2: "無効なメールアドレス形式です。\r\n"
-      mode_1: "Invalid email address format.\r\n"
-      mode_3: "INVALID EMAIL FORMAT.\r\n"
+      mode_3: "Invalid email address format.\r\n"
     updated:
+      mode_1: "メールアドレスを更新しました。\r\n"
       mode_2: "メールアドレスを更新しました。\r\n"
-      mode_1: "Email address updated.\r\n"
-      mode_3: "EMAIL UPDATED.\r\n"
+      mode_3: "Email address updated.\r\n"
 # --- WHOメニュー関連 ---
 who_menu:
   header:
-    mode_2: |
+    mode_1: |
       オンラインメンバー一覧
       NAME            COMMENT
       -------------------------------------------------------------------
-    mode_1: |
-      Online Members List (English)
+    mode_2: |
+      オンラインメンバー一覧
       NAME            COMMENT
       -------------------------------------------------------------------
     mode_3: |
@@ -443,16 +441,27 @@ who_menu:
       NAME            COMMENT
       -------------------------------------------------------------------
   footer:
-    mode_2: |
-      -------------------------------------------------------------------
     mode_1: |
+      -------------------------------------------------------------------
+    mode_2: |
       -------------------------------------------------------------------
     mode_3: |
       -------------------------------------------------------------------
-
 # --- シスオペメニュー関連 ---
 sysop_menu:
   menu:
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      □[ALLR] 探索リストを読む                [USRL] 会員一覧表示                ■
+      ■[ALLW] 探索リストを書く                [KYGN] SSH鍵変更                   □
+      □[MKBD] 掲示板作成                      [PASC] パスワード変更              ■
+      ■[LSBD] 掲示板一覧                      [CHGU] ユーザーレベル変更          □
+      □[DLBD] 掲示板削除                      [PASU] 会員抹消                    ■
+      ■[VSET] 設定一覧表示                    [REGS] 会員登録                    □
+      □[TREE] 階層構造マップ                  [SYMR] シンボルテーブルを読む      ■
+      ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く      □
+      □[EXIT] システム強制終了                [LETR] アンケート処理              ■
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       シスオペメニュー
@@ -473,18 +482,6 @@ sysop_menu:
       [MNPM] トップメニューの会員レベル設定
       [VSET] 設定一覧表示
       [EXIT] システム強制終了
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_1: |
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      □[ALLR] 探索リストを読む                [USRL] 会員一覧表示                ■
-      ■[ALLW] 探索リストを書く                [KYGN] SSH鍵変更                   □
-      □[MKBD] 掲示板作成                      [PASC] パスワード変更              ■
-      ■[LSBD] 掲示板一覧                      [CHGU] ユーザーレベル変更          □
-      □[DLBD] 掲示板削除                      [PASU] 会員抹消                    ■
-      ■[VSET] 設定一覧表示                    [REGS] 会員登録                    □
-      □[TREE] 階層構造マップ                  [SYMR] シンボルテーブルを読む      ■
-      ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く      □
-      □[EXIT] システム強制終了                [LETR] アンケート処理              ■
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_3: |
       +---------+-------------------------------------------+
@@ -508,72 +505,69 @@ sysop_menu:
       +---------+-------------------------------------------+
   system_quit:
     header:
+      mode_1: "** システムを停止します **\r\n"
       mode_2: "** システムを停止します **\r\n"
-      mode_1: "** System down **\r\n"
-      mode_3: "** SYSTEM DOWN **\r\n"
+      mode_3: "** System down **\r\n"
     system_down_requested:
+      mode_1: "** システム停止を要求しました **\r\n"
       mode_2: "** システム停止を要求しました **\r\n"
-      mode_1: "** System down requested **\r\n"
-      mode_3: "** SYSTEM DOWN REQUESTED **\r\n"
+      mode_3: "** System down requested **\r\n"
   user_list:
     header: # ユーザー一覧表示時のヘッダー
-      mode_2: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
       mode_1: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
+      mode_2: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
       mode_3: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
     no_users:
+      mode_1: "ユーザがいません。\r\n"
       mode_2: "ユーザがいません。\r\n"
-      mode_1: "No users found.\r\n"
-      mode_3: "NO USERS.\r\n"
+      mode_3: "No users found.\r\n"
     error:
-      mode_2: "ユーザ一覧表示中にエラーが発生しました。\r\n" # フォーマット文字列
-      mode_1: "An error occurred while displaying user list.\r\n"
-      mode_3: "USER LIST ERROR.\r\n"
+      mode_1: "ユーザ一覧表示中にエラーが発生しました。\r\n"
+      mode_2: "ユーザ一覧表示中にエラーが発生しました。\r\n"
+      mode_3: "An error occurred while displaying user list.\r\n"
   view_settings:
     header: # 設定一覧表示時のヘッダー
-      mode_2: |
+      mode_1: |
         ------------------------------------
         項目名              値 (レベル)
         ------------------------------------
-      mode_1: |
+      mode_2: |
         ------------------------------------
-        Setting Name        Value (Level)
+        項目名              値 (レベル)
         ------------------------------------
       mode_3: |
         ╔═══════════════════════════════════╗
         ║   SETTINGS                        ║
         ╚═══════════════════════════════════╝
     no_settings_error:
+      mode_1: "設定がありません(または取得エラー)\r\n"
       mode_2: "設定がありません(または取得エラー)\r\n"
-      mode_1: "No settings found (or error)\r\n"
-      mode_3: "NO SETTINGS (OR ERROR)\r\n"
+      mode_3: "No settings found (or error)\r\n"
   set_permissions:
     header: # メニュー本体の表示
-      mode_2: |
-        各BBSメニューのユーザレベルごとのパーミッションを設定します。
-      mode_1: |
-        Set Permissions for BBS Menus
-      mode_3: |
-        SET PERMISSIONS FOR BBS MENUS
+      mode_1: "各BBSメニューのユーザレベルごとのパーミッションを設定します。"
+      mode_2: "各BBSメニューのユーザレベルごとのパーミッションを設定します。"
+      mode_3: "Set Permissions for BBS Menus"
     prompt:
+      mode_1: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): "
       mode_2: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): "
-      mode_1: "Select a feature to set user level for (bbs,chat,mail,telegram,userpref,who): "
-      mode_3: "SELECT A FEATURE TO SET USER LEVEL FOR (bbs,chat,mail,telegram,userpref,who): "
+      mode_3: "Select a feature to set user level for (bbs,chat,mail,telegram,userpref,who): "
     user_level_message:
+      mode_1: "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n"
       mode_2: "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n"
-      mode_1: "0:Disabled 1:Guest 2:User 3:Moderator 4:Sub Operator 5:System Operator\r\n"
-      mode_3: "0:DISABLED 1:GUEST 2:USER 3:MOD 4:SUBOP 5:SYSOP\r\n"
+      mode_3: "0:Disabled 1:Guest 2:User 3:Moderator 4:Sub Operator 5:System Operator\r\n"
     user_level_prompt:
+      mode_1: "ユーザレベルを入力してください: "
       mode_2: "ユーザレベルを入力してください: "
-      mode_1: "Enter user level: "
-      mode_3: "ENTER USER LEVEL: "
+      mode_3: "Enter user level: "
     user_level_0-5_message:
+      mode_1: "ユーザレベルは0~5の範囲で入力してください\r\n"
       mode_2: "ユーザレベルは0~5の範囲で入力してください\r\n"
-      mode_1: "User level must be between 0 and 5\r\n"
-      mode_3: "USER LEVEL MUST BE BETWEEN 0 AND 5\r\n"
+      mode_3: "User level must be between 0 and 5\r\n"
     user_level_changed:
+      mode_1: "メニュー '{menu_to_change}' のアクセス権限をレベル {user_level} に変更しました。"
       mode_2: "メニュー '{menu_to_change}' のアクセス権限をレベル {user_level} に変更しました。"
-      mode_1: "Access permission for menu '{menu_to_change}' has been changed to level {user_level}."
-      mode_3: "ACCESS PERMISSION FOR MENU '{menu_to_change}' HAS BEEN CHANGED TO LEVEL {user_level}."
+      mode_3: "Access permission for menu '{menu_to_change}' has been changed to level {user_level}."
   user_register:
     header:
       mode_2: "** 登録手続きを行います **"
