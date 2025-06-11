@@ -5,11 +5,11 @@
 ## 構造:
 ## feature_name: # 例: user_pref_menu, sysop_menu, common_messages
 ##   element_name: # 例: header, prompt, options, messages
-##     mode_1: "モード1のテキスト"
-##     mode_2: "モード2のテキスト"
+##     mode_2: "モード1のテキスト"
+##     mode_1: "モード2のテキスト"
 ##     mode_3: "モード3のテキスト"
 ##     # 複数行の場合は | または > を使用
-##     mode_1: |
+##     mode_2: |
 ##       複数行のテキスト
 ##       です。
 ##
@@ -17,7 +17,7 @@
 # --- トップメニュー関連 ---
 top_menu:
   menu:
-    mode_1: |
+    mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━
       top_menu
       ----------------------------------------------------
@@ -29,7 +29,7 @@ top_menu:
       [?] ヘルプ                 [X] 全シグ探索
       [#] 電報                   [Z] ハムレットゲーム
       ━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_2: |
+    mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       ☆ [A] 自動ダウンロード     [L] オンラインサインアップ [#] 電報              ★
       ★ [B] 電子掲示板           [M] メールボックス         [U] 端末環境変更      ☆
@@ -52,7 +52,7 @@ top_menu:
       | [#] Telegram       | [Z] Hamlet Game       |
       +--------------------+-----------------------+  help_q: # ?キーで表示されるヘルプ (Hと同じ内容で良いか、別途定義するかは要検討)
   help_h:
-    mode_1: |
+    mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         コマンド一覧
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -72,7 +72,7 @@ top_menu:
       Z    : ハムレットゲーム
       E    : ログオフ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_2: |
+    mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       BIG-Modelの階層構造
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -130,7 +130,7 @@ top_menu:
       | Z       | Hamlet Game: Play 2D 4-way adventure                        |
       +---------+-------------------------------------------------------------+
   help_q:
-    mode_1: |
+    mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         コマンド一覧
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -150,7 +150,7 @@ top_menu:
       Z    : ハムレットゲーム
       E    : ログオフ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_2: |
+    mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         メインメニューの説明
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -198,7 +198,7 @@ top_menu:
 # --- ユーザー設定メニュー関連 ---
 user_pref_menu:
   header: # メニュー本体の表示
-    mode_1: |
+    mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         端末環境設定の説明
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -216,7 +216,7 @@ user_pref_menu:
       [E] 終了
       [H,?]: ヘルプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_2: |
+    mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9] 電報受信制限           ●
       ●[2] パスワード変更     [6] 探索リスト登録          [10] ブラックリスト編集    ○
@@ -244,197 +244,197 @@ user_pref_menu:
   # --- メニューモード変更サブメニュー ---
   mode_selection:
     header: # モード選択肢の表示
-      mode_1: |
-        メニューモードを選択してください:
-        [1] モード1 (GR-BBS)
-        [2] モード2 (Big-Model)
-        [3] モード3 (GR-BBS English)
-        [E] キャンセル
       mode_2: |
         メニューモードを選択してください:
-        [1] モード1 (GR-BBS)
-        [2] モード2 (Big-Model)
+        [1] モード1 (Big-Model)
+        [2] モード2 (GR-BBS)
+        [3] モード3 (GR-BBS English)
+        [E] キャンセル
+      mode_1: |
+        メニューモードを選択してください:
+        [1] モード1 (Big-Model)
+        [2] モード2 (GR-BBS)
         [3] モード3 (GR-BBS English)
         [E] キャンセル
       mode_3: |
         Select Menu Mode:
-        [1] Mode 1 (GR-BBS)
-        [2] Mode 2 (Big-Model)
+        [1] Mode 1 (Big-Model)
+        [2] Mode 2 (GR-BBS)
         [3] Mode 3 (GR-BBS English)
         [E] Cancel
     confirm_changed: # 変更成功メッセージ (フォーマット文字列)
-      mode_1: "メニューモードを {mode} に変更しました。\r\n"
-      mode_2: "Menu mode changed to {mode}.\r\n"
+      mode_2: "メニューモードを {mode} に変更しました。\r\n"
+      mode_1: "Menu mode changed to {mode}.\r\n"
       mode_3: "MODE CHANGED TO {mode}.\r\n"
     confirm_failed: # 変更失敗メッセージ
-      mode_1: "メニューモードの変更に失敗しました。\r\n"
-      mode_2: "Failed to change menu mode.\r\n"
+      mode_2: "メニューモードの変更に失敗しました。\r\n"
+      mode_1: "Failed to change menu mode.\r\n"
       mode_3: "MODE CHANGE FAILED.\r\n"
   # --- 会員リストサブメニュー ---
   member_list:
     search_prompt:
-      mode_1: "検索ワードを入力してください (未入力で全件表示): "
-      mode_2: "Enter search term (leave blank for all): "
+      mode_2: "検索ワードを入力してください (未入力で全件表示): "
+      mode_1: "Enter search term (leave blank for all): "
       mode_3: "SEARCH TERM > "
   set_lastlogin:
     current_lastlogin:
-      mode_1: "設定されている最終ログイン日時は {lastlogin}です。"
-      mode_2: "The last login time is {lastlogin}."
+      mode_2: "設定されている最終ログイン日時は {lastlogin}です。"
+      mode_1: "The last login time is {lastlogin}."
       mode_3: "LAST LOGIN TIME IS {lastlogin}."
     newe_datetime:
-      mode_1: "新しい最終ログイン日時を入力してください(YYYY-MM-DD HH:MM:SS): "
-      mode_2: "Enter new last login time(YYYY-MM-DD HH:MM:SS): "
+      mode_2: "新しい最終ログイン日時を入力してください(YYYY-MM-DD HH:MM:SS): "
+      mode_1: "Enter new last login time(YYYY-MM-DD HH:MM:SS): "
       mode_3: "ENTER NEW LAST LOGIN TIME(YYYY-MM-DD HH:MM:SS): "
     cancelled:
-      mode_1: "最終ログイン日時の設定をキャンセルしました。\r\n"
-      mode_2: "Last login time change cancelled.\r\n"
+      mode_2: "最終ログイン日時の設定をキャンセルしました。\r\n"
+      mode_1: "Last login time change cancelled.\r\n"
       mode_3: "LAST LOGIN TIME CHANGE CANCELLED.\r\n"
     invalid_format:
-      mode_1: "無効な日時フォーマットです。YYYY-MM-DD HH:MM:SS で入力してください。\r\n"
-      mode_2: "Invalid date format. Please enter in YYYY-MM-DD HH:MM:SS format.\r\n"
+      mode_2: "無効な日時フォーマットです。YYYY-MM-DD HH:MM:SS で入力してください。\r\n"
+      mode_1: "Invalid date format. Please enter in YYYY-MM-DD HH:MM:SS format.\r\n"
       mode_3: "INVALID DATE FORMAT. ENTER YYYY-MM-DD HH:MM:SS.\r\n"
     updated:
-      mode_1: "最終ログイン日時を更新しました。\r\n"
-      mode_2: "Last login time updated.\r\n"
+      mode_2: "最終ログイン日時を更新しました。\r\n"
+      mode_1: "Last login time updated.\r\n"
       mode_3: "LAST LOGIN TIME UPDATED.\r\n"
   telegram_restriction:
     prompt:
-      mode_1: "選択してください([1]全電報を受信 [2]会員からのみ受信 [3]全電報を拒否 [4]ブラックリストからの電報を拒否): "
-      mode_2: "Select ([1]All telegrams [2]Only from members [3]Reject all telegrams [4]Reject telegrams from blacklist): "
+      mode_2: "選択してください([1]全電報を受信 [2]会員からのみ受信 [3]全電報を拒否 [4]ブラックリストからの電報を拒否): "
+      mode_1: "Select ([1]All telegrams [2]Only from members [3]Reject all telegrams [4]Reject telegrams from blacklist): "
       mode_3: "SELECT ([1]ALL TELEGRAMS [2]MEMBERS ONLY  [3]REJECT ALL [4]REJECT BLACKLIST): "
   blacklist_edit:
     header:
-      mode_1: "--- ブラックリスト編集 ---"
-      mode_2: "--- Edit Blacklist ---"
+      mode_2: "--- ブラックリスト編集 ---"
+      mode_1: "--- Edit Blacklist ---"
       mode_3: "--- EDIT BLACKLIST ---"
     current_blacklist_header:
-      mode_1: "現在のブラックリスト (ユーザーID):"
-      mode_2: "Current Blacklist (User IDs):"
+      mode_2: "現在のブラックリスト (ユーザーID):"
+      mode_1: "Current Blacklist (User IDs):"
       mode_3: "CURRENT BLACKLIST (USER IDS):"
     no_blacklist:
-      mode_1: "  (現在ブラックリストに登録されているユーザーはいません)"
-      mode_2: "  (No users currently on the blacklist)"
+      mode_2: "  (現在ブラックリストに登録されているユーザーはいません)"
+      mode_1: "  (No users currently on the blacklist)"
       mode_3: "  (NO USERS ON BLACKLIST)"
     confirm_change_prompt:
-      mode_1: "ブラックリストを変更しますか？ (y/n): "
-      mode_2: "Do you want to change the blacklist? (y/n): "
+      mode_2: "ブラックリストを変更しますか？ (y/n): "
+      mode_1: "Do you want to change the blacklist? (y/n): "
       mode_3: "CHANGE BLACKLIST? (Y/N): "
     new_list_prompt:
-      mode_1: "新しいブラックリストをカンマ区切りで入力してください (例: user1,test,guest 空入力でクリア): "
-      mode_2: "Enter new blacklist as comma-separated User Logins (e.g., user1,test,guest. Empty to clear): "
+      mode_2: "新しいブラックリストをカンマ区切りで入力してください (例: user1,test,guest 空入力でクリア): "
+      mode_1: "Enter new blacklist as comma-separated User Logins (e.g., user1,test,guest. Empty to clear): "
       mode_3: "NEW BLACKLIST (LOGINS, COMMA-SEP. EMPTY TO CLEAR): "
     invalid_id_format:
-      mode_1: "** 不正な入力形式です。ユーザー名をカンマで区切って入力してください。 **"
-      mode_2: "** Invalid input format. Please enter usernames separated by commas. **"
+      mode_2: "** 不正な入力形式です。ユーザー名をカンマで区切って入力してください。 **"
+      mode_1: "** Invalid input format. Please enter usernames separated by commas. **"
       mode_3: "** INVALID INPUT. ENTER USERNAMES, COMMA-SEP. **"
     user_id_not_found:
-      mode_1: "** 存在しないユーザー「{user_id}」が含まれています。 **"
-      mode_2: '** User "{user_id}" not found. **'
+      mode_2: "** 存在しないユーザー「{user_id}」が含まれています。 **"
+      mode_1: '** User "{user_id}" not found. **'
       mode_3: '** USER "{user_id}" NOT FOUND. **'
     update_success:
-      mode_1: "ブラックリストを更新しました。"
-      mode_2: "Blacklist updated successfully."
+      mode_2: "ブラックリストを更新しました。"
+      mode_1: "Blacklist updated successfully."
       mode_3: "BLACKLIST UPDATED."
     cancelled:
-      mode_1: "ブラックリストの編集をキャンセルしました。"
-      mode_2: "Blacklist editing cancelled."
+      mode_2: "ブラックリストの編集をキャンセルしました。"
+      mode_1: "Blacklist editing cancelled."
       mode_3: "BLACKLIST EDIT CANCELLED."
     current_list_display:
-      mode_1: "  {blacklist_users}"
       mode_2: "  {blacklist_users}"
+      mode_1: "  {blacklist_users}"
       mode_3: "  {blacklist_users}"
   register_exploration_list:
     header:
-      mode_1: "** 探索リストに登録します **\r\n"
-      mode_2: "** Register exploration list **\r\n"
+      mode_2: "** 探索リストに登録します **\r\n"
+      mode_1: "** Register exploration list **\r\n"
       mode_3: "** REGISTER EXPLORATION LIST **\r\n"
     confirm_yn:
-      mode_1: "この内容で良いですか?(YまたはN): "
-      mode_2: "Is this content OK? (Y or N): "
+      mode_2: "この内容で良いですか?(YまたはN): "
+      mode_1: "Is this content OK? (Y or N): "
       mode_3: "CONTENT OK? (Y OR N): "
     success:
-      mode_1: "** 探索リストに登録しました **"
-      mode_2: "** Exploration list registered **"
+      mode_2: "** 探索リストに登録しました **"
+      mode_1: "** Exploration list registered **"
       mode_3: "** EXPLORATION LIST REGISTERED **"
   change_password:
     current_password:
-      mode_1: "現在のパスワードを入力してください: "
-      mode_2: "Enter current password: "
+      mode_2: "現在のパスワードを入力してください: "
+      mode_1: "Enter current password: "
       mode_3: "ENTER CURRENT PASS: "
     invalid_password:
-      mode_1: "パスワードが違います。\r\n"
-      mode_2: "Invalid password.\r\n"
+      mode_2: "パスワードが違います。\r\n"
+      mode_1: "Invalid password.\r\n"
       mode_3: "INVALID PASS.\r\n"
     new_password:
-      mode_1: "新しいパスワードを入力してください: "
-      mode_2: "Enter new password: "
+      mode_2: "新しいパスワードを入力してください: "
+      mode_1: "Enter new password: "
       mode_3: "ENTER NEW PASS: "
     password_too_short:
-      mode_1: "パスワードは8文字以上にしてください。\r\n"
-      mode_2: "Password must be at least 8 characters long.\r\n"
+      mode_2: "パスワードは8文字以上にしてください。\r\n"
+      mode_1: "Password must be at least 8 characters long.\r\n"
       mode_3: "PASSWORD TOO SHORT.\r\n"
     new_password_confirm:
-      mode_1: "新しいパスワードをもう一度入力してください: "
-      mode_2: "Re-enter new password: "
+      mode_2: "新しいパスワードをもう一度入力してください: "
+      mode_1: "Re-enter new password: "
       mode_3: "RE-ENTER NEW PASS: "
     password_mismatch:
-      mode_1: "パスワードが一致しません。\r\n"
-      mode_2: "Passwords do not match.\r\n"
+      mode_2: "パスワードが一致しません。\r\n"
+      mode_1: "Passwords do not match.\r\n"
       mode_3: "PASSWORD MISMATCH.\r\n"
     password_changed:
-      mode_1: "パスワードを変更しました。\r\n"
-      mode_2: "Password changed.\r\n"
+      mode_2: "パスワードを変更しました。\r\n"
+      mode_1: "Password changed.\r\n"
       mode_3: "PASSWORD CHANGED.\r\n"
     confirm_regenerate_ssh_key_yn:
-      mode_1: "SSH公開鍵を再生成しますか?"
-      mode_2: "Regenerate SSH public key?"
+      mode_2: "SSH公開鍵を再生成しますか?"
+      mode_1: "Regenerate SSH public key?"
       mode_3: "REGENERATE SSH KEY?"
     ssh_key_updated_success:
-      mode_1: "この鍵をなくすとSSH接続ができなくなりますので、大切に保管してください。\r\n"
-      mode_2: "This key will no longer work for SSH connections, so please keep it safe.\r\n"
+      mode_2: "この鍵をなくすとSSH接続ができなくなりますので、大切に保管してください。\r\n"
+      mode_1: "This key will no longer work for SSH connections, so please keep it safe.\r\n"
       mode_3: "THIS KEY WILL NO LONGER WORK FOR SSH CONNECTIONS, SO KEEP IT SAFE.\r\n"
   change_profile:
     current_profile:
-      mode_1: "現在のプロフィールは「{comment}」です。\r\n"
-      mode_2: "Current profile is \"{comment}\".\r\n"
+      mode_2: "現在のプロフィールは「{comment}」です。\r\n"
+      mode_1: "Current profile is \"{comment}\".\r\n"
       mode_3: "CURRENT PROFILE IS \"{comment}\".\r\n"
     new_profile:
-      mode_1: "新しいプロフィールを入力してください: "
-      mode_2: "Enter new profile: "
+      mode_2: "新しいプロフィールを入力してください: "
+      mode_1: "Enter new profile: "
       mode_3: "ENTER NEW PROFILE: "
     profile_updated:
-      mode_1: "プロフィールを更新しました。\r\n"
-      mode_2: "Profile updated.\r\n"
+      mode_2: "プロフィールを更新しました。\r\n"
+      mode_1: "Profile updated.\r\n"
       mode_3: "PROFILE UPDATED.\r\n"
     cancelled:
-      mode_1: "プロフィールの更新をキャンセルしました。\r\n"
-      mode_2: "Profile update cancelled.\r\n"
+      mode_2: "プロフィールの更新をキャンセルしました。\r\n"
+      mode_1: "Profile update cancelled.\r\n"
       mode_3: "PROFILE UPDATE CANCELLED.\r\n"
   change_email:
     current_email:
-      mode_1: "現在のメールアドレスは「{email}」です。\r\n"
-      mode_2: "Current email address is \"{email}\".\r\n"
+      mode_2: "現在のメールアドレスは「{email}」です。\r\n"
+      mode_1: "Current email address is \"{email}\".\r\n"
       mode_3: "CURRENT EMAIL IS \"{email}\".\r\n"
     new_email_prompt:
-      mode_1: "新しいメールアドレスを入力してください (空入力で変更中止): "
-      mode_2: "Enter new email address (leave blank to cancel): "
+      mode_2: "新しいメールアドレスを入力してください (空入力で変更中止): "
+      mode_1: "Enter new email address (leave blank to cancel): "
       mode_3: "ENTER NEW EMAIL (BLANK TO CANCEL): "
     invalid_format:
-      mode_1: "無効なメールアドレス形式です。\r\n"
-      mode_2: "Invalid email address format.\r\n"
+      mode_2: "無効なメールアドレス形式です。\r\n"
+      mode_1: "Invalid email address format.\r\n"
       mode_3: "INVALID EMAIL FORMAT.\r\n"
     updated:
-      mode_1: "メールアドレスを更新しました。\r\n"
-      mode_2: "Email address updated.\r\n"
+      mode_2: "メールアドレスを更新しました。\r\n"
+      mode_1: "Email address updated.\r\n"
       mode_3: "EMAIL UPDATED.\r\n"
 # --- WHOメニュー関連 ---
 who_menu:
   header:
-    mode_1: |
+    mode_2: |
       オンラインメンバー一覧
       NAME            COMMENT
       -------------------------------------------------------------------
-    mode_2: |
+    mode_1: |
       Online Members List (English)
       NAME            COMMENT
       -------------------------------------------------------------------
@@ -443,9 +443,9 @@ who_menu:
       NAME            COMMENT
       -------------------------------------------------------------------
   footer:
-    mode_1: |
-      -------------------------------------------------------------------
     mode_2: |
+      -------------------------------------------------------------------
+    mode_1: |
       -------------------------------------------------------------------
     mode_3: |
       -------------------------------------------------------------------
@@ -453,7 +453,7 @@ who_menu:
 # --- シスオペメニュー関連 ---
 sysop_menu:
   menu:
-    mode_1: |
+    mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       シスオペメニュー
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -474,7 +474,7 @@ sysop_menu:
       [VSET] 設定一覧表示
       [EXIT] システム強制終了
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_2: |
+    mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       □[ALLR] 探索リストを読む                [USRL] 会員一覧表示                ■
       ■[ALLW] 探索リストを書く                [KYGN] SSH鍵変更                   □
@@ -508,33 +508,33 @@ sysop_menu:
       +---------+-------------------------------------------+
   system_quit:
     header:
-      mode_1: "** システムを停止します **\r\n"
-      mode_2: "** System down **\r\n"
+      mode_2: "** システムを停止します **\r\n"
+      mode_1: "** System down **\r\n"
       mode_3: "** SYSTEM DOWN **\r\n"
     system_down_requested:
-      mode_1: "** システム停止を要求しました **\r\n"
-      mode_2: "** System down requested **\r\n"
+      mode_2: "** システム停止を要求しました **\r\n"
+      mode_1: "** System down requested **\r\n"
       mode_3: "** SYSTEM DOWN REQUESTED **\r\n"
   user_list:
     header: # ユーザー一覧表示時のヘッダー
-      mode_1: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
       mode_2: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
+      mode_1: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
       mode_3: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
     no_users:
-      mode_1: "ユーザがいません。\r\n"
-      mode_2: "No users found.\r\n"
+      mode_2: "ユーザがいません。\r\n"
+      mode_1: "No users found.\r\n"
       mode_3: "NO USERS.\r\n"
     error:
-      mode_1: "ユーザ一覧表示中にエラーが発生しました。\r\n" # フォーマット文字列
-      mode_2: "An error occurred while displaying user list.\r\n"
+      mode_2: "ユーザ一覧表示中にエラーが発生しました。\r\n" # フォーマット文字列
+      mode_1: "An error occurred while displaying user list.\r\n"
       mode_3: "USER LIST ERROR.\r\n"
   view_settings:
     header: # 設定一覧表示時のヘッダー
-      mode_1: |
+      mode_2: |
         ------------------------------------
         項目名              値 (レベル)
         ------------------------------------
-      mode_2: |
+      mode_1: |
         ------------------------------------
         Setting Name        Value (Level)
         ------------------------------------
@@ -543,293 +543,298 @@ sysop_menu:
         ║   SETTINGS                        ║
         ╚═══════════════════════════════════╝
     no_settings_error:
-      mode_1: "設定がありません(または取得エラー)\r\n"
-      mode_2: "No settings found (or error)\r\n"
+      mode_2: "設定がありません(または取得エラー)\r\n"
+      mode_1: "No settings found (or error)\r\n"
       mode_3: "NO SETTINGS (OR ERROR)\r\n"
   set_permissions:
     header: # メニュー本体の表示
-      mode_1: |
-        各BBSメニューのユーザレベルごとのパーミッションを設定します。
       mode_2: |
+        各BBSメニューのユーザレベルごとのパーミッションを設定します。
+      mode_1: |
         Set Permissions for BBS Menus
       mode_3: |
         SET PERMISSIONS FOR BBS MENUS
     prompt:
-      mode_1: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): "
-      mode_2: "Select a feature to set user level for (bbs,chat,mail,telegram,userpref,who): "
+      mode_2: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): "
+      mode_1: "Select a feature to set user level for (bbs,chat,mail,telegram,userpref,who): "
       mode_3: "SELECT A FEATURE TO SET USER LEVEL FOR (bbs,chat,mail,telegram,userpref,who): "
     user_level_message:
-      mode_1: "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n"
-      mode_2: "0:Disabled 1:Guest 2:User 3:Moderator 4:Sub Operator 5:System Operator\r\n"
+      mode_2: "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n"
+      mode_1: "0:Disabled 1:Guest 2:User 3:Moderator 4:Sub Operator 5:System Operator\r\n"
       mode_3: "0:DISABLED 1:GUEST 2:USER 3:MOD 4:SUBOP 5:SYSOP\r\n"
     user_level_prompt:
-      mode_1: "ユーザレベルを入力してください: "
-      mode_2: "Enter user level: "
+      mode_2: "ユーザレベルを入力してください: "
+      mode_1: "Enter user level: "
       mode_3: "ENTER USER LEVEL: "
     user_level_0-5_message:
-      mode_1: "ユーザレベルは0~5の範囲で入力してください\r\n"
-      mode_2: "User level must be between 0 and 5\r\n"
+      mode_2: "ユーザレベルは0~5の範囲で入力してください\r\n"
+      mode_1: "User level must be between 0 and 5\r\n"
       mode_3: "USER LEVEL MUST BE BETWEEN 0 AND 5\r\n"
     user_level_changed:
-      mode_1: "メニュー '{menu_to_change}' のアクセス権限をレベル {user_level} に変更しました。"
-      mode_2: "Access permission for menu '{menu_to_change}' has been changed to level {user_level}."
+      mode_2: "メニュー '{menu_to_change}' のアクセス権限をレベル {user_level} に変更しました。"
+      mode_1: "Access permission for menu '{menu_to_change}' has been changed to level {user_level}."
       mode_3: "ACCESS PERMISSION FOR MENU '{menu_to_change}' HAS BEEN CHANGED TO LEVEL {user_level}."
   user_register:
     header:
-      mode_1: "** 登録手続きを行います **"
-      mode_2: "** User Registration **"
+      mode_2: "** 登録手続きを行います **"
+      mode_1: "** User Registration **"
       mode_3: "** USER REGISTRATION **"
     user_id_prompt:
-      mode_1: "登録すべきIDを入力してください:"
-      mode_2: "Enter ID to register:"
+      mode_2: "登録すべきIDを入力してください:"
+      mode_1: "Enter ID to register:"
       mode_3: "ENTER ID TO REGISTER:"
     user_id_exists:
-      mode_1: "** すでに登録されています **"
-      mode_2: "** Already registered **"
+      mode_2: "** すでに登録されています **"
+      mode_1: "** Already registered **"
       mode_3: "** ALREADY REGISTERED **"
     user_pass_prompt:
-      mode_1: "パスワードを入力してください:"
-      mode_2: "Enter password:"
+      mode_2: "パスワードを入力してください:"
+      mode_1: "Enter password:"
       mode_3: "ENTER PASS:"
     user_pass_confirm_prompt:
-      mode_1: "確認のため同じパスワードを一度入力:"
-      mode_2: "Re-enter password:"
+      mode_2: "確認のため同じパスワードを一度入力:"
+      mode_1: "Re-enter password:"
       mode_3: "RE-ENTER PASS:"
     user_pass_mismatch:
-      mode_1: "** パスワードが違います **"
-      mode_2: "** Passwords do not match **"
+      mode_2: "** パスワードが違います **"
+      mode_1: "** Passwords do not match **"
       mode_3: "** PASSWORDS DO NOT MATCH **"
     user_prof_prompt:
-      mode_1: "プロフィールを入力してください:"
-      mode_2: "Enter profile:"
+      mode_2: "プロフィールを入力してください:"
+      mode_1: "Enter profile:"
       mode_3: "ENTER PROFILE:"
     user_regist_success:
-      mode_1: "** 登録しました **"
-      mode_2: "** Registered **"
+      mode_2: "** 登録しました **"
+      mode_1: "** Registered **"
       mode_3: "** REGISTERED **"
 
     confirm_yn:
-      mode_1: "正しいですか(Y または N):"
-      mode_2: "Is this OK? (Y or N):"
+      mode_2: "正しいですか(Y または N):"
+      mode_1: "Is this OK? (Y or N):"
       mode_3: "IS THIS OK? (Y OR N):"
   user_delete:
     header:
-      mode_1: "** 会員の削除を行います **"
-      mode_2: "** User Deletion **"
+      mode_2: "** 会員の削除を行います **"
+      mode_1: "** User Deletion **"
       mode_3: "** USER DELETION **"
     user_id_prompt:
-      mode_1: " 削除すべきIDを入力してください:"
-      mode_2: "Enter ID to delete:"
+      mode_2: " 削除すべきIDを入力してください:"
+      mode_1: "Enter ID to delete:"
       mode_3: "ENTER ID TO DELETE:"
     user_id_exists:
-      mode_1: "** すでに存在しません **"
-      mode_2: "** Does not exist **"
+      mode_2: "** すでに存在しません **"
+      mode_1: "** Does not exist **"
       mode_3: "** DOES NOT EXIST **"
     cannot_delete_sysop:
-      mode_1: "** システムオペレーターは削除できません **"
-      mode_2: "** Cannot delete system operator **"
+      mode_2: "** システムオペレーターは削除できません **"
+      mode_1: "** Cannot delete system operator **"
       mode_3: "** CANNOT DELETE SYSTEM OPERATOR **"
     confirm_yn:
-      mode_1: "削除してよいですか(YまたはN):"
-      mode_2: "Delete this user? (Y or N):"
+      mode_2: "削除してよいですか(YまたはN):"
+      mode_1: "Delete this user? (Y or N):"
       mode_3: "DELETE THIS USER? (Y OR N):"
     user_delete_success:
-      mode_1: "** 削除しました **"
-      mode_2: "** Deleted **"
+      mode_2: "** 削除しました **"
+      mode_1: "** Deleted **"
       mode_3: "** DELETED **"
   regenerate_key:
     header:
-      mode_1: "** SSHキーを再生成します **"
-      mode_2: "** Regenerate SSH key **"
+      mode_2: "** SSHキーを再生成します **"
+      mode_1: "** Regenerate SSH key **"
       mode_3: "** REGENERATE SSH KEY **"
     user_id_prompt:
-      mode_1: "再生成すべきIDを入力してください:"
-      mode_2: "Enter ID to regenerate:"
+      mode_2: "再生成すべきIDを入力してください:"
+      mode_1: "Enter ID to regenerate:"
       mode_3: "ENTER ID TO REGENERATE:"
     user_not_found:
-      mode_1: "** {user_id} は存在しません **"
-      mode_2: "** {user_id} not found **"
+      mode_2: "** {user_id} は存在しません **"
+      mode_1: "** {user_id} not found **"
       mode_3: "** {user_id} NOT FOUND **"
     confirm_yn:
-      mode_1: "再生成してよいですか?以前の設定は上書きされます(YまたはN):"
-      mode_2: "Regenerate this key? Previous settings will be overwritten (Y or N):"
+      mode_2: "再生成してよいですか?以前の設定は上書きされます(YまたはN):"
+      mode_1: "Regenerate this key? Previous settings will be overwritten (Y or N):"
       mode_3: "REGENERATE THIS KEY? PREVIOUS SETTINGS WILL BE OVERWRITTEN (Y OR N):"
     success:
-      mode_1: "** 再生成しました **"
-      mode_2: "** Regenerated **"
+      mode_2: "** 再生成しました **"
+      mode_1: "** Regenerated **"
       mode_3: "** REGENERATED **"
     failed:
-      mode_1: "** 再生成に失敗しました **"
-      mode_2: "** Failed to regenerate **"
+      mode_2: "** 再生成に失敗しました **"
+      mode_1: "** Failed to regenerate **"
       mode_3: "** FAILED TO REGENERATE **"
   change_user_level:
     header:
-      mode_1: "** 会員レベルを変更します **"
-      mode_2: "** Change User Level **"
+      mode_2: "** 会員レベルを変更します **"
+      mode_1: "** Change User Level **"
       mode_3: "** CHANGE USER LEVEL **"
     user_name_prompt:
-      mode_1: "変更すべきIDを入力してください:"
-      mode_2: "Enter ID to change:"
+      mode_2: "変更すべきIDを入力してください:"
+      mode_1: "Enter ID to change:"
       mode_3: "ENTER ID TO CHANGE:"
     user_not_found:
-      mode_1: "** {user_id} は存在しません **"
-      mode_2: "** {user_id} not found **"
+      mode_2: "** {user_id} は存在しません **"
+      mode_1: "** {user_id} not found **"
       mode_3: "** {user_id} NOT FOUND **"
     current_level_info:
-      mode_1: "ユーザー '{name}' (ID: {user_id}) の現在の権限レベル: {level}\r\n"
-      mode_2: "User '{name}' (ID: {user_id}) current level: {level}\r\n"
+      mode_2: "ユーザー '{name}' (ID: {user_id}) の現在の権限レベル: {level}\r\n"
+      mode_1: "User '{name}' (ID: {user_id}) current level: {level}\r\n"
       mode_3: "USER '{name}' (ID: {user_id}) CURRENT LEVEL: {level}\r\n"
     new_level_prompt:
-      mode_1: "新しい権限レベルを入力してください (0-5の整数): "
-      mode_2: "Enter new level (0-5 integer): "
+      mode_2: "新しい権限レベルを入力してください (0-5の整数): "
+      mode_1: "Enter new level (0-5 integer): "
       mode_3: "ENTER NEW LEVEL (0-5 INTEGER): "
     invalid_level_range:
-      mode_1: "無効な権限レベルです。0から5の範囲で入力してください。\r\n"
-      mode_2: "Invalid level. Please enter within the range of 0 to 5.\r\n"
+      mode_2: "無効な権限レベルです。0から5の範囲で入力してください。\r\n"
+      mode_1: "Invalid level. Please enter within the range of 0 to 5.\r\n"
       mode_3: "INVALID LEVEL. ENTER BETWEEN 0 AND 5.\r\n"
     no_change_level_same:
-      mode_1: "新しい権限レベルが現在のレベルと同じため、変更はありません。\r\n"
-      mode_2: "New level is the same as the current level, so no change.\r\n"
+      mode_2: "新しい権限レベルが現在のレベルと同じため、変更はありません。\r\n"
+      mode_1: "New level is the same as the current level, so no change.\r\n"
       mode_3: "NEW LEVEL IS THE SAME AS THE CURRENT LEVEL, SO NO CHANGE.\r\n"
     confirm_yn:
-      mode_1: "ユーザー '{name}' の権限レベルを {old_level} から {new_level} に変更しますか？ (y/n): "
-      mode_2: "Do you want to change the level of user '{name}' from {old_level} to {new_level}? (y/n): "
+      mode_2: "ユーザー '{name}' の権限レベルを {old_level} から {new_level} に変更しますか？ (y/n): "
+      mode_1: "Do you want to change the level of user '{name}' from {old_level} to {new_level}? (y/n): "
       mode_3: "DO YOU WANT TO CHANGE THE LEVEL OF USER '{name}' FROM {old_level} TO {new_level}? (y/n): "
     success:
+      mode_2: "ユーザーの権限レベルを変更しました。\r\n"
       mode_1: "ユーザーの権限レベルを変更しました。\r\n"
-      mode_2: "User level changed.\r\n"
       mode_3: "USER LEVEL CHANGED.\r\n"
   make_board:
     header_direct:
+      mode_2: "--- 掲示板エントリー作成 ---"
       mode_1: "--- 掲示板エントリー作成 ---"
-      mode_2: "--- Create Board Entry ---"
+      mode_3: "--- CREATE BOARD ENTRY ---"
     shortcut_id_prompt:
+      mode_2: "掲示板ショートカットID: "
       mode_1: "掲示板ショートカットID: "
-      mode_2: "Board Shortcut ID: "
+      mode_3: "BOARD SHORTCUT ID: "
     shortcut_id_exists:
+      mode_2: "エラー: ショートカットID '{shortcut_id}' は既に使用されています。"
       mode_1: "エラー: ショートカットID '{shortcut_id}' は既に使用されています。"
-      mode_2: "Error: Shortcut ID '{shortcut_id}' is already in use."
+      mode_3: "Error: Shortcut ID '{shortcut_id}' is already in use."
     name_prompt:
+      mode_2: "掲示板名: "
       mode_1: "掲示板名: "
-      mode_2: "Board Name: "
+      mode_3: "BOARD NAME: "
     name_required:
+      mode_2: "掲示板名は必須です。"
       mode_1: "掲示板名は必須です。"
-      mode_2: "Board name is required."
+      mode_3: "Board name is required."
     description_prompt:
-      mode_1: "説明: "
-      mode_2: "Description: "
+      mode_2: "説明: "
+      mode_1: "Description: "
     default_permission_prompt:
-      mode_1: "デフォルトパーミッション ({permissions}): "
-      mode_2: "Default Permission ({permissions}): "
+      mode_2: "デフォルトパーミッション ({permissions}): "
+      mode_1: "Default Permission ({permissions}): "
     invalid_permission:
-      mode_1: "無効なパーミッションです。{permissions} から選択してください。"
-      mode_2: "Invalid permission. Please choose from {permissions}."
+      mode_2: "無効なパーミッションです。{permissions} から選択してください。"
+      mode_1: "Invalid permission. Please choose from {permissions}."
     confirm_create_yn:
-      mode_1: "以下の内容で掲示板DBエントリを作成しますか？ ID:{shortcut_id}, Perm:{permission}, OP:{operator} (y/N): "
-      mode_2: "Create board with ID:{shortcut_id}, Perm:{permission}, OP:{operator}? (y/N): "
+      mode_2: "以下の内容で掲示板DBエントリを作成しますか？ ID:{shortcut_id}, Perm:{permission}, OP:{operator} (y/N): "
+      mode_1: "Create board with ID:{shortcut_id}, Perm:{permission}, OP:{operator}? (y/N): "
     success_direct:
-      mode_1: "掲示板エントリー '{shortcut_id}' をデータベースに作成しました。"
-      mode_2: "Board entry '{shortcut_id}' created in the database."
+      mode_2: "掲示板エントリー '{shortcut_id}' をデータベースに作成しました。"
+      mode_1: "Board entry '{shortcut_id}' created in the database."
     advise_bbs_yml:
-      mode_1: "DBに掲示板エントリを作成しました。bbs.yml にこの掲示板の定義（カテゴリ、表示順）を記述してください。"
-      mode_2: "Please describe the detailed settings (category, display order, etc.) for this board in bbs.yml.\nDetails will be reflected when the bbs.yml synchronization command is executed."
+      mode_2: "DBに掲示板エントリを作成しました。bbs.yml にこの掲示板の定義（カテゴリ、表示順）を記述してください。"
+      mode_1: "Please describe the detailed settings (category, display order, etc.) for this board in bbs.yml.\nDetails will be reflected when the bbs.yml synchronization command is executed."
   delete_board:
     header:
-      mode_1: "--- 掲示板削除 ---"
-      mode_2: "--- Delete Board ---"
+      mode_2: "--- 掲示板削除 ---"
+      mode_1: "--- Delete Board ---"
     board_not_found:
-      mode_1: "エラー: ショートカットID '{shortcut_id}' は存在しません。"
-      mode_2: "Error: Shortcut ID '{shortcut_id}' does not exist."
+      mode_2: "エラー: ショートカットID '{shortcut_id}' は存在しません。"
+      mode_1: "Error: Shortcut ID '{shortcut_id}' does not exist."
     delete_board_prompt:
-      mode_1: "削除する掲示板IDを入力してください: "
+      mode_2: "削除する掲示板IDを入力してください: "
     advise_bbs_yml_delete:
-      mode_1: "bbs.yml からもこの掲示板の定義を削除してください。"
-      mode_2: "Please also delete the definition of this board from bbs.yml."
+      mode_2: "bbs.yml からもこの掲示板の定義を削除してください。"
+      mode_1: "Please also delete the definition of this board from bbs.yml."
     confirm_yn:
-      mode_1: "この内容で削除しますか? (y/N): "
-      mode_2: "Delete this board? (y/N): "
+      mode_2: "この内容で削除しますか? (y/N): "
+      mode_1: "Delete this board? (y/N): "
   list_boards:
     header_title:
-      mode_1: "--- 登録済み掲示板一覧 (DB) ---"
-      mode_2: "--- Registered Boards List (DB) ---"
+      mode_2: "--- 登録済み掲示板一覧 (DB) ---"
+      mode_1: "--- Registered Boards List (DB) ---"
     no_boards:
-      mode_1: "データベースに登録されている掲示板はありません。"
-      mode_2: "No boards are registered in the database."
+      mode_2: "データベースに登録されている掲示板はありません。"
+      mode_1: "No boards are registered in the database."
 mail_handler:
   main_prompt:
-    mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "
-    mode_2: "Select ([W]rite [R]ead [L]ist Inbox): "
+    mode_2: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "
+    mode_1: "Select ([W]rite [R]ead [L]ist Inbox): "
     mode_3: "SELECT ([W] [R] [L]): "
   enter_recipient:
-    mode_1: "送り先のIDを入力してください: "
-    mode_2: "Enter recipient ID: "
+    mode_2: "送り先のIDを入力してください: "
+    mode_1: "Enter recipient ID: "
     mode_3: "ENTER RECIPIENT ID: "
   sender_header: # 受信箱ヘッダー
-    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n"
     mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n"
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n"
     mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n" # ANSIでも同じで良いか要検討
   recipient_header: # 送信箱ヘッダー
-    mode_1: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
     mode_2: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
+    mode_1: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
     mode_3: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n" # ANSIでも同じで良いか要検討
   no_mails:
-    mode_1: "メールはありません。\r\n"
-    mode_2: "No mails.\r\n"
+    mode_2: "メールはありません。\r\n"
+    mode_1: "No mails.\r\n"
     mode_3: "NO MAILS.\r\n"
   mail_deleted:
-    mode_1: "メールは削除されています。\r\n\r\n"
-    mode_2: "Mail is deleted.\r\n\r\n"
+    mode_2: "メールは削除されています。\r\n\r\n"
+    mode_1: "Mail is deleted.\r\n\r\n"
     mode_3: "MAIL DELETED.\r\n\r\n"
   toggle_delete_status_failed:
-    mode_1: "状態の変更に失敗しました。\r\n"
-    mode_2: "State change failed.\r\n"
+    mode_2: "状態の変更に失敗しました。\r\n"
+    mode_1: "State change failed.\r\n"
     mode_3: "STATE CHANGE FAILED.\r\n"
   recipient_yn:
-    mode_1: "この送り先で良いですか？（Y/N): "
-    mode_2: "Is this recipient OK? (Y/N): "
+    mode_2: "この送り先で良いですか？（Y/N): "
+    mode_1: "Is this recipient OK? (Y/N): "
     mode_3: "IS THIS RECIPIENT OK? (Y/N): "
   send_another_yn:
-    mode_1: "他にも送りますか？（Y/N): "
-    mode_2: "Send another? (Y/N): "
+    mode_2: "他にも送りますか？（Y/N): "
+    mode_1: "Send another? (Y/N): "
     mode_3: "SEND ANOTHER? (Y/N): "
   enter_subject:
-    mode_1: "件名を入力してください: "
-    mode_2: "Enter subject: "
+    mode_2: "件名を入力してください: "
+    mode_1: "Enter subject: "
     mode_3: "ENTER SUBJECK: "
   enter_body:
-    mode_1: "本文を入力してください(’．’のみの行で終了): \r\n"
-    mode_2: "Enter body (end with ’.’): \r\n"
+    mode_2: "本文を入力してください(’．’のみの行で終了): \r\n"
+    mode_1: "Enter body (end with ’.’): \r\n"
     mode_3: "ENTER BODY (END WITH ’.’): \r\n"
   no_body:
-    mode_1: "本文が入力されていません。終了します。\r\n"
-    mode_2: "No body entered. Exiting.\r\n"
+    mode_2: "本文が入力されていません。終了します。\r\n"
+    mode_1: "No body entered. Exiting.\r\n"
     mode_3: "NO BODY ENTERED. EXITING.\r\n"
   confirm_send:
-    mode_1: "-- 送信内容 --\r\n"
-    mode_2: "-- Sent content --\r\n"
+    mode_2: "-- 送信内容 --\r\n"
+    mode_1: "-- Sent content --\r\n"
     mode_3: "-- SENT CONTENT --\r\n"
   recipient:
-    mode_1: "宛先: {current_recipient_name} ({current_recipient_comment})\r\n"
-    mode_2: "Recipient: {current_recipient_name} ({current_recipient_comment})\r\n"
+    mode_2: "宛先: {current_recipient_name} ({current_recipient_comment})\r\n"
+    mode_1: "Recipient: {current_recipient_name} ({current_recipient_comment})\r\n"
     mode_3: "TO: {current_recipient_name} ({current_recipient_comment})\r\n"
   subject:
-    mode_1: "件名: {subject}\r\n"
-    mode_2: "Subject: {subject}\r\n"
+    mode_2: "件名: {subject}\r\n"
+    mode_1: "Subject: {subject}\r\n"
     mode_3: "SUBJECT: {subject}\r\n"
   body:
-    mode_1: "本文: \r\n"
-    mode_2: "Body: \r\n"
+    mode_2: "本文: \r\n"
+    mode_1: "Body: \r\n"
     mode_3: "BODY: \r\n"
   confirm_send_yn:
-    mode_1: "この内容で送信しますか?（Y/N): "
-    mode_2: "Send this content? (Y/N): "
+    mode_2: "この内容で送信しますか?（Y/N): "
+    mode_1: "Send this content? (Y/N): "
     mode_3: "SEND THIS CONTENT? (Y/N): "
   send_success:
-    mode_1: "メールを送信しました。\r\n"
-    mode_2: "Mail sent.\r\n"
+    mode_2: "メールを送信しました。\r\n"
+    mode_1: "Mail sent.\r\n"
     mode_3: "MAIL SENT.\r\n"
   mail_help:
-    mode_1: |
+    mode_2: |
       --------- メールメニュー ヘルプ ---------
       [CTRL+E][↑][K]     : 旧方向へ進む
       [CTRL+R][←][H]     : 旧方向へ読み進む
@@ -848,7 +853,7 @@ mail_handler:
       'キーワード[RETURN]  全文検索
       ;ジャンプ先[RETURN]  シグ間ジャンプ
       --------------------------------------
-    mode_2: |
+    mode_1: |
       ━━━━━━━━━━━━━━━━━━━━
        一覧形式でのメールの読み出しの使い方
       ━━━━━━━━━━━━━━━━━━━━
@@ -887,11 +892,11 @@ mail_handler:
       ; : Jump to another sig
 chat:
   welcome:
-    mode_1: "チャットルーム「{room_name}」へようこそ！"
-    mode_2: "Welcome to chat room: {room_name}!"
+    mode_2: "チャットルーム「{room_name}」へようこそ！"
+    mode_1: "Welcome to chat room: {room_name}!"
     # mode_3 も同様に
   help:
-    mode_1: |
+    mode_2: |
       チャットコマンド:
        行中 [CTRL+C]      - 入力行キャンセル(未実装)
        [CTRL+R]           - 入力行リプリント(未実装)
@@ -903,7 +908,7 @@ chat:
        !U[RETURN]         - 鍵を開ける
        !W[RETURN]         - 現在のアクセス状況
        上記以外は全てチャットメッセージとして送信されます。
-    mode_2: |
+    mode_1: |
       ------------------------------------
        行中 [CTRL+C] 入力行キャンセル(未実装)
        [CTRL+R]      入力行リプリント(未実装)
@@ -930,145 +935,145 @@ chat:
        !W[RETURN]             Current access status
       ----------------------------------------------
   room_locked: # 入室しようとした部屋がロックされている場合 (他人によって)
-    mode_1: "ルーム「{room_name}」は {owner} によってロックされています。入室できません。\r\n"
-    mode_2: "Room '{room_name}' is locked by {owner}. You cannot enter.\r\n"
+    mode_2: "ルーム「{room_name}」は {owner} によってロックされています。入室できません。\r\n"
+    mode_1: "Room '{room_name}' is locked by {owner}. You cannot enter.\r\n"
     mode_3: "ROOM '{room_name}' LOCKED BY {owner}. CANNOT ENTER.\r\n"
   room_not_locked:
-    mode_1: "ルーム「{room_name}」はロックされていません。\r\n"
-    mode_2: "Room '{room_name}' is not locked.\r\n"
+    mode_2: "ルーム「{room_name}」はロックされていません。\r\n"
+    mode_1: "Room '{room_name}' is not locked.\r\n"
     mode_3: "ROOM '{room_name}' NOT LOCKED.\r\n"
   room_unlock_not_owner:
-    mode_1: "ルーム'{room_name}'は{owner}によってロックされており、あなたにはアンロックできません。\r\n"
-    mode_2: "Room '{room_name}' is locked by {owner}, and you cannot unlock it.\r\n"
+    mode_2: "ルーム'{room_name}'は{owner}によってロックされており、あなたにはアンロックできません。\r\n"
+    mode_1: "Room '{room_name}' is locked by {owner}, and you cannot unlock it.\r\n"
     mode_3: "ROOM '{room_name}' LOCKED BY {owner}, CANNOT UNLOCK.\r\n"
   room_already_locked:
-    mode_1: "ルーム'{room_name}'は既に{owner}によってロックされています。\r\n"
-    mode_2: "Room '{room_name}' is already locked by {owner}.\r\n"
+    mode_2: "ルーム'{room_name}'は既に{owner}によってロックされています。\r\n"
+    mode_1: "Room '{room_name}' is already locked by {owner}.\r\n"
     mode_3: "ROOM '{room_name}' ALREADY LOCKED BY {owner}.\r\n"
   no_active_rooms:
-    mode_1: "現在アクティブなチャットルームはありません。\r\n"
-    mode_2: "No chat rooms are currently active.\r\n"
+    mode_2: "現在アクティブなチャットルームはありません。\r\n"
+    mode_1: "No chat rooms are currently active.\r\n"
     mode_3: "NO ACTIVE CHAT ROOMS.\r\n"
   room_status_header:
-    mode_1: "--- チャットルーム状況 ---\r\n"
-    mode_2: "--- Chat Room Status ---\r\n"
+    mode_2: "--- チャットルーム状況 ---\r\n"
+    mode_1: "--- Chat Room Status ---\r\n"
     mode_3: "--- CHAT ROOM STATUS ---\r\n"
   room_status_footer:
-    mode_1: "-------------------------\r\n"
     mode_2: "-------------------------\r\n"
+    mode_1: "-------------------------\r\n"
     mode_3: "-------------------------\r\n"
   room_status:
-    mode_1: "ルーム: {room_name} [{lock_status}] 参加者: {users}\r\n"
-    mode_2: "Room: {room_name} [{lock_status}] Participants: {users}\r\n"
+    mode_2: "ルーム: {room_name} [{lock_status}] 参加者: {users}\r\n"
+    mode_1: "Room: {room_name} [{lock_status}] Participants: {users}\r\n"
     mode_3: "ROOM: {room_name} [{lock_status}] USERS: {users}\r\n"
   room_not_found_error:
-    mode_1: "ルーム '{room_id}' が見つかりません。\r\n"
-    mode_2: "Room '{room_id}' not found.\r\n"
+    mode_2: "ルーム '{room_id}' が見つかりません。\r\n"
+    mode_1: "Room '{room_id}' not found.\r\n"
     mode_3: "ROOM '{room_id}' NOT FOUND.\r\n"
   leaving_room:
-    mode_1: "チャットルーム「{room_name}」から退出します。"
-    mode_2: "Leaving chat room: {room_name}."
+    mode_2: "チャットルーム「{room_name}」から退出します。"
+    mode_1: "Leaving chat room: {room_name}."
     mode_3: "LEAVING CHAT ROOM: {room_name}."
 
 # --- 電報関連 ---
 telegram:
   send_message:
-    mode_1: "電報を送信します (オンラインメンバーのみ)\r\n"
-    mode_2: "Send Telegram (Online members only)\r\n"
+    mode_2: "電報を送信します (オンラインメンバーのみ)\r\n"
+    mode_1: "Send Telegram (Online members only)\r\n"
     mode_3: "SEND TELEGRAM (ONLINE ONLY)\r\n"
   send_prompt:
-    mode_1: "宛先ID: "
-    mode_2: "Recipient ID: "
+    mode_2: "宛先ID: "
+    mode_1: "Recipient ID: "
     mode_3: "TO ID: "
   recipient_not_online:
-    mode_1: "ID '{recipient_name}' は現在オンラインではありません。\r\n" # フォーマット文字列
-    mode_2: "ID '{recipient_name}' is not currently online.\r\n"
+    mode_2: "ID '{recipient_name}' は現在オンラインではありません。\r\n" # フォーマット文字列
+    mode_1: "ID '{recipient_name}' is not currently online.\r\n"
     mode_3: "ID '{recipient_name}' NOT ONLINE.\r\n"
   message_prompt:
-    mode_1: "電報メッセージ (最大100文字): "
-    mode_2: "Telegram message (max 100 chars): "
+    mode_2: "電報メッセージ (最大100文字): "
+    mode_1: "Telegram message (max 100 chars): "
     mode_3: "MSG (MAX 100): "
   no_recipient:
-    mode_1: "宛先が入力されていません。\r\n"
-    mode_2: "Recipient not entered.\r\n"
+    mode_2: "宛先が入力されていません。\r\n"
+    mode_1: "Recipient not entered.\r\n"
     mode_3: "NO RECIPIENT.\r\n"
   no_message:
-    mode_1: "メッセージが入力されていません。\r\n"
-    mode_2: "Message not entered.\r\n"
+    mode_2: "メッセージが入力されていません。\r\n"
+    mode_1: "Message not entered.\r\n"
     mode_3: "NO MSG.\r\n"
   message_truncated:
-    mode_1: "メッセージが長すぎるため、100文字に切り詰めました。\r\n"
-    mode_2: "Message too long, truncated to 100 chars.\r\n"
+    mode_2: "メッセージが長すぎるため、100文字に切り詰めました。\r\n"
+    mode_1: "Message too long, truncated to 100 chars.\r\n"
     mode_3: "MSG TRUNCATED.\r\n"
   send_success:
-    mode_1: "電報を送信しました。\r\n"
-    mode_2: "Telegram sent.\r\n"
+    mode_2: "電報を送信しました。\r\n"
+    mode_1: "Telegram sent.\r\n"
     mode_3: "TELEGRAM SENT.\r\n"
   send_error:
-    mode_1: "電報の送信中にエラーが発生しました。\r\n"
-    mode_2: "An error occurred while sending telegram.\r\n"
+    mode_2: "電報の送信中にエラーが発生しました。\r\n"
+    mode_1: "An error occurred while sending telegram.\r\n"
     mode_3: "TELEGRAM SEND ERROR.\r\n"
   receive_header:
-    mode_1: "--- 電報が届いています ---\r\n"
-    mode_2: "--- Telegrams Received ---\r\n"
+    mode_2: "--- 電報が届いています ---\r\n"
+    mode_1: "--- Telegrams Received ---\r\n"
     mode_3: "--- TELEGRAMS ---\r\n"
   receive_footer:
-    mode_1: "--- 電報ここまで ---\r\n"
-    mode_2: "--- End of Telegrams ---\r\n"
+    mode_2: "--- 電報ここまで ---\r\n"
+    mode_1: "--- End of Telegrams ---\r\n"
     mode_3: "--- END TELEGRAMS ---\r\n"
   receive_message:
-    mode_1: "{sender}: {message}"
-    mode_2: "From:{sender}: {message}"
+    mode_2: "{sender}: {message}"
+    mode_1: "From:{sender}: {message}"
     mode_3: "FROM:{sender}: {message}"
   cannot_send_to_self:
-    mode_1: "自分自身に電報を送信することはできません。\r\n"
-    mode_2: "You cannot send a telegram to yourself.\r\n"
+    mode_2: "自分自身に電報を送信することはできません。\r\n"
+    mode_1: "You cannot send a telegram to yourself.\r\n"
     mode_3: "CANNOT SEND TO SELF.\r\n"
 bbs:
   rw_prompt: # 看板表示後のプロンプト
-    mode_1: "[W]書く [R]読む : "
-    mode_2: "[W]Write [R]Read : "
+    mode_2: "[W]書く [R]読む : "
+    mode_1: "[W]Write [R]Read : "
     mode_3: "[W] WRITE [R] READ : "
   no_board_selected:
-    mode_1: "ボードが存在しません。\r\n"
-    mode_2: "Board not found.\r\n"
+    mode_2: "ボードが存在しません。\r\n"
+    mode_1: "Board not found.\r\n"
     mode_3: ""
   post_header:
-    mode_1: "** 提供に感謝します **\r\n"
+    mode_2: "** 提供に感謝します **\r\n"
   post_subject:
-    mode_1: "タイトルを入力してください : "
+    mode_2: "タイトルを入力してください : "
   post_body:
-    mode_1: |
+    mode_2: |
       内容を入力してください : 
       ----------------------------------
       終了は、[^]だけの行を入力してください。
       ----------------------------------
   confirm_post_yn:
-    mode_1: "この内容を登録してよいですか (Y または N) : "
-    mode_2: "Post? (y/n) : "
+    mode_2: "この内容を登録してよいですか (Y または N) : "
+    mode_1: "Post? (y/n) : "
     mode_3: "POST? (y/n) : "
   post_success:
-    mode_1: "** 登録しました **\r\n"
+    mode_2: "** 登録しました **\r\n"
   post_cancel: # 記事投稿をキャンセルした場合
-    mode_1: "** 登録をとりやめました **\r\n"
-    mode_2: "Article posting cancelled.\r\n"
+    mode_2: "** 登録をとりやめました **\r\n"
+    mode_1: "Article posting cancelled.\r\n"
     mode_3: "ARTICLE POSTING CANCELLED.\r\n"
   post_failed:
-    mode_1: "** 登録に失敗しました **\r\n"
+    mode_2: "** 登録に失敗しました **\r\n"
   article_list_header: # 記事一覧のヘッダー
-    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
     mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
     mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
   no_articles: # 記事がない場合
-    mode_1: "この記事はありません。\r\n"
-    mode_2: "There are no articles on this board.\r\n"
+    mode_2: "この記事はありません。\r\n"
+    mode_1: "There are no articles on this board.\r\n"
     mode_3: "NO ARTICLES ON THIS BOARD.\r\n"
   read_article_header: # 個別記事表示時のヘッダー
-    mode_1: "\r\n--- 記事 {article_number} ({title}) ---\r\n" # タイトルも表示
-    mode_2: "\r\n--- Article {article_number} ({title}) ---\r\n"
+    mode_2: "\r\n--- 記事 {article_number} ({title}) ---\r\n" # タイトルも表示
+    mode_1: "\r\n--- Article {article_number} ({title}) ---\r\n"
     mode_3: "\r\n--- ARTICLE {article_number} ({title}) ---\r\n"
   article_list_help: # 記事一覧でのヘルプ
-    mode_1: |
+    mode_2: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       掲示板メニュー ヘルプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1096,7 +1101,7 @@ bbs:
       'キーワード[RETURN]  : 全文検索
       ;ジャンプ先[RETURN]  : シグ間ジャンプ
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    mode_2: |
+    mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       電子掲示板の使い方
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1146,170 +1151,170 @@ bbs:
       | ;Target + ENTER    | SIG Jump: Switch between SIGs           |
       +--------------------+-----------------------------------------+
   main_prompt:
-    mode_1: "選択してください ([W]書き込み [R]読み出し [E]終了): "
-    mode_2: "Select ([W]Write [R]Read [E]Exit): "
+    mode_2: "選択してください ([W]書き込み [R]読み出し [E]終了): "
+    mode_1: "Select ([W]Write [R]Read [E]Exit): "
     mode_3: "SELECT ([W]WRITE [R]READ [E]EXIT): "
   no_article:
-    mode_1: "記事がありません。\r\n"
-    mode_2: "There are no articles on this board.\r\n"
+    mode_2: "記事がありません。\r\n"
+    mode_1: "There are no articles on this board.\r\n"
     mode_3: "NO ARTICLES ON THIS BOARD.\r\n"
   current_board_header: 
-    mode_1: "--- {board_name} ---\r\n"
     mode_2: "--- {board_name} ---\r\n"
+    mode_1: "--- {board_name} ---\r\n"
     mode_3: "--- {board_name} ---\r\n"
   permission_denied_read:
-    mode_1: "この掲示板を閲覧する権限がありません。\r\n"
-    mode_2: "You do not have permission to view this board.\r\n"
+    mode_2: "この掲示板を閲覧する権限がありません。\r\n"
+    mode_1: "You do not have permission to view this board.\r\n"
     mode_3: "PERMISSION DENIED TO VIEW THIS BOARD.\r\n"
   article_deleted_body: # 削除済み記事の本文（シスオペ以外）
-    mode_1: "** この記事は削除されています **\r\n"
-    mode_2: "** This article has been deleted **\r\n"
+    mode_2: "** この記事は削除されています **\r\n"
+    mode_1: "** This article has been deleted **\r\n"
     mode_3: "** THIS ARTICLE HAS BEEN DELETED **\r\n"
   article_deleted_success:
-    mode_1: "記事 {article_number} を削除しました。\r\n"
-    mode_2: "Article {article_number} has been deleted.\r\n"
+    mode_2: "記事 {article_number} を削除しました。\r\n"
+    mode_1: "Article {article_number} has been deleted.\r\n"
     mode_3: "ARTICLE {article_number} DELETED.\r\n"
   article_restored_success:
-    mode_1: "記事 {article_number} を復旧しました。\r\n"
-    mode_2: "Article {article_number} has been restored.\r\n"
+    mode_2: "記事 {article_number} を復旧しました。\r\n"
+    mode_1: "Article {article_number} has been restored.\r\n"
     mode_3: "ARTICLE {article_number} RESTORED.\r\n"
   permission_denied_delete:
-    mode_1: "この記事を削除する権限がありません。\r\n"
-    mode_2: "You do not have permission to delete this article.\r\n"
+    mode_2: "この記事を削除する権限がありません。\r\n"
+    mode_1: "You do not have permission to delete this article.\r\n"
     mode_3: "PERMISSION DENIED TO DELETE THIS ARTICLE.\r\n"
 
   edit_operators_header:
-    mode_1: "\r\n--- 掲示板管理者変更 ---\r\n"
-    mode_2: "\r\n--- Edit Board Operators ---\r\n"
+    mode_2: "\r\n--- 掲示板管理者変更 ---\r\n"
+    mode_1: "\r\n--- Edit Board Operators ---\r\n"
     mode_3: "\r\n--- EDIT BOARD OPERATORS ---\r\n"
   current_operators_list:
-    mode_1: "現在の管理者: {operators_list_str}\r\n"
-    mode_2: "Current Operators: {operators_list_str}\r\n"
+    mode_2: "現在の管理者: {operators_list_str}\r\n"
+    mode_1: "Current Operators: {operators_list_str}\r\n"
     mode_3: "CURRENT OPERATORS: {operators_list_str}\r\n"
   no_operators_assigned:
-    mode_1: "現在、この掲示板に管理者はいません。\r\n"
-    mode_2: "No operators are currently assigned to this board.\r\n"
+    mode_2: "現在、この掲示板に管理者はいません。\r\n"
+    mode_1: "No operators are currently assigned to this board.\r\n"
     mode_3: "NO OPERATORS ASSIGNED.\r\n"
   confirm_edit_operators_yn:
-    mode_1: "管理者を変更しますか？ (y/N): "
-    mode_2: "Do you want to change the operators? (y/N): "
+    mode_2: "管理者を変更しますか？ (y/N): "
+    mode_1: "Do you want to change the operators? (y/N): "
     mode_3: "CHANGE OPERATORS? (Y/N): "
   prompt_new_operators:
-    mode_1: "新しい管理者のユーザー名をカンマ区切りで入力してください (空入力で変更中止): "
-    mode_2: "Enter new operator usernames, comma-separated (empty to cancel): "
+    mode_2: "新しい管理者のユーザー名をカンマ区切りで入力してください (空入力で変更中止): "
+    mode_1: "Enter new operator usernames, comma-separated (empty to cancel): "
     mode_3: "NEW OPERATORS (USERNAMES, COMMA-SEP, EMPTY TO CANCEL): "
   operator_user_not_found:
-    mode_1: "エラー: ユーザー '{username}' が見つかりません。リストを確認してください。\r\n"
-    mode_2: "Error: User '{username}' not found. Please check the list.\r\n"
+    mode_2: "エラー: ユーザー '{username}' が見つかりません。リストを確認してください。\r\n"
+    mode_1: "Error: User '{username}' not found. Please check the list.\r\n"
     mode_3: "ERROR: USER '{username}' NOT FOUND. CHECK LIST.\r\n"
   operators_updated_success:
-    mode_1: "掲示板の管理者を更新しました。\r\n"
-    mode_2: "Board operators updated successfully.\r\n"
+    mode_2: "掲示板の管理者を更新しました。\r\n"
+    mode_1: "Board operators updated successfully.\r\n"
     mode_3: "BOARD OPERATORS UPDATED.\r\n"
   permission_denied_edit_operators:
-    mode_1: "この掲示板の管理者を変更する権限がありません。\r\n"    
+    mode_2: "この掲示板の管理者を変更する権限がありません。\r\n"    
   search_title_prompt:
-    mode_1: "検索文字列を入力してください:"
-    mode_2: "Enter search string:"
+    mode_2: "検索文字列を入力してください:"
+    mode_1: "Enter search string:"
     mode_3: "ENTER SEARCH STRING:"
 
   search_results_header:
-    mode_1: "「{search_term}」の検索結果:"
-    mode_2: "Search results for '{search_term}':"
+    mode_2: "「{search_term}」の検索結果:"
+    mode_1: "Search results for '{search_term}':"
     mode_3: "SEARCH RESULTS FOR '{search_term}':"
   search_no_results:
-    mode_1: "該当する記事は見つかりませんでした。"
-    mode_2: "No matching articles found."
+    mode_2: "該当する記事は見つかりませんでした。"
+    mode_1: "No matching articles found."
     mode_3: "NO MATCHING ARTICLES FOUND."
   permission_denied_edit_kanban:
-    mode_1: "看板を編集する権限がありません。\r\n"
-    mode_2: "You do not have permission to edit the kanban.\r\n"
+    mode_2: "看板を編集する権限がありません。\r\n"
+    mode_1: "You do not have permission to edit the kanban.\r\n"
     mode_3: "PERMISSION DENIED TO EDIT THE KANBAN.\r\n"
   current_kanban_body_prompt:
-    mode_1: "------------現在の看板------------\r\n"
-    mode_2: "------------Current Kanban------------\r\n"    
+    mode_2: "------------現在の看板------------\r\n"
+    mode_1: "------------Current Kanban------------\r\n"    
     mode_3: "------------CURRENT KANBAN------------\r\n"
   new_kanban_body_prompt:
-    mode_1: "------------新しい看板(^で終了）------------\r\n"
-    mode_2: "------------New Kanban(^ to exit)------------\r\n"    
+    mode_2: "------------新しい看板(^で終了）------------\r\n"
+    mode_1: "------------New Kanban(^ to exit)------------\r\n"    
     mode_3: "------------NEW KANBAN(^ TO EXIT)------------\r\n"  
   edit_kanban_header:
-    mode_1: "看板編集\r\n"
-    mode_2: "Edit Kanban\r\n"
+    mode_2: "看板編集\r\n"
+    mode_1: "Edit Kanban\r\n"
     mode_3: "EDIT KANBAN\r\n"
   confirm_save_kanban_yn:
-    mode_1: "看板を保存しますか？ (y/N): "
-    mode_2: "Do you want to save the kanban? (y/N): "
+    mode_2: "看板を保存しますか？ (y/N): "
+    mode_1: "Do you want to save the kanban? (y/N): "
     mode_3: "SAVE KANBAN? (Y/N): "
   kanban_save_success:
-    mode_1: "看板を保存しました。\r\n"
-    mode_2: "Kanban saved successfully.\r\n"
+    mode_2: "看板を保存しました。\r\n"
+    mode_1: "Kanban saved successfully.\r\n"
     mode_3: "KANBAN SAVED.\r\n"
 
   edit_userlist_header: # bbs_handler.py側のキー名と合わせる
-    mode_1: "== 掲示板ユーザーリスト編集 ==\r\n"
-    mode_2: "== Edit Board User List ==\r\n"
+    mode_2: "== 掲示板ユーザーリスト編集 ==\r\n"
+    mode_1: "== Edit Board User List ==\r\n"
     mode_3: "== EDIT BOARD USER LIST ==\r\n"
   edit_userlist_header_info_open:
-    mode_1: "(この掲示板は[Open]設定です。このリストは実質的なブラックリストとして機能します)\r\n"
-    mode_2: "(This board is set to [Open]. This list acts as a blacklist)\r\n"
+    mode_2: "(この掲示板は[Open]設定です。このリストは実質的なブラックリストとして機能します)\r\n"
+    mode_1: "(This board is set to [Open]. This list acts as a blacklist)\r\n"
     mode_3: "(BOARD:OPEN - LIST IS BLACKLIST)\r\n"
   edit_userlist_header_info_closed:
-    mode_1: "(この掲示板は[Closed]設定です。このリストは実質的なホワイトリストとして機能します)\r\n"
-    mode_2: "(This board is set to [Closed]. This list acts as a whitelist)\r\n"
+    mode_2: "(この掲示板は[Closed]設定です。このリストは実質的なホワイトリストとして機能します)\r\n"
+    mode_1: "(This board is set to [Closed]. This list acts as a whitelist)\r\n"
     mode_3: "(BOARD:CLOSED - LIST IS WHITELIST)\r\n"
   edit_userlist_header_info_readonly:
-    mode_1: "(この掲示板は[Readonly]設定です。このリストは実質的な編集許可リストとして機能します)\r\n"
-    mode_2: "(This board is set to [Readonly]. This list acts as an edit permission list)\r\n"
+    mode_2: "(この掲示板は[Readonly]設定です。このリストは実質的な編集許可リストとして機能します)\r\n"
+    mode_1: "(This board is set to [Readonly]. This list acts as an edit permission list)\r\n"
     mode_3: "(BOARD:READONLY - LIST IS EDIT PERMISSION LIST)\r\n"
   edit_userlist_header_info_unknown: 
-    mode_1: "(掲示板のパーミッションタイプ: {board_permission_type})\r\n"
-    mode_2: "(Board permission type: {board_permission_type})\r\n"
+    mode_2: "(掲示板のパーミッションタイプ: {board_permission_type})\r\n"
+    mode_1: "(Board permission type: {board_permission_type})\r\n"
     mode_3: "(BOARD PERMISSION: {board_permission_type})\r\n"
   current_userlist_header: 
-    mode_1: "現在の登録ユーザーリスト:\r\n"
-    mode_2: "Current Registered User List:\r\n"
+    mode_2: "現在の登録ユーザーリスト:\r\n"
+    mode_1: "Current Registered User List:\r\n"
     mode_3: "CURRENT REGISTERED USER LIST:\r\n"
   no_users_in_list: 
-    mode_1: "  (現在リストに登録されているユーザーはいません)\r\n\r\n"
-    mode_2: "  (No users currently registered in this list)\r\n\r\n"
+    mode_2: "  (現在リストに登録されているユーザーはいません)\r\n\r\n"
+    mode_1: "  (No users currently registered in this list)\r\n\r\n"
     mode_3: "  (NO USERS IN LIST)\r\n\r\n"
   confirm_edit_userlist_yn: 
-    mode_1: "ユーザーリストを編集しますか? (Y/N): "
-    mode_2: "Edit user list? (Y/N): "
+    mode_2: "ユーザーリストを編集しますか? (Y/N): "
+    mode_1: "Edit user list? (Y/N): "
     mode_3: "EDIT USER LIST? (Y/N): "
   prompt_new_userlist: 
-    mode_1: "ユーザー名をカンマ区切りで入力 (例: user1,user2。空入力でリストクリア): "
-    mode_2: "Enter usernames (comma-separated, e.g., user1,user2. Empty to clear list): "
+    mode_2: "ユーザー名をカンマ区切りで入力 (例: user1,user2。空入力でリストクリア): "
+    mode_1: "Enter usernames (comma-separated, e.g., user1,user2. Empty to clear list): "
     mode_3: "USERNAMES (COMMA-SEP, E.G., USER1,USER2. EMPTY TO CLEAR): "
 
   user_not_found_in_list: 
-    mode_1: "** ユーザー '{username}' が見つかりません **\r\n"
-    mode_2: "** User '{username}' not found **\r\n"
+    mode_2: "** ユーザー '{username}' が見つかりません **\r\n"
+    mode_1: "** User '{username}' not found **\r\n"
     mode_3: "** USER '{username}' NOT FOUND **\r\n"
   userlist_updated_success: 
-    mode_1: "** 掲示板のユーザーリストを更新しました **\r\n"
-    mode_2: "** Board user list updated successfully **\r\n"
+    mode_2: "** 掲示板のユーザーリストを更新しました **\r\n"
+    mode_1: "** Board user list updated successfully **\r\n"
     mode_3: "** BOARD USER LIST UPDATED SUCCESSFULLY **\r\n"
   permission_denied_edit_userlist: 
-    mode_1: "** この掲示板のユーザーリストを編集する権限がありません **\r\n"
-    mode_2: "** You do not have permission to edit the user list for this board **\r\n"
+    mode_2: "** この掲示板のユーザーリストを編集する権限がありません **\r\n"
+    mode_1: "** You do not have permission to edit the user list for this board **\r\n"
     mode_3: "** PERMISSION DENIED TO EDIT USER LIST FOR THIS BOARD **\r\n"
   permission_denied_read_board: 
-    mode_1: "** この掲示板を閲覧する権限がありません **\r\n"
-    mode_2: "** You do not have permission to view this board **\r\n"
+    mode_2: "** この掲示板を閲覧する権限がありません **\r\n"
+    mode_1: "** You do not have permission to view this board **\r\n"
     mode_3: "** PERMISSION DENIED TO VIEW THIS BOARD **\r\n"
   permission_denied_write_article: 
-    mode_1: "** この掲示板に書き込む権限がありません **\r\n"
-    mode_2: "** You do not have permission to write to this board **\r\n"
+    mode_2: "** この掲示板に書き込む権限がありません **\r\n"
+    mode_1: "** You do not have permission to write to this board **\r\n"
     mode_3: "** PERMISSION DENIED TO WRITE TO THIS BOARD **\r\n"
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)
-    mode_1: |
+    mode_2: |
       ログオフしました。またのご利用をお待ちしております。
       さようなら！
-    mode_2: |
+    mode_1: |
       Logged off. We look forward to seeing you again.
       Goodbye!
     mode_3: |
@@ -1318,25 +1323,25 @@ logoff:
 # --- ショートカット関連 ---
 shortcut:
   not_found:
-    mode_1: "ショートカット '{shortcut_id}' が見つかりません。\r\n"
-    mode_2: "Shortcut '{shortcut_id}' not found.\r\n"
+    mode_2: "ショートカット '{shortcut_id}' が見つかりません。\r\n"
+    mode_1: "Shortcut '{shortcut_id}' not found.\r\n"
     mode_3: "SHORTCUT '{shortcut_id}' NOT FOUND.\r\n"
   jumping_to_chat:
-    mode_1: "チャットルーム「{room_name}」へ移動します...\r\n"
-    mode_2: "Jumping to chat room: {room_name}...\r\n"
+    mode_2: "チャットルーム「{room_name}」へ移動します...\r\n"
+    mode_1: "Jumping to chat room: {room_name}...\r\n"
     mode_3: "JUMPING TO CHAT: {room_name}...\r\n"
   jumping_to_bbs:
-    mode_1: "掲示板「{board_name}」へ移動します...\r\n"
-    mode_2: "Jumping to BBS: {board_name}...\r\n"
+    mode_2: "掲示板「{board_name}」へ移動します...\r\n"
+    mode_1: "Jumping to BBS: {board_name}...\r\n"
     mode_3: "JUMPING TO BBS: {board_name}...\r\n"
 prompt:
   topmenu:
-    mode_1: "[TOP]選択してください: "
-    mode_2: "選択してください ( [?] ヘルプ ) :  "
+    mode_2: "[TOP]選択してください: "
+    mode_1: "選択してください ( [?] ヘルプ ) :  "
     mode_3: "[TOP]Select( [?] HELP ) > "
   hierarchy:
-    mode_1: "[{menu_name}({hierarchy})]選択してください: "
-    mode_2: "選択してください ( [RET] 戻る [?] ヘルプ ) : "
+    mode_2: "[{menu_name}({hierarchy})]選択してください: "
+    mode_1: "選択してください ( [RET] 戻る [?] ヘルプ ) : "
     mode_3: "[{menu_name}({hierarchy})]Select( [RET] BACK ) > "
 # ** 探索リストは登録されていません **¥n
 # ** 探索リストに登録します **¥n
@@ -1763,90 +1768,90 @@ prompt:
 # --- 共通メッセージ ---
 common_messages:
   select_prompt: # 選択プロンプト
-    mode_1: "選択してください: "
-    mode_2: "Select: "
+    mode_2: "選択してください: "
+    mode_1: "Select: "
     mode_3: "SELECT > "
   invalid_command:
-    mode_1: "無効なコマンドです。\r\n"
-    mode_2: "Invalid command.\r\n"
+    mode_2: "無効なコマンドです。\r\n"
+    mode_1: "Invalid command.\r\n"
     mode_3: "INVALID COMMAND.\r\n"
   user_not_found: # ユーザーが見つからない場合の汎用メッセージ
-    mode_1: "ユーザー情報が見つかりません。\r\n"
-    mode_2: "User information not found.\r\n"
+    mode_2: "ユーザー情報が見つかりません。\r\n"
+    mode_1: "User information not found.\r\n"
     mode_3: "USER NOT FOUND.\r\n"
   db_error: # データベースエラーの汎用メッセージ
-    mode_1: "データベースエラーが発生しました。シスオペに連絡してください。\r\n"
-    mode_2: "A database error occurred. Please contact the sysop.\r\n"
+    mode_2: "データベースエラーが発生しました。シスオペに連絡してください。\r\n"
+    mode_1: "A database error occurred. Please contact the sysop.\r\n"
     mode_3: "DB ERROR. CONTACT SYSOP.\r\n"
   db_update_error:
-    mode_1: "データベース更新中にエラーが発生しました。\r\n"
-    mode_2: "A database update error occurred.\r\n"
+    mode_2: "データベース更新中にエラーが発生しました。\r\n"
+    mode_1: "A database update error occurred.\r\n"
     mode_3: "DB UPDATE ERROR.\r\n"
   cancel: # キャンセルメッセージ
-    mode_1: "キャンセルしました。\r\n"
-    mode_2: "Canceled.\r\n"
+    mode_2: "キャンセルしました。\r\n"
+    mode_1: "Canceled.\r\n"
     mode_3: "CANCELLED.\r\n"
   unexpected_error:
-    mode_1: "予期せぬエラーが発生したため、切断します。"
     mode_2: "予期せぬエラーが発生したため、切断します。"
+    mode_1: "予期せぬエラーが発生したため、切断します。"
     mode_3: "予期せぬエラーが発生したため、切断します。"
   error:
-    mode_1: "エラーが発生しました。シスオペに連絡してください。\r\n"
-    mode_2: "An error occurred. Please contact the sysop.\r\n"
+    mode_2: "エラーが発生しました。シスオペに連絡してください。\r\n"
+    mode_1: "An error occurred. Please contact the sysop.\r\n"
     mode_3: "ERROR. CONTACT SYSOP.\r\n"
   # ... 他の共通メッセージも追加
   confirm_yn:
-    mode_1: "よろしいですか? (Y または N): "
-    mode_2: "Are you sure? (Y or N): "
+    mode_2: "よろしいですか? (Y または N): "
+    mode_1: "Are you sure? (Y or N): "
     mode_3: "ARE YOU SURE? (Y OR N): "
   db_error:
-    mode_1: "データベースエラーが発生しました。\r\n"
-    mode_2: "A database error occurred.\r\n"
+    mode_2: "データベースエラーが発生しました。\r\n"
+    mode_1: "A database error occurred.\r\n"
     mode_3: "DB ERROR.\r\n"
   database_update_error:
-    mode_1: "データベース更新中にエラーが発生しました。\r\n"
-    mode_2: "A database update error occurred.\r\n"
+    mode_2: "データベース更新中にエラーが発生しました。\r\n"
+    mode_1: "A database update error occurred.\r\n"
     mode_3: "DB UPDATE ERROR.\r\n"
   permission_denied:
-    mode_1: "権限がありません。\r\n"
-    mode_2: "Permission denied.\r\n"
+    mode_2: "権限がありません。\r\n"
+    mode_1: "Permission denied.\r\n"
     mode_3: "PERMISSION DENIED.\r\n"
 
 # --- 認証関連 ---
 auth:
   connect_message:
-    mode_1: "** 接続 **\r\n\n"
-    mode_2: "** Connect **\r\n\n"
+    mode_2: "** 接続 **\r\n\n"
+    mode_1: "** Connect **\r\n\n"
     mode_3: "** CONNECT **\r\n\n"
   id_prompt:
-    mode_1: "ID: "
     mode_2: "ID: "
+    mode_1: "ID: "
     mode_3: "ID: "
   password_prompt:
-    mode_1: "PASSWORD: "
     mode_2: "PASSWORD: "
+    mode_1: "PASSWORD: "
     mode_3: "PASS: "
   invalid_credentials:
-    mode_1: "IDまたはパスワードが違います。\r\n"
-    mode_2: "Invalid ID or password.\r\n"
+    mode_2: "IDまたはパスワードが違います。\r\n"
+    mode_1: "Invalid ID or password.\r\n"
     mode_3: "INVALID ID/PASS.\r\n"
   account_disabled:
-    mode_1: "このIDは現在利用できません。\r\n"
-    mode_2: "This ID is currently unavailable.\r\n"
+    mode_2: "このIDは現在利用できません。\r\n"
+    mode_1: "This ID is currently unavailable.\r\n"
     mode_3: "ACCOUNT DISABLED.\r\n"
   too_many_attempts:
-    mode_1: "{max_attempts}回以上パスワードを間違えました。切断します。\r\n" # フォーマット文字列
-    mode_2: "Too many password attempts ({max_attempts}). Disconnecting.\r\n"
+    mode_2: "{max_attempts}回以上パスワードを間違えました。切断します。\r\n" # フォーマット文字列
+    mode_1: "Too many password attempts ({max_attempts}). Disconnecting.\r\n"
     mode_3: "TOO MANY PASSWORD ATTEMPTS ({max_attempts}). DISCONNECTING.\r\n"
   auth_error:
-    mode_1: "\r\n認証中にエラーが発生しました。切断します。\r\n"
-    mode_2: "\r\nAn error occurred during authentication. Disconnecting.\r\n"
+    mode_2: "\r\n認証中にエラーが発生しました。切断します。\r\n"
+    mode_1: "\r\nAn error occurred during authentication. Disconnecting.\r\n"
     mode_3: "\r\nAUTH ERROR. DISCONNECTING.\r\n"
 
 # --- ログイン後処理関連 ---
 login:
   welcome_message: # util.show_textsfile で使われている想定
-    mode_1: |
+    mode_2: |
       ------------
        Connected!      
       ------------
@@ -1860,7 +1865,7 @@ login:
               
       ようこそ、{login_id}さん！
       最終ログイン: {last_login_str}
-    mode_2: |
+    mode_1: |
       ** Connect **
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       ────────────────────────────────────────
@@ -1896,6 +1901,6 @@ login:
 # --- 未実装機能のプレースホルダー ---
 unimplemented:
   message:
-    mode_1: "{feature_name} は未実装です。\r\n"
-    mode_2: "{feature_name} is unimplemented.\r\n"
+    mode_2: "{feature_name} は未実装です。\r\n"
+    mode_1: "{feature_name} is unimplemented.\r\n"
     mode_3: "{feature_name} N/I.\r\n"

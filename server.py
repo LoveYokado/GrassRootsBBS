@@ -349,14 +349,16 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # 　ユーザ環境設定(ゲスト以上すべて)
         elif command in ("u") and userlevel >= 1:
             previous_menu_mode_before_userpref = current_loop_menu_mode
-            # userpref_menu は現在のメニューモードを返す
-            returned_menu_mode = user_pref_menu.userpref_menu(
+            # userpref_menu は変更後のメニューモード('1','2','3')または"back_to_top"、Noneを返す
+            user_pref_result = user_pref_menu.userpref_menu(  # 結果を user_pref_result に代入
                 chan, dbname, login_id, current_loop_menu_mode)
-            if returned_menu_mode:
-                current_loop_menu_mode = returned_menu_mode
+
+            if user_pref_result in ('1', '2', '3'):  # 有効なメニューモード文字列が返ってきた場合
+                current_loop_menu_mode = user_pref_result  # current_loop_menu_mode を更新
                 if current_loop_menu_mode != previous_menu_mode_before_userpref:
+                    # メニューモードが実際に変更された場合、新しいモードでトップメニューを表示
                     util.send_text_by_key(
-                        chan, "top_menu.help_h", current_loop_menu_mode)
+                        chan, "top_menu.menu", current_loop_menu_mode)
 
         # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
@@ -365,7 +367,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                 chan, dbname, login_id, current_loop_menu_mode)
         # 掲示板
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
-            if current_loop_menu_mode == '3':
+            if current_loop_menu_mode in ('2', '3'):
                 bbs_config_path = "setting/bbs_mode3.yml"
                 selected_item = hierarchical_menu.handle_hierarchical_menu(
                     chan, bbs_config_path, current_loop_menu_mode, menu_type="BBS",
@@ -382,7 +384,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                         f"階層メニュー(mode3):項目「{selected_item.get('name')}」(ID: {selected_item.get('id')}, Type: {selected_item.get('type')}) が選択されましたが、boardタイプではありません。")
             else:  # mode1またはmode2の場合は手書きメニュー
                 selected_board_id = manual_menu_handler.process_manual_menu(
-                    chan, dbname, login_id, current_loop_menu_mode, menu_config_path="setting/bbs_mode1_2.yml",
+                    chan, dbname, login_id, current_loop_menu_mode, menu_config_path="setting/bbs_mode1.yml",
                     initial_menu_id="main_bbs_menu", menu_type="bbs")
 
                 if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
@@ -449,8 +451,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # 各ハンドラから "back_to_top" が返ってきた場合にトップメニューを表示
         if bbs_handler_result == "back_to_top" or chat_handler_result == "back_to_top" or \
-           mail_handler_result == "back_to_top" or user_pref_result == "back_to_top" or \
-           sysop_menu_result == "back_to_top" or (returned_menu_mode == "back_to_top" if 'returned_menu_mode' in locals() and returned_menu_mode else False):  # user_pref と sysop_menu も条件に追加
+           mail_handler_result == "back_to_top" or user_pref_result == "back_to_top" or sysop_menu_result == "back_to_top":
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
         # コマンドループ終了 (while True)

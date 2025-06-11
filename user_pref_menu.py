@@ -21,9 +21,14 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
             # メニューモード変更
             new_mode_after_change = change_menu_mode(
                 chan, dbname, login_id, current_menu_mode)
-            if new_mode_after_change and new_mode_after_change != current_menu_mode:
-                current_menu_mode = new_mode_after_change
-                continue
+            # new_mode_after_change は '1', '2', '3', "back_to_top", None のいずれかを返す想定
+            if new_mode_after_change in ('1', '2', '3'):  # 有効なモードが返ってきた
+                return new_mode_after_change  # 新しいモードを返して userpref_menu を終了
+            elif new_mode_after_change == "back_to_top":  # change_menu_mode内で'e'が押された
+                return "back_to_top"  # userpref_menu からも抜ける
+            elif new_mode_after_change is None:  # change_menu_mode内で切断
+                return None  # userpref_menu からも抜ける
+            # それ以外 (通常は発生しない) はループ継続して再プロンプト
         elif command == '2':
             # パスワード変更
             change_password(chan, dbname, login_id, current_menu_mode)
