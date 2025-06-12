@@ -138,21 +138,33 @@ def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, menu_type: 
 
     while True:
         # パンくずリスト文字列の生成
-        hierarchy_display_str = "/".join(current_path_names)
+        current_hierarchy_path_str = "/".join(current_path_names)
 
         # 今の階層の項目でメニュー表示・選択
         # title_key は直接使わず、prompt_key で指定されるプロンプトにタイトル情報が含まれる想定
         # prompt_key は "hierarchy" のようなベースキーを渡す
+
+        menu_type_loc_key = f"common_menu_names.{menu_type.lower()}"
+        menu_type_localized_name = util.get_text_by_key(
+            menu_type_loc_key, menu_mode, default_value=menu_type)
+
+        if not current_path_names:  # トップレベル
+            prompt_hierarchy_display_str = menu_type_localized_name
+        else:  # サブカテゴリ
+            prompt_hierarchy_display_str = f"{menu_type_localized_name}/{current_hierarchy_path_str}"
+
         selected_item = navigate_menu(
             chan, current_level_items, menu_mode,
-            # title_key は実質使われない, prompt_key を "prompt.hierarchy" に変更
             "hierarchy", "prompt.hierarchy",
-            menu_type.upper(), hierarchy_display_str
+            menu_type.upper(),
+            prompt_hierarchy_display_str
         )
         if selected_item == "back":
             if not path_stack:  # スタックが空ならトップメニューに戻る
                 return
             current_level_items = path_stack.pop()
+            if current_path_names:  # 一つ前の階層に戻る
+                current_path_names.pop()
             continue
         elif selected_item is None:
             return  # 切断

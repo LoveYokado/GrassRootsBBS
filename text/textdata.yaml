@@ -194,6 +194,15 @@ top_menu:
       | Z       | Hamlet Game: Play 2D 4-way adventure                        |
       +---------+-------------------------------------------------------------+
 # --- ユーザー設定メニュー関連 ---
+common_menu_names:
+  chat:
+    mode_1: "チャット"
+    mode_2: "チャット"
+    mode_3: "チャット"
+  bbs:
+    mode_1: "掲示板"
+    mode_2: "掲示板"
+    mode_3: "掲示板"
 user_pref_menu:
   header: # メニュー本体の表示
     mode_1: |
@@ -1357,6 +1366,10 @@ prompt:
     mode_1: "選択してください ( [?] ヘルプ ) :  "
     mode_2: "[TOP]選択してください: "
     mode_3: "[TOP]Select( [?] HELP ) > "
+  hierarchy:
+    mode_1: "{menu_name}({hierarchy})]選択してください: "
+    mode_2: "{menu_name}({hierarchy})]$ "
+    mode_3: "{menu_name}({hierarchy})]$ "
   hierarchy:
     mode_1: "選択してください ( [RET] 戻る [?] ヘルプ ) : "
     mode_2: "[{menu_name}({hierarchy})]選択してください: "
