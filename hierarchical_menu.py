@@ -56,11 +56,24 @@ def display_menu(chan, items, menu_mode, title_key, prompt_key, menu_name_for_pr
     for item in items:
         item_name = item.get('name', 'No name')  # name が直接文字列
         item_description = item.get('description', 'No description')
-        # description が None の場合や空文字列の場合のフォールバック
-        display_description = item_description if item_description else 'No description'
-        # メニュー項目自体の表示は textdata.yaml に依存しないことが多いので、直接送信
+        # description が None の場合は空文字列として扱う
+        display_description = item_description if item_description else ''
+        description_lines = display_description.splitlines()
+        first_line_desc = description_lines[0].strip(
+        ) if description_lines else ""
+
+        # 項目番号と名前を表示
         chan.send(
-            f"{item['number']}: {item_name} - {display_description}\r\n".encode('utf-8'))
+            f"{item['number']}: {item_name}\r\n".encode(
+                'utf-8')
+
+        )
+
+        # 説明文をインデントして表示
+        if description_lines:
+            indent_spaces = " " * 6  # 6文字のインデント
+            for line in description_lines:
+                chan.send(f"{indent_spaces}{line.strip()}\r\n".encode('utf-8'))
 
     # プロンプト表示 (menu_name と hierarchy を渡す)
     util.send_text_by_key(chan, prompt_key, menu_mode, add_newline=False,
