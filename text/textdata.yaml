@@ -901,6 +901,10 @@ mail_handler:
         " : Search by subject
         ' : Search by body
       ; : Jump to another sig
+  new_mail_notification:
+    mode_1: "** 手紙が届いております **"
+    mode_2: "新着メールが {count} 件届いてます。"
+    mode_3: "新着メールが {count} 件届いてます。"
 chat:
   welcome:
     mode_1: "チャットルーム「{room_name}」へようこそ！"

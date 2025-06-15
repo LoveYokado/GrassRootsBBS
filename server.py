@@ -340,8 +340,8 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # 電報送信
         elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
             online_list = get_online_members_list()
-            bbsmenu.telegram_send(chan, dbname, login_id,
-                                  online_list, current_loop_menu_mode)
+            util.telegram_send(chan, dbname, login_id,
+                               online_list, current_loop_menu_mode)
             # telegram_send 後はトップメニューを再表示
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)

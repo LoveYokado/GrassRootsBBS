@@ -6,10 +6,11 @@ import hashlib
 import time
 import sqlite3
 import yaml
+import datetime
 
 import bbsmenu
 import sqlite_tools
-
+import ssh_input
 SETTING_DIR = "setting"
 # テキストデータのキャッシュ用グローバル変数
 _master_text_data_cache = None
@@ -351,7 +352,8 @@ def make_sysop_and_database(dbname):
 
 def prompt_handler(chan, dbname, login_id, menu_mode='2'):
     """ 定型実行のまとめ """
-    bbsmenu.telegram_recieve(chan, dbname, login_id, menu_mode)
+    check_new_mail(chan, dbname, login_id, menu_mode)
+    telegram_recieve(chan, dbname, login_id, menu_mode)
     server_prefs = sqlite_tools.read_server_pref(dbname)
     return server_prefs
 
@@ -706,3 +708,147 @@ def handle_shortcut(chan, dbname: str, login_id: str, menu_mode: str, shortcut_i
             return True
 
     return True
+
+
+def check_new_mail(chan, dbname, username, current_menu_mode):
+    """新着メールがないか確認し、あれば通知する"""
+    user_id = sqlite_tools.get_user_id_from_user_name(dbname, username)
+    if user_id is None:
+        return
+
+    try:
+        # 未読かつ削除されていないメールの件数を取得
+        sql = "SELECT COUNT(*) FROM mails WHERE recipient_id = ? AND is_read = 0 AND recipient_deleted = 0"
+        results = sqlite_tools.sqlite_execute_query(
+            dbname, sql, (user_id,), fetch=True)
+
+        if results and results[0] and results[0][0] > 0:
+            unread_count = results[0][0]
+            notification_message_format = get_text_by_key(
+                "mail_handler.new_mail_notification", current_menu_mode
+            )
+            if notification_message_format:  # キーが存在する場合のみ
+                message_payload = notification_message_format.format(
+                    count=unread_count)
+                # ユーザーの入力を邪魔しないように通知 (カーソル位置保存・復元)
+                chan.send(b"\033[s\r\n\r" + message_payload.replace('\n',
+                          '\r\n').encode('utf-8') + b"\r\n\033[u")
+            else:
+                logging.warning(
+                    f"新着メール通知のキー 'mail_handler.new_mail_notification' (mode: {current_menu_mode}) が見つかりません。")
+
+    except Exception as e:
+        logging.error(f"新着メールチェック中にエラー (ユーザー: {username}): {e}")
+
+
+def telegram_send(chan, dbname, sender_name, online_members, current_menu_mode):
+    """
+    オンラインのメンバーにのみ電報を送信し、データベースに保存する。
+    """
+    send_text_by_key(chan, "telegram.send_message",
+                     current_menu_mode)  # 電報送信メッセージ
+    send_text_by_key(chan, "telegram.send_prompt",
+                     current_menu_mode, add_newline=False)  # 宛先入力
+    recipient_name = ssh_input.process_input(chan)
+
+    if not recipient_name:
+        send_text_by_key(chan, "telegram.no_recipient",
+                         current_menu_mode)  # 宛先がオンラインにない
+        return
+
+    # ここでオンラインチェック
+    if recipient_name not in online_members:
+        send_text_by_key(chan, "telegram.recipient_not_online",
+                         current_menu_mode, recipient_name=recipient_name)
+        return
+
+    # 自分自身には送れないようにする(テスト中は無効)
+    # if recipient_name == sender_name:
+    #    util.send_text_by_key(chan, "telegram.cannot_send_to_self", current_menu_mode)
+    #    return
+
+    send_text_by_key(chan, "telegram.message_prompt",
+                     current_menu_mode, add_newline=False)
+    message = ssh_input.process_input(chan)
+
+    if not message:
+        send_text_by_key(chan, "telegram.no_message", current_menu_mode)
+        return
+
+    # メッセージが長すぎる場合の処理
+    if len(message) > 100:
+        message = message[:100]
+        send_text_by_key(
+            chan, "telegram.message_truncated", current_menu_mode)
+
+    try:
+        current_timestamp = int(time.time())
+        # sqlite_tools に save_telegram(dbname, sender, recipient, message, timestamp) 関数を実装する想定
+        sqlite_tools.save_telegram(
+            dbname, sender_name, recipient_name, message, current_timestamp)
+        send_text_by_key(chan, "telegram.send_success", current_menu_mode)
+    except Exception as e:
+        logging.warning(
+            f"電報保存エラー (送信者: {sender_name}, 宛先: {recipient_name}): {e}")
+        send_text_by_key(chan, "telegram.send_error", current_menu_mode)
+
+
+def telegram_recieve(chan, dbname, username, current_menu_mode):
+    """受信している電報を表示すして、表示後に削除する"""
+    # 電報受信設定を取得
+    user_settings = sqlite_tools.get_user_auth_info(dbname, username)
+    user_restriction = user_settings['telegram_restriction']
+    blacklist_str = user_settings['blacklist']
+    user_blacklist_ids = set()
+    if blacklist_str:
+        try:
+            user_blacklist_ids = set(int(uid)
+                                     for uid in blacklist_str.split(','))
+        except ValueError:
+            logging.error(
+                f"ユーザ{username}のブラックリスト形式エラー:{blacklist_str}")
+            user_blacklist_ids = set()
+
+    results = sqlite_tools.load_and_delete_telegrams(dbname, username)
+    if not results:
+        return
+
+    filterd_telegrams = []
+    for teregram in results:
+        sender_name = teregram['sender_name']
+        # SenderユーザIDを取得
+        sender_id = sqlite_tools.get_user_id_from_user_name(
+            dbname, sender_name)
+
+        should_display = True
+
+        # 電報受信制限確認
+        if user_restriction == 2:  # 全拒否
+            should_display = False
+        elif user_restriction == 1:  # ゲスト除外
+            if sender_name.upper() == "GUEST":
+                should_display = False
+
+        # ブラックリスト確認
+        if should_display == 3 and sender_id in user_blacklist_ids:
+            should_display = False
+
+        if should_display:
+            filterd_telegrams.append(teregram)
+
+    if filterd_telegrams:
+        send_text_by_key(chan, "telegram.receive_header",
+                         current_menu_mode)  # 電報受信メッセージ
+        for telegram_to_display in filterd_telegrams:
+            sender = telegram_to_display['sender_name']
+            message = telegram_to_display['message']
+            timestamp_val = telegram_to_display['timestamp']
+            try:
+                dt_str = datetime.datetime.fromtimestamp(
+                    timestamp_val).strftime('%Y-%m-%d %H:%M')  # 秒は省略しても良いかも
+            except (ValueError, OSError, TypeError):  # TypeError も考慮
+                dt_str = "不明な日時"
+            send_text_by_key(
+                chan, "telegram.receive_message", current_menu_mode, sender=sender, message=message, dt_str=dt_str)  # 受信メッセージ本体
+        send_text_by_key(
+            chan, "telegram.receive_footer", current_menu_mode)
