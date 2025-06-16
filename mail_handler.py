@@ -35,8 +35,85 @@ def mail(chan, dbname, login_id, menu_mode):
             mail_write(chan, dbname, login_id, menu_mode)
             return
         elif choice == 'r':
-            view_mode = 'reader'
-            break
+            # 1.初回に新着メールの総数未読数表示
+            unread_count_initial = sqlite_tools.get_total_unread_mail_count(
+                dbname, user_id)
+            total_mail_count_initial = sqlite_tools.get_total_mail_count(
+                dbname, user_id)
+
+            if unread_count_initial > 0:
+                notification_format = util.get_text_by_key(
+                    "mail_handler.new_mail_notification", menu_mode)
+                if notification_format:
+                    chan.send(notification_format.format(
+                              total_mail_count=total_mail_count_initial, unread_mail_count=unread_count_initial
+                              ).replace('\n', '\r\n').encode('utf-8')+b'\r\n')
+            else:
+                util.send_text_by_key(
+                    chan, "mail_handler.no_unread_mails_at_start", menu_mode)
+                return "back_to_top"
+
+            while True:  # 未読処理ループ
+                oldest_unread_mail = sqlite_tools.get_oldest_unread_mail(
+                    dbname, user_id)
+
+                if not oldest_unread_mail:
+                    util.send_text_by_key(
+                        chan, "mail_handler.no_more_unread_mails", menu_mode)
+                    break
+
+                # ヘッダ表示
+                util.send_text_by_key(
+                    chan, "mail_handler.subject_header", menu_mode)
+
+                mail_id_width_for_reader = 5
+                util.send_text_by_key(
+                    chan, "mail_handler.sender_header", menu_mode)
+                display_mail_header(chan, oldest_unread_mail,
+                                    dbname, 'inbox', mail_id_width_for_reader)
+
+                # 読み込み選択(y/n)
+                util.send_text_by_key(
+                    chan, "mail_handler.confirm_read_body_yn", menu_mode, add_newline=False)
+                read_choice_input = ssh_input.process_input(chan)
+                if read_choice_input is None:
+                    return "back_to_top"
+                read_choice = read_choice_input.strip().lower()
+
+                if read_choice == 'y':
+                    # 本文表示と既読化
+                    success, _ = display_mail_content(
+                        chan, oldest_unread_mail['id'], dbname, user_id, 'inbox', menu_mode)
+                    if not success:
+                        util.send_text_by_key(
+                            chan, "common_messages.error", menu_mode)
+                        break
+                    chan.send(b'\r\n')
+
+                    # 削除確認(y/n)
+                    util.send_text_by_key(
+                        chan, "mail_handler.confirm_delete_after_read_yn", menu_mode, add_newline=False)
+                    delete_choice_input = ssh_input.process_input(chan)
+                    if delete_choice_input is None:
+                        return "back_to_top"
+                    delete_choice = delete_choice_input.strip().lower()
+
+                    if delete_choice == 'y':
+                        toggled, new_status = sqlite_tools.toggle_mail_delete_status_generic(
+                            dbname, oldest_unread_mail['id'], user_id, 'recipient')
+                        if toggled and new_status == 1:  # 削除された場合
+                            util.send_text_by_key(
+                                chan, "mail_handler.mail_deleted_after_read_success", menu_mode)
+                        elif not toggled:
+                            util.send_text_by_key(
+                                chan, "mail_handler.toggle_delete_status_failed", menu_mode)
+                elif read_choice == 'n':
+                    # 読まなくても既読にする
+                    sqlite_tools.mark_mail_as_read(
+                        dbname, oldest_unread_mail['id'], user_id)
+                else:
+                    break  # 未読処理ループを抜ける
+            continue  # メインのメールメニュープロンプトに戻る
         elif choice == '':
             return "back_to_top"  # トップメニューに戻ることを示す
         else:
@@ -730,6 +807,9 @@ def mail_write(chan, dbname, login_id, menu_mode='2'):
         return
     if not subject:
         subject = "(No subject)"
+    # 21文字制限(増やしてもいいかも)
+    if len(subject) > 21:
+        subject = subject[:21]
 
     # 本文入力
     util.send_text_by_key(
@@ -739,7 +819,7 @@ def mail_write(chan, dbname, login_id, menu_mode='2'):
         line = ssh_input.process_input(chan)
         if line is None:
             return
-        if line == '.':
+        if line == '^':
             break
         message_lines.append(line)
     message = '\r\n'.join(message_lines)

@@ -806,21 +806,24 @@ mail_handler:
     mode_2: "状態の変更に失敗しました。\r\n"
     mode_3: "State change failed.\r\n"
   recipient_yn:
-    mode_1: "この送り先で良いですか？（Y/N): "
+    mode_1: "この送り先で良いですか？（Y または N）: "
     mode_2: "この送り先で良いですか？（Y/N): "
-    mode_3: "Is this recipient OK? (Y/N): "
+    mode_3: "この送り先で良いですか？（Y/N): "
   send_another_yn:
-    mode_1: "他にも送りますか？（Y/N): "
-    mode_2: "他にも送りますか？（Y/N): "
-    mode_3: "Send another? (Y/N): "
+    mode_1: "他にも送りますか？（Y）: "
+    mode_2: "他にも送りますか？(Y/N): "
+    mode_3: "他にも送りますか？(Y/N): "
   enter_subject:
-    mode_1: "件名を入力してください: "
-    mode_2: "件名を入力してください: "
-    mode_3: "Enter subject: "
+    mode_1: "タイトルを入力してください(21文字): "
+    mode_2: "件名を入力してください(21文字以上は削除): "
+    mode_3: "件名を入力してください(21文字以上は削除): "
   enter_body:
-    mode_1: "本文を入力してください(’．’のみの行で終了): \r\n"
-    mode_2: "本文を入力してください(’．’のみの行で終了): \r\n"
-    mode_3: "Enter body (end with ’.’): \r\n"
+    mode_1: |
+      -------------------------------------------------------------
+      終了は、[^]だけの行を入力してください
+      -------------------------------------------------------------
+    mode_2: "本文を入力してください('^'のみの行で終了): \r\n"
+    mode_3: "本文を入力してください('^'のみの行で終了): \r\n"
   no_body:
     mode_1: "本文が入力されていません。終了します。\r\n"
     mode_2: "本文が入力されていません。終了します。\r\n"
@@ -910,6 +913,26 @@ mail_handler:
     mode_1: "** 手紙が届いております (総数:{total_mail_count} 未読:{unread_mail_count}) **"
     mode_2: "新着メールが {unread_mail_count} 件届いてます。"
     mode_3: "新着メールが {unread_mail_count} 件届いてます。"
+  no_unread_mails_at_start: # R選択直後、未読メールがない場合
+    mode_1: "未読メールはありません。\r\n"
+    mode_2: "No unread mails.\r\n"
+    mode_3: "NO UNREAD MAILS.\r\n"
+  no_more_unread_mails: # 連続読み込み中、これ以上未読メールがない場合
+    mode_1: "これ以上未読メールはありません。\r\n"
+    mode_2: "No more unread mails.\r\n"
+    mode_3: "NO MORE UNREAD MAILS.\r\n"
+  confirm_read_body_yn: # 本文を読むかの確認
+    mode_1: "内容を読みますか？(Y/N): "
+    mode_2: "Read body? (Y/N): "
+    mode_3: "READ BODY? (Y/N): "
+  confirm_delete_after_read_yn: # 読んだ後に削除するかの確認
+    mode_1: "削除しますか？（Y/N）: "
+    mode_2: "Delete after reading? (Y/N): "
+    mode_3: "DELETE AFTER READING? (Y/N): "
+  mail_deleted_after_read_success: # 読んだ後に削除成功
+    mode_1: "メールを削除しました。\r\n"
+    mode_2: "Mail deleted.\r\n"
+    mode_3: "MAIL DELETED.\r\n"
 chat:
   welcome:
     mode_1: "チャットルーム「{room_name}」へようこそ！"

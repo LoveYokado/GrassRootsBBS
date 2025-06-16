@@ -786,3 +786,17 @@ def mark_mail_as_read(dbname, mail_id, recipient_user_id_pk):
     finally:
         if conn:
             conn.close()
+
+
+def get_oldest_unread_mail(dbname, recipient_user_id_pk):
+    """指定されたユーザの一番古い未読、かつ未削除の受信メールを1件取得"""
+    sql = """
+        SELECT id, sender_id,subject,body,is_read,sent_at,recipient_deleted
+        FROM mails
+        WHERE recipient_id=? AND is_read=0 AND recipient_deleted=0
+        ORDER BY sent_at ASC
+        LIMIT 1
+    """
+    results = sqlite_execute_query(
+        dbname, sql, (recipient_user_id_pk,), fetch=True)
+    return results[0] if results else None
