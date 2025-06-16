@@ -740,3 +740,49 @@ def get_user_permission_for_board(dbname, board_id_pk, user_id_pk_str):
     result = sqlite_execute_query(
         dbname, sql, (board_id_pk, user_id_pk_str), fetch=True)
     return result[0]['access_level']if result else None
+
+
+def get_total_unread_mail_count(dbname, user_id_pk):
+    """指定されたユーザの未読かつ未削除の受信メール総数を取得"""
+    sql = "SELECT COUNT(*) FROM mails WHERE recipient_id=? AND is_read=0 AND recipient_deleted=0"
+    results = sqlite_execute_query(dbname, sql, (user_id_pk,), fetch=True)
+    return results[0][0] if results and results[0] else 0
+
+
+def get_total_mail_count(dbname, user_id_pk):
+    """指定されたユーザの未削除の受信メール総数を取得"""
+    sql = "SELECT COUNT(*) FROM mails WHERE recipient_id=? AND recipient_deleted=0"
+    results = sqlite_execute_query(dbname, sql, (user_id_pk,), fetch=True)
+    return results[0][0] if results and results[0] else 0
+
+
+def mark_mail_as_read(dbname, mail_id, recipient_user_id_pk):
+    """指定されたメールを指定された受信者に対して既読にする"""
+    sql = "UPDATE mails SET is_read = 1 WHERE id = ? AND recipient_id = ?"
+    conn = None
+    try:
+        conn = sqlite3.connect(dbname)
+        conn.row_factory = sqlite3.Row  # 他の関数と一貫性を持たせる
+        cur = conn.cursor()
+        cur.execute(sql, (mail_id, recipient_user_id_pk))
+        updated_rows = cur.rowcount  # 更新された行数を取得
+        conn.commit()
+
+        if updated_rows > 0:
+            logging.info(
+                f"メールID {mail_id} をユーザID {recipient_user_id_pk} に対して既読にマークしました ({updated_rows}行更新)。")
+            return True
+        else:
+            # 対象のメールが見つからない、または既に既読の場合
+            logging.debug(  # ログレベルをdebugに変更
+                f"メールID {mail_id} (ユーザID: {recipient_user_id_pk}) は既に既読、または存在しません。既読化処理はスキップされました。")
+            return False
+    except sqlite3.Error as e:  # より具体的な例外をキャッチ
+        logging.error(
+            f"メール既読化中にDBエラー (MailID: {mail_id}, UserID: {recipient_user_id_pk}): {e}")
+        if conn:
+            conn.rollback()  # エラー時はロールバック
+        return False
+    finally:
+        if conn:
+            conn.close()

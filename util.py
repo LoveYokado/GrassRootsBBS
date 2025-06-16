@@ -717,19 +717,17 @@ def check_new_mail(chan, dbname, username, current_menu_mode):
         return
 
     try:
-        # 未読かつ削除されていないメールの件数を取得
-        sql = "SELECT COUNT(*) FROM mails WHERE recipient_id = ? AND is_read = 0 AND recipient_deleted = 0"
-        results = sqlite_tools.sqlite_execute_query(
-            dbname, sql, (user_id,), fetch=True)
+        unread_count = sqlite_tools.get_total_unread_mail_count(
+            dbname, user_id)
+        total_mail_count = sqlite_tools.get_total_mail_count(dbname, user_id)
 
-        if results and results[0] and results[0][0] > 0:
-            unread_count = results[0][0]
+        if unread_count > 0:  # 未読メールがある場合のみ通知
             notification_message_format = get_text_by_key(
                 "mail_handler.new_mail_notification", current_menu_mode
             )
             if notification_message_format:  # キーが存在する場合のみ
                 message_payload = notification_message_format.format(
-                    count=unread_count)
+                    total_mail_count=total_mail_count, unread_mail_count=unread_count)
                 # ユーザーの入力を邪魔しないように通知 (カーソル位置保存・復元)
                 chan.send(b"\033[s\r\n\r" + message_payload.replace('\n',
                           '\r\n').encode('utf-8') + b"\r\n\033[u")

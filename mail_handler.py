@@ -132,7 +132,7 @@ def mail(chan, dbname, login_id, menu_mode):
                     util.send_text_by_key(
                         chan, "mail_handler.no_mails", menu_mode)  # メールがありません。
                     current_index = 0
-                else:
+                elif 0 <= current_index < len(mails):
                     display_mail_header(
                         chan, mails[current_index], dbname, view_mode, mail_id_width=mail_count_digits)
                 return True
@@ -176,10 +176,10 @@ def mail(chan, dbname, login_id, menu_mode):
                 return
 
             success, marked_as_read = display_mail_content(
-                chan, selected_mail_id, dbname, view_mode, menu_mode)
+                chan, selected_mail_id, dbname, user_id, view_mode, menu_mode)
 
             if success:
-                chan.send("\r\n")  # 本文表示後に1行開け
+                reload_mails(keep_index=True)
                 if advance_cursor_after:
                     if mails:  # メール空対策
                         current_index += 1
@@ -187,25 +187,6 @@ def mail(chan, dbname, login_id, menu_mode):
                 else:
 
                     next_mail_index_for_header = current_index+1
-                    if 0 <= next_mail_index_for_header < len(mails):
-
-                        if view_mode == 'inbox':  # ヘッダ表示
-                            util.send_text_by_key(
-                                chan, "mail_handler.sender_header", menu_mode)  # 送信ヘッダ
-                            chan.send('\r\n')
-
-                        else:
-                            util.send_text_by_key(
-                                chan, "mail_handler.recipient_header", menu_mode)  # 受信ヘッダ
-                            chan.send('\r\n')
-
-                        display_mail_header(
-                            chan, mails[next_mail_index_for_header], dbname, view_mode, mail_id_width=mail_count_digits)
-                    # 末尾マーカー表示
-                    elif next_mail_index_for_header == len(mails) and mails:
-                        marker_num = len(mails) + 1
-                        marked_id_str = f"{marker_num:0{mail_count_digits}d}"
-                        chan.send(f"{marked_id_str} ^\r\n")
             else:
                 update_current_display()
 
@@ -305,7 +286,7 @@ def mail(chan, dbname, login_id, menu_mode):
                         update_current_display()
                     else:
                         success, _ = display_mail_content(
-                            chan, slected_mail_data['id'], dbname, view_mode, menu_mode)
+                            chan, slected_mail_data['id'], dbname, user_id, view_mode, menu_mode)
                         if success:
                             chan.send('\r\n')
                             if view_mode == 'inbox':
@@ -371,7 +352,7 @@ def mail(chan, dbname, login_id, menu_mode):
                 # 削除されていてもカーソルは進める
                 else:
                     success, _ = display_mail_content(
-                        chan, selected_mail_data['id'], dbname, view_mode, menu_mode)
+                        chan, selected_mail_data['id'], dbname, user_id, view_mode, menu_mode)
                     if success:
                         chan.send('\r\n')
 
@@ -585,35 +566,45 @@ def format_mail_header_str(mail_data, dbname, view_mode='inbox', mail_id_width=5
 
     subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
 
-    deleted_mark = ""
-    display_subject = subject
+    status_mark_char = " "
+    is_mail_deleted_flag = False
+    display_subject_final = subject
+
     try:
+        # 削除チェック
         if view_mode == 'inbox' and mail_data['recipient_deleted'] == 1:
-            deleted_mark = "*"
+            is_mail_deleted_flag = True
         elif view_mode == 'outbox' and mail_data['sender_deleted'] == 1:
-            deleted_mark = "*"
-        if deleted_mark:
-            display_subject = "(Deleted)"
+            is_mail_deleted_flag = True
+
+        if is_mail_deleted_flag:
+            status_mark_char = "*"
+            display_subject_final = ""
         else:
-            display_subject = textwrap.shorten(
-                subject, width=38, placeholder="...")
+            # 受信未読チェック
+            if view_mode == 'inbox' and mail_data['is_read'] == 0:
+                status_mark_char = "#"
+            # 件名短縮
+            display_subject_final = textwrap.shorten(
+                subject, width=39, placeholder="..."
+            )
+
     except KeyError as e:
         logging.warning(f"メールヘッダ表示中にキーエラー ({mail_id}): {e}")
-        display_subject = textwrap.shorten(
-            subject, width=38, placeholder="..."
+        display_subject_final = textwrap.shorten(
+            subject, width=39, placeholder="..."
         )
-
     mail_id_str = f"{mail_id:0{mail_id_width}d}"
 
     # 送信や、宛先表示
     if view_mode == 'inbox':
         sender_name = sqlite_tools.get_user_name_from_user_id(
             dbname, mail_data['sender_id'])
-        return f"{mail_id_str}  {date_str}  {sender_name:<7} {deleted_mark} {display_subject}"
+        return f"{mail_id_str}  {date_str}  {sender_name:<7} {status_mark_char}{display_subject_final}"
     else:  # outbox
         recipient_name = sqlite_tools.get_user_name_from_user_id(
             dbname, mail_data['recipient_id'])
-        return f"{mail_id_str}  {date_str}  {recipient_name:<7} {deleted_mark} {display_subject}"
+        return f"{mail_id_str}  {date_str}  {recipient_name:<7} {status_mark_char}{display_subject_final}"
 
 
 def display_mail_header(chan, mail_data, dbname, view_mode='inbox', mail_id_width=5):
@@ -624,7 +615,7 @@ def display_mail_header(chan, mail_data, dbname, view_mode='inbox', mail_id_widt
         chan.send(header_line + "\r\n")
 
 
-def display_mail_content(chan, mail_id, dbname, view_mode='inbox', menu_mode='2'):
+def display_mail_content(chan, mail_id, dbname, recipient_user_id_pk, view_mode='inbox', menu_mode='2'):
     """メールの内容を表示し、既読にする。成功/失敗(bool)と既読変更(bool)を返す"""
     try:
         mail_results = sqlite_tools.fetchall_idbase(
@@ -645,13 +636,12 @@ def display_mail_content(chan, mail_id, dbname, view_mode='inbox', menu_mode='2'
 
         # 既読にする(inbox only)
         marked_as_read = False
-        if view_mode == 'inbox' and 'is_read' in mail_data and mail_data['is_read'] == 0:
-            try:
-                sql = "UPDATE mails SET is_read = 1 WHERE id = ?"
-                sqlite_tools.sqlite_execute_query(dbname, sql, (mail_id,))
+        if view_mode == 'inbox':  # recipient_deleted == 0 のメールのみがここに到達する想定
+            # is_read == 0 の条件は mark_mail_as_read 側では不要 (UPDATE文が対象を見つけられないだけ)
+            # ここで条件分岐すると、何らかの理由で is_read が予期せぬ値だった場合にスキップされる可能性がある
+            if sqlite_tools.mark_mail_as_read(dbname, mail_id, recipient_user_id_pk):
                 marked_as_read = True
-            except Exception as e:
-                logging.error(f"メール既読処理中にDBエラー (ID: {mail_id}): {e}")
+            # mark_mail_as_read 内でエラーログは出力される
         return True, marked_as_read
 
     except Exception as e:

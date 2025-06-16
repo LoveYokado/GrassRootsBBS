@@ -727,18 +727,23 @@ sysop_menu:
       mode_2: "説明: "
       mode_3: "Description: "
     default_permission_prompt:
+      mode_1: "デフォルトパーミッション ({permissions}): "
       mode_2: "デフォルトパーミッション ({permissions}): "
       mode_3: "Default Permission ({permissions}): "
     invalid_permission:
+      mode_1: "無効なパーミッションです。{permissions} から選択してください。"
       mode_2: "無効なパーミッションです。{permissions} から選択してください。"
       mode_3: "Invalid permission. Please choose from {permissions}."
     confirm_create_yn:
+      mode_1: "以下の内容で掲示板DBエントリを作成しますか？ ID:{shortcut_id}, Perm:{permission}, OP:{operator} (y/N): "
       mode_2: "以下の内容で掲示板DBエントリを作成しますか？ ID:{shortcut_id}, Perm:{permission}, OP:{operator} (y/N): "
       mode_3: "Create board with ID:{shortcut_id}, Perm:{permission}, OP:{operator}? (y/N): "
     success_direct:
+      mode_1: "掲示板エントリー '{shortcut_id}' をデータベースに作成しました。"
       mode_2: "掲示板エントリー '{shortcut_id}' をデータベースに作成しました。"
       mode_3: "Board entry '{shortcut_id}' created in the database."
     advise_bbs_yml:
+      mode_1: "DBに掲示板エントリを作成しました。bbs.yml にこの掲示板の定義（カテゴリ、表示順）を記述してください。"
       mode_2: "DBに掲示板エントリを作成しました。bbs.yml にこの掲示板の定義（カテゴリ、表示順）を記述してください。"
       mode_3: "Please describe the detailed settings (category, display order, etc.) for this board in bbs.yml.\nDetails will be reflected when the bbs.yml synchronization command is executed."
   delete_board:
@@ -902,9 +907,9 @@ mail_handler:
         ' : Search by body
       ; : Jump to another sig
   new_mail_notification:
-    mode_1: "** 手紙が届いております **"
-    mode_2: "新着メールが {count} 件届いてます。"
-    mode_3: "新着メールが {count} 件届いてます。"
+    mode_1: "** 手紙が届いております (総数:{total_mail_count} 未読:{unread_mail_count}) **"
+    mode_2: "新着メールが {unread_mail_count} 件届いてます。"
+    mode_3: "新着メールが {unread_mail_count} 件届いてます。"
 chat:
   welcome:
     mode_1: "チャットルーム「{room_name}」へようこそ！"
