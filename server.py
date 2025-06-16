@@ -426,16 +426,17 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                     )
                     logging.warning(
                         f"項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。\r\n")
-        # テスト用チャットルーム入室 (Xキー)
-        elif command == "x":  # 仮のメニューモード "x"
-            logging.info(
-                f"掲示板メニュー開始: login_id={login_id}, menu_mode={current_loop_menu_mode}")
-
-            # 掲示板IDを指定して呼び出す場合
-            shortcut_id = "free"
-            bbs_handler_result = bbs_handler.handle_bbs_menu(  # 結果を受け取る
-                chan, dbname, login_id, current_loop_menu_mode, shortcut_id)
-
+        # オンラインサインアップ(config.toml の online_signup 設定で有効/無効を切り替え)
+        elif command == "l":
+            online_signup_enabled = util.app_config.get(
+                'server', {}).get('online_signup', False)
+            if online_signup_enabled:
+                util.handle_online_signup(chan, dbname, current_loop_menu_mode)
+                util.send_text_by_key(
+                    chan, "top_menu.menu", current_loop_menu_mode)
+            else:
+                util.send_text_by_key(
+                    chan, "common_messages.invalid_command", current_loop_menu_mode)
         # 切断処理
         elif command == "e":
             normal_logoff = logoff_user(

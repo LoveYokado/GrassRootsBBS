@@ -808,22 +808,22 @@ mail_handler:
   recipient_yn:
     mode_1: "この送り先で良いですか？（Y または N）: "
     mode_2: "この送り先で良いですか？（Y/N): "
-    mode_3: "この送り先で良いですか？（Y/N): "
+    mode_3: "Is this recipient OK? (Y/N): "
   send_another_yn:
     mode_1: "他にも送りますか？（Y）: "
     mode_2: "他にも送りますか？(Y/N): "
-    mode_3: "他にも送りますか？(Y/N): "
+    mode_3: "Send another? (Y/N): "
   enter_subject:
     mode_1: "タイトルを入力してください(21文字): "
     mode_2: "件名を入力してください(21文字以上は削除): "
-    mode_3: "件名を入力してください(21文字以上は削除): "
+    mode_3: "Enter subject (up to 21 characters): "
   enter_body:
     mode_1: |
       -------------------------------------------------------------
       終了は、[^]だけの行を入力してください
       -------------------------------------------------------------
     mode_2: "本文を入力してください('^'のみの行で終了): \r\n"
-    mode_3: "本文を入力してください('^'のみの行で終了): \r\n"
+    mode_3: "Enter body ('^' to end): \r\n"
   no_body:
     mode_1: "本文が入力されていません。終了します。\r\n"
     mode_2: "本文が入力されていません。終了します。\r\n"
@@ -912,27 +912,27 @@ mail_handler:
   new_mail_notification:
     mode_1: "** 手紙が届いております (総数:{total_mail_count} 未読:{unread_mail_count}) **"
     mode_2: "新着メールが {unread_mail_count} 件届いてます。"
-    mode_3: "新着メールが {unread_mail_count} 件届いてます。"
+    mode_3: "New mail {unread_mail_count} Mails."
   no_unread_mails_at_start: # R選択直後、未読メールがない場合
     mode_1: "未読メールはありません。\r\n"
-    mode_2: "No unread mails.\r\n"
-    mode_3: "NO UNREAD MAILS.\r\n"
+    mode_2: "未読メールはありません。\r\n"
+    mode_3: "No unread mails.\r\n"
   no_more_unread_mails: # 連続読み込み中、これ以上未読メールがない場合
     mode_1: "これ以上未読メールはありません。\r\n"
-    mode_2: "No more unread mails.\r\n"
-    mode_3: "NO MORE UNREAD MAILS.\r\n"
+    mode_2: "これ以上未読メールはありません。\r\n"
+    mode_3: "No more unread mails.\r\n"
   confirm_read_body_yn: # 本文を読むかの確認
     mode_1: "内容を読みますか？(Y/N): "
-    mode_2: "Read body? (Y/N): "
-    mode_3: "READ BODY? (Y/N): "
+    mode_2: "内容を読みますか？(Y/N): "
+    mode_3: "Read body? (Y/N): "
   confirm_delete_after_read_yn: # 読んだ後に削除するかの確認
     mode_1: "削除しますか？（Y/N）: "
-    mode_2: "Delete after reading? (Y/N): "
-    mode_3: "DELETE AFTER READING? (Y/N): "
+    mode_2: "削除しますか？（Y/N）: "
+    mode_3: "Delete after reading? (Y/N): "
   mail_deleted_after_read_success: # 読んだ後に削除成功
     mode_1: "メールを削除しました。\r\n"
-    mode_2: "Mail deleted.\r\n"
-    mode_3: "MAIL DELETED.\r\n"
+    mode_2: "メールを削除しました。\r\n"
+    mode_3: "Mail deleted.\r\n"
 chat:
   welcome:
     mode_1: "チャットルーム「{room_name}」へようこそ！"
@@ -1367,6 +1367,62 @@ bbs:
     mode_1: "** この掲示板に書き込む権限がありません **\r\n"
     mode_2: "** この掲示板に書き込む権限がありません **\r\n"
     mode_3: "** You do not have permission to write to this board **\r\n"
+online_signup:
+  guidance:
+    mode_1: |
+      オンラインサインアップへようこそ。
+      連絡が取れない場合、ユーザレベルはGUESTと同じになります。
+    mode_2: |
+      オンラインサインアップへようこそ。
+      連絡が取れない場合、ユーザレベルはGUESTと同じになります。
+    mode_3: |
+      Welcome to Online Signup.
+      If we cannot contact you, your user level will be the same as GUEST.
+  prompt_id:
+    mode_1: "希望するIDを入力してください (空入力でキャンセル): "
+    mode_2: "希望するIDを入力してください (空入力でキャンセル): "
+    mode_3: "Enter desired ID (leave blank to cancel): "
+  error_id_exists:
+    mode_1: "** そのIDは既に使用されています。別のIDを入力してください。 **\r\n"
+    mode_2: "** そのIDは既に使用されています。別のIDを入力してください。 **\r\n"
+    mode_3: "** That ID is already in use. Please enter a different ID. **\r\n"
+  prompt_email:
+    mode_1: "メールアドレスを入力してください (空入力でキャンセル): "
+    mode_2: "メールアドレスを入力してください (空入力でキャンセル): "
+    mode_3: "Enter email address (leave blank to cancel): "
+  error_email_invalid:
+    mode_1: "** 正しいメールアドレスの形式ではありません。 **\r\n"
+    mode_2: "** 正しいメールアドレスの形式ではありません。 **\r\n"
+    mode_3: "** Invalid email address format. **\r\n"
+  confirm_registration_yn:
+    mode_1: "以下の内容で登録しますか？ (ID: {new_id}, Email: {new_email}) (y/n): "
+    mode_2: "以下の内容で登録しますか？ (ID: {new_id}, Email: {new_email}) (y/n): "
+    mode_3: "Register with the following? (ID: {new_id}, Email: {new_email}) (y/n): "
+  info_temp_password:
+    mode_1: |
+      登録を受け付けました。
+      仮パスワードは「{temp_password}」です。
+      ログイン後、速やかにパスワードを変更してください。
+    mode_2: |
+      登録を受け付けました。
+      仮パスワードは「{temp_password}」です。
+      ログイン後、速やかにパスワードを変更してください。
+    mode_3: |
+      Registration accepted.
+      Your temporary password is "{temp_password}".
+      Please change your password promptly after logging in.
+  registration_success:
+    mode_1: "** ユーザー登録が完了しました。 **\r\n"
+    mode_2: "** ユーザー登録が完了しました。 **\r\n"
+    mode_3: "** User registration complete. **\r\n"
+  registration_failed:
+    mode_1: "** ユーザー登録に失敗しました。時間をおいて再度お試しください。 **\r\n"
+    mode_2: "** ユーザー登録に失敗しました。時間をおいて再度お試しください。 **\r\n"
+    mode_3: "** User registration failed. Please try again later. **\r\n"
+  cancelled:
+    mode_1: "** オンラインサインアップをキャンセルしました。 **\r\n"
+    mode_2: "** オンラインサインアップをキャンセルしました。 **\r\n"
+    mode_3: "** Online signup cancelled. **\r\n"
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)

@@ -7,8 +7,10 @@ import time
 import sqlite3
 import yaml
 import datetime
+import re
+import secrets
+import string
 
-import bbsmenu
 import sqlite_tools
 import ssh_input
 SETTING_DIR = "setting"
@@ -850,3 +852,97 @@ def telegram_recieve(chan, dbname, username, current_menu_mode):
                 chan, "telegram.receive_message", current_menu_mode, sender=sender, message=message, dt_str=dt_str)  # 受信メッセージ本体
         send_text_by_key(
             chan, "telegram.receive_footer", current_menu_mode)
+
+
+def _is_valid_email_for_signup(email: str) -> bool:
+    """メールアドレスの簡易検証"""
+    if not email:
+        return False
+    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    if re.match(pattern, email):
+        return True
+    return False
+
+
+def _generate_random_password(length=12):
+    """ランダムパスワード生成"""
+    alphabet = string.ascii_letters + string.digits
+    password = ''.join(secrets.choice(alphabet) for i in range(length))
+    return password
+
+
+def handle_online_signup(chan, dbname, menu_mode):
+    """オンラインサインアップ処理"""
+    send_text_by_key(
+        chan, "online_signup.guieance", menu_mode
+    )
+
+    new_id = ""
+    while True:
+        send_text_by_key(chan, "online_signup.prompt_id",
+                         menu_mode, add_newline=False)
+        id_input = ssh_input.process_input(chan)
+        if id_input is None:
+            return  # 切断
+        new_id = id_input.strip().upper()
+        if not new_id:
+            send_text_by_key(chan, "online_signup.cancelled", menu_mode)
+            return
+
+        # ID重複チェック
+        if sqlite_tools.get_user_auth_info(dbname, new_id):
+            send_text_by_key(chan, "online_signup.id_exists", menu_mode)
+            new_id = ""
+            continue
+        break
+
+    new_email = ""
+    while True:
+        send_text_by_key(chan, "online_signup.prompt_email",
+                         menu_mode, add_newline=False)
+        email_input = ssh_input.process_input(chan)
+        if email_input is None:
+            return  # 切断
+        new_email = email_input.strip()
+        if not new_email:
+            send_text_by_key(chan, "online_signup.cancelled", menu_mode)
+            return
+
+        # メールアドレスの簡易検証
+        if not _is_valid_email_for_signup(new_email):
+            send_text_by_key(
+                chan, "online_signup.error_email_invalid", menu_mode)
+            continue
+        break
+
+    send_text_by_key(chan, "online_signup.confirm_registration_yn",
+                     menu_mode, new_id=new_id, new_email=new_email, add_newline=False)
+    confirm = ssh_input.process_input(chan)
+    if confirm is None or confirm.strip().lower() != "y":
+        send_text_by_key(chan, "online_signup.cancelled", menu_mode)
+        return
+
+    temp_password = _generate_random_password()
+    salt_hex, hashed_password = hash_password(temp_password)
+    comment = "Online Signup User"  # 仮コメ
+
+    # ユーザレベル1、パス認証のみ、メニューモードは2
+    if sqlite_tools.register_user(dbname, new_id, hashed_password, salt_hex,
+                                  comment, level=1, auth_method='password_only', menu_mode='2', telegram_restriction=0):
+        send_text_by_key(
+            chan, "online_signup.info_temp_password", menu_mode, temp_password=temp_password)
+        send_text_by_key(
+            chan, "online_signup.registration_success", menu_mode)
+
+        # 一応SSH鍵生成
+        try:
+            private_key_pem = generate_and_regenerate_ssh_key(new_id)
+            if private_key_pem:
+                logging.info(f"オンラインサインアップユーザ '{new_id}' にSSH鍵を生成しました。")
+            else:
+                logging.error(f"オンラインサインアップユーザ '{new_id}' のSSH鍵の生成に失敗しました。")
+        except Exception as e_key:
+            logging.error(f"オンラインサインアップユーザ '{new_id}' のSSH鍵生成時エラー: {e_key}")
+
+    else:
+        send_text_by_key(chan, "online_signup.registration_failed", menu_mode)
