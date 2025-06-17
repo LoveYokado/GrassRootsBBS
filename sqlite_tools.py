@@ -554,8 +554,8 @@ def delete_board_entry(dbname, shortcut_id):
 
 
 def get_all_boards(dbname):
-    sql = "SELECT id, shortcut_id, operators, default_permission, category_id, display_order FROM boards WHERE category_id=?"
-    return sqlite_execute_query(dbname, sql, (current_menu_mode,), fetch=True)
+    sql = "SELECT id, shortcut_id, operators, default_permission, category_id, display_order FROM boards"
+    return sqlite_execute_query(dbname, sql, fetch=True)
 
 
 def get_next_article_number(dbname, board_id_pk):

@@ -491,7 +491,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         auth_menu_mode = '1'
 
     max_attempts = server_config.get('MAX_PASSWORD_ATTEMPTS', 3)
-    pbkdf2_rounds = security_config.get('pbkdf2_rounds', 100000)
+    pbkdf2_rounds = security_config.get('PBKDF2_ROUNDS', 100000)
     if not db_name_from_config:
         logging.error("DB名が設定ファイルにありません(authenticate_user)")
         if chan and chan.active:

@@ -587,7 +587,7 @@ def system_quit(chan, dbname, current_menu_mode):
 
 
 def make_board(chan, dbname, sysop_login_id, current_menu_mode):
-    """掲示板作成(bbs.ymlの内容とも関連するので、忘れないように)"""
+    """掲示板作成(bbs.yamlの内容とも関連するので、忘れないように)"""
 
     util.send_text_by_key(
         chan, "sysop_menu.make_board.header_direct", current_menu_mode)
@@ -666,7 +666,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
         util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
                               current_menu_mode, shortcut_id=shortcut_id)
         util.send_text_by_key(
-            chan, "sysop_menu.make_board.advise_bbs_yml", current_menu_mode)
+            chan, "sysop_menu.make_board.advise_bbs_yaml", current_menu_mode)
     else:
         util.send_text_by_key(
             chan, "common_messages.error", current_menu_mode)
@@ -692,11 +692,6 @@ def delete_board(chan, dbname, current_menu_mode):
         board_db_entry = sqlite_tools.get_board_by_shortcut_id(
             dbname, shortcut_id_to_delete)
 
-        # bbs.yml から名前と説明を取得 (表示用)
-        bbs_config = util.load_yaml_file_for_shortcut("bbs.yml")
-        board_info_yml, board_name_yml = util.find_item_in_yaml(
-            bbs_config, shortcut_id_to_delete, current_menu_mode, "board")
-
         if not board_db_entry:  # DBにエントリがなければエラー
             util.send_text_by_key(
                 chan, "sysop_menu.delete_board.board_not_found", current_menu_mode)
@@ -721,7 +716,7 @@ def delete_board(chan, dbname, current_menu_mode):
             # 関連する articles や board_user_permissions の削除も将来的には必要
             if sqlite_tools.delete_board_entry(dbname, shortcut_id_to_delete):
                 util.send_text_by_key(
-                    chan, "sysop_menu.delete_board.advise_bbs_yml_delete", current_menu_mode)
+                    chan, "sysop_menu.delete_board.advise_bbs_yaml_delete", current_menu_mode)
                 break  # 削除成功で終了
             else:
                 util.send_text_by_key(
