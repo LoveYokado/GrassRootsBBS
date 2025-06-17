@@ -48,8 +48,11 @@ def who_menu(chan, dbname, online_members, current_menu_mode):
 def handle_online_signup(chan, dbname, menu_mode):
     """オンラインサインアップ処理"""
     util.send_text_by_key(
-        chan, "online_signup.guieance", menu_mode
+        chan, "online_signup.guidance", menu_mode
     )
+    security_config = util.app_config.get('security', {})
+    id_min_len = security_config.get('ID_MIN_LENGTH', 3)
+    id_max_len = security_config.get('ID_MAX_LENGTH', 20)
 
     new_id = ""
     while True:
@@ -63,12 +66,21 @@ def handle_online_signup(chan, dbname, menu_mode):
             util.send_text_by_key(chan, "online_signup.cancelled", menu_mode)
             return
 
+        # ID長さチェック
+        if not (id_min_len <= len(new_id) <= id_max_len):
+            util.send_text_by_key(
+                chan, "online_signup.error_id_length", menu_mode, min_len=id_min_len, max_len=id_max_len)
+            continue
+
         # ID重複チェック
         if sqlite_tools.get_user_auth_info(dbname, new_id):
             util.send_text_by_key(chan, "online_signup.id_exists", menu_mode)
             new_id = ""
             continue
         break
+
+    pw_min_len = security_config.get('PASSWORD_MIN_LENGTH', 8)
+    pw_max_len = security_config.get('PASSWORD_MAX_LENGTH', 64)
 
     new_email = ""
     while True:
@@ -96,7 +108,14 @@ def handle_online_signup(chan, dbname, menu_mode):
         util.send_text_by_key(chan, "online_signup.cancelled", menu_mode)
         return
 
-    temp_password = util._generate_random_password()
+    # パスワード生成と長さチェック
+    temp_password = ""
+    while True:
+        temp_password = util.generate_random_password(length=12)  # 仮パス作成
+        if pw_min_len <= len(temp_password) <= pw_max_len:
+            break
+        logging.warning(f"仮パスワードの長さが制限外( {len(temp_password)} )です。")
+
     salt_hex, hashed_password = util.hash_password(temp_password)
     comment = "Online Signup User"  # 仮コメ
 

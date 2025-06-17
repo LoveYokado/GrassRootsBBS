@@ -137,17 +137,23 @@ def change_password(chan, dbname, login_id, current_menu_mode):
                           current_menu_mode, add_newline=False)  # 今のパスワード入力
     current_pass = ssh_input.hide_process_input(chan)
     if current_pass is None:
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
         return
 
     user_auth_info = sqlite_tools.get_user_auth_info(dbname, login_id)
     if not user_auth_info:
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
         logging.error(f"パスワード変更施行中にユーザが見つかりません: {login_id}")
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
         return
 
     if not util.verify_password(user_auth_info['password'], user_auth_info['salt'], current_pass, pbkdf2_rounds):
         util.send_text_by_key(
             chan, "user_pref_menu.change_password.invalid_password", current_menu_mode)  # 不正パスワード
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
         return
 
     # 新しいパスワードを入力
@@ -156,17 +162,24 @@ def change_password(chan, dbname, login_id, current_menu_mode):
                               current_menu_mode, add_newline=False)  # 新しいパスワード入力
         new_pass1 = ssh_input.hide_process_input(chan)
         if new_pass1 is None:
+            util.send_text_by_key(
+                chan, "common_messages.cancel", current_menu_mode)
             return
 
-        if len(new_pass1) < 8:
+        # パスワードの長さチェック (最小8文字、最大64文字)
+        pw_min_len = security_config.get('PASSWORD_MIN_LENGTH', 8)
+        pw_max_len = security_config.get('PASSWORD_MAX_LENGTH', 64)
+        if not (pw_min_len <= len(new_pass1) <= pw_max_len):
             util.send_text_by_key(
-                chan, "user_pref_menu.change_password.password_too_short", current_menu_mode)  # パスワードが短いよ
+                chan, "online_signup.error_password_length", current_menu_mode, min_len=pw_min_len, max_len=pw_max_len)
             continue
 
         util.send_text_by_key(
             chan, "user_pref_menu.change_password.new_password_confirm", current_menu_mode, add_newline=False)  # 新しいパスワード確認
         new_pass2 = ssh_input.hide_process_input(chan)
         if new_pass2 is None:
+            util.send_text_by_key(
+                chan, "common_messages.cancel", current_menu_mode)
             return
 
         if new_pass1 == new_pass2:
@@ -189,6 +202,7 @@ def change_password(chan, dbname, login_id, current_menu_mode):
     util.send_text_by_key(
         chan, "user_pref_menu.change_password.confirm_regenerate_ssh_key_yn", current_menu_mode, add_newline=False)
     choice = ssh_input.process_input(chan)
+    # SSHキー再生成はキャンセルされてもパスワード変更は完了している
     if choice is None:
         return
 

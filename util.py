@@ -176,7 +176,7 @@ def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=
 
 def hash_password(password):
     """ハッシュ化したパスワードを返す"""
-    pbkdf2_rounds_val = app_config.get('security', {}).get('pbkdf2_rounds')
+    pbkdf2_rounds_val = app_config.get('security', {}).get('PBKDF2_ROUNDS')
     if pbkdf2_rounds_val is None:
         logging.warning("security.pbkdf2_rounds が設定されていません。デフォルト値を使用します。")
         pbkdf2_rounds_val = 100000
@@ -370,8 +370,8 @@ def generate_and_regenerate_ssh_key(username):
         return None
     try:
         ssh_config = app_config.get("ssh", {})
-        key_dir_val = ssh_config.get('key_dir')
-        auth_keys_filename_val = ssh_config.get('auth_keys_filename')
+        key_dir_val = ssh_config.get('KEY_DIR')
+        auth_keys_filename_val = ssh_config.get('AUTH_KEYS_FILENAME')
 
         if not key_dir_val or not auth_keys_filename_val:
             logging.error(
@@ -417,8 +417,8 @@ def regenerate_user_ssh_key(username):
         return None
     try:
         ssh_config = app_config.get("ssh", {})
-        key_dir_val = ssh_config.get('key_dir')
-        auth_keys_filename_val = ssh_config.get('auth_keys_filename')
+        key_dir_val = ssh_config.get('KEY_DIR')
+        auth_keys_filename_val = ssh_config.get('AUTH_KEYS_FILENAME')
 
         if not key_dir_val or not auth_keys_filename_val:
             logging.error(
@@ -533,8 +533,8 @@ def remove_user_public_key(username):
         return None
     try:
         ssh_config = app_config.get("ssh", {})
-        key_dir_val = ssh_config.get('key_dir')
-        auth_keys_filename_val = ssh_config.get('auth_keys_filename')
+        key_dir_val = ssh_config.get('KEY_DIR')
+        auth_keys_filename_val = ssh_config.get('AUTH_KEYS_FILENAME')
 
         if not key_dir_val or not auth_keys_filename_val:
             logging.error(
@@ -684,7 +684,7 @@ def handle_shortcut(chan, dbname: str, login_id: str, menu_mode: str, shortcut_i
 
     # チャット検索
     if target_type == "chat" or target_type is None:
-        chatroom_config = load_yaml_file_for_shortcut("chatroom.yml")
+        chatroom_config = load_yaml_file_for_shortcut("chatroom.yaml")
         if chatroom_config:
             target_item, item_name = find_item_in_yaml(
                 chatroom_config, shortcut_id_to_search, menu_mode, "room")

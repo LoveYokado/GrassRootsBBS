@@ -10,7 +10,7 @@ import datetime
 import json
 import sqlite3  # デバッグ用
 # クラスや関数は、以下の構成で定義していく
-# - BoardManager: 掲示板のメタ情報管理、bbs.yml との同期
+# - BoardManager: 掲示板のメタ情報管理、bbs.yaml との同期
 # - ArticleManager: 記事のCRUD操作、表示
 # - PermissionManager: 権限チェック、パーミッションリスト操作
 # - CommandHandler: ユーザー入力に応じたコマンド処理
@@ -26,10 +26,10 @@ class BoardManager:
         # self.load_boards_from_config() # SysOpメニューから実行する形に変更したため、初期化時は呼び出さない
 
     def load_boards_from_config(self):
-        """bbs.yml から掲示板情報を読み込み、DBと同期する"""
-        bbs_config_data = util.load_yaml_file_for_shortcut("bbs.yml")
+        """bbs.yaml から掲示板情報を読み込み、DBと同期する"""
+        bbs_config_data = util.load_yaml_file_for_shortcut("bbs.yaml")
         if not bbs_config_data or "categories" not in bbs_config_data:
-            logging.error("bbs.yml の読み込みに失敗したか、不正な形式です。")
+            logging.error("bbs.yaml の読み込みに失敗したか、不正な形式です。")
             return False
 
         processed_shortcuts = set()
@@ -43,16 +43,16 @@ class BoardManager:
                         logging.warning(f"IDが未定義の掲示板項目がありました: {item_data}")
                         continue
 
-                    # bbs.yml の name は直接文字列
+                    # bbs.yaml の name は直接文字列
                     board_name_from_yml = item_data.get("name")
                     if board_name_from_yml is None:  # name がない場合はIDを使うなどフォールバック
                         board_name_from_yml = shortcut_id
                         logging.warning(
                             f"掲示板 {shortcut_id} の name が未定義です。IDを使用します。")
 
-                    # bbs.yml からは shortcut_id のみを取得。name, description はDBで管理。
+                    # bbs.yaml からは shortcut_id のみを取得。name, description はDBで管理。
                     # operators, default_permission はDBで直接管理 (sysop_menu.mkbd で初期設定)
-                    # category_id, display_order も bbs.yml で管理
+                    # category_id, display_order も bbs.yaml で管理
 
                     processed_shortcuts.add(shortcut_id)
                 elif item_data.get("type") == "child" and "items" in item_data:
@@ -64,10 +64,10 @@ class BoardManager:
             # カテゴリ自体の情報をDBに入れるかは別途検討
             _parse_items(category.get("items", []), category_id)
 
-        # 現状の方針では、この関数は主に「bbs.ymlに定義されているがDBにない掲示板がないか」のチェックや、
-        # 「DBには存在するがbbs.ymlのどこにも属していない掲示板がないか」のチェックになるかもしれません。
+        # 現状の方針では、この関数は主に「bbs.yamlに定義されているがDBにない掲示板がないか」のチェックや、
+        # 「DBには存在するがbbs.yamlのどこにも属していない掲示板がないか」のチェックになるかもしれません。
         logging.info(
-            f"bbs.ymlから {len(processed_shortcuts)} 件の掲示板ショートカットIDを認識しました: {processed_shortcuts}")
+            f"bbs.yamlから {len(processed_shortcuts)} 件の掲示板ショートカットIDを認識しました: {processed_shortcuts}")
         return True  # 仮
 
     def get_board_info(self, shortcut_id):
@@ -1571,7 +1571,7 @@ def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
     else:
         # 指定がなければ、カテゴリ選択 or 掲示板一覧表示からの遷移
         # hierarchical_menu を使って掲示板を選択させる
-        bbs_config_path = "setting/bbs.yml"
+        bbs_config_path = "setting/bbs.yaml"
         logging.info(
             f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
         selected_item = hierarchical_menu.handle_hierarchical_menu(

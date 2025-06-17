@@ -3,24 +3,28 @@
 title = "BicliModel Configuration"
 
 [ssh] #公開鍵のパスとファイル名
-key_dir = ".sshkey"
-auth_keys_filename = "authorized_keys.pub"
+KEY_DIR = ".sshkey"
+AUTH_KEYS_FILENAME = "authorized_keys.pub"
 
 [security]
-pbkdf2_rounds = 100000 # パスワードハッシュのストレチッング数
+pbkdf2_rounds = 100000   # パスワードハッシュのストレチッング数
+ID_MIN_LENGTH = 3        #IDの最小文字数
+ID_MAX_LENGTH = 20       #IDの最大文字数
+PASSWORD_MIN_LENGTH = 8  #パスワードの最小文字数
+PASSWORD_MAX_LENGTH = 64 #パスワードの最大文字数
 
 [server]
 BIND_HOST = "0.0.0.0"
 NORMAL_BIND_PORT_START = 50001        # 通常接続用ポートの開始番号
 NORMAL_SSH_PORT_COUNT = 1             # 通常接続のポート数
-MAX_CONCURRENT_NORMAL_SSH_CLIENTS = 4 # 通常接続の同時接続可能クライアント数(0で無制限)
+MAX_CONCURRENT_NORMAL_SSH_CLIENTS = 4 # 通常接続の同時接続可能クライアント数 (0で無制限)
 DBNAME = "bbs.db"
 MAX_PASSWORD_ATTEMPTS = 3             # パスワード最大試行回数
-default_auth_menu_mode = "1"          # デフォルトの認証メニューモード(1-3)
-online_signup = true                  # オンラインサインアップを有効化するか否か
+DEFAULT_AUTH_MENU_MODE = "1"          # デフォルトの認証メニューモード (1-3)
+ONLINE_SIGNUP = true                  # オンラインサインアップを有効化するか否か
 
 [webapp]
-WEBAPP_KEY_PATH = '.sshkey/webapp_rsa.key' # webアプリのキー
+WEBAPP_KEY_PATH = ".sshkey/webapp_rsa.key" # webアプリのキー
 WEBAPP_BIND_PORT = 50000
 MAX_CONCURRENT_WEBAPP_CLIENTS = 4          # WebAppの同時接続可能クライアント数(0で無制限)
 WEBAPP_USER = 'user'                       # WebAppのデフォルトユーザー名 (本番環境では変更を推奨)

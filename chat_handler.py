@@ -260,8 +260,8 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                             data["users"].keys()) if data["users"] else "no user"
                         lock_status = f"Locked by {data.get('locked_by')}" if data.get(
                             "locked_by") else "Unlocked"
-                        # 後々chatroom.ymlからroom_idに対応するnameを取得して表示する予定。
-                        display_room_name_for_status = r_id  # TODO: chatroom.yml から正式名を取得
+                        # 後々chatroom.yamlからroom_idに対応するnameを取得して表示する予定。
+                        display_room_name_for_status = r_id  # TODO: chatroom.yaml から正式名を取得
                         util.send_text_by_key(chan, "chat.room_status", menu_mode,
                                               room_name=display_room_name_for_status,
                                               lock_status=lock_status, users=users_in_room)

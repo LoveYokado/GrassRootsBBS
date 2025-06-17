@@ -73,7 +73,7 @@ class Server(paramiko.ServerInterface):
         webapp_user = webapp_config.get('WEBAPP_USER')
         webapp_password = webapp_config.get('WEBAPP_PASSWORD')
         db_name = server_config.get('DBNAME')
-        pbkdf2_rounds = security_config.get('pbkdf2_rounds', 100000)
+        pbkdf2_rounds = security_config.get('PBKDF2_ROUNDS', 100000)
 
         if not db_name:
             logging.error("DB名が設定されていません")
@@ -143,10 +143,9 @@ class Server(paramiko.ServerInterface):
             return paramiko.AUTH_FAILED
 
         logging.info(f"公開鍵認証開始: ユーザ名'{username}' (鍵認証許可ユーザ)")
-
-        key_dir = ssh_config.get('key_dir', '.sshkey')
+        key_dir = ssh_config.get('KEY_DIR', '.sshkey')
         auth_keys_filename = ssh_config.get(
-            'auth_keys_filename', 'authorized_keys.pub')
+            'AUTH_KEYS_FILENAME', 'authorized_keys.pub')
         authorized_keys_path = os.path.join(key_dir, auth_keys_filename)
 
         try:
@@ -377,7 +376,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # 掲示板
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
             if current_loop_menu_mode in ('2', '3'):
-                bbs_config_path = "setting/bbs_mode3.yml"
+                bbs_config_path = "setting/bbs_mode3.yaml"
                 selected_item = hierarchical_menu.handle_hierarchical_menu(
                     chan, bbs_config_path, current_loop_menu_mode, menu_type="BBS",
                     dbname=dbname, enrich_boards=True)
@@ -393,7 +392,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                         f"階層メニュー(mode3):項目「{selected_item.get('name')}」(ID: {selected_item.get('id')}, Type: {selected_item.get('type')}) が選択されましたが、boardタイプではありません。")
             else:  # mode1またはmode2の場合は手書きメニュー
                 selected_board_id = manual_menu_handler.process_manual_menu(
-                    chan, dbname, login_id, current_loop_menu_mode, menu_config_path="setting/bbs_mode1.yml",
+                    chan, dbname, login_id, current_loop_menu_mode, menu_config_path="setting/bbs_mode1.yaml",
                     initial_menu_id="main_bbs_menu", menu_type="bbs")
 
                 if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
@@ -410,7 +409,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                     logging.info(f"手書きメニュー処理中に切断されました。")
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
-            chat_config_path = "setting/chatroom.yml"
+            chat_config_path = "setting/chatroom.yaml"
             selected_item = hierarchical_menu.handle_hierarchical_menu(
                 chan, chat_config_path, current_loop_menu_mode, menu_type="CHAT"
             )
@@ -437,10 +436,11 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                         f"項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。\r\n")
         # オンラインサインアップ(config.toml の online_signup 設定で有効/無効を切り替え)
         elif command == "l":
-            online_signup_enabled = util.app_config.get(
-                'server', {}).get('online_signup', False)
+            online_signup_enabled = util.app_config.get(  # serverセクションのキーを大文字に
+                'server', {}).get('ONLINE_SIGNUP', False)
             if online_signup_enabled:
-                util.handle_online_signup(chan, dbname, current_loop_menu_mode)
+                bbsmenu.handle_online_signup(
+                    chan, dbname, current_loop_menu_mode)
                 util.send_text_by_key(
                     chan, "top_menu.menu", current_loop_menu_mode)
             else:
@@ -485,7 +485,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
     server_config = util.app_config.get('server', {})
     security_config = util.app_config.get('security', {})
     db_name_from_config = server_config.get('DBNAME')
-    auth_menu_mode = server_config.get('default_auth_menu_mode', '1')
+    auth_menu_mode = server_config.get('DEFAULT_AUTH_MENU_MODE', '1')
     if auth_menu_mode not in ('1', '2', '3'):
         logging.warning("default_auth_menu_mode 設定値不正")
         auth_menu_mode = '1'
@@ -493,7 +493,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
     max_attempts = server_config.get('MAX_PASSWORD_ATTEMPTS', 3)
     pbkdf2_rounds = security_config.get('pbkdf2_rounds', 100000)
     if not db_name_from_config:
-        logging.error("DB名が設定ファイルにありません")
+        logging.error("DB名が設定ファイルにありません(authenticate_user)")
         if chan and chan.active:
             # サーバ設定エラー。シスオペに連絡してください
             util.send_text_by_key(
@@ -680,7 +680,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
                         logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
                         if chan.active:
                             util.send_text_by_key(
-                                chan, "auth.account_disabled", initial_user_menu_mode)  # このユーザは現在利用できません。
+                                chan, "auth.account_disabled", initial_user_menu_mode)
                         return
                     logging.info(
                         f"SSH認証ユーザー情報取得成功: {login_id},UserID:{user_id},Level:{user_level_val}")
@@ -689,7 +689,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
                         f"SSH鍵認証ユーザ '{login_id}'はDBに登録されていません ({addr})")
                     if chan.active:
                         util.send_text_by_key(
-                            chan, "auth.account_disabled", initial_user_menu_mode)  # このユーザは現在利用できません
+                            chan, "auth.account_disabled", initial_user_menu_mode)
                     return
             else:
                 logging.warning(f"通常接続でparamiko認証に失敗しました。 ({addr})")
@@ -790,7 +790,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
                 current_webapp_clients = max(0, current_webapp_clients-1)
                 _max_webapp_clients = util.app_config.get(
                     'server', {}).get('MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
-                logging.debug(
+                logging.info(
                     f"Webapp接続カウンタデクリメント: {current_webapp_clients}/{_max_webapp_clients}")
         else:
             with current_normal_ssh_clients_lock:
@@ -799,7 +799,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
                     0, current_normal_ssh_clients-1)
                 _max_normal_clients = util.app_config.get('server', {}).get(
                     'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', 0)
-                logging.debug(
+                logging.info(
                     f"通常SSH接続カウンタデクリメント: {current_normal_ssh_clients}/{_max_normal_clients}")
 
         # 正常ログオフでない場合、かつログイン成功していた場合のみ後処理を試みる
@@ -875,7 +875,7 @@ def wait_for_connections(sock, host_key, is_web_app_server):
                         continue
                     current_normal_ssh_clients += 1
                     # ログ出力のために再度設定値を取得
-                    logging.debug(
+                    logging.info(
                         f"通常SSH接続カウンタインクリメント: {current_normal_ssh_clients}/{_max_normal_clients}")
 
             # スレッド開始
@@ -907,7 +907,7 @@ def main():
     db_name_from_config = server_config.get('DBNAME')
     bind_host_from_config = server_config.get('BIND_HOST', '0.0.0.0')
     webapp_key_path_from_config = webapp_config.get(
-        'WEBAPP_KEY_PATH', 'test_rsa.key')
+        'WEBAPP_KEY_PATH', '.sshkey/webapp_rsa.key')
     webapp_bind_port_from_config = webapp_config.get('WEBAPP_BIND_PORT')
     normal_bind_port_from_config = server_config.get('NORMAL_BIND_PORT_START')
     NORMAL_SSH_PORT_COUNT_from_config = server_config.get(
