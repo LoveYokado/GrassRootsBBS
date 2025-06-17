@@ -1367,6 +1367,56 @@ bbs:
     mode_1: "** この掲示板に書き込む権限がありません **\r\n"
     mode_2: "** この掲示板に書き込む権限がありません **\r\n"
     mode_3: "** You do not have permission to write to this board **\r\n"
+auto_download:
+  start_message:
+    mode_1: ""
+    mode_2: "** 自動ダウンロードを開始します **"
+    mode_3: "** Starting auto download **."
+  no_exploration_list:
+    mode_1: ""
+    mode_2: "探索リストが設定されていません。"
+    mode_3: "Exploration list is not set."
+  board_header_format: # {board_name}
+    mode_1: "\";{shortcut_id}\"\r\n"
+    mode_2: "\";{shortcut_id}\"\r\n"
+    mode_3: "\";{shortcut_id}\"\r\n"
+  article_list_header: # 記事一覧の共通ヘッダ
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
+    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
+    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
+  article_info_format: # {article_number_str}, {r_date_str}, {r_time_str}, {sender_name_short}, {title_short}
+    mode_1: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<7}  {title_short}"
+    mode_2: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<7}  {title_short}"
+    mode_3: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<7}  {title_short}"
+
+  article_header_format: # {article_number}, {title}, {sender_name}, {created_at_str}
+    mode_1: ""
+    mode_2: "記事番号: {article_number}\r\nタイトル: {title}\r\n投稿者: {sender_name}\r\n投稿日時: {created_at_str}\r\n"
+    mode_3: "Article No: {article_number}\r\nTitle: {title}\r\nSender: {sender_name}\r\nDate: {created_at_str}\r\n"
+  article_body_prefix: # 本文表示前の改行
+    mode_1: "\r\n"
+    mode_2: "\r\n"
+    mode_3: "\r\n"
+  no_new_articles_in_board:
+    mode_1: ""
+    mode_2: "  (この掲示板に新しい記事はありません)\r\n"
+    mode_3: "  (No new articles on this board)\r\n"
+  no_new_articles_total:
+    mode_1: ""
+    mode_2: "新しい記事はありませんでした。\r\n"
+    mode_3: "No new articles found.\r\n"
+  complete_message:
+    mode_1: ""
+    mode_2: "自動ダウンロードが完了しました。\r\n"
+    mode_3: "Auto download complete.\r\n"
+  error_board_not_found: # {shortcut_id}
+    mode_1: ""
+    mode_2: "掲示板「{shortcut_id}」が見つかりませんでした。\r\n"
+    mode_3: "Board '{shortcut_id}' not found.\r\n"
+  error_permission_denied: # {board_name}
+    mode_1: ""
+    mode_2: "掲示板「{board_name}」の閲覧権限がありません。\r\n"
+    mode_3: "Permission denied to view board '{board_name}'.\r\n"
 online_signup:
   guidance:
     mode_1: |
@@ -1403,10 +1453,12 @@ online_signup:
       登録を受け付けました。
       仮パスワードは「{temp_password}」です。
       ログイン後、速やかにパスワードを変更してください。
+      セキュリティ的にはSSH暗号鍵形式への変更をおすすめします。
     mode_2: |
       登録を受け付けました。
       仮パスワードは「{temp_password}」です。
       ログイン後、速やかにパスワードを変更してください。
+      SSH暗号鍵形式への変更をおすすめします。
     mode_3: |
       Registration accepted.
       Your temporary password is "{temp_password}".
@@ -1423,6 +1475,19 @@ online_signup:
     mode_1: "** オンラインサインアップをキャンセルしました。 **\r\n"
     mode_2: "** オンラインサインアップをキャンセルしました。 **\r\n"
     mode_3: "** Online signup cancelled. **\r\n"
+  error_id_length: # {min_len}, {max_len}
+    mode_1: "** IDは {min_len} 文字以上 {max_len} 文字以下で入力してください。 **\r\n"
+    mode_2: "** IDは {min_len} 文字以上 {max_len} 文字以下で入力してください。 **\r\n"
+    mode_3: "** ID must be between {min_len} and {max_len} characters. **\r\n"
+  error_password_length: # {min_len}, {max_len}
+    mode_1: "** パスワードは {min_len} 文字以上 {max_len} 文字以下で入力してください。 **\r\n"
+    mode_2: "** パスワードは {min_len} 文字以上 {max_len} 文字以下で入力してください。 **\r\n"
+    mode_3: "** Password must be between {min_len} and {max_len} characters. **\r\n"
+  error_id_invalid_chars: # (もし文字種制限も入れるなら)
+    mode_1: "** IDには使用できない文字が含まれています。英数字のみ使用可能です。 **\r\n"
+    mode_2: "** IDには使用できない文字が含まれています。英数字のみ使用可能です。 **\r\n"
+    mode_3: "** ID contains invalid characters. Only alphanumeric characters are allowed. **\r\n"
+
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)

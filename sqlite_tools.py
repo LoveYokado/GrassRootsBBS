@@ -800,3 +800,21 @@ def get_oldest_unread_mail(dbname, recipient_user_id_pk):
     results = sqlite_execute_query(
         dbname, sql, (recipient_user_id_pk,), fetch=True)
     return results[0] if results else None
+
+
+def get_new_articles_for_board(dbname, board_id_pk, last_login_timestamp):
+    """
+    指定された掲示板の、指定時刻以降の未削除記事を取得する。
+    last_login_timestamp が 0 または None の場合は、全ての未削除記事を取得する。
+    """
+    params = [board_id_pk]
+    sql = """
+    SELECT id,article_number,user_id,title,body,created_at
+    FROM articles
+    WHERE board_id=? AND is_deleted=0
+    """
+    if last_login_timestamp and last_login_timestamp > 0:
+        sql += " AND created_at > ?"
+        params.append(last_login_timestamp)
+    sql += " ORDER BY created_at ASC"
+    return sqlite_execute_query(dbname, sql, tuple(params), fetch=True)

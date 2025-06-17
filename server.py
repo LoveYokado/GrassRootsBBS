@@ -317,6 +317,15 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
 
+        # 自動ダウンロード
+        # BBS閲覧権限があれば使用可能
+        elif command == "a" and userlevel >= server_pref_dict.get("bbs", 1):
+            bbsmenu._handle_auto_download(
+                chan, dbname, login_id, user_id, userlevel, current_loop_menu_mode)
+            # 表示後はトップメニューを再表示
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
+
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
             # シスオペメニュー(menu_mode)

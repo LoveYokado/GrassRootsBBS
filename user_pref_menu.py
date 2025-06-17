@@ -496,7 +496,8 @@ def register_exploration_list(chan, dbname, login_id, current_menu_mode):
         if not item_input.strip():
             break
 
-        exploration_items.append(item_input.strip())
+        cleaned_item_input = item_input.strip().lstrip(':').lstrip(';')
+        exploration_items.append(cleaned_item_input)
         item_number += 1
 
     if not exploration_items:  # 何も入力されなかった場合

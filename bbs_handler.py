@@ -412,7 +412,7 @@ class CommandHandler:
                     r_date_str = datetime.datetime.fromtimestamp(
                         created_at_ts).strftime("%y/%m/%d")
                     r_time_str = datetime.datetime.fromtimestamp(
-                        created_at_ts).strftime("%H:%M")
+                        created_at_ts).strftime("%H:%M:%S")
                 except:
                     r_date_str = "--/--/--"
                     r_time_str = "--:--"
@@ -442,7 +442,7 @@ class CommandHandler:
                 article_no_str = f"{article['article_number']:0{article_id_width}d}"
 
                 self.chan.send(
-                    f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}{spaces_before_title_field}{deleted_mark}{title_short}\r\n".encode('utf-8'))
+                    f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<7}{spaces_before_title_field}{deleted_mark}{title_short}\r\n".encode('utf-8'))
             else:
                 util.send_text_by_key(
                     self.chan, "bbs.no_article", self.menu_mode)
@@ -963,12 +963,12 @@ class CommandHandler:
                         r_date_str = datetime.datetime.fromtimestamp(
                             created_at_ts).strftime('%y/%m/%d')
                         r_time_str = datetime.datetime.fromtimestamp(
-                            created_at_ts).strftime('%H:%M')
+                            created_at_ts).strftime('%H:%M:%S')
                     except:
                         r_date_str = "----/--/--"
                         r_time_str = "--:--"
                     self.chan.send(
-                        f"{article_no_str}  {r_date_str} {r_time_str}    {user_name_short:<7}{spaces_before_title_field_list}{deleted_mark_list}{title_short}\r\n".encode('utf-8'))
+                        f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<7}{spaces_before_title_field_list}{deleted_mark_list}{title_short}\r\n".encode('utf-8'))
                 self.chan.send(b'\r\n')  # タイトル一覧の最後に空行
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
@@ -1433,7 +1433,7 @@ class CommandHandler:
                 self.dbname, article['user_id'])
             try:
                 created_at_str = datetime.datetime.fromtimestamp(
-                    article['created_at']).strftime("%Y-/%m-/%d %H:%M:%S")
+                    article['created_at']).strftime("%Y/%m/%d %H:%M:%S")
             except:
                 created_at_str = "----/--/-- --:--:--"
 
