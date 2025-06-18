@@ -284,6 +284,17 @@ class CommandHandler:
         if kanban_title or kanban_body:
             self.chan.send(b'\r\n')
 
+    def display_board_entry_sequence(self):
+        """掲示板に入った際の初期表示(ヘッダと看板)"""
+        if not self.current_board:
+            logging.error("現在のボードが設定されていません。")
+            return
+        board_name_display = self.currnt_board['name'] if 'name' in self.current_board else 'unknown board'
+        util.send_text_by_key(
+            self.chan, "bbs.current_board_header", self.menu_mode, board_name=board_name_display
+        )
+        self._display_kanban()
+
     def command_loop(self):
         """コマンド処理のメインループ (mail_handler.py を参考に実装)"""
         if not self.current_board:
@@ -327,7 +338,7 @@ class CommandHandler:
                 util.send_text_by_key(
                     self.chan, "common_messages.invalid_command", self.menu_mode)
 
-    def show_article_list(self):
+    def show_article_list(self, display_initial_header=True):
         """記事一覧を表示"""
         if not self.current_board:
             util.send_text_by_key(
@@ -349,7 +360,7 @@ class CommandHandler:
         # show_deleted_articles 変数はここでは直接使わない
 
         def reload_articles_display(keep_index=True):
-            nonlocal articles, current_index, article_id_width
+            nonlocal articles, current_index, article_id_width, display_initial_header
             current_article_id_on_reload = None
             if articles and 0 <= current_index < len(articles) and keep_index:
                 current_article_id_on_reload = articles[current_index]['id']
@@ -374,14 +385,17 @@ class CommandHandler:
             current_index = new_idx
 
             # 画面クリアしてヘッダ再表示
-            util.send_text_by_key(
-                self.chan, "bbs.article_list_header", self.menu_mode)
+            if display_initial_header:
+                util.send_text_by_key(
+                    self.chan, "bbs.article_list_header", self.menu_mode)
             if not articles:
                 util.send_text_by_key(
                     self.chan, "bbs.no_article", self.menu_mode)
                 current_index = 0  # 記事がなかったらインデックスは0
             else:
                 display_current_article_header()
+
+            display_initial_header = True
 
         def display_current_article_header():
             nonlocal articles, current_index, article_id_width

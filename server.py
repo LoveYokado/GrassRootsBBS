@@ -325,6 +325,15 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
 
+        # 新アーティクル探索
+        elif command == "n" and userlevel >= server_pref_dict.get("bbs", 1):
+            bbsmenu._handle_explore_new_articles(
+                chan, dbname, login_id, user_id, userlevel, current_loop_menu_mode
+            )
+            # 表示後はトップメニューを再表示
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
+
         # シスオペメニュー
         elif command == "s" and userlevel >= 5:
             # シスオペメニュー(menu_mode)

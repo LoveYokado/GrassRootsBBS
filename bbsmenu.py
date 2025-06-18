@@ -260,3 +260,72 @@ def _handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, use
             chan, "auto_download.no_new_articles_total", menu_mode)
 
     util.send_text_by_key(chan, "auto_download.complete_message", menu_mode)
+
+
+def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
+    """新アーティクル探索"""
+    util.send_text_by_key(
+        chan, "explore_new_articles.start_message", menu_mode
+    )
+
+    # 探索リスト取得
+    exploration_list_str = sqlite_tools.get_user_exploration_list(
+        dbname, user_id_pk)
+    if not exploration_list_str:
+        server_prefs = sqlite_tools.read_server_pref(dbname)
+        if server_prefs and len(server_prefs) > 6:
+            exploration_list_str = server_prefs[6]
+
+    if not exploration_list_str:
+        util.send_text_by_key(
+            chan, "auto_download.no_exploration_list", menu_mode)
+        return
+
+    board_shortcut_ids = [sid.strip()
+                          for sid in exploration_list_str.split(',') if sid.strip()]
+    if not board_shortcut_ids:
+        util.send_text_by_key(
+            chan, "auto_download.no_exploration_list", menu_mode)
+        return
+
+    for i, shortcut_id in enumerate(board_shortcut_ids):
+        board_info_db = sqlite_tools.get_board_by_shortcut_id(
+            dbname, shortcut_id)
+
+        if not board_info_db:
+            util.send_text_by_key(
+                chan, "auto_download.error_board_not_found", menu_mode, shortcut_id=shortcut_id)
+            continue
+
+        util.send_text_by_key(chan, "explore_new_articles.entering_board", menu_mode,
+                              shortcut_id=shortcut_id, current_num=i+1, total_num=len(board_shortcut_ids))
+
+        # commandhandlerを直接使用して記事一覧表示
+        handler = bbs_handler.CommandHandler(chan, dbname, login_id, menu_mode)
+        handler.current_board = board_info_db
+
+        # ショートカットID表示 (新アーティクル見出しと同様の形式)
+        logging.info(f"ショートカットID: {shortcut_id}")
+        util.send_text_by_key(
+            chan, "new_article_headlines.board_id_header_format", menu_mode, shortcut_id=shortcut_id)
+
+        chan.send(
+            # デバッグ用表示
+            f"DEBUG: Shortcut ID should be displayed for {shortcut_id}\r\n".encode())
+
+        # 記事一覧表示
+        board_list_result = handler.show_article_list()
+
+        if not chan.active:
+            logging.info(
+                f"新アーティクル探索中にユーザ {login_id} が切断されました 掲示板: {shortcut_id}")
+            return
+
+        # chanがアクティブでboard_list_resultがNoneの場合、ユーザーが正常にボードを抜けたと判断し次の掲示板へ進む
+
+        if i < len(board_shortcut_ids)-1:
+            util.send_text_by_key(
+                chan, "explore_new_articles.moving_to_next", menu_mode)
+
+    util.send_text_by_key(
+        chan, "explore_new_articles.complete_message", menu_mode)

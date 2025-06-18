@@ -1487,7 +1487,27 @@ online_signup:
     mode_1: "** IDには使用できない文字が含まれています。英数字のみ使用可能です。 **\r\n"
     mode_2: "** IDには使用できない文字が含まれています。英数字のみ使用可能です。 **\r\n"
     mode_3: "** ID contains invalid characters. Only alphanumeric characters are allowed. **\r\n"
-
+explore_new_articles:
+  start_message:
+    mode_1: ""
+    mode_2: "新アーティクル探索を開始します..."
+    mode_3: "Starting new article exploration..."
+  entering_board:
+    mode_1: "\";{shortcut_id}\"" 
+    mode_2: "\";{shortcut_id}\"を探索中 ({current_num}/{total_num}) ... " 
+    mode_3: "Exploring \"{shortcut_id}\" ({current_num}/{total_num}) ... "
+  moving_to_next:
+    mode_1: ""
+    mode_2: "次の掲示板へ移動します..."
+    mode_3: "Moving to the next board..."
+  aborted_by_user_to_top:
+    mode_1: ""
+    mode_2: "探索を中断し、トップメニューに戻ります。"
+    mode_3: "Exploration aborted. Returning to top menu."
+  complete_message:
+    mode_1: ""
+    mode_2: "新アーティクル探索が完了しました。"
+    mode_3: "New article exploration completed."
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)
