@@ -304,17 +304,13 @@ def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: i
         handler = bbs_handler.CommandHandler(chan, dbname, login_id, menu_mode)
         handler.current_board = board_info_db
 
-        # ショートカットID表示 (新アーティクル見出しと同様の形式)
-        logging.info(f"ショートカットID: {shortcut_id}")
-        util.send_text_by_key(
-            chan, "new_article_headlines.board_id_header_format", menu_mode, shortcut_id=shortcut_id)
-
-        chan.send(
-            # デバッグ用表示
-            f"DEBUG: Shortcut ID should be displayed for {shortcut_id}\r\n".encode())
+        # 記事一覧の共通ヘッダーを表示
+        util.send_text_by_key(chan, "bbs.article_list_header", menu_mode)
 
         # 記事一覧表示
-        board_list_result = handler.show_article_list()
+        # bbs_handler.py 側でのヘッダ表示を抑制するため display_initial_header=False を渡す
+        board_list_result = handler.show_article_list(
+            display_initial_header=False)
 
         if not chan.active:
             logging.info(
@@ -329,3 +325,108 @@ def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: i
 
     util.send_text_by_key(
         chan, "explore_new_articles.complete_message", menu_mode)
+
+
+def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
+    """新アーティクル見出し表示"""
+    util.send_text_by_key(
+        chan, "new_article_headlines.start_message", menu_mode)
+
+    # 探索リスト取得(TODO:これ、後で関数化出来そうだな)
+    exploration_list_str = sqlite_tools.get_user_exploration_list(
+        dbname, user_id_pk)
+    if not exploration_list_str:
+        server_prefs = sqlite_tools.read_server_pref(dbname)
+        if server_prefs and len(server_prefs) > 6 and server_prefs:
+            exploration_list_str = server_prefs[6]
+
+    if not exploration_list_str:
+        util.send_text_by_key(
+            chan, "auto_download.no_exploration_list", menu_mode)
+        util.send_text_by_key(
+            chan, "new_article_headlines.end_message", menu_mode)
+        return
+
+    board_shortcut_ids = [sid.strip()
+                          for sid in exploration_list_str.split(',') if sid.strip()]
+    if not board_shortcut_ids:
+        util.send_text_by_key(
+            chan, "auto_download.no_exploration_list", menu_mode)
+        util.send_text_by_key(
+            chan, "new_article_headlines.end_message", menu_mode)
+        return
+
+    # 最終ログイン時刻取得（TODO:これも関数化できるなぁ）
+    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+    last_login_timestamp = 0
+    if user_data and 'lastlogin' in user_data.keys() and user_data['lastlogin']:
+        last_login_timestamp = user_data['lastlogin']
+
+    # enumerate を使ってインデックスを取得
+    for i, shortcut_id in enumerate(board_shortcut_ids):
+        board_info_db = sqlite_tools.get_board_by_shortcut_id(
+            dbname, shortcut_id)
+        if not board_info_db:
+            # 掲示板が見つからないときはスキップ
+            logging.debug(f"新アーティクル見出し: 掲示板 {shortcut_id} は見つかりません。")
+            continue
+
+        board_id_pk = board_info_db['id']
+        # 権限チェック
+        permission_manager = bbs_handler.PermissionManager(dbname)
+        if not permission_manager.can_view_board(board_info_db, user_id_pk, user_level):
+            # 権限がないときはスキップ
+            logging.debug(
+                f"新アーティクル見出し: ユーザー {login_id} は掲示板 {shortcut_id} を閲覧する権限がありません。")
+            continue
+
+        # 未読を取得
+        new_articles = sqlite_tools.get_new_articles_for_board(
+            dbname, board_id_pk, last_login_timestamp)
+        if not new_articles:
+            continue  # 未読がなければスキップ
+
+        # 探索中メッセージ表示 (Nキーの探索と同じ形式のメッセージキーを使用)
+        util.send_text_by_key(
+            chan, "explore_new_articles.entering_board", menu_mode, shortcut_id=shortcut_id, current_num=i+1, total_num=len(board_shortcut_ids))
+
+        # 記事一覧の共通ヘッダーを表示
+        util.send_text_by_key(chan, "bbs.article_list_header", menu_mode)
+
+        # 記事詳細を表示
+        for article in new_articles:
+            sender_name = sqlite_tools.get_user_name_from_user_id(
+                dbname, article['user_id'])
+            sender_name_short = textwrap.shorten(
+                sender_name if sender_name else "(Unknown)", width=7, placeholder="..")
+
+            created_at_str_date = "Unknown date"
+            created_at_str_time = "Unknown time"
+            try:
+                if article['created_at']:
+                    dt_obj = datetime.datetime.fromtimestamp(
+                        article['created_at'])
+                    created_at_str_date = dt_obj.strftime("%y/%m/%d")
+                    created_at_str_time = dt_obj.strftime("%H:%M:%S")
+            except (OSError, TypeError, ValueError):
+                pass
+
+            # 記事番号
+            article_number_str = f"{article['article_number']:05d}"
+            title_str = article['title'] if article['title'] else "(No Title)"
+            # タイトル短縮
+            title_short_str = textwrap.shorten(
+                title_str, width=43, placeholder="...")
+
+            # 表示
+            util.send_text_by_key(
+                chan, "auto_download.article_info_format", menu_mode,
+                article_number_str=article_number_str,
+                r_date_str=created_at_str_date,
+                r_time_str=created_at_str_time,
+                sender_name_short=sender_name_short,
+                title_short=title_short_str)
+        chan.send(b'\r\n')  # 各掲示板の最後に空行を追加
+
+    util.send_text_by_key(
+        chan, "new_article_headlines.end_message", menu_mode)

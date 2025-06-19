@@ -1494,7 +1494,7 @@ explore_new_articles:
     mode_3: "Starting new article exploration..."
   entering_board:
     mode_1: "\";{shortcut_id}\"" 
-    mode_2: "\";{shortcut_id}\"を探索中 ({current_num}/{total_num}) ... " 
+    mode_2: "\";{shortcut_id}\"を探索中 ({current_num}/{total_num}) ... "
     mode_3: "Exploring \"{shortcut_id}\" ({current_num}/{total_num}) ... "
   moving_to_next:
     mode_1: ""
@@ -1508,6 +1508,33 @@ explore_new_articles:
     mode_1: ""
     mode_2: "新アーティクル探索が完了しました。"
     mode_3: "New article exploration completed."
+
+new_article_headlines:
+  start_message:
+    mode_1: ""
+    mode_2: "新アーティクル見出しの表示を開始します..."
+    mode_3: "Starting new article headline display..."
+  board_info_format: # {shortcut_id} と {unread_count} を使用
+    mode_1: "\";{shortcut_id}\"" 
+    mode_2: "\";{shortcut_id}\" ({unread_count}件)"
+    mode_3: "\";{shortcut_id}\" ({unread_count} articles)"
+  no_new_articles_total:
+    mode_1: ""
+    mode_2: "探索リスト内の掲示板に新しい記事はありませんでした。"
+    mode_3: "No new articles found in the boards on your exploration list."
+  end_message:
+    mode_1: ""
+    mode_2: "新アーティクル見出しの表示を終了しました。"
+    mode_3: "Finished displaying new article headlines."
+  board_id_header_format: # これは _handle_explore_new_articles で使用
+    mode_1: ";{shortcut_id}"
+    mode_2: ";{shortcut_id}"
+    mode_3: ";{shortcut_id}"
+  article_title_format:
+    mode_1: "  {title}"
+    mode_2: "  {title}"
+    mode_3: "  {title}"
+
 # --- ログオフ関連 ---
 logoff:
   message: # ログオフメッセージ (util.show_textsfile で使われている想定)
