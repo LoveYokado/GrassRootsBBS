@@ -288,6 +288,12 @@ def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: i
             chan, "auto_download.no_exploration_list", menu_mode)
         return
 
+    # 最終ログイン時刻取得
+    user_data_for_n = sqlite_tools.get_user_auth_info(dbname, login_id)
+    last_login_timestamp_for_n = 0
+    if user_data_for_n and 'lastlogin' in user_data_for_n.keys() and user_data_for_n['lastlogin']:
+        last_login_timestamp_for_n = user_data_for_n['lastlogin']
+
     for i, shortcut_id in enumerate(board_shortcut_ids):
         board_info_db = sqlite_tools.get_board_by_shortcut_id(
             dbname, shortcut_id)
@@ -295,6 +301,11 @@ def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: i
         if not board_info_db:
             util.send_text_by_key(
                 chan, "auto_download.error_board_not_found", menu_mode, shortcut_id=shortcut_id)
+            continue
+
+        potential_new_articles = sqlite_tools.get_new_articles_for_board(
+            dbname, board_info_db['id'], last_login_timestamp_for_n)
+        if not potential_new_articles:
             continue
 
         util.send_text_by_key(chan, "explore_new_articles.entering_board", menu_mode,
@@ -309,8 +320,8 @@ def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: i
 
         # 記事一覧表示
         # bbs_handler.py 側でのヘッダ表示を抑制するため display_initial_header=False を渡す
-        board_list_result = handler.show_article_list(
-            display_initial_header=False)
+        handler.show_article_list(display_initial_header=False,
+                                  last_login_timestamp=last_login_timestamp_for_n)
 
         if not chan.active:
             logging.info(
@@ -327,6 +338,72 @@ def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: i
         chan, "explore_new_articles.complete_message", menu_mode)
 
 
+def _handle_full_sig_exploration(chan, dbname: str, login_id: str, user_id_pk: int, user_level: int, menu_mode: str, default_exploration_list_str: str):
+    """全シグ探索 (共通探索リストを使用)"""
+    util.send_text_by_key(
+        chan, "full_sig_exploration.start_message", menu_mode
+    )
+
+    # 引数で渡された共通探索リストを使用
+    exploration_list_str = default_exploration_list_str
+
+    if not exploration_list_str:
+        util.send_text_by_key(
+            chan, "full_sig_exploration.no_default_exploration_list", menu_mode)
+        return
+
+    board_shortcut_ids = [sid.strip()
+                          for sid in exploration_list_str.split(',') if sid.strip()]
+    if not board_shortcut_ids:
+        util.send_text_by_key(
+            chan, "full_sig_exploration.no_default_exploration_list", menu_mode)
+        return
+
+    # 最終ログイン時刻取得 (N機能と同じ)
+    user_data_for_x = sqlite_tools.get_user_auth_info(dbname, login_id)
+    last_login_timestamp_for_x = 0
+    if user_data_for_x and 'lastlogin' in user_data_for_x.keys() and user_data_for_x['lastlogin']:
+        last_login_timestamp_for_x = user_data_for_x['lastlogin']
+
+    for i, shortcut_id in enumerate(board_shortcut_ids):
+        board_info_db = sqlite_tools.get_board_by_shortcut_id(
+            dbname, shortcut_id)
+
+        if not board_info_db:
+            util.send_text_by_key(
+                chan, "auto_download.error_board_not_found", menu_mode, shortcut_id=shortcut_id)
+            continue
+
+        # 未読記事があるか事前にチェック (N機能と同じ)
+        potential_new_articles = sqlite_tools.get_new_articles_for_board(
+            dbname, board_info_db['id'], last_login_timestamp_for_x)
+        if not potential_new_articles:
+            continue
+
+        util.send_text_by_key(
+            chan, "full_sig_exploration.entering_board", menu_mode, shortcut_id=shortcut_id, current_num=i+1, total_num=len(board_shortcut_ids))
+
+        handler = bbs_handler.CommandHandler(chan, dbname, login_id, menu_mode)
+        handler.current_board = board_info_db
+
+        util.send_text_by_key(chan, "bbs.article_list_header", menu_mode)
+
+        handler.show_article_list(display_initial_header=False,
+                                  last_login_timestamp=last_login_timestamp_for_x)
+
+        if not chan.active:
+            logging.info(
+                f"全シグ探索中にユーザ {login_id} が切断されました 掲示板: {shortcut_id}")
+            return
+
+        if i < len(board_shortcut_ids)-1:
+            util.send_text_by_key(
+                chan, "full_sig_exploration.moving_to_next", menu_mode)
+
+    util.send_text_by_key(
+        chan, "full_sig_exploration.complete_message", menu_mode)
+
+
 def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
     """新アーティクル見出し表示"""
     util.send_text_by_key(
@@ -337,7 +414,8 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
         dbname, user_id_pk)
     if not exploration_list_str:
         server_prefs = sqlite_tools.read_server_pref(dbname)
-        if server_prefs and len(server_prefs) > 6 and server_prefs:
+        # server_prefs[6] が default_exploration_list
+        if server_prefs and len(server_prefs) > 6 and server_prefs[6]:
             exploration_list_str = server_prefs[6]
 
     if not exploration_list_str:

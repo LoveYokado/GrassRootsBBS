@@ -334,6 +334,17 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
 
+        # 全シグ探索 (X) - BBS閲覧権限があれば使用可能
+        elif command == "x" and userlevel >= server_pref_dict.get("bbs", 1):
+            default_exploration_list = server_pref_dict.get(
+                "default_exploration_list", "")
+            bbsmenu._handle_full_sig_exploration(
+                chan, dbname, login_id, user_id, userlevel, current_loop_menu_mode, default_exploration_list
+            )
+            # 表示後はトップメニューを再表示
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
+
         elif command == "o" and userlevel >= server_pref_dict.get("bbs", 1):
 
             bbsmenu.handle_new_article_headlines(

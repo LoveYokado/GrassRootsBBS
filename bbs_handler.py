@@ -338,7 +338,7 @@ class CommandHandler:
                 util.send_text_by_key(
                     self.chan, "common_messages.invalid_command", self.menu_mode)
 
-    def show_article_list(self, display_initial_header=True):
+    def show_article_list(self, display_initial_header=True, last_login_timestamp=0):
         """記事一覧を表示"""
         if not self.current_board:
             util.send_text_by_key(
@@ -369,6 +369,14 @@ class CommandHandler:
                 board_id_pk, include_deleted=True)  # 常に削除済み記事も取得
             articles = fetched_articles if fetched_articles else []
 
+            # last_login_timestamp 以降の記事にジャンプする
+            initial_jump_index = 0
+            if articles and last_login_timestamp > 0:
+                for i, art in enumerate(articles):
+                    if art['created_at'] > last_login_timestamp:
+                        initial_jump_index = i
+                        break
+
             new_idx = 0
             if articles and keep_index:
                 if keep_index and current_article_id_on_reload is not None:
@@ -380,8 +388,13 @@ class CommandHandler:
                             break
                     if not found:
                         new_idx = 0
+            elif articles:  # keep_index が False の場合、または current_article_id_on_reload が None の場合 last_login_timestamp に基づくインデックスを使用
+                new_idx = initial_jump_index
             article_id_width = max(
                 5, len(str(len(articles)))) if articles else 5
+            logging.debug(
+                # デバッグログ追加
+                f"BBS_HANDLER: last_login_timestamp={last_login_timestamp}, initial_jump_index={initial_jump_index}, new_idx={new_idx}, keep_index={keep_index}, num_articles={len(articles)}")
             current_index = new_idx
 
             # 画面クリアしてヘッダ再表示
