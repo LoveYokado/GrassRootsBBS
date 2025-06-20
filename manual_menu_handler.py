@@ -88,9 +88,17 @@ def process_manual_menu(chan, dbname: str, login_id: str, menu_mode: str, menu_c
         current_menu_data = menu_config[current_menu_id]
         _display_manual_menu(chan, current_menu_data, menu_mode)
 
-        prompt_key = current_menu_data.get(
-            "prompt_key", "common_messages.select_prompt")
-        util.send_text_by_key(chan, prompt_key, menu_mode, add_newline=False)
+        # デフォルトのプロンプトキー
+        default_prompt_key = "common_messages.select_prompt"
+        # BBSのトップメニューの場合にプロンプトキーを上書き
+        if menu_config_path == "setting/bbs_mode1.yaml" and current_menu_id == initial_menu_id and initial_menu_id == "main_bbs_menu":
+            prompt_key_to_use = "prompt.bbs_top"
+        else:
+            prompt_key_to_use = current_menu_data.get(
+                "prompt_key", default_prompt_key)
+
+        util.send_text_by_key(chan, prompt_key_to_use,
+                              menu_mode, add_newline=False)
         user_input_raw = ssh_input.process_input(chan)
 
         if user_input_raw is None:

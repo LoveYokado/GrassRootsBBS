@@ -1574,6 +1574,10 @@ prompt:
     mode_1: "選択してください ( [RET] 戻る [?] ヘルプ ) : "
     mode_2: "[{menu_name}({hierarchy})]選択してください: "
     mode_3: "[{menu_name}({hierarchy})]Select( [RET] BACK ) > "
+  bbs_top:
+    mode_1: "選択してください([RET] 戻る): "
+    mode_2: "選択してください([RET] 戻る): "
+    mode_3: "Select( [RET] BACK ) > "
 # ** 探索リストは登録されていません **¥n
 # ** 探索リストに登録します **¥n
 # この内容でよいですか ( Y または N ) : 
