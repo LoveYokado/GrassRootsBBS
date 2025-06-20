@@ -1578,6 +1578,11 @@ prompt:
     mode_1: "選択してください([RET] 戻る): "
     mode_2: "選択してください([RET] 戻る): "
     mode_3: "Select( [RET] BACK ) > "
+  bbs_wrdate:
+    mode_1: "選択してください([W]書く [R]読む [yy-mm-dd]日付) : "
+    mode_2: "選択してください([W]書く [R]読む [yy-mm-dd]日付) : " 
+    mode_3: "Select( [W] WRITE [R] READ [yy-mm-dd] DATE ) > "
+
 # ** 探索リストは登録されていません **¥n
 # ** 探索リストに登録します **¥n
 # この内容でよいですか ( Y または N ) : 

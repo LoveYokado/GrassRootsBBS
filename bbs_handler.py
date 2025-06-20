@@ -340,7 +340,7 @@ class CommandHandler:
         while True:
             # メニュー表示
             util.send_text_by_key(
-                self.chan, "bbs.main_prompt", self.menu_mode, add_newline=False
+                self.chan, "prompt.bbs_wrdate", self.menu_mode, add_newline=False
             )
             choice = ssh_input.process_input(self.chan)
             if choice is None:
