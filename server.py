@@ -114,7 +114,7 @@ class Server(paramiko.ServerInterface):
     def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
 
         # ターミナルタイプをログに出力(debug用)
-        logging.info(
+        logging.debug(
             f"PTY request: term='{term}', width={width}, height={height}, modes={modes}")
 
         return True  # PTY リクエストを許可
@@ -388,6 +388,13 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             # userpref_menu は変更後のメニューモード('1','2','3')または"back_to_top"、Noneを返す
             user_pref_result = user_pref_menu.userpref_menu(  # 結果を user_pref_result に代入
                 chan, dbname, login_id, current_loop_menu_mode)
+
+            # After returning from user_pref_menu, reload user data to get the latest lastlogin
+            # This is important because user_pref_menu might update lastlogin or menu_mode
+            reloaded_user_data = sqlite_tools.get_user_auth_info(
+                dbname, login_id)
+            # reloaded_user_data を使って何かをする必要があればここに記述
+            # 現状は、次に CommandHandler がインスタンス化される際に最新情報が使われることを期待
 
             if user_pref_result in ('1', '2', '3'):  # 有効なメニューモード文字列が返ってきた場合
                 current_loop_menu_mode = user_pref_result  # current_loop_menu_mode を更新

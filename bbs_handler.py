@@ -256,6 +256,27 @@ class CommandHandler:
             dbname, login_id)
         self.userlevel = sqlite_tools.get_user_level_from_user_id(
             dbname, self.user_id_pk)
+        # ユーザーの最終ログイン時刻を初期化時に取得
+        user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+        self.last_login_timestamp = 0
+
+        if user_data:
+            if 'lastlogin' in user_data.keys():  # キーの存在確認を .keys() に対して行う
+                if user_data['lastlogin'] is not None:  # None でないことを確認
+                    try:
+                        # lastlogin は INTEGER 型のはずなので、そのまま代入
+                        self.last_login_timestamp = int(user_data['lastlogin'])
+                    except (ValueError, TypeError):
+                        logging.warning(
+                            f"CommandHandler.__init__: lastlogin field for user {login_id} is not a valid integer: {user_data['lastlogin']}. Defaulting to 0.")
+                        self.last_login_timestamp = 0  # 変換失敗時は0
+                # else: user_data['lastlogin'] が None の場合は self.last_login_timestamp はデフォルトの 0 のまま
+            else:
+                logging.warning(
+                    f"CommandHandler.__init__: 'lastlogin' key NOT FOUND in user_data.keys() for {login_id}. Available keys: {user_data.keys() if user_data else 'user_data is None'}")
+        else:
+            logging.warning(
+                f"CommandHandler.__init__: user_data is None for {login_id}.")
 
     def _display_kanban(self):
         """看板を表示する"""
@@ -330,7 +351,8 @@ class CommandHandler:
                 self.write_article()
                 return  # command_loop を抜けて handle_bbs_menu に戻る
             elif choice == 'r':
-                self.show_article_list()
+                self.show_article_list(
+                    last_login_timestamp=self.last_login_timestamp)
                 return  # command_loop を抜けて handle_bbs_menu に戻る
             elif choice == 'e' or choice == '':
                 return "empty_exit"
@@ -360,7 +382,7 @@ class CommandHandler:
         # show_deleted_articles 変数はここでは直接使わない
 
         def reload_articles_display(keep_index=True):
-            nonlocal articles, current_index, article_id_width, display_initial_header
+            nonlocal articles, current_index, article_id_width, display_initial_header, last_login_timestamp
             current_article_id_on_reload = None
             if articles and 0 <= current_index < len(articles) and keep_index:
                 current_article_id_on_reload = articles[current_index]['id']
@@ -371,15 +393,17 @@ class CommandHandler:
 
             # last_login_timestamp 以降の記事にジャンプする
             initial_jump_index = 0
+            found_new_articles = False
             if articles and last_login_timestamp > 0:
                 for i, art in enumerate(articles):
                     if art['created_at'] > last_login_timestamp:
                         initial_jump_index = i
+                        found_new_articles = True
                         break
 
             new_idx = 0
-            if articles and keep_index:
-                if keep_index and current_article_id_on_reload is not None:
+            if articles:  # 記事が1件以上ある場合のみインデックスを考慮
+                if keep_index and current_article_id_on_reload is not None:  # 前回の記事IDを維持する場合
                     found = False
                     for i, art in enumerate(articles):
                         if art['id'] == current_article_id_on_reload:
@@ -387,18 +411,21 @@ class CommandHandler:
                             found = True
                             break
                     if not found:
-                        new_idx = 0
-            elif articles:  # keep_index が False の場合、または current_article_id_on_reload が None の場合 last_login_timestamp に基づくインデックスを使用
-                new_idx = initial_jump_index
+                        new_idx = 0  # 該当記事がなければ先頭へ
+                else:  # keep_index が False の場合
+                    if found_new_articles:
+                        new_idx = initial_jump_index  # 未読記事がある場合はその先頭へ
+                    else:
+                        # 未読記事がない場合は末尾へ (記事が1件以上ある場合)
+                        new_idx = len(articles) - 1
             article_id_width = max(
                 5, len(str(len(articles)))) if articles else 5
-            logging.debug(
-                # デバッグログ追加
+            logging.info(
                 f"BBS_HANDLER: last_login_timestamp={last_login_timestamp}, initial_jump_index={initial_jump_index}, new_idx={new_idx}, keep_index={keep_index}, num_articles={len(articles)}")
             current_index = new_idx
 
             # 画面クリアしてヘッダ再表示
-            if display_initial_header:
+            if display_initial_header:  # display_initial_header が True の場合のみヘッダを表示
                 util.send_text_by_key(
                     self.chan, "bbs.article_list_header", self.menu_mode)
             if not articles:
