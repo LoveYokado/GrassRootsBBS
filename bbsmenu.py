@@ -173,13 +173,13 @@ def _handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, use
         last_login_timestamp = user_data['lastlogin']
 
     # 掲示板データ処理
+    board_manager = bbs_handler.BoardManager(dbname)
     permission_manager = bbs_handler.PermissionManager(dbname)
     article_manager = bbs_handler.ArticleManager(dbname)
     found_new_articles_total = False  # 初期値を設定
 
     for shortcut_id in board_shortcut_ids:
-        board_info_db = sqlite_tools.get_board_by_shortcut_id(
-            dbname, shortcut_id)
+        board_info_db = board_manager.get_board_info(shortcut_id)
 
         if not board_info_db:
             util.send_text_by_key(
@@ -194,8 +194,8 @@ def _handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, use
                 chan, "auto_download.error_permission_denied", menu_mode, board_name=board_name)
             continue
 
-        articles = sqlite_tools.get_new_articles_for_board(
-            dbname, board_id_pk, last_login_timestamp)
+        articles = article_manager.get_new_articles(
+            board_id_pk, last_login_timestamp)
 
         if articles:
             found_new_articles_total = True

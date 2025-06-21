@@ -89,6 +89,10 @@ class ArticleManager:
         # 投稿順（古いものが先）で取得
         return sqlite_tools.get_articles_by_board_id(self.dbname, board_id, order_by="created_at ASC, article_number ASC", include_deleted=include_deleted)
 
+    def get_new_articles(self, board_id, last_login_timestamp):
+        """指定された掲示板の、指定時刻以降の未削除記事を取得する。"""
+        return sqlite_tools.get_new_articles_for_board(self.dbname, board_id, last_login_timestamp)
+
     def get_article_by_number(self, board_id, article_number, include_deleted=False):
         """指定された記事番号の記事を取得する"""
         # board_idはboardsテーブルの主キー(id)
