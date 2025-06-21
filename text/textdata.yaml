@@ -1121,6 +1121,13 @@ bbs:
     mode_1: "** 登録に失敗しました **\r\n"
     mode_2: "** 登録に失敗しました **\r\n"
     mode_3: "** Article posting failed **\r\n"
+  article_list_count:
+    mode_1: |
+      --------------
+        [?] 説明      (総数: {total_count} 未読: {unread_count})
+      --------------
+    mode_2: "  [?] 説明 (総数: {total_count} 未読:{unread_count})"
+    mode_3: "  [?] Explanation (Total: {total_count} Unread: {unread_count})"
   article_list_header: # 記事一覧のヘッダー
     mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
     mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
@@ -1575,11 +1582,11 @@ prompt:
     mode_2: "[{menu_name}({hierarchy})]選択してください: "
     mode_3: "[{menu_name}({hierarchy})]Select( [RET] BACK ) > "
   bbs_top:
-    mode_1: "選択してください([RET] 戻る): "
+    mode_1: "選択してください ( [RET] 戻る ) : "
     mode_2: "選択してください([RET] 戻る): "
     mode_3: "Select( [RET] BACK ) > "
   bbs_wrdate:
-    mode_1: "選択してください([W]書く [R]読む [yy-mm-dd]日付) : "
+    mode_1: "選択してください ( [W] 書く [R] 読む [yy-mm-dd] 日付 ) : "
     mode_2: "選択してください([W]書く [R]読む [yy-mm-dd]日付) : " 
     mode_3: "Select( [W] WRITE [R] READ [yy-mm-dd] DATE ) > "
 

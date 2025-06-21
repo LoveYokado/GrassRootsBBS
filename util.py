@@ -218,7 +218,8 @@ def make_sysop_and_database(dbname):
                 menu_mode TEXT DEFAULT '1' NOT NULL CHECK(menu_mode IN ('1','2','3')),
                 telegram_restriction INTEGER DEFAULT 0 NOT NULL CHECK(telegram_restriction IN (0, 1, 2, 3)),
                 blacklist TEXT DEFAULT '',
-                exploration_list TEXT DEFAULT ''
+                exploration_list TEXT DEFAULT '',
+                read_progress TEXT DEFAULT '{}'
             )'''
         )
         print("users table created.")

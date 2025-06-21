@@ -457,6 +457,38 @@ def update_server_default_exploration_list(dbname, exploration_list_str):
         return False
 
 
+def get_user_read_progress(dbname, user_id):
+    """
+    ユーザの掲示板読み込み進捗を取得
+    JSONのパースを辞書として返す
+    """
+    try:
+        sql = "SELECT read_progress FROM users WHERE id=?"
+        results = sqlite_execute_query(dbname, sql, (user_id,), fetch=True)
+        if results and results[0] and results[0]['read_progress'] is not None:
+            return json.loads(results[0]['read_progress'])
+        return {}
+    except Exception as e:
+        logging.error(f"掲示板読み込み進捗取得中にDBエラー (UserID: {user_id}): {e}")
+        return {}
+
+
+def update_user_read_progress(dbname, user_id, read_progress_dict):
+    """
+    ユーザの掲示板読み込み進捗を更新
+    辞書をjsonに変換して保存する
+    """
+    try:
+        read_progress_json = json.dumps(read_progress_dict)
+        sql = "UPDATE users SET read_progress=? WHERE id=?"
+        sqlite_execute_query(dbname, sql, (read_progress_json, user_id))
+        logging.debug(f"ユーザID {user_id} の掲示板読み込み進捗を更新しました。")
+        return True
+    except Exception as e:
+        logging.error(f"掲示板読み込み進捗更新中にDBエラー (UserID: {user_id}): {e}")
+        return False
+
+
 def register_user(dbname, username, hashed_password, salt, comment, level=0,
                   auth_method='password_only', menu_mode='1', telegram_restriction=0):
     """新しいユーザーをデータベースに登録する"""

@@ -278,6 +278,11 @@ class CommandHandler:
             logging.warning(
                 f"CommandHandler.__init__: user_data is None for {login_id}.")
 
+        self.user_read_progress_map = sqlite_tools.get_user_read_progress(
+            self.dbname, self.user_id_pk)
+        logging.debug(
+            f"既読記事番号の読み込み LoginID:{login_id}, {self.user_read_progress_map}")
+
     def _display_kanban(self):
         """看板を表示する"""
         if not self.current_board:
@@ -304,6 +309,21 @@ class CommandHandler:
                 self.chan.send(b'\r\n')
         if kanban_title or kanban_body:
             self.chan.send(b'\r\n')
+
+    def _update_read_progress(self, board_id_pk, article_number):
+        """
+        ユーザの閲覧進捗更新
+        指定された掲示板で指定された記事番号まで読んだことを記録
+        """
+        # board_id_pk は int なので、辞書のキーとして使うために文字列に変換
+        current_read_article_number = self.user_read_progress_map.get(
+            str(board_id_pk), 0)
+        if article_number > current_read_article_number:
+            self.user_read_progress_map[str(board_id_pk)] = article_number
+            sqlite_tools.update_user_read_progress(
+                self.dbname, self.user_id_pk, self.user_read_progress_map)
+            logging.debug(
+                f"既読記事番号の更新 BoardID:{board_id_pk}, ArticleNo:{article_number}, LoginID:{self.login_id}")
 
     def display_board_entry_sequence(self):
         """掲示板に入った際の初期表示(ヘッダと看板)"""
@@ -401,9 +421,19 @@ class CommandHandler:
                         found_new_articles = True
                         break
 
+            # リスト表示前の未読既読処理
+            total_articles = len(articles)
+            last_read_article_number = self.user_read_progress_map.get(
+                str(board_id_pk), 0)
+            unread_articles_count = 0
+            for article in articles:
+                if article['article_number'] > last_read_article_number:
+                    unread_articles_count += 1
+
             new_idx = 0
             if articles:  # 記事が1件以上ある場合のみインデックスを考慮
                 if keep_index and current_article_id_on_reload is not None:  # 前回の記事IDを維持する場合
+                    # 既存のインデックス維持
                     found = False
                     for i, art in enumerate(articles):
                         if art['id'] == current_article_id_on_reload:
@@ -426,6 +456,10 @@ class CommandHandler:
 
             # 画面クリアしてヘッダ再表示
             if display_initial_header:  # display_initial_header が True の場合のみヘッダを表示
+                util.send_text_by_key(
+                    self.chan, "bbs.article_list_count", self.menu_mode,
+                    total_count=total_articles, unread_count=unread_articles_count
+                )
                 util.send_text_by_key(
                     self.chan, "bbs.article_list_header", self.menu_mode)
             if not articles:
@@ -1530,6 +1564,9 @@ class CommandHandler:
 
         # 本文表示後、改行を1行だけ入れる
         self.chan.send(b'\r\n')
+
+        # 記事本文表示後、既読として記録
+        self._update_read_progress(board_id_pk, article_number)
 
         if show_back_prompt:
             while True:
