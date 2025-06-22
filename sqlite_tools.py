@@ -735,21 +735,20 @@ def update_board_operators(dbname, board_id_pk, operator_user_ids_json_string):
         return False
 
 
-def update_board_kanban(dbname, board_id_pk, new_kanban_title, new_kanban_body):
+def update_board_kanban(dbname, board_id_pk, new_kanban_body):
     """掲示板の看板タイトルと本文更新"""
-    sql = "UPDATE boards SET kanban_title=?,kanban_body=? WHERE id=?"
+    sql = "UPDATE boards SET kanban_body=? WHERE id=?"
     try:
         params = sqlite_execute_query(
-            dbname, sql, (new_kanban_title, new_kanban_body, board_id_pk))
+            dbname, sql, (new_kanban_body, board_id_pk))
         if params:
-            logging.info(f"掲示板ID {board_id_pk} の看板タイトルと本文を更新しました")
+            logging.info(f"掲示板ID {board_id_pk} の看板本文を更新しました")
             return True
         else:
-            logging.error(
-                f"掲示板ID {board_id_pk} の看板タイトルと本文更新中にDBエラー")
+            logging.error(f"掲示板ID {board_id_pk} の看板本文更新中にDBエラー")
         return params
     except Exception as e:
-        logging.error(f"掲示板ID {board_id_pk} の看板タイトルと本文更新中にDBエラー: {e}")
+        logging.error(f"掲示板ID {board_id_pk} の看板本文更新中にDBエラー: {e}")
         return False
 
 

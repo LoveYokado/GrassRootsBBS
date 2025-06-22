@@ -292,18 +292,10 @@ class CommandHandler:
         if not self.current_board:
             return
 
-        kanban_title = self.current_board['kanban_title'] if 'kanban_title' in self.current_board else ''
         kanban_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board else ''
 
-        if not kanban_title and not kanban_body:
+        if not kanban_body:
             return  # 看板がなければ表示しない
-
-        if kanban_title:
-            processed_title = kanban_title.replace(
-                '\r\n', '\n').replace('\n', '\r\n')
-            self.chan.send(processed_title.encode('utf-8'))
-            if not processed_title.endswith('\r\n'):
-                self.chan.send(b'\r\n')
 
         if kanban_body:
             processed_body = kanban_body.replace(
@@ -311,7 +303,7 @@ class CommandHandler:
             self.chan.send(processed_body.encode('utf-8'))
             if not processed_body.endswith('\r\n'):
                 self.chan.send(b'\r\n')
-        if kanban_title or kanban_body:
+        if kanban_body:
             self.chan.send(b'\r\n')
 
     def _update_read_progress(self, board_id_pk, article_number):
@@ -1142,11 +1134,7 @@ class CommandHandler:
 
         util.send_text_by_key(
             self.chan, "bbs.edit_kanban_header", self.menu_mode)
-        existing_kanban_title = self.current_board['kanban_title'] if 'kanban_title' in self.current_board else ''
         current_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board else ''
-
-        # タイトルはなしの方向にしよう
-        # new_title = new_title_input.strip() if new_title_input.strip() else current_title
 
         # 看板本体
         self.chan.send(b'\r\n')
@@ -1173,7 +1161,6 @@ class CommandHandler:
             new_body = current_body
 
         # 確認と保存
-#        self.chan.send(b'New Title: ' + new_title.encode('utf-8') + b'\r\n')
         self.chan.send(b'New Body:\r\n')
         # 本文が空でも改行は入れる
         self.chan.send(new_body.encode('utf-8') +
@@ -1187,7 +1174,7 @@ class CommandHandler:
                 self.chan, "common_messages.cancel", self.menu_mode)
             return
 
-        if sqlite_tools.update_board_kanban(self.dbname, board_id_pk, existing_kanban_title, new_body):
+        if sqlite_tools.update_board_kanban(self.dbname, board_id_pk, new_body):
             util.send_text_by_key(
                 self.chan, "bbs.kanban_save_success", self.menu_mode)
             updated_board_info = self.board_manager.get_board_info(
