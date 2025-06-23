@@ -320,13 +320,12 @@ def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
                 chan, "user_pref_menu.set_lastlogin.updated", current_menu_mode
             )  # 最終ログイン日時更新
             # 確認のためのログ追加
-            updated_user_data_check = sqlite_tools.get_user_auth_info(
-                dbname, login_id)
-#            if updated_user_data_check:
-#                logging.debug(
-#                    f"set_lastlogin_datetime: After update, user '{login_id}' lastlogin is {updated_user_data_check['lastlogin'] if 'lastlogin' in updated_user_data_check else 'N/A'}")
-#            else:
-# f"set_lastlogin_datetime: After update, user '{login_id}' not found in DB!")
+            # updated_user_data_check = sqlite_tools.get_user_auth_info(
+            #     dbname, login_id)
+            # if updated_user_data_check:
+            #     logging.debug(f"set_lastlogin_datetime: After update, user '{login_id}' lastlogin is {updated_user_data_check['lastlogin'] if 'lastlogin' in updated_user_data_check.keys() else 'N/A (not in keys)'}")
+            # else:
+            #     logging.error(f"set_lastlogin_datetime: After update, user '{login_id}' not found in DB!")
 
             return
         except Exception as e:

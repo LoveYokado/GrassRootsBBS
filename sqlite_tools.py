@@ -56,11 +56,9 @@ def get_user_auth_info(dbname, username):
     見つからない場合はNoneを返す。
     """
     try:
-        # logging.debug(
-        #   f"get_user_auth_info: Attempting to fetch user '{username}' from db '{dbname}'")
+        # logging.debug(f"get_user_auth_info: Attempting to fetch user '{username}' from db '{dbname}'")
         results = fetchall_idbase(dbname, 'users', 'name', username)
-        # logging.debug(
-        #    f"get_user_auth_info: fetchall_idbase returned for '{username}': {results}")
+        # logging.debug(f"get_user_auth_info: fetchall_idbase returned for '{username}': {results}")
         return results[0] if results else None
     except Exception as e:
         logging.error(f"認証情報取得中にエラー ({username}): {e}")
@@ -181,9 +179,8 @@ def fetchall_idbase(dbname, table, key, keyword):
     if key not in ALLOWED_KEYS:
         raise ValueError(f"許可されていない検索キーです: {key}")
     sql = f'SELECT * FROM {table} WHERE {key}=?'
-    # logging.debug(f"fetchall_idbase: Executing SQL: {sql} with params: ({keyword},) on db: {dbname}")
     results = sqlite_execute_query(dbname, sql, (keyword,), fetch=True)
-    logging.debug(f"fetchall_idbase: SQL results: {results}")
+    # logging.debug(f"fetchall_idbase: SQL results: {results}")
     return results if results else []
 
 

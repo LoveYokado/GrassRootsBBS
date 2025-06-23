@@ -407,7 +407,6 @@ def generate_and_regenerate_ssh_key(username):
         return None
 
 
-# ここからしたはデバッグ後に削除する
 def regenerate_user_ssh_key(username):
     """
     指定されたユーザの公開鍵をauthorized_keys.pubから削除し、

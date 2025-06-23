@@ -190,9 +190,7 @@ class Server(paramiko.ServerInterface):
 
         # 通常接続時はDBからユーザの認証設定を取
         user_auth_info = sqlite_tools.get_user_auth_info(db_name, username)
-        logging.debug(
-            # デバッグログ追加
-            f"get_allowed_auths: username='{username}', user_auth_info type: {type(user_auth_info)}, content: {user_auth_info}")
+        # logging.debug(f"get_allowed_auths: username='{username}', user_auth_info type: {type(user_auth_info)}, content: {user_auth_info}")
 
         if user_auth_info:
             auth_method = user_auth_info['auth_method']

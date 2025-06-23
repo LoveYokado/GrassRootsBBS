@@ -8,7 +8,7 @@ import socket
 import textwrap
 import datetime
 import json
-import sqlite3  # デバッグ用
+
 # クラスや関数は、以下の構成で定義していく
 # - BoardManager: 掲示板のメタ情報管理、bbs.yaml との同期
 # - ArticleManager: 記事のCRUD操作、表示
@@ -74,7 +74,8 @@ class BoardManager:
         """指定されたショートカットIDの掲示板情報をDBから取得する"""
         board_info = sqlite_tools.get_board_by_shortcut_id(
             self.dbname, shortcut_id)
-        return board_info  # sqlite3.Row オブジェクトか None をそのまま返す
+        # sqlite3.Row を dict に変換
+        return dict(board_info) if board_info else None
 
 
 class ArticleManager:
@@ -284,15 +285,14 @@ class CommandHandler:
 
         self.user_read_progress_map = sqlite_tools.get_user_read_progress(
             self.dbname, self.user_id_pk)
-        logging.debug(
-            f"既読記事番号の読み込み LoginID:{login_id}, {self.user_read_progress_map}")
+        # logging.debug(f"既読記事番号の読み込み LoginID:{login_id}, {self.user_read_progress_map}")
 
     def _display_kanban(self):
         """看板を表示する"""
         if not self.current_board:
             return
 
-        kanban_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board else ''
+        kanban_body = self.current_board.get('kanban_body', '')
 
         if not kanban_body:
             return  # 看板がなければ表示しない
@@ -326,7 +326,7 @@ class CommandHandler:
         if not self.current_board:
             logging.error("現在のボードが設定されていません。")
             return
-        board_name_display = self.currnt_board['name'] if 'name' in self.current_board else 'unknown board'
+        board_name_display = self.current_board['name'] if 'name' in self.current_board else 'unknown board'
         util.send_text_by_key(
             self.chan, "bbs.current_board_header", self.menu_mode, board_name=board_name_display
         )
@@ -378,10 +378,6 @@ class CommandHandler:
 
     def show_article_list(self, display_initial_header=True, last_login_timestamp=0):
         """記事一覧を表示"""
-        if not self.current_board:
-            util.send_text_by_key(
-                self.chan, "bbs.no_board_selected", self.menu_mode)
-            return
 
         # 掲示板閲覧権限チェック(念の為)
         if not self.permission_manager.can_view_board(self.current_board, self.user_id_pk, self.userlevel):
@@ -400,8 +396,6 @@ class CommandHandler:
         def reload_articles_display(keep_index=True):
             nonlocal articles, current_index, article_id_width, display_initial_header, last_login_timestamp
             current_article_id_on_reload = None
-            if articles and 0 <= current_index < len(articles) and keep_index:
-                current_article_id_on_reload = articles[current_index]['id']
 
             fetched_articles = self.article_manager.get_articles_by_board(
                 board_id_pk, include_deleted=True)  # 常に削除済み記事も取得
@@ -446,8 +440,6 @@ class CommandHandler:
                         new_idx = len(articles) - 1
             article_id_width = max(
                 5, len(str(len(articles)))) if articles else 5
-            logging.info(
-                f"BBS_HANDLER: last_login_timestamp={last_login_timestamp}, initial_jump_index={initial_jump_index}, new_idx={new_idx}, keep_index={keep_index}, num_articles={len(articles)}")
             current_index = new_idx
 
             # 画面クリアしてヘッダ再表示
@@ -1188,6 +1180,8 @@ class CommandHandler:
             util.send_text_by_key(  # 記事一覧ヘッダを再表示
                 self.chan, "bbs.article_list_header", self.menu_mode)
         else:
+            logging.error(
+                f"edit_kanban: sqlite_tools.update_board_kanban returned False. Kanban save failed.")
             util.send_text_by_key(
                 self.chan, "bbs.kanban_save_failed", self.menu_mode)
 
