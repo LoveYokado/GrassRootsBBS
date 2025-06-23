@@ -449,31 +449,40 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
-            chat_config_path = "setting/chatroom.yaml"
-            selected_item = hierarchical_menu.handle_hierarchical_menu(
-                chan, chat_config_path, current_loop_menu_mode, menu_type="CHAT"
-            )
-            if selected_item:
-                # selected_item の type や id に応じた処理
-                terminal_item_type = selected_item.get("type")
-                item_id = selected_item.get("id")
-                item_name = selected_item.get("name", "未定義の項目")
+            while True:  # チャットメニュー内をループ
+                chat_handler_result = None  # ループごとにリセット
+                chat_config_path = "setting/chatroom.yaml"
+                selected_item = hierarchical_menu.handle_hierarchical_menu(
+                    chan, chat_config_path, current_loop_menu_mode, menu_type="CHAT"
+                )
+                if selected_item:
+                    # selected_item の type や id に応じた処理
+                    terminal_item_type = selected_item.get("type")
+                    item_id = selected_item.get("id")
+                    item_name = selected_item.get("name", "未定義の項目")
 
-                if terminal_item_type == "room":  # チャットでは "room"
-                    chan.send(
-                        f"チャットルーム「{item_name}」(ID: {item_id}) に入室します。\r\n")
-                    chat_handler.set_online_members_function_for_chat(
-                        get_online_members_list)
-                    chat_handler_result = chat_handler.handle_chat_room(  # 結果を受け取る
-                        chan, dbname, login_id, current_loop_menu_mode, item_id, item_name)
+                    if terminal_item_type == "room":  # チャットでは "room"
+                        util.send_text_by_key(
+                            chan, "chat.entering_room", current_loop_menu_mode, room_name=item_name, room_id=item_id)
+                        chat_handler.set_online_members_function_for_chat(
+                            get_online_members_list)
+                        chat_handler_result = chat_handler.handle_chat_room(  # 結果を受け取る
+                            chan, dbname, login_id, current_loop_menu_mode, item_id, item_name)
+                    else:
+                        # 汎用メニューで選択されたが、チャット機能では解釈できないtypeの場合
+                        util.send_text_by_key(
+                            chan, "common_messages.error", current_loop_menu_mode)
+                        logging.warning(
+                            f"項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。")
+                        break  # ループを抜ける
                 else:
-                    # 汎用メニューで選択されたが、チャット機能では解釈できないtypeの場合
-                    util.send_text_by_key(
-                        chan, "common_messages.error",
-                        current_loop_menu_mode
-                    )
-                    logging.warning(
-                        f"項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。\r\n")
+                    # 階層メニューを抜けた場合
+                    break
+
+                if chat_handler_result == "back_one_level":
+                    continue
+                else:
+                    break
         # オンラインサインアップ(config.toml の online_signup 設定で有効/無効を切り替え)
         elif command == "l":
             online_signup_enabled = util.app_config.get(  # serverセクションのキーを大文字に
