@@ -365,11 +365,9 @@ class CommandHandler:
 
             if choice == 'w':
                 self.write_article()
-                return  # command_loop を抜けて handle_bbs_menu に戻る
             elif choice == 'r':
                 self.show_article_list(
                     last_login_timestamp=self.last_login_timestamp)
-                return  # command_loop を抜けて handle_bbs_menu に戻る
             elif choice == 'e' or choice == '':
                 return "empty_exit"
             else:
