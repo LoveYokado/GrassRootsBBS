@@ -972,7 +972,6 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
 
             elif key_input == "s":  # シグ看板表示
-                self.chan.send(b'\r\n')
                 # 看板表示前に現在の記事ヘッダを消す必要はない（看板は別領域に表示される想定）
                 self._display_kanban()
                 display_current_article_header()  # 看板表示後はリストモードに戻る
