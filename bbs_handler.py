@@ -1065,7 +1065,6 @@ class CommandHandler:
 
             elif key_input == "g":  # シグ看板編集
                 self.edit_kanban()
-                display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
                 continue
 

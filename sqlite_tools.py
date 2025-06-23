@@ -198,7 +198,6 @@ def create_bbs_tables_if_not_exist(cur):
                 default_permission TEXT NOT NULL,
                 name TEXT NOT NULL,
                 description TEXT,
-                kanban_title TEXT DEFAULT '',
                 kanban_body TEXT DEFAULT '',
                 last_posted_at INTEGER DEFAULT 0,
                 status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived', 'hidden'))
@@ -565,19 +564,19 @@ def update_user_level(dbname, user_id, new_level):
 
 def get_board_by_shortcut_id(dbname, shortcut_id):
     """指定されたショートカットIDの掲示板情報をDBから取得"""
-    sql = "SELECT id, shortcut_id, name, description, operators, default_permission, kanban_title, kanban_body, last_posted_at, status FROM boards WHERE shortcut_id = ?"
+    sql = "SELECT id, shortcut_id, name, description, operators, default_permission, kanban_body, last_posted_at, status FROM boards WHERE shortcut_id = ?"
     results = sqlite_execute_query(dbname, sql, (shortcut_id,), fetch=True)
     return results[0] if results else None
 
 
-def create_board_entry(dbname, shortcut_id, name, description, operators, default_permission, kanban_title, kanban_body, status):
+def create_board_entry(dbname, shortcut_id, name, description, operators, default_permission, kanban_body, status):
     """新しい掲示板エントリをboardsテーブルに挿入"""
     sql = """
     INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_title, kanban_body, status, last_posted_at)
-    VALUES(?, ?, ?, ?, ?, ?, ?, ?, 0)
+    VALUES(?, ?, ?, ?, ?, ?, ?, 0)
     """
     params = (shortcut_id, name, description, operators,
-              default_permission, kanban_title, kanban_body, status)
+              default_permission, kanban_body, status)
     return sqlite_execute_query(dbname, sql, params)
 
 
@@ -736,19 +735,20 @@ def update_board_operators(dbname, board_id_pk, operator_user_ids_json_string):
 
 
 def update_board_kanban(dbname, board_id_pk, new_kanban_body):
-    """掲示板の看板タイトルと本文更新"""
+    """掲示板の看板更新"""
     sql = "UPDATE boards SET kanban_body=? WHERE id=?"
     try:
-        params = sqlite_execute_query(
+        success = sqlite_execute_query(
             dbname, sql, (new_kanban_body, board_id_pk))
-        if params:
+        if success:
             logging.info(f"掲示板ID {board_id_pk} の看板本文を更新しました")
             return True
         else:
-            logging.error(f"掲示板ID {board_id_pk} の看板本文更新中にDBエラー")
-        return params
+            logging.error(
+                f"掲示板ID {board_id_pk} の看板本文更新中にDBエラー（sqlite_execute_queryがFalseを返しました）")
+        return success
     except Exception as e:
-        logging.error(f"掲示板ID {board_id_pk} の看板本文更新中にDBエラー: {e}")
+        logging.error(f"掲示板ID {board_id_pk} の看板本文更新中に例外が発生: {e}")
         return False
 
 
