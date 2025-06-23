@@ -1633,10 +1633,12 @@ def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
                 util.send_text_by_key(
                     chan, "bbs.permission_denied_read_board", menu_mode)
                 return
-            loop_result = handler.command_loop()
+            loop_result = handler.command_loop()  # "empty_exit" or None
             if loop_result == "empty_exit":
-                return "back_to_top"
-
+                # 1階層戻ることを呼び出し元に伝える
+                return "back_one_level"
+            else:  # None (切断) の場合
+                return None
         else:
             # TODO: textdata.yaml に追加
             util.send_text_by_key(chan, "bbs.board_not_found", menu_mode)

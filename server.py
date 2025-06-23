@@ -408,38 +408,45 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                 chan, dbname, login_id, current_loop_menu_mode)
         # 掲示板
         elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
-            if current_loop_menu_mode in ('2', '3'):
-                bbs_config_path = "setting/bbs_mode3.yaml"
-                selected_item = hierarchical_menu.handle_hierarchical_menu(
-                    chan, bbs_config_path, current_loop_menu_mode, menu_type="BBS",
-                    dbname=dbname, enrich_boards=True)
-                if selected_item and selected_item.get("type") == "board":
-                    item_id = selected_item.get("id")
-                    # bbs_handler.handle_bbs_menuを呼ぶ
-                    bbs_handler_result = bbs_handler.handle_bbs_menu(  # 結果を受け取る
-                        chan, dbname, login_id, current_loop_menu_mode, item_id)
-                elif selected_item:  # 念の為boardタイプ以外が選択されたとき
-                    util.send_text_by_key(
-                        chan, "common_messages.error", current_loop_menu_mode)
-                    logging.warning(
-                        f"階層メニュー(mode3):項目「{selected_item.get('name')}」(ID: {selected_item.get('id')}, Type: {selected_item.get('type')}) が選択されましたが、boardタイプではありません。")
-            else:  # mode1またはmode2の場合は手書きメニュー
-                selected_board_id = manual_menu_handler.process_manual_menu(
-                    chan, dbname, login_id, current_loop_menu_mode, menu_config_path="setting/bbs_mode1.yaml",
-                    initial_menu_id="main_bbs_menu", menu_type="bbs")
+            while True:  # 掲示板メニュー内をループ
+                bbs_handler_result = None  # ループごとにリセット
+                if current_loop_menu_mode in ('2', '3'):
+                    bbs_config_path = "setting/bbs_mode3.yaml"
+                    selected_item = hierarchical_menu.handle_hierarchical_menu(
+                        chan, bbs_config_path, current_loop_menu_mode, menu_type="BBS",
+                        dbname=dbname, enrich_boards=True)
+                    if selected_item and selected_item.get("type") == "board":
+                        item_id = selected_item.get("id")
+                        bbs_handler_result = bbs_handler.handle_bbs_menu(
+                            chan, dbname, login_id, current_loop_menu_mode, item_id)
+                    else:
+                        # 階層メニューを抜けた場合
+                        break
+                else:  # mode1
+                    selected_board_id = manual_menu_handler.process_manual_menu(
+                        chan, dbname, login_id, current_loop_menu_mode, menu_config_path="setting/bbs_mode1.yaml",
+                        initial_menu_id="main_bbs_menu", menu_type="bbs")
 
-                if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
-                    # Noneチェック追加
-                    bbs_handler_result = bbs_handler.handle_bbs_menu(  # 結果を受け取る
-                        chan, dbname, login_id, current_loop_menu_mode, selected_board_id)
-                elif selected_board_id in ("exit_bbs_menu", "back_to_top"):
-                    logging.info(
-                        f"手書きメニューが終了、またはトップに戻りました: {selected_board_id}")
-                    # 手書きメニューから戻ってきた場合もトップメニューを表示
-                    util.send_text_by_key(
-                        chan, "top_menu.menu", current_loop_menu_mode)
-                elif selected_board_id is None:
-                    logging.info(f"手書きメニュー処理中に切断されました。")
+                    if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
+                        bbs_handler_result = bbs_handler.handle_bbs_menu(
+                            chan, dbname, login_id, current_loop_menu_mode, selected_board_id)
+                    else:
+                        # 手書きメニューを抜けた場合
+                        if selected_board_id in ("exit_bbs_menu", "back_to_top"):
+                            logging.info(
+                                f"手書きメニューが終了、またはトップに戻りました: {selected_board_id}")
+                        elif selected_board_id is None:
+                            logging.info(f"手書きメニュー処理中に切断されました。")
+                        break
+
+                # 掲示板から戻ってきたときの処理
+                if bbs_handler_result == "back_one_level":
+                    # 1階層戻る = ボード選択メニューを再表示
+                    continue
+                else:
+                    # 切断(None)またはその他の理由で掲示板メニューを抜ける
+                    break
+
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
             chat_config_path = "setting/chatroom.yaml"
