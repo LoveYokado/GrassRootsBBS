@@ -854,35 +854,15 @@ def mail_write(chan, dbname, login_id, menu_mode='2'):
     util.send_text_by_key(
         chan, "mail_handler.confirm_send_yn", menu_mode, add_newline=False
     )  # この内容で送信しますか?(y/n):
-    # 確認入力 (y/n)
-    confirm_input = ''
-    while True:
-        data = chan.recv(1)
-        if not data:
-            logging.warning(f"メール送信確認中に切断されました({login_id})")
-            return
-        try:
-            char = data.decode('ascii').lower()
-            if char == 'y':
-                chan.send('y\r\n')
-                confirm_input = 'y'
-                break
-            elif char == 'n':
-                chan.send('n\r\n')
-                confirm_input = 'n'
-                break
-            else:
-                pass  # y, n 以外は無視
-        except UnicodeDecodeError:
-            continue
-        except Exception as e:
-            logging.error(f"メール送信確認中の入力エラー({login_id}): {e}")
-            util.send_text_by_key(
-                chan, "common_message.error", menu_mode
-            )
-            return
-    # 'n' が入力された場合はキャンセル
-    if confirm_input == 'n':
+
+    confirm_input_raw = ssh_input.process_input(chan)
+    if confirm_input_raw is None:
+        logging.warning(f"メール送信確認中に切断されました({login_id})")
+        return
+
+    confirm_input = confirm_input_raw.strip().lower()
+
+    if confirm_input != 'y':
         util.send_text_by_key(
             chan, "mail_handler.send_cancelled", menu_mode
         )  # メール送信をキャンセルしました。
