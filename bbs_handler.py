@@ -9,6 +9,8 @@ import textwrap
 import datetime
 import json
 
+import hierarchical_menu
+
 # クラスや関数は、以下の構成で定義していく
 # - BoardManager: 掲示板のメタ情報管理、bbs.yaml との同期
 # - ArticleManager: 記事のCRUD操作、表示
