@@ -267,6 +267,15 @@ def mail(chan, dbname, login_id, menu_mode):
             else:
                 update_current_display()
 
+        # メール一覧の総数と未読数を一度だけ表示
+        total_mail_count = sqlite_tools.get_total_mail_count(dbname, user_id)
+        unread_mail_count = sqlite_tools.get_total_unread_mail_count(
+            dbname, user_id)
+        util.send_text_by_key(
+            chan, "mail_handler.article_list_count", menu_mode,
+            total_count=total_mail_count, unread_count=unread_mail_count
+        )
+
         # 初期読み込みと表示
         if not reload_mails(keep_index=False):  # 先頭から表示
             return

@@ -10,6 +10,7 @@ import datetime
 import re
 import secrets
 import string
+import textwrap
 
 import sqlite_tools
 import ssh_input
@@ -837,21 +838,34 @@ def telegram_recieve(chan, dbname, username, current_menu_mode):
             filterd_telegrams.append(teregram)
 
     if filterd_telegrams:
-        send_text_by_key(chan, "telegram.receive_header",
-                         current_menu_mode)  # 電報受信メッセージ
-        for telegram_to_display in filterd_telegrams:
+        # ヘッダーとカラム見出しを textdata.yaml から表示
+        send_text_by_key(chan, "telegram.receive_header", current_menu_mode)
+        send_text_by_key(chan, "telegram.receive_headings", current_menu_mode)
+
+        for i, telegram_to_display in enumerate(filterd_telegrams):
+            num_str = f"{i+1:05d}"
             sender = telegram_to_display['sender_name']
             message = telegram_to_display['message']
             timestamp_val = telegram_to_display['timestamp']
             try:
-                dt_str = datetime.datetime.fromtimestamp(
-                    timestamp_val).strftime('%Y-%m-%d %H:%M')  # 秒は省略しても良いかも
+                dt_obj = datetime.datetime.fromtimestamp(timestamp_val)
+                r_date_str = dt_obj.strftime('%y-%m-%d')
+                r_time_str = dt_obj.strftime('%H:%M:%S')
             except (ValueError, OSError, TypeError):  # TypeError も考慮
-                dt_str = "不明な日時"
-            send_text_by_key(
-                chan, "telegram.receive_message", current_menu_mode, sender=sender, message=message, dt_str=dt_str)  # 受信メッセージ本体
-        send_text_by_key(
-            chan, "telegram.receive_footer", current_menu_mode)
+                r_date_str = "xx-xx-xx"
+                r_time_str = "xx:xx:xx"
+
+            # 本文の長さを調整 (79 - (5+1+8+1+8+1+9) = 46)
+            shortened_message = textwrap.shorten(
+                message, width=46, placeholder="...")
+            # 送信者名の幅を調整 (ヘッダの -SENDER- と -TELEGRAM- の間のスペースに合わせる)
+            sender_padded = f"{sender:<9}"
+
+            line = f"{num_str} {r_date_str} {r_time_str} {sender_padded}{shortened_message}\r\n"
+            chan.send(line.encode('utf-8'))
+
+        # フッターを textdata.yaml から表示
+        send_text_by_key(chan, "telegram.receive_footer", current_menu_mode)
 
 
 def _is_valid_email_for_signup(email: str) -> bool:

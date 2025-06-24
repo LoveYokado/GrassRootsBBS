@@ -131,7 +131,7 @@ def broadcast_to_room(room_id: str, dbname: str, sender_name: str,
                         b"\033[u"         # カーソル位置復元
                     )
                     # 他のユーザーからのメッセージ受信後にも電報チェック
-                    # bbsmenu.telegram_recieve は未読がなければ何も表示しない
+                    # util.telegram_recieve は未読がなければ何も表示しない
                     bbsmenu.telegram_recieve(
                         target_chan, dbname, target_login_id, target_menu_mode)
                 except Exception as e:
@@ -234,7 +234,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                 # 電報をチャット内から送信
                 if ONLINE_MEMBERS_FUNC:
                     online_list = ONLINE_MEMBERS_FUNC()
-                    bbsmenu.telegram_send(
+                    util.telegram_send(
                         chan, dbname, login_id, online_list, menu_mode)
                 else:
                     util.send_text_by_key(
@@ -370,7 +370,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
             # ここでの呼び出しが重複になる可能性を考慮する。
             # ただし、telegram_recieve は未読がなければ何もしないので、実害は少ない。
             if not user_input.lower().startswith("!"):  # 通常メッセージ送信時のみここでチェック（コマンド時はbroadcast内でチェックされる）
-                bbsmenu.telegram_recieve(chan, dbname, login_id, menu_mode)
+                util.telegram_recieve(chan, dbname, login_id, menu_mode)
 
     except ConnectionResetError:
         logging.info(f"ユーザ {login_id} との接続がリセットされました(room_id): {room_id}")

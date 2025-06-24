@@ -403,7 +403,6 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # メール送信
         elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
-            mail_handler.mail(chan, dbname, login_id, current_loop_menu_mode)
             mail_handler_result = mail_handler.mail(
                 chan, dbname, login_id, current_loop_menu_mode)
         # 掲示板
@@ -446,6 +445,9 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                 else:
                     # 切断(None)またはその他の理由で掲示板メニューを抜ける
                     break
+            # 掲示板メニューから抜けたときにトップメニューを再表示
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
 
         # チャット
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
@@ -483,6 +485,9 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                     continue
                 else:
                     break
+            # チャットメニューから抜けたときにトップメニューを再表示
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
         # オンラインサインアップ(config.toml の online_signup 設定で有効/無効を切り替え)
         elif command == "l":
             online_signup_enabled = util.app_config.get(  # serverセクションのキーを大文字に
@@ -509,8 +514,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                                   current_loop_menu_mode)
 
         # 各ハンドラから "back_to_top" が返ってきた場合にトップメニューを表示
-        if bbs_handler_result == "back_to_top" or chat_handler_result == "back_to_top" or \
-           mail_handler_result == "back_to_top" or user_pref_result == "back_to_top" or sysop_menu_result == "back_to_top":
+        if mail_handler_result == "back_to_top" or user_pref_result == "back_to_top" or sysop_menu_result == "back_to_top":
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
         # コマンドループ終了 (while True)

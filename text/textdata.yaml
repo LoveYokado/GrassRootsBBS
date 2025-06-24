@@ -865,6 +865,7 @@ mail_handler:
        [CTRL+C][ESC][E]     終了
        [*]                  削除
        [W]                  書く
+       [S]                  送信リスト/受信リスト切り替え
        [R]                  新方向へ読み続ける
        [T]                  タイトル一覧
        [?]                  説明
@@ -909,6 +910,13 @@ mail_handler:
         " : Search by subject
         ' : Search by body
       ; : Jump to another sig
+  article_list_count:
+    mode_1: |
+      --------------
+        [?] 説明      (総数: {total_count} 未読: {unread_count})
+      --------------
+    mode_2: "  [?] 説明 (総数: {total_count} 未読:{unread_count})"
+    mode_3: "  [?] Explanation (Total: {total_count} Unread: {unread_count})"
   new_mail_notification:
     mode_1: "** 手紙が届いております (総数:{total_mail_count} 未読:{unread_mail_count}) **"
     mode_2: "新着メールが {unread_mail_count} 件届いてます。"
@@ -1057,11 +1065,15 @@ telegram:
     mode_2: "電報の送信中にエラーが発生しました。\r\n"
     mode_3: "An error occurred while sending telegram.\r\n"
   receive_header:
-    mode_1: "--- 電報が届いています ---\r\n"
+    mode_1: "** 電報が届きました **\r\n"
     mode_2: "--- 電報が届いています ---\r\n"
     mode_3: "--- Telegrams Received ---\r\n"
+  receive_headings:
+    mode_1: "-NUM- -R.DATE- -R.TIME- -SENDER- -TELEGRAM-\r\n"
+    mode_2: "-NUM- -R.DATE- -R.TIME- -SENDER- -TELEGRAM-\r\n"
+    mode_3: "-NUM- -R.DATE- -R.TIME- -SENDER- -TELEGRAM-\r\n"
   receive_footer:
-    mode_1: "--- 電報ここまで ---\r\n"
+    mode_1: "** 以上 **\r\n"
     mode_2: "--- 電報ここまで ---\r\n"
     mode_3: "--- End of Telegrams ---\r\n"
   receive_message:
