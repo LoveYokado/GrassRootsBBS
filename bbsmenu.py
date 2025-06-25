@@ -388,3 +388,117 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
 
     util.send_text_by_key(
         chan, "new_article_headlines.end_message", menu_mode)
+
+
+def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
+    """新アーティクル自動ダウンロード"""
+    util.send_text_by_key(
+        chan, "auto_download.start_message", menu_mode)
+
+    # 探索リスト取得
+    exploration_list_str = sqlite_tools.get_user_exploration_list(
+        dbname, user_id_pk)
+    if not exploration_list_str:
+        server_prefs = sqlite_tools.read_server_pref(dbname)
+        if server_prefs and len(server_prefs) > 6 and server_prefs[6]:
+            exploration_list_str = server_prefs[6]
+
+    if not exploration_list_str:
+        util.send_text_by_key(
+            chan, "auto_download.no_exploration_list", menu_mode)
+        util.send_text_by_key(
+            chan, "auto_download.end_message", menu_mode)
+        return
+
+    board_shortcut_ids = [sid.strip()
+                          for sid in exploration_list_str.split(',') if sid.strip()]
+    if not board_shortcut_ids:
+        util.send_text_by_key(
+            chan, "auto_download.no_exploration_list", menu_mode)
+        util.send_text_by_key(
+            chan, "auto_download.end_message", menu_mode)
+        return
+
+    # 最終ログイン時刻取得
+    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+    last_login_timestamp = 0
+    if user_data and 'lastlogin' in user_data.keys() and user_data['lastlogin']:
+        last_login_timestamp = user_data['lastlogin']
+
+    # 掲示板巡回
+    for i, shortcut_id in enumerate(board_shortcut_ids):
+        board_info_db = sqlite_tools.get_board_by_shortcut_id(
+            dbname, shortcut_id)
+        if not board_info_db:
+            logging.debug(f"自動ダウンロード: 掲示板 {shortcut_id} は見つかりません。")
+            continue
+
+        board_id_pk = board_info_db['id']
+        # 権限チェック
+        permission_manager = bbs_handler.PermissionManager(dbname)
+        if not permission_manager.can_view_board(board_info_db, user_id_pk, user_level):
+            logging.debug(
+                f"自動ダウンロード: ユーザー {login_id} は掲示板 {shortcut_id} を閲覧する権限がありません。")
+            continue
+
+        # 未読を取得
+        new_articles = sqlite_tools.get_new_articles_for_board(
+            dbname, board_id_pk, last_login_timestamp)
+        if not new_articles:
+            continue  # 未読がなければスキップ
+
+        # 掲示板に入るメッセージ
+        util.send_text_by_key(
+            chan, "explore_new_articles.entering_board", menu_mode, shortcut_id=shortcut_id, current_num=i+1, total_num=len(board_shortcut_ids))
+
+        # 記事詳細を表示
+        for article in new_articles:
+            # 1. 共通ヘッダを毎回表示
+            util.send_text_by_key(chan, "bbs.article_list_header", menu_mode)
+
+            # 2. 見出し行を表示
+            sender_name = sqlite_tools.get_user_name_from_user_id(
+                dbname, article['user_id'])
+            sender_name_short = textwrap.shorten(
+                sender_name if sender_name else "(Unknown)", width=7, placeholder="..")
+
+            created_at_str_date = "Unknown date"
+            created_at_str_time = "Unknown time"
+            try:
+                if article['created_at']:
+                    dt_obj = datetime.datetime.fromtimestamp(
+                        article['created_at'])
+                    created_at_str_date = dt_obj.strftime("%y/%m/%d")
+                    created_at_str_time = dt_obj.strftime("%H:%M:%S")
+            except (OSError, TypeError, ValueError):
+                pass
+
+            article_number_str = f"{article['article_number']:05d}"
+            title_str = article['title'] if article['title'] else "(No Title)"
+            title_short_str = textwrap.shorten(
+                title_str, width=43, placeholder="...")
+
+            util.send_text_by_key(
+                chan, "auto_download.article_info_format", menu_mode,
+                article_number_str=article_number_str,
+                r_date_str=created_at_str_date,
+                r_time_str=created_at_str_time,
+                sender_name_short=sender_name_short,
+                title_short=title_short_str)
+
+            # 3. 空行を追加
+            chan.send(b'\r\n')
+
+            # 4. 本文を表示
+            body_to_send = article['body'].replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            wrapped_body_lines = textwrap.wrap(
+                body_to_send, width=78, replace_whitespace=False, drop_whitespace=False)
+            for line in wrapped_body_lines:
+                chan.send(line.encode('utf-8') + b'\r\n')
+
+            # 5. 記事の表示後に空行を追加
+            chan.send(b'\r\n')
+
+    util.send_text_by_key(
+        chan, "auto_download.end_message", menu_mode)
