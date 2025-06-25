@@ -23,7 +23,7 @@ import hierarchical_menu
 import chat_handler
 import bbs_handler
 import manual_menu_handler
-
+import hamlet_game
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
@@ -510,6 +510,12 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             normal_logoff = logoff_user(
                 chan, dbname, login_id, user_id, current_loop_menu_mode)
             break  # ループを抜ける
+
+        elif command == "z":
+            # ハムレットゲーム
+            hamlet_game.run_game_vs_ai(chan, current_loop_menu_mode)
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
 
         else:
             util.send_text_by_key(chan, "top_menu.help_h",
