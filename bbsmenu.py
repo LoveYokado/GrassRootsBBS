@@ -35,9 +35,12 @@ def who_menu(chan, dbname, online_members, current_menu_mode):
         results = sqlite_tools.fetchall_idbase(
             dbname, 'users', 'name', member_name)
         if results:  # 結果が存在する場合
-            userdata = results[0]
-            comment = userdata['comment'] if userdata['comment'] else "(コメントなし)"
-            chan.send(f"{member_name:<15} {comment} \r\n")
+            userdata = results[0]  # sqlite3.Row オブジェクトは辞書のようにアクセス可能
+            menu_mode = userdata['menu_mode'] if 'menu_mode' in userdata.keys(
+            ) else '?'
+            # コメントがない場合は空文字列
+            comment = userdata['comment'] if userdata['comment'] else ""
+            chan.send(f"{member_name:<15} mode{menu_mode} {comment}\r\n")
         else:
             # 基本的に online_members にいるユーザーは DB に存在するはずだが念のため
             chan.send(f"{member_name:<15} {'(ユーザー情報取得エラー)'}\r\n")

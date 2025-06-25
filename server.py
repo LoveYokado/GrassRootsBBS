@@ -372,7 +372,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                                   current_loop_menu_mode)
 
         # 電報送信
-        elif command in ("t", "!") and userlevel >= server_pref_dict.get("telegram", 1):
+        elif command in ("#", "!") and userlevel >= server_pref_dict.get("telegram", 1):
             online_list = get_online_members_list()
             util.telegram_send(chan, dbname, login_id,
                                online_list, current_loop_menu_mode)
