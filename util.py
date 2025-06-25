@@ -772,8 +772,11 @@ def telegram_send(chan, dbname, sender_name, online_members, current_menu_mode):
     #    util.send_text_by_key(chan, "telegram.cannot_send_to_self", current_menu_mode)
     #    return
 
+    limits_config = app_config.get('limits', {})
+    telegram_max_len = limits_config.get('telegram_message_max_length', 100)
+
     send_text_by_key(chan, "telegram.message_prompt",
-                     current_menu_mode, add_newline=False)
+                     current_menu_mode, max_len=telegram_max_len, add_newline=False)
     message = ssh_input.process_input(chan)
 
     if not message:
@@ -781,10 +784,10 @@ def telegram_send(chan, dbname, sender_name, online_members, current_menu_mode):
         return
 
     # メッセージが長すぎる場合の処理
-    if len(message) > 100:
-        message = message[:100]
+    if len(message) > telegram_max_len:
+        message = message[:telegram_max_len]
         send_text_by_key(
-            chan, "telegram.message_truncated", current_menu_mode)
+            chan, "telegram.message_truncated", current_menu_mode, max_len=telegram_max_len)
 
     try:
         current_timestamp = int(time.time())

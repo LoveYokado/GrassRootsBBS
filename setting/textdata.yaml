@@ -814,20 +814,28 @@ mail_handler:
     mode_2: "他にも送りますか？(Y/N): "
     mode_3: "Send another? (Y/N): "
   enter_subject:
-    mode_1: "タイトルを入力してください(21文字): "
-    mode_2: "件名を入力してください(21文字以上は削除): "
-    mode_3: "Enter subject (up to 21 characters): "
+    mode_1: "タイトルを入力してください({max_len}文字): "
+    mode_2: "件名を入力してください({max_len}文字以内): "
+    mode_3: "Enter subject (up to {max_len} characters): "
   enter_body:
     mode_1: |
       -------------------------------------------------------------
-      終了は、[^]だけの行を入力してください
+      終了は、[^]だけの行を入力してください (最大{max_len}文字)
       -------------------------------------------------------------
-    mode_2: "本文を入力してください('^'のみの行で終了): \r\n"
-    mode_3: "Enter body ('^' to end): \r\n"
+    mode_2: "本文を入力してください('^'のみの行で終了、最大{max_len}文字): \r\n"
+    mode_3: "Enter body ('^' to end, max {max_len} chars): \r\n"
   no_body:
     mode_1: "本文が入力されていません。終了します。\r\n"
     mode_2: "本文が入力されていません。終了します。\r\n"
     mode_3: "No body entered. Exiting.\r\n"
+  subject_truncated:
+    mode_1: "件名が長すぎるため、{max_len}文字に切り詰めました。\r\n"
+    mode_2: "件名が長すぎるため、{max_len}文字に切り詰めました。\r\n"
+    mode_3: "Subject too long, truncated to {max_len} characters.\r\n"
+  body_truncated:
+    mode_1: "本文が長すぎるため、{max_len}文字に切り詰めました。\r\n"
+    mode_2: "本文が長すぎるため、{max_len}文字に切り詰めました。\r\n"
+    mode_3: "Body too long, truncated to {max_len} characters.\r\n"
   confirm_send:
     mode_1: "-- 送信内容 --\r\n"
     mode_2: "-- 送信内容 --\r\n"
@@ -1041,9 +1049,9 @@ telegram:
     mode_2: "ID '{recipient_name}' は現在オンラインではありません。\r\n"
     mode_3: "ID '{recipient_name}' is not currently online.\r\n"
   message_prompt:
-    mode_1: "電報メッセージ (最大100文字): "
-    mode_2: "電報メッセージ (最大100文字): "
-    mode_3: "Telegram message (max 100 chars): "
+    mode_1: "電報メッセージ (最大{max_len}文字): "
+    mode_2: "電報メッセージ (最大{max_len}文字): "
+    mode_3: "Telegram message (max {max_len} chars): "
   no_recipient:
     mode_1: "宛先が入力されていません。\r\n"
     mode_2: "宛先が入力されていません。\r\n"
@@ -1052,10 +1060,6 @@ telegram:
     mode_1: "メッセージが入力されていません。\r\n"
     mode_2: "メッセージが入力されていません。\r\n"
     mode_3: "Message not entered.\r\n"
-  message_truncated:
-    mode_1: "メッセージが長すぎるため、100文字に切り詰めました。\r\n"
-    mode_2: "メッセージが長すぎるため、100文字に切り詰めました。\r\n"
-    mode_3: "Message too long, truncated to 100 chars.\r\n"
   send_success:
     mode_1: "電報を送信しました。\r\n"
     mode_2: "電報を送信しました。\r\n"
@@ -1098,22 +1102,22 @@ bbs:
     mode_2: "** 提供に感謝します **\r\n"
     mode_3: "** Thank you for posting **\r\n"
   post_subject:
-    mode_1: "タイトルを入力してください : "
-    mode_2: "タイトルを入力してください : "
-    mode_3: "Enter subject: "
+    mode_1: "タイトルを入力してください ({max_len}文字以内) : "
+    mode_2: "タイトルを入力してください ({max_len}文字以内) : "
+    mode_3: "Enter subject (max {max_len} chars): "
   post_body:
     mode_1: |
-      内容を入力してください : 
+      内容を入力してください (最大{max_len}文字) : 
       ----------------------------------
       終了は、[^]だけの行を入力してください。
       ----------------------------------
     mode_2: |
-      内容を入力してください : 
+      内容を入力してください (最大{max_len}文字) : 
       ----------------------------------
       終了は、[^]だけの行を入力してください。
       ----------------------------------
     mode_3: |
-      Enter body:
+      Enter body (max {max_len} chars):
       ----------------------------------
       End with [^] only.
       ----------------------------------  
@@ -1133,6 +1137,14 @@ bbs:
     mode_1: "** 登録に失敗しました **\r\n"
     mode_2: "** 登録に失敗しました **\r\n"
     mode_3: "** Article posting failed **\r\n"
+  title_truncated:
+    mode_1: "タイトルが長すぎるため、{max_len}文字に切り詰めました。\r\n"
+    mode_2: "タイトルが長すぎるため、{max_len}文字に切り詰めました。\r\n"
+    mode_3: "Title too long, truncated to {max_len} characters.\r\n"
+  body_truncated:
+    mode_1: "本文が長すぎるため、{max_len}文字に切り詰めました。\r\n"
+    mode_2: "本文が長すぎるため、{max_len}文字に切り詰めました。\r\n"
+    mode_3: "Body too long, truncated to {max_len} characters.\r\n"
   article_list_count:
     mode_1: |
       --------------

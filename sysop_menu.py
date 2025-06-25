@@ -650,7 +650,6 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     category_id = None
     display_order = 0
     # 初期設定
-    kanban_title = ""
     kanban_body = ""
     status = "active"
 
@@ -662,7 +661,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
             chan, "common_messages.cancel", current_menu_mode)  # キャンセルメッセージ
         return
 
-    if sqlite_tools.create_board_entry(dbname, shortcut_id, board_name, description, operators_json, default_permission, kanban_title, kanban_body, status):
+    if sqlite_tools.create_board_entry(dbname, shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status):
         util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
                               current_menu_mode, shortcut_id=shortcut_id)
         util.send_text_by_key(
@@ -733,7 +732,7 @@ def delete_board(chan, dbname, current_menu_mode):
 def list_boards(chan, dbname, current_menu_mode):
     """DBに登録されている掲示板一覧を表示"""
     # sqlite_tools.get_all_boards は存在しないため、直接クエリを実行
-    sql = "SELECT shortcut_id, name, operators, default_permission, kanban_title, status, last_posted_at FROM boards ORDER BY shortcut_id"
+    sql = "SELECT shortcut_id, name, operators, default_permission, status, last_posted_at FROM boards ORDER BY shortcut_id"
     boards = sqlite_tools.sqlite_execute_query(dbname, sql, fetch=True)
 
     if not boards:
@@ -744,28 +743,25 @@ def list_boards(chan, dbname, current_menu_mode):
         # ヘッダーを textdata.yaml から取得する例 (キーは仮)
         util.send_text_by_key(
             chan, "sysop_menu.list_boards.header_title", current_menu_mode)
-        # テーブルヘッダー
-        header_line = f"{'ID':<12} {'Name':<20} {'Ops':<15} {'Perm':<10} {'Status':<8} {'LastPost':<15}\r\n"
-        separator_line = "-" * (12 + 20 + 15 + 10 + 8 + 15 + 5*2) + "\r\n"
+        # テーブルヘッダー (kanban_title を削除したため調整)
+        header_line = f"{'ID':<12} {'Name':<20} {'Ops':<15} {'Perm':<10} {'Status':<8} {'LastPost':<19}\r\n"
+        separator_line = "-" * (12 + 20 + 15 + 10 + 8 + 19 + 5*2) + "\r\n"
         chan.send(header_line.encode('utf-8'))
         chan.send(separator_line.encode('utf-8'))
 
         board_list_details = ""
         for board in boards:
-            shortcut_id_str = board.get('shortcut_id', 'N/A')
-            name_str = board.get('name', 'N/A')
+            shortcut_id_str = board['shortcut_id']
+            name_str = board['name']
             name_str = (name_str[:17] +
                         "...") if len(name_str) > 18 else name_str
-            operators_str = board['operators'] if 'operators' in board.keys(
-            ) else '[]'
+            operators_str = board['operators']
             if len(operators_str) > 13:
                 operators_str = operators_str[:12] + "..."
-            default_permission_str = board['default_permission'] if 'default_permission' in board.keys(
-            ) else 'N/A'
-            status_str = board['status'] if 'status' in board.keys() else 'N/A'
+            default_permission_str = board['default_permission']
+            status_str = board['status']
 
-            last_posted_ts = board['last_posted_at'] if 'last_posted_at' in board.keys(
-            ) else 0
+            last_posted_ts = board['last_posted_at']
             last_posted_str = "N/A"
             if last_posted_ts and last_posted_ts > 0:
                 try:
@@ -773,6 +769,6 @@ def list_boards(chan, dbname, current_menu_mode):
                         last_posted_ts).strftime('%Y-%m-%d %H:%M')
                 except (ValueError, OSError, TypeError):
                     last_posted_str = 'Invalid Date'
-            board_list_details += f"{shortcut_id_str:<12} {name_str:<20} {operators_str:<15} {default_permission_str:<10} {status_str:<8} {last_posted_str:<15}\r\n"
+            board_list_details += f"{shortcut_id_str:<12} {name_str:<20} {operators_str:<15} {default_permission_str:<10} {status_str:<8} {last_posted_str:<19}\r\n"
         chan.send(board_list_details.encode('utf-8'))
         chan.send(separator_line.encode('utf-8'))  # フッターの区切り線

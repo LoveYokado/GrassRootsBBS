@@ -1586,19 +1586,31 @@ class CommandHandler:
         if not self.permission_manager.can_write_to_board(self.current_board, self.user_id_pk, self.userlevel):
             util.send_text_by_key(
                 self.chan, "bbs.permission_denied_write_article", self.menu_mode)
+            return
 
         util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
-        util.send_text_by_key(self.chan, "bbs.post_subject",
-                              self.menu_mode, add_newline=False)
+
+        limits_config = util.app_config.get('limits', {})
+        title_max_len = limits_config.get('bbs_title_max_length', 100)
+
+        util.send_text_by_key(self.chan, "bbs.post_subject", self.menu_mode,
+                              max_len=title_max_len, add_newline=False)
         title = ssh_input.process_input(self.chan)
         if title is None:
             return  # 切断
         title = title.strip()
 
+        if len(title) > title_max_len:
+            title = title[:title_max_len]
+            util.send_text_by_key(
+                self.chan, "bbs.title_truncated", self.menu_mode, max_len=title_max_len)
+
         if not title:
             return  # タイトルがなければキャンセル
 
-        util.send_text_by_key(self.chan, "bbs.post_body", self.menu_mode)
+        body_max_len = limits_config.get('bbs_body_max_length', 8192)
+        util.send_text_by_key(
+            self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
         body_lines = []
         while True:
             line = ssh_input.process_input(self.chan)
@@ -1608,6 +1620,11 @@ class CommandHandler:
                 break
             body_lines.append(line)
         body = '\r\n'.join(body_lines)
+
+        if len(body) > body_max_len:
+            body = body[:body_max_len]
+            util.send_text_by_key(
+                self.chan, "bbs.body_truncated", self.menu_mode, max_len=body_max_len)
 
         if not body.strip():
             title = title+'(T/O)'  # タイトルをタイトルオンリーに

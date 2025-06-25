@@ -9,6 +9,13 @@ ID_MAX_LENGTH = 20       #IDの最大文字数
 PASSWORD_MIN_LENGTH = 8  #パスワードの最小文字数
 PASSWORD_MAX_LENGTH = 64 #パスワードの最大文字数
 
+[limits]
+mail_subject_max_length = 42        #メールタイトルの最大文字数
+mail_body_max_length = 8192         #メール本文の最大文字数
+bbs_title_max_length = 42           #掲示板タイトルの最大文字数
+bbs_body_max_length = 8192          #掲示板本文の最大文字数
+telegram_message_max_length = 42    #電報の最大文字数
+
 [server]
 BIND_HOST = "0.0.0.0"
 NORMAL_BIND_PORT_START = 50001        # 通常接続用ポートの開始番号
