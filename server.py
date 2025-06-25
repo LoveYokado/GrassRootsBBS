@@ -27,21 +27,6 @@ import manual_menu_handler
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
-# --- ログ設定 ---
-LOG_DIR = "logs"
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
-
-# basicConfig を使って1つのファイルとコンソールの両方に出力する設定
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(LOG_DIR, "server.log"), 'a', 'utf-8'),
-        logging.StreamHandler()  # コンソールにも出力する
-    ]
-)
-
 online_members_lock = threading.Lock()  # ロックオブジェクト作成
 online_members = set()
 
@@ -81,10 +66,11 @@ class Server(paramiko.ServerInterface):
         webapp_config = util.app_config.get('webapp', {})
         server_config = util.app_config.get('server', {})
         security_config = util.app_config.get('security', {})
+        paths_config = util.app_config.get('paths', {})
 
         webapp_user = webapp_config.get('WEBAPP_USER')
         webapp_password = webapp_config.get('WEBAPP_PASSWORD')
-        db_name = server_config.get('DBNAME')
+        db_name = paths_config.get('db_name')
         pbkdf2_rounds = security_config.get('PBKDF2_ROUNDS', 100000)
 
         if not db_name:
@@ -142,7 +128,8 @@ class Server(paramiko.ServerInterface):
 
         server_config = util.app_config.get('server', {})
         ssh_config = util.app_config.get('ssh', {})
-        db_name = server_config.get('DBNAME')
+        paths_config = util.app_config.get('paths', {})
+        db_name = paths_config.get('db_name')
         if not db_name:
             logging.error("DB名が設定されていません")
             return paramiko.AUTH_FAILED
@@ -155,10 +142,10 @@ class Server(paramiko.ServerInterface):
             return paramiko.AUTH_FAILED
 
         logging.info(f"公開鍵認証開始: ユーザ名'{username}' (鍵認証許可ユーザ)")
-        key_dir = ssh_config.get('KEY_DIR', '.sshkey')
-        auth_keys_filename = ssh_config.get(
-            'AUTH_KEYS_FILENAME', 'authorized_keys.pub')
-        authorized_keys_path = os.path.join(key_dir, auth_keys_filename)
+        authorized_keys_path = paths_config.get('authorized_keys')
+        if not authorized_keys_path:
+            logging.error("authorized_keys のパスが設定されていません。")
+            return paramiko.AUTH_FAILED
 
         try:
             with open(authorized_keys_path, 'r') as f:
@@ -195,7 +182,8 @@ class Server(paramiko.ServerInterface):
             return 'password'
 
         server_config = util.app_config.get('server', {})
-        db_name = server_config.get('DBNAME')
+        paths_config = util.app_config.get('paths', {})
+        db_name = paths_config.get('db_name')
         if not db_name:
             logging.error("DB名が設定されていません")
             return ''
@@ -422,10 +410,12 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             while True:  # 掲示板メニュー内をループ
                 bbs_handler_result = None  # ループごとにリセット
                 if current_loop_menu_mode in ('2', '3'):
-                    bbs_config_path = "setting/bbs_mode3.yaml"
+                    paths_config = util.app_config.get('paths', {})
+                    bbs_config_path = paths_config.get('bbs_mode3_yaml')
                     selected_item = hierarchical_menu.handle_hierarchical_menu(
                         chan, bbs_config_path, current_loop_menu_mode, menu_type="BBS",
                         dbname=dbname, enrich_boards=True)
+
                     if selected_item and selected_item.get("type") == "board":
                         item_id = selected_item.get("id")
                         bbs_handler_result = bbs_handler.handle_bbs_menu(
@@ -434,8 +424,10 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                         # 階層メニューを抜けた場合
                         break
                 else:  # mode1
+                    paths_config = util.app_config.get('paths', {})
                     selected_board_id = manual_menu_handler.process_manual_menu(
-                        chan, dbname, login_id, current_loop_menu_mode, menu_config_path="setting/bbs_mode1.yaml",
+                        chan, dbname, login_id, current_loop_menu_mode, menu_config_path=paths_config.get(
+                            'bbs_mode1_yaml'),
                         initial_menu_id="main_bbs_menu", menu_type="bbs")
 
                     if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
@@ -465,7 +457,8 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
             while True:  # チャットメニュー内をループ
                 chat_handler_result = None  # ループごとにリセット
-                chat_config_path = "setting/chatroom.yaml"
+                paths_config = util.app_config.get('paths', {})
+                chat_config_path = paths_config.get('chatroom_yaml')
                 selected_item = hierarchical_menu.handle_hierarchical_menu(
                     chan, chat_config_path, current_loop_menu_mode, menu_type="CHAT"
                 )
@@ -549,7 +542,8 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
     """
     server_config = util.app_config.get('server', {})
     security_config = util.app_config.get('security', {})
-    db_name_from_config = server_config.get('DBNAME')
+    paths_config = util.app_config.get('paths', {})
+    db_name_from_config = paths_config.get('db_name')
     auth_menu_mode = server_config.get('DEFAULT_AUTH_MENU_MODE', '1')
     if auth_menu_mode not in ('1', '2', '3'):
         logging.warning("default_auth_menu_mode 設定値不正")
@@ -707,8 +701,9 @@ def handle_client(client, addr, host_key, is_web_app=True):
             # webアプリの場合paramiko認証が成功してればOK
             # Server.check_auth_password で設定に書かれたID/PASSWORDのSSH認証が行われている前提
             db_name_from_config = util.app_config.get(
-                'server', {}).get('DBNAME')
+                'paths', {}).get('db_name')
             max_attempts_from_config = util.app_config.get(
+                # これはserverセクションでOK
                 'server', {}).get('MAX_PASSWORD_ATTEMPTS', 3)
             if not db_name_from_config:
                 logging.error("DB名が設定されていません(webapp)")
@@ -728,7 +723,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
                 login_id = transport.get_username()
                 logging.info(f"SSH接続認証成功。 ユーザ名: {login_id} ({addr})")
                 db_name_from_config = util.app_config.get(
-                    'server', {}).get('DBNAME')
+                    'paths', {}).get('db_name')
                 if not db_name_from_config:
                     logging.error("DB名が設定されていません")
                     return
@@ -770,7 +765,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
         # ログイン後処理
         try:
             db_name_from_config = util.app_config.get(
-                'server', {}).get('DBNAME')
+                'paths', {}).get('db_name')
             if not db_name_from_config:
                 logging.error("DB名が設定されていません")
                 return
@@ -966,13 +961,34 @@ def main():
             f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         print(f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         return
+
+    # --- ログ設定 ---
+    # util.load_app_config_from_path の後で実行
+    paths_config = util.app_config.get('paths', {})
+    log_dir = paths_config.get('log_dir', 'logs')  # デフォルト値
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    # 既存のハンドラをクリア
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(os.path.join(
+                log_dir, "server.log"), 'a', 'utf-8'),
+            logging.StreamHandler()
+        ]
+    )
+
     server_config = util.app_config.get('server', {})
     webapp_config = util.app_config.get('webapp', {})
 
-    db_name_from_config = server_config.get('DBNAME')
+    db_name_from_config = paths_config.get('db_name')
     bind_host_from_config = server_config.get('BIND_HOST', '0.0.0.0')
-    webapp_key_path_from_config = webapp_config.get(
-        'WEBAPP_KEY_PATH', '.sshkey/webapp_rsa.key')
+    host_key_path_from_config = paths_config.get('host_key')
     webapp_bind_port_from_config = webapp_config.get('WEBAPP_BIND_PORT')
     normal_bind_port_from_config = server_config.get('NORMAL_BIND_PORT_START')
     NORMAL_SSH_PORT_COUNT_from_config = server_config.get(
@@ -998,12 +1014,12 @@ def main():
     # ホストキー読み込み
     host_key = None
     try:
-        host_key = paramiko.RSAKey(filename=webapp_key_path_from_config)
-        logging.info(f"ホストキー '{webapp_key_path_from_config}'を読み込みました。")
+        host_key = paramiko.RSAKey(filename=host_key_path_from_config)
+        logging.info(f"ホストキー '{host_key_path_from_config}'を読み込みました。")
     except Exception as e:
         logging.exception(
-            f"ホストキー '{webapp_key_path_from_config}'が見つからないか、読み込めません。")
-        print(f"エラー: ホストキー '{webapp_key_path_from_config}' が見つからないか、読み込めません。")
+            f"ホストキー '{host_key_path_from_config}'が見つからないか、読み込めません。")
+        print(f"エラー: ホストキー '{host_key_path_from_config}' が見つからないか、読み込めません。")
         print("SSHサーバーを起動できません。")
         print("RSAキーを生成してください (例: ssh-keygen -t rsa -f test_rsa.key)")
         return

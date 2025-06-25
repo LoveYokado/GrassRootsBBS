@@ -14,7 +14,6 @@ import textwrap
 
 import sqlite_tools
 import ssh_input
-SETTING_DIR = "setting"
 # テキストデータのキャッシュ用グローバル変数
 _master_text_data_cache = None
 
@@ -69,19 +68,19 @@ def load_master_text_data():
         return _master_text_data_cache
 
     # テキストデータを読み込む
-    master_text_data_filename = "textdata.yaml"
-    file_path = os.path.join('text', master_text_data_filename)
+    paths_config = app_config.get('paths', {})
+    full_path = paths_config.get('text_data_yaml', 'setting/textdata.yaml')
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(full_path, 'r', encoding='utf-8') as f:
             data = yaml.safe_load(f)
             _master_text_data_cache = data  # キャッシュ作りまーす
             return _master_text_data_cache
     except FileNotFoundError:
-        logging.error(f"テキストデータファイル '{file_path}' が見つかりません。")
+        logging.error(f"テキストデータファイル '{full_path}' が見つかりません。")
         _master_text_data_cache = {}
         return _master_text_data_cache
     except Exception as e:
-        logging.error(f"テキストデータファイル '{file_path}' の読み込みエラー: {e}")
+        logging.error(f"テキストデータファイル '{full_path}' の読み込みエラー: {e}")
         _master_text_data_cache = {}
         return _master_text_data_cache
 
@@ -368,17 +367,19 @@ def generate_and_regenerate_ssh_key(username):
     秘密鍵(PEM形式文字列)を返す。
     """
     if not app_config:
-        logging.error("設定が読み込まれていません。SSH鍵ペアを生成できません。")
+        logging.error(
+            "設定が読み込まれていません。SSH鍵ペアを生成できません。(util.generate_and_regenerate_ssh_key)")
         return None
     try:
-        ssh_config = app_config.get("ssh", {})
-        key_dir_val = ssh_config.get('KEY_DIR')
-        auth_keys_filename_val = ssh_config.get('AUTH_KEYS_FILENAME')
+        paths_config = app_config.get('paths', {})
+        authorized_keys_path = paths_config.get('authorized_keys')
 
-        if not key_dir_val or not auth_keys_filename_val:
+        if not authorized_keys_path:
             logging.error(
-                "SSH設定(key_dir or auth_key_filename)がconfig.tomlに設定されていません。")
+                "authorized_keys のパスが設定されていません。(util.generate_and_regenerate_ssh_key)")
             return None
+
+        key_dir_val = os.path.dirname(authorized_keys_path)
 
         # 秘密鍵を生成
         key = paramiko.RSAKey.generate(2048)
@@ -391,12 +392,11 @@ def generate_and_regenerate_ssh_key(username):
         # 公開鍵を生成してauthorized_keys.pubに追加
         public_key_line = f"{key.get_name()} {key.get_base64()} {username}"
 
-        # .sshkeyディレクトリがなければ作成
-        if not os.path.exists(key_dir_val):
+        if not os.path.exists(key_dir_val):  # ディレクトリがなければ作成
             os.makedirs(key_dir_val, mode=0o700)
             logging.info(f"SSHキーディレクトリ '{key_dir_val}' を作成しました。")
 
-        auth_key_path = os.path.join(key_dir_val, auth_keys_filename_val)
+        auth_key_path = authorized_keys_path
         # authorized_keys.pubに追記
         with open(auth_key_path, 'a', encoding='utf-8') as f:
             f.write(public_key_line+'\n')
@@ -414,19 +414,19 @@ def regenerate_user_ssh_key(username):
     新しいキーペアを生成して公開鍵を追記。
     """
     if not app_config:
-        logging.error("設定が読み込めないので鍵が作れません。")
+        logging.error("設定が読み込めないので鍵が作れません。(util.regenerate_user_ssh_key)")
         return None
     try:
-        ssh_config = app_config.get("ssh", {})
-        key_dir_val = ssh_config.get('KEY_DIR')
-        auth_keys_filename_val = ssh_config.get('AUTH_KEYS_FILENAME')
+        paths_config = app_config.get('paths', {})
+        authorized_keys_path = paths_config.get('authorized_keys')
 
-        if not key_dir_val or not auth_keys_filename_val:
+        if not authorized_keys_path:
             logging.error(
-                "SSH設定(key_dir or auth_keys_filename)がconfig.tomlに設定されていません。")
+                "authorized_keys のパスが設定されていません。(util.regenerate_user_ssh_key)")
             return None
 
-        auth_key_path = os.path.join(key_dir_val, auth_keys_filename_val)
+        auth_key_path = authorized_keys_path
+        key_dir_val = os.path.dirname(authorized_keys_path)
 
         # 古い公開鍵を削除
         if os.path.exists(auth_key_path):
@@ -530,19 +530,19 @@ def remove_user_public_key(username):
     指定されたユーザの公開鍵をファイルから削除する。
     """
     if not app_config:
-        logging.error("設定が読み込めないので公開鍵が削除できません。")
+        logging.error("設定が読み込めないので公開鍵が削除できません。(util.remove_user_public_key)")
         return None
     try:
-        ssh_config = app_config.get("ssh", {})
-        key_dir_val = ssh_config.get('KEY_DIR')
-        auth_keys_filename_val = ssh_config.get('AUTH_KEYS_FILENAME')
+        paths_config = app_config.get('paths', {})
+        authorized_keys_path = paths_config.get('authorized_keys')
 
-        if not key_dir_val or not auth_keys_filename_val:
+        if not authorized_keys_path:
             logging.error(
-                "SSH設定(key_dir or auth_key_filename)がconfig.tomlに設定されていません。")
+                "authorized_keys のパスが設定されていません。(util.remove_user_public_key)")
             return False
 
-        auth_key_path = os.path.join(key_dir_val, auth_keys_filename_val)
+        auth_key_path = authorized_keys_path
+        # key_dir_val = os.path.dirname(authorized_keys_path) # Not needed for removal
 
         if not os.path.exists(auth_key_path):
             logging.info(f"公開鍵ファイル'{auth_key_path}'が見つかりません。公開鍵の削除はスキップしました。")
@@ -578,7 +578,9 @@ def remove_user_public_key(username):
 
 def load_yaml_file_for_shortcut(filename: str):
     """設定からYAMLをロードしてショートカット情報を取得する"""
-    filepath = os.path.join(SETTING_DIR, filename)
+    # This function is used by util.handle_shortcut and bbs_handler.BoardManager.load_boards_from_config
+    # The filename argument should be the full path from config.toml
+    filepath = filename  # filename is now expected to be a full path from config.toml
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
@@ -685,7 +687,9 @@ def handle_shortcut(chan, dbname: str, login_id: str, menu_mode: str, shortcut_i
 
     # チャット検索
     if target_type == "chat" or target_type is None:
-        chatroom_config = load_yaml_file_for_shortcut("chatroom.yaml")
+        paths_config = app_config.get('paths', {})
+        chatroom_config_path = paths_config.get('chatroom_yaml')
+        chatroom_config = load_yaml_file_for_shortcut(chatroom_config_path)
         if chatroom_config:
             target_item, item_name = find_item_in_yaml(
                 chatroom_config, shortcut_id_to_search, menu_mode, "room")

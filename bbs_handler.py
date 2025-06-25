@@ -27,9 +27,12 @@ class BoardManager:
         self.dbname = dbname
         # self.load_boards_from_config() # SysOpメニューから実行する形に変更したため、初期化時は呼び出さない
 
+    # This function is currently not called from anywhere.
     def load_boards_from_config(self):
+        paths_config = util.app_config.get('paths', {})
+        bbs_config_path = paths_config.get('bbs_sync_config')
         """bbs.yaml から掲示板情報を読み込み、DBと同期する"""
-        bbs_config_data = util.load_yaml_file_for_shortcut("bbs.yaml")
+        bbs_config_data = util.load_yaml_file_for_shortcut(bbs_config_path)
         if not bbs_config_data or "categories" not in bbs_config_data:
             logging.error("bbs.yaml の読み込みに失敗したか、不正な形式です。")
             return False
@@ -1643,11 +1646,14 @@ def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
                 return None
         else:
             # TODO: textdata.yaml に追加
-            util.send_text_by_key(chan, "bbs.board_not_found", menu_mode)
+            util.send_text_by_key(
+                chan, "bbs.board_not_found", menu_mode, shortcut_id=shortcut_id)
     else:
         # 指定がなければ、カテゴリ選択 or 掲示板一覧表示からの遷移
         # hierarchical_menu を使って掲示板を選択させる
-        bbs_config_path = "setting/bbs.yaml"
+        paths_config = util.app_config.get('paths', {})
+        # server.py の bbs コマンド処理と合わせ、mode3用のyamlを参照する
+        bbs_config_path = paths_config.get('bbs_mode3_yaml')
         logging.info(
             f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
         selected_item = hierarchical_menu.handle_hierarchical_menu(
