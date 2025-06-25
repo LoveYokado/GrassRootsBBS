@@ -9,3 +9,4 @@ sqlite_create_db.py
 sqlite_create_table.py
 sqlite_data_insert.py
 text/textdata.yaml
+logs/*

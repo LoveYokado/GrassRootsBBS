@@ -6,10 +6,10 @@ import sqlite_tools
 import bbsmenu
 import util
 import ssh_input
-import socket
 import threading
 import paramiko
 import hashlib
+import socket
 import os
 import time
 import logging
@@ -27,8 +27,20 @@ import manual_menu_handler
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+# --- ログ設定 ---
+LOG_DIR = "logs"
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+
+# basicConfig を使って1つのファイルとコンソールの両方に出力する設定
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(os.path.join(LOG_DIR, "server.log"), 'a', 'utf-8'),
+        logging.StreamHandler()  # コンソールにも出力する
+    ]
+)
 
 online_members_lock = threading.Lock()  # ロックオブジェクト作成
 online_members = set()
