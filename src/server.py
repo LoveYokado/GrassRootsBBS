@@ -126,8 +126,6 @@ class Server(paramiko.ServerInterface):
             # webアプリでは公開鍵認証を許可しない
             return paramiko.AUTH_FAILED
 
-        server_config = util.app_config.get('server', {})
-        ssh_config = util.app_config.get('ssh', {})
         paths_config = util.app_config.get('paths', {})
         db_name = paths_config.get('db_name')
         if not db_name:
@@ -148,30 +146,37 @@ class Server(paramiko.ServerInterface):
             return paramiko.AUTH_FAILED
 
         try:
-            with open(authorized_keys_path, 'r') as f:
+            with open(authorized_keys_path, 'r', encoding='utf-8') as f:  # Specify encoding
                 for line in f:
                     line = line.strip()
                     if not line or line.startswith('#'):  # 空行＋コメントスキップ
                         continue
                     parts = line.strip().split()
-                    if len(parts) >= 2:
-                        key_type = parts[0]
-                        key_string = parts[1]
-                        key_comment_user = None
-                        if len(parts) > 2:
-                            key_comment_user = parts[2].split('@')[0]
-                        auth_key = paramiko.RSAKey(
-                            data=base64.b64decode(key_string.encode('ascii')))
+                    if len(parts) < 2:
+                        continue
 
-                        # 鍵と公開鍵ファイルのコメントユーザ名がSSH接続ユーザ名と一致
-                        if key == auth_key and (username == key_comment_user or username == "keyuser"):
+                    file_key_type = parts[0]
+                    file_key_string = parts[1]
+
+                    # Compare the client's key with the key from the file
+                    if key.get_name() == file_key_type and key.get_base64() == file_key_string:
+                        # Key matches. Now check if the username in the comment matches.
+                        key_comment_user = None
+                        if len(parts) > 2:  # Check if there's a comment part
+                            # Clean up the comment part for comparison
+                            comment_part = " ".join(parts[2:])
+                            key_comment_user = comment_part.split('#')[
+                                0].strip()
+
+                        if username == key_comment_user or username == "keyuser":  # "keyuser" is a special case
                             logging.info(
-                                f"公開鍵認証成功: ユーザ名'{username}' (鍵タイプ: {key_type})")
+                                f"公開鍵認証成功: ユーザ名'{username}' (鍵タイプ: {key.get_name()})")
                             return paramiko.AUTH_SUCCESSFUL
-        except FileExistsError:
+        except FileNotFoundError:  # Corrected exception type for file not found
             logging.error(f"公開鍵ファイル '{authorized_keys_path}' が見つかりません。")
         except Exception as e:
-            logging.error(f"公開鍵読み込みまたは比較中にエラー: {e}")
+            # Add exc_info
+            logging.error(f"公開鍵読み込みまたは比較中に予期せぬエラー: {e}", exc_info=True)
         logging.warning(f"公開鍵認証失敗: ユーザ名'{username}'")
         return paramiko.AUTH_FAILED
 
@@ -674,7 +679,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         return None, None, None
 
 
-def handle_client(client, addr, host_key, is_web_app=True):
+def handle_client(client, addr, host_keys, is_web_app=True):
     login_id = None
     user_id = None
     userdata = None
@@ -687,15 +692,17 @@ def handle_client(client, addr, host_key, is_web_app=True):
     try:
         transport = paramiko.Transport(client)
         # serverクラスのインスタンスを作成、Webアプリ接続かどうかを判別
-        transport.add_server_key(host_key)
+        for key in host_keys:
+            transport.add_server_key(key)
         server = Server(is_web_app_connection=is_web_app)
         try:
             transport.start_server(server=server)
         except paramiko.SSHException as e:
             logging.error(f"SSHネゴシエーションに失敗({addr}): {e}")
             return
-        except Exception as e:
-            logging.error(f'サーバ起動中の予期せぬエラー ({addr}): {e}')
+        except Exception as e:  # This is the generic error that needs more info
+            # Add exc_info=True
+            logging.error(f'サーバ起動中の予期せぬエラー ({addr}): {e}', exc_info=True)
             return
 
         chan = transport.accept(30)
@@ -906,7 +913,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
         logging.info(f"接続を閉じました: {addr}")
 
 
-def wait_for_connections(sock, host_key, is_web_app_server):
+def wait_for_connections(sock, host_keys, is_web_app_server):
     """
     指定されたソケットでクライアントからの接続を待ち受け、新しい接続があるたびにhandle_clientを呼び出す。
     """
@@ -946,7 +953,7 @@ def wait_for_connections(sock, host_key, is_web_app_server):
 
             # スレッド開始
             client_thread = threading.Thread(
-                target=handle_client, args=(client, addr, host_key, is_web_app_server), daemon=True)
+                target=handle_client, args=(client, addr, host_keys, is_web_app_server), daemon=True)
             client_thread.start()
         except socket.timeout:
             logging.info(
@@ -971,6 +978,10 @@ def main():
     # --- 環境変数からシスオペ情報を取得 ---
     # Docker環境での初回起動時に使用される
     sysop_id_from_env = os.getenv('GRASSROOTSBBS_SYSOP_ID')
+    if sysop_id_from_env:
+        sysop_id_from_env = sysop_id_from_env.strip()
+        if '#' in sysop_id_from_env:
+            sysop_id_from_env = sysop_id_from_env.split('#')[0].strip()
     sysop_password_from_env = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
 
     # --- ログ設定 ---
@@ -999,7 +1010,7 @@ def main():
 
     db_name_from_config = paths_config.get('db_name')
     bind_host_from_config = server_config.get('BIND_HOST', '0.0.0.0')
-    host_key_path_from_config = paths_config.get('host_key')
+    host_key_dir_from_config = paths_config.get('host_key_dir')
     webapp_bind_port_from_config = webapp_config.get('WEBAPP_BIND_PORT')
     normal_bind_port_from_config = server_config.get('NORMAL_BIND_PORT_START')
     NORMAL_SSH_PORT_COUNT_from_config = server_config.get(
@@ -1008,6 +1019,10 @@ def main():
     if not db_name_from_config:
         logging.critical("DB名が設定ファイルにありません")
         print("DB名が設定ファイルにありません")
+        return
+
+    if not host_key_dir_from_config:
+        logging.critical("ホストキーのディレクトリ(paths.host_key_dir)が設定ファイルにありません。")
         return
 
     # データベース初期化チェック
@@ -1031,28 +1046,54 @@ def main():
         logging.info(f"データベースファイル '{db_name_from_config}' を使用します。")
 
     # ホストキーの準備
-    host_key = None
+    host_keys = []
     try:
-        host_key_dir = os.path.dirname(host_key_path_from_config)
-        if not os.path.exists(host_key_dir):
-            os.makedirs(host_key_dir)
+        if not os.path.exists(host_key_dir_from_config):
+            os.makedirs(host_key_dir_from_config, mode=0o700)
+            logging.info(f"ホストキーディレクトリ '{host_key_dir_from_config}' を作成しました。")
 
-        if not os.path.isfile(host_key_path_from_config):
-            logging.info(
-                f"ホストキー '{host_key_path_from_config}' が見つかりません。新しいキーを生成します。")
-            key = paramiko.RSAKey.generate(4096)
-            key.write_private_key_file(host_key_path_from_config)
-            logging.info(f"新しいホストキーを '{host_key_path_from_config}' に保存しました。")
+        # ディレクトリ内の秘密鍵ファイルを確認
+        key_files_exist = any(
+            os.path.isfile(os.path.join(host_key_dir_from_config, f)
+                           ) and not f.endswith('.pub')
+            for f in os.listdir(host_key_dir_from_config)
+        )
 
-        host_key = paramiko.RSAKey(filename=host_key_path_from_config)
-        logging.info(f"ホストキー '{host_key_path_from_config}' を読み込みました。")
+        if not key_files_exist:
+            logging.info(f"ホストキーが見つかりません。新しいRSAキーを生成します。")
+            # RSAキー生成
+            rsa_key_path = os.path.join(host_key_dir_from_config, 'id_rsa')
+            rsa_key = paramiko.RSAKey.generate(4096)
+            rsa_key.write_private_key_file(rsa_key_path)
+            logging.info(f"新しいRSAホストキーを '{rsa_key_path}' に保存しました。")
+
+        # ディレクトリ内のすべての秘密鍵を読み込む
+        for filename in sorted(os.listdir(host_key_dir_from_config)):
+            if filename.endswith('.pub'):
+                continue
+            # authorized_keys はユーザーの公開鍵を格納するファイルであり、ホストキーではないためスキップ
+            if filename == os.path.basename(paths_config.get('authorized_keys')):
+                continue
+            filepath = os.path.join(host_key_dir_from_config, filename)
+            if not os.path.isfile(filepath):
+                continue
+            try:
+                key = paramiko.RSAKey(filename=filepath)
+                host_keys.append(key)
+                logging.info(f"ホストキー '{filepath}' を読み込みました。")
+            except (paramiko.SSHException, ValueError) as e:
+                logging.warning(f"ホストキー '{filepath}' の読み込みに失敗しました: {e}")
+
+        if not host_keys:
+            logging.critical("読み込めるホストキーがありません。サーバを起動できません。")
+            return
+
     except Exception as e:
         logging.exception(f"ホストキーの準備中にエラーが発生しました: {e}")
         return
 
     listening_sockets = []  # 起動したソケット用リスト
     threads = []  # 起動したスレッド用リスト
-
     # WEBアプリ用ソケット準備とスレッド作成
     if webapp_bind_port_from_config is not None:
         try:
@@ -1066,7 +1107,7 @@ def main():
             listening_sockets.append(webapp_sock)
 
             web_app_thread = threading.Thread(
-                target=wait_for_connections, args=(webapp_sock, host_key, True), daemon=True)
+                target=wait_for_connections, args=(webapp_sock, host_keys, True), daemon=True)
             web_app_thread.start()
             threads.append(web_app_thread)
         except Exception as e:
@@ -1100,7 +1141,7 @@ def main():
                         listening_sockets.append(normal_sock_instance)
 
                         normal_thread = threading.Thread(
-                            target=wait_for_connections, args=(normal_sock_instance, host_key, False), daemon=True)
+                            target=wait_for_connections, args=(normal_sock_instance, host_keys, False), daemon=True)
                         normal_thread.start()
                         threads.append(normal_thread)
                     except Exception as e:

@@ -242,6 +242,35 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
         )
         print("Sysop registered.")
 
+        # --- SysopのSSH鍵を生成し、秘密鍵をファイルに保存 ---
+        try:
+            paths_config = app_config.get('paths', {})
+            key_dir = paths_config.get('host_key_dir')
+            if key_dir:
+                # generate_and_regenerate_ssh_key は公開鍵を authorized_keys に追加し、秘密鍵(PEM文字列)を返す
+                private_key_pem = generate_and_regenerate_ssh_key(sysopname)
+                if private_key_pem:
+                    private_key_path = os.path.join(key_dir, sysopname)
+                    with open(private_key_path, 'w') as f:
+                        f.write(private_key_pem)
+                    os.chmod(private_key_path, 0o600)
+                    print(
+                        f"Sysop's private key has been saved to: {private_key_path}")
+                    logging.info(
+                        f"Sysop's private key has been saved to: {private_key_path}")
+                else:
+                    print("Failed to generate SSH key for Sysop.")
+                    logging.error("Failed to generate SSH key for Sysop.")
+            else:
+                print(
+                    "paths.host_key_dir is not configured. Skipping Sysop's private key generation.")
+                logging.warning(
+                    "paths.host_key_dir is not configured. Skipping Sysop's private key generation.")
+        except Exception as e:
+            print(f"An error occurred while generating Sysop's SSH key: {e}")
+            logging.error(
+                f"An error occurred while generating Sysop's SSH key: {e}", exc_info=True)
+
         # ゲスト登録 (saltとハッシュ化パスワード保存)
         guest_salt, guest_hashed_pass = hash_password('GUEST')
         print("Registering Guest...")
@@ -367,7 +396,7 @@ def generate_and_regenerate_ssh_key(username):
         key_dir_val = os.path.dirname(authorized_keys_path)
 
         # 秘密鍵を生成
-        key = paramiko.RSAKey.generate(2048)
+        key = paramiko.Ed25519Key.generate()
         from io import StringIO
         private_key_io = StringIO()
         key.write_private_key(private_key_io)
