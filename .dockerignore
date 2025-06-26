@@ -1,9 +1,3 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-venv/
-.git
-.gitignore
-.vscode/
+data/
+logs/
+.sshkey/
