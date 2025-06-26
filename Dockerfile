@@ -17,5 +17,5 @@ COPY . /app
 EXPOSE 50000
 EXPOSE 50001
 
-# アプリケーションの起動コマンド
-CMD ["python", "server.py"]
+# アプリケーションの起動コマンド (srcディレクトリ内のserver.pyを指定)
+CMD ["python", "src/server.py"]

@@ -191,7 +191,7 @@ def hash_password(password):
     return salt.hex(), hashed_password.hex()
 
 
-def make_sysop_and_database(dbname):
+def make_sysop_and_database(dbname, sysop_id, sysop_password):
     """データベースと初期テーブル、Sysop/Guestユーザーを作成する"""
     conn = None  # finally で確実に close するため
     cur = None  # finally で確実に close するため
@@ -225,17 +225,8 @@ def make_sysop_and_database(dbname):
         print("users table created.")
 
         # Sysop 情報入力
-        while True:
-            sysopname = input('Input Sysop name: ')
-            if sysopname:  # 空入力を防ぐ
-                break
-            print("Sysop名は必須です。")
-        while True:
-            sysoppass = input('Input Sysop password: ')
-            if sysoppass:  # 空入力を防ぐ
-                break
-            print("Sysopパスワードは必須です。")
-
+        sysopname = sysop_id
+        sysoppass = sysop_password
         registdate = int(time.time())
 
         sysop_salt, sysop_hashed_pass = hash_password(sysoppass)
@@ -246,17 +237,11 @@ def make_sysop_and_database(dbname):
             "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email,auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (sysopname, sysop_hashed_pass, sysop_salt, 5, registdate, 0, 0,
              # メールアドレスも動的に、認証は両方
+             # シスオペのSSH鍵自動生成は削除
              'Sysop', f'{sysopname.lower()}@example.com', 'both')
         )
+        print("Sysop registered.")
 
-        # シスオペのSSH鍵を作成
-        sysop_private_key_pem = generate_and_regenerate_ssh_key(sysopname)
-        if sysop_private_key_pem:
-            print("Sysop registered.")
-            print(sysop_private_key_pem)
-            print("秘密鍵は今回のみの表示です。大切に保管してください。")
-        else:
-            print("シスオペのSSH鍵の作成に失敗しました。")
         # ゲスト登録 (saltとハッシュ化パスワード保存)
         guest_salt, guest_hashed_pass = hash_password('GUEST')
         print("Registering Guest...")

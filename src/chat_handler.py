@@ -121,7 +121,8 @@ def broadcast_to_room(room_id: str, dbname: str, sender_name: str,
                             f"Text key 'chat.broadcast_user_message_format' for mode '{target_menu_mode}' not found. Using default.")
                         # Fallback
                         formatted_message = f"{sender_name}: {message_body}"
-                message_payload = f"{formatted_message.replace('\n', '\r\n')}\r\n"
+                message_payload = formatted_message.replace(
+                    '\n', '\r\n') + '\r\n'
                 try:
                     target_chan.send(
                         b"\033[s" +       # カーソル位置保存

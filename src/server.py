@@ -968,6 +968,11 @@ def main():
         print(f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         return
 
+    # --- 環境変数からシスオペ情報を取得 ---
+    # Docker環境での初回起動時に使用される
+    sysop_id_from_env = os.getenv('GRASSROOTSBBS_SYSOP_ID')
+    sysop_password_from_env = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
+
     # --- ログ設定 ---
     # util.load_app_config_from_path の後で実行
     paths_config = util.app_config.get('paths', {})
@@ -1004,30 +1009,45 @@ def main():
         logging.critical("DB名が設定ファイルにありません")
         print("DB名が設定ファイルにありません")
         return
+
     # データベース初期化チェック
     if not os.path.isfile(db_name_from_config):
-        logging.info(
-            f"データベースファイル '{db_name_from_config}'が見つかりません。初期化を実行します。")
+        logging.info(f"データベースファイル '{db_name_from_config}' が見つかりません。初期化を実行します。")
+        if not (sysop_id_from_env and sysop_password_from_env):
+            logging.critical(
+                "初回起動には環境変数 GRASSROOTSBBS_SYSOP_ID と GRASSROOTSBBS_SYSOP_PASSWORD が必要です。")
+            return
+
         try:
-            util.make_sysop_and_database(db_name_from_config)
-            logging.info("データベースの初期化が完了しました。")
+            # 注: util.make_sysop_and_database がIDとパスワードを引数に取るように改修する必要があります。
+            util.make_sysop_and_database(
+                db_name_from_config, sysop_id_from_env, sysop_password_from_env)
+            logging.info(f"データベースとシスオペ '{sysop_id_from_env}' の初期化が完了しました。")
         except Exception as e:
-            logging.exception(f"データベースの初期化中にエラーが発生しました。: {e}")
+            logging.exception(
+                f"データベースの初期化中にエラーが発生しました。util.pyが引数に対応しているか確認してください。: {e}")
             return
     else:
-        logging.info(f"データベースファイル '{db_name_from_config}'を使用します。")
+        logging.info(f"データベースファイル '{db_name_from_config}' を使用します。")
 
-    # ホストキー読み込み
+    # ホストキーの準備
     host_key = None
     try:
+        host_key_dir = os.path.dirname(host_key_path_from_config)
+        if not os.path.exists(host_key_dir):
+            os.makedirs(host_key_dir)
+
+        if not os.path.isfile(host_key_path_from_config):
+            logging.info(
+                f"ホストキー '{host_key_path_from_config}' が見つかりません。新しいキーを生成します。")
+            key = paramiko.RSAKey.generate(4096)
+            key.write_private_key_file(host_key_path_from_config)
+            logging.info(f"新しいホストキーを '{host_key_path_from_config}' に保存しました。")
+
         host_key = paramiko.RSAKey(filename=host_key_path_from_config)
-        logging.info(f"ホストキー '{host_key_path_from_config}'を読み込みました。")
+        logging.info(f"ホストキー '{host_key_path_from_config}' を読み込みました。")
     except Exception as e:
-        logging.exception(
-            f"ホストキー '{host_key_path_from_config}'が見つからないか、読み込めません。")
-        print(f"エラー: ホストキー '{host_key_path_from_config}' が見つからないか、読み込めません。")
-        print("SSHサーバーを起動できません。")
-        print("RSAキーを生成してください (例: ssh-keygen -t rsa -f test_rsa.key)")
+        logging.exception(f"ホストキーの準備中にエラーが発生しました: {e}")
         return
 
     listening_sockets = []  # 起動したソケット用リスト
