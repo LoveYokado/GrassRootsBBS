@@ -1,19 +1,15 @@
 services:
   grassrootsbbs:
-    build: . # 現在のディレクトリにあるDockerfileを使用してイメージをビルド
+    build:
     ports:
-      # ホストのポート:コンテナのポート
-      # config.toml の設定に合わせて調整してください
       - "50000:50000" # WebApp SSH ポート (config.toml の WEBAPP_BIND_PORT)
       - "50001:50001" # 通常SSHポート (config.toml の NORMAL_BIND_PORT_START)
       # config.toml の NORMAL_SSH_PORT_COUNT が2以上の場合、必要に応じてポートを追加してください
       # 例: NORMAL_SSH_PORT_COUNT=2 なら - "50002:50002" も追加
     volumes:
-      # ホストのディレクトリをコンテナ内のパスにマウントし、データを永続化します
-      # config.toml の paths セクションで指定されているパスと一致させる必要があります
       - ./data:/app/data
       - ./logs:/app/logs
-      - ./sshkey:/app/.sshkey
+      - ./.sshkey:/app/.sshkey
     env_file:
-      - .env # .env ファイルから環境変数を読み込む
-    restart: unless-stopped # コンテナが停止した場合に自動的に再起動します
+      - .env # .env 必ず先に管理者IDとパスワードを設定してください。
+    restart: unless-stopped

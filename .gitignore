@@ -4,5 +4,4 @@ __pycache__/
 logs/*
 .sshkey/*
 data/bbs.db
-sshkey/authorized_keys
-sshkey/yuki
+    
