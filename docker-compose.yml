@@ -1,6 +1,6 @@
 services:
   grassrootsbbs:
-    build:
+    build: .
     ports:
       - "50000:50000" # WebApp SSH ポート (config.toml の WEBAPP_BIND_PORT)
       - "50001:50001" # 通常SSHポート (config.toml の NORMAL_BIND_PORT_START)
@@ -12,4 +12,16 @@ services:
       - ./.sshkey:/app/.sshkey
     env_file:
       - .env # .env 必ず先に管理者IDとパスワードを設定してください。
+    restart: unless-stopped
+
+  sshwifty:
+    image: niruix/sshwifty:latest
+    ports:
+      - "8182:8182" # SshwiftyのWeb UIポート
+    volumes:
+      - ./sshwifty.conf.json:/app/sshwifty.conf.json:ro # 設定ファイルを読み取り専用でマウント
+    depends_on:
+      - grassrootsbbs # grassrootsbbsが起動してからsshwiftyを起動する
+    environment:
+      - SSHWIFTY_CONFIG=/app/sshwifty.conf.json # Sshwiftyに設定ファイルの場所を明示的に伝える
     restart: unless-stopped
