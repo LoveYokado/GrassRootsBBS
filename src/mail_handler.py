@@ -807,22 +807,30 @@ def mail_write(chan, dbname, login_id, menu_mode='2'):
     if not recipient_info_list:
         return
 
+    limits_config = util.app_config.get('limits', {})
+    mail_subject_max_len = limits_config.get(
+        'mail_subject_max_length', 100)  # デフォルト値
+    mail_body_max_len = limits_config.get(
+        'mail_body_max_length', 4096)  # デフォルト値
+
     # ここから後ろ、データベースに保存する手前までは掲示板でも利用するので、あとで関数化する
     util.send_text_by_key(
-        chan, "mail_handler.enter_subject", menu_mode, add_newline=False
+        chan, "mail_handler.enter_subject", menu_mode, max_len=mail_subject_max_len, add_newline=False
     )  # 件名を入力してください:
     subject = ssh_input.process_input(chan)
     if subject is None:
         return
     if not subject:
         subject = "(No subject)"
-    # 21文字制限(増やしてもいいかも)
-    if len(subject) > 21:
-        subject = subject[:21]
+
+    if len(subject) > mail_subject_max_len:
+        subject = subject[:mail_subject_max_len]
+        util.send_text_by_key(
+            chan, "mail_handler.subject_truncated", menu_mode, max_len=mail_subject_max_len)
 
     # 本文入力
     util.send_text_by_key(
-        chan, "mail_handler.enter_body", menu_mode)
+        chan, "mail_handler.enter_body", menu_mode, max_len=mail_body_max_len)
     message_lines = []
     while True:
         line = ssh_input.process_input(chan)
@@ -832,6 +840,12 @@ def mail_write(chan, dbname, login_id, menu_mode='2'):
             break
         message_lines.append(line)
     message = '\r\n'.join(message_lines)
+
+    if len(message) > mail_body_max_len:
+        message = message[:mail_body_max_len]
+        util.send_text_by_key(
+            chan, "mail_handler.body_truncated", menu_mode, max_len=mail_body_max_len)
+
     if not message:
         util.send_text_by_key(
             chan, "mail_handler.no_body", menu_mode

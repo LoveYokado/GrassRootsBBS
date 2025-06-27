@@ -23,24 +23,9 @@ import hierarchical_menu
 import chat_handler
 import bbs_handler
 import manual_menu_handler
-
+import hamlet_game
 
 CONFIG_FILE_PATH = "setting/config.toml"
-
-# --- ログ設定 ---
-LOG_DIR = "logs"
-if not os.path.exists(LOG_DIR):
-    os.makedirs(LOG_DIR)
-
-# basicConfig を使って1つのファイルとコンソールの両方に出力する設定
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(LOG_DIR, "server.log"), 'a', 'utf-8'),
-        logging.StreamHandler()  # コンソールにも出力する
-    ]
-)
 
 online_members_lock = threading.Lock()  # ロックオブジェクト作成
 online_members = set()
@@ -81,10 +66,11 @@ class Server(paramiko.ServerInterface):
         webapp_config = util.app_config.get('webapp', {})
         server_config = util.app_config.get('server', {})
         security_config = util.app_config.get('security', {})
+        paths_config = util.app_config.get('paths', {})
 
         webapp_user = webapp_config.get('WEBAPP_USER')
         webapp_password = webapp_config.get('WEBAPP_PASSWORD')
-        db_name = server_config.get('DBNAME')
+        db_name = paths_config.get('db_name')
         pbkdf2_rounds = security_config.get('PBKDF2_ROUNDS', 100000)
 
         if not db_name:
@@ -140,9 +126,8 @@ class Server(paramiko.ServerInterface):
             # webアプリでは公開鍵認証を許可しない
             return paramiko.AUTH_FAILED
 
-        server_config = util.app_config.get('server', {})
-        ssh_config = util.app_config.get('ssh', {})
-        db_name = server_config.get('DBNAME')
+        paths_config = util.app_config.get('paths', {})
+        db_name = paths_config.get('db_name')
         if not db_name:
             logging.error("DB名が設定されていません")
             return paramiko.AUTH_FAILED
@@ -155,36 +140,43 @@ class Server(paramiko.ServerInterface):
             return paramiko.AUTH_FAILED
 
         logging.info(f"公開鍵認証開始: ユーザ名'{username}' (鍵認証許可ユーザ)")
-        key_dir = ssh_config.get('KEY_DIR', '.sshkey')
-        auth_keys_filename = ssh_config.get(
-            'AUTH_KEYS_FILENAME', 'authorized_keys.pub')
-        authorized_keys_path = os.path.join(key_dir, auth_keys_filename)
+        authorized_keys_path = paths_config.get('authorized_keys')
+        if not authorized_keys_path:
+            logging.error("authorized_keys のパスが設定されていません。")
+            return paramiko.AUTH_FAILED
 
         try:
-            with open(authorized_keys_path, 'r') as f:
+            with open(authorized_keys_path, 'r', encoding='utf-8') as f:  # Specify encoding
                 for line in f:
                     line = line.strip()
                     if not line or line.startswith('#'):  # 空行＋コメントスキップ
                         continue
                     parts = line.strip().split()
-                    if len(parts) >= 2:
-                        key_type = parts[0]
-                        key_string = parts[1]
-                        key_comment_user = None
-                        if len(parts) > 2:
-                            key_comment_user = parts[2].split('@')[0]
-                        auth_key = paramiko.RSAKey(
-                            data=base64.b64decode(key_string.encode('ascii')))
+                    if len(parts) < 2:
+                        continue
 
-                        # 鍵と公開鍵ファイルのコメントユーザ名がSSH接続ユーザ名と一致
-                        if key == auth_key and (username == key_comment_user or username == "keyuser"):
+                    file_key_type = parts[0]
+                    file_key_string = parts[1]
+
+                    # Compare the client's key with the key from the file
+                    if key.get_name() == file_key_type and key.get_base64() == file_key_string:
+                        # Key matches. Now check if the username in the comment matches.
+                        key_comment_user = None
+                        if len(parts) > 2:  # Check if there's a comment part
+                            # Clean up the comment part for comparison
+                            comment_part = " ".join(parts[2:])
+                            key_comment_user = comment_part.split('#')[
+                                0].strip()
+
+                        if username == key_comment_user or username == "keyuser":  # "keyuser" is a special case
                             logging.info(
-                                f"公開鍵認証成功: ユーザ名'{username}' (鍵タイプ: {key_type})")
+                                f"公開鍵認証成功: ユーザ名'{username}' (鍵タイプ: {key.get_name()})")
                             return paramiko.AUTH_SUCCESSFUL
-        except FileExistsError:
+        except FileNotFoundError:  # Corrected exception type for file not found
             logging.error(f"公開鍵ファイル '{authorized_keys_path}' が見つかりません。")
         except Exception as e:
-            logging.error(f"公開鍵読み込みまたは比較中にエラー: {e}")
+            # Add exc_info
+            logging.error(f"公開鍵読み込みまたは比較中に予期せぬエラー: {e}", exc_info=True)
         logging.warning(f"公開鍵認証失敗: ユーザ名'{username}'")
         return paramiko.AUTH_FAILED
 
@@ -195,7 +187,8 @@ class Server(paramiko.ServerInterface):
             return 'password'
 
         server_config = util.app_config.get('server', {})
-        db_name = server_config.get('DBNAME')
+        paths_config = util.app_config.get('paths', {})
+        db_name = paths_config.get('db_name')
         if not db_name:
             logging.error("DB名が設定されていません")
             return ''
@@ -422,10 +415,12 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             while True:  # 掲示板メニュー内をループ
                 bbs_handler_result = None  # ループごとにリセット
                 if current_loop_menu_mode in ('2', '3'):
-                    bbs_config_path = "setting/bbs_mode3.yaml"
+                    paths_config = util.app_config.get('paths', {})
+                    bbs_config_path = paths_config.get('bbs_mode3_yaml')
                     selected_item = hierarchical_menu.handle_hierarchical_menu(
                         chan, bbs_config_path, current_loop_menu_mode, menu_type="BBS",
                         dbname=dbname, enrich_boards=True)
+
                     if selected_item and selected_item.get("type") == "board":
                         item_id = selected_item.get("id")
                         bbs_handler_result = bbs_handler.handle_bbs_menu(
@@ -434,8 +429,10 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                         # 階層メニューを抜けた場合
                         break
                 else:  # mode1
+                    paths_config = util.app_config.get('paths', {})
                     selected_board_id = manual_menu_handler.process_manual_menu(
-                        chan, dbname, login_id, current_loop_menu_mode, menu_config_path="setting/bbs_mode1.yaml",
+                        chan, dbname, login_id, current_loop_menu_mode, menu_config_path=paths_config.get(
+                            'bbs_mode1_yaml'),
                         initial_menu_id="main_bbs_menu", menu_type="bbs")
 
                     if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
@@ -465,7 +462,8 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
             while True:  # チャットメニュー内をループ
                 chat_handler_result = None  # ループごとにリセット
-                chat_config_path = "setting/chatroom.yaml"
+                paths_config = util.app_config.get('paths', {})
+                chat_config_path = paths_config.get('chatroom_yaml')
                 selected_item = hierarchical_menu.handle_hierarchical_menu(
                     chan, chat_config_path, current_loop_menu_mode, menu_type="CHAT"
                 )
@@ -518,6 +516,12 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                 chan, dbname, login_id, user_id, current_loop_menu_mode)
             break  # ループを抜ける
 
+        elif command == "z":
+            # ハムレットゲーム
+            hamlet_game.run_game_vs_ai(chan, current_loop_menu_mode)
+            util.send_text_by_key(chan, "top_menu.menu",
+                                  current_loop_menu_mode)
+
         else:
             util.send_text_by_key(chan, "top_menu.help_h",
                                   current_loop_menu_mode)
@@ -549,7 +553,8 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
     """
     server_config = util.app_config.get('server', {})
     security_config = util.app_config.get('security', {})
-    db_name_from_config = server_config.get('DBNAME')
+    paths_config = util.app_config.get('paths', {})
+    db_name_from_config = paths_config.get('db_name')
     auth_menu_mode = server_config.get('DEFAULT_AUTH_MENU_MODE', '1')
     if auth_menu_mode not in ('1', '2', '3'):
         logging.warning("default_auth_menu_mode 設定値不正")
@@ -674,7 +679,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         return None, None, None
 
 
-def handle_client(client, addr, host_key, is_web_app=True):
+def handle_client(client, addr, host_keys, is_web_app=True):
     login_id = None
     user_id = None
     userdata = None
@@ -687,15 +692,17 @@ def handle_client(client, addr, host_key, is_web_app=True):
     try:
         transport = paramiko.Transport(client)
         # serverクラスのインスタンスを作成、Webアプリ接続かどうかを判別
-        transport.add_server_key(host_key)
+        for key in host_keys:
+            transport.add_server_key(key)
         server = Server(is_web_app_connection=is_web_app)
         try:
             transport.start_server(server=server)
         except paramiko.SSHException as e:
             logging.error(f"SSHネゴシエーションに失敗({addr}): {e}")
             return
-        except Exception as e:
-            logging.error(f'サーバ起動中の予期せぬエラー ({addr}): {e}')
+        except Exception as e:  # This is the generic error that needs more info
+            # Add exc_info=True
+            logging.error(f'サーバ起動中の予期せぬエラー ({addr}): {e}', exc_info=True)
             return
 
         chan = transport.accept(30)
@@ -707,8 +714,9 @@ def handle_client(client, addr, host_key, is_web_app=True):
             # webアプリの場合paramiko認証が成功してればOK
             # Server.check_auth_password で設定に書かれたID/PASSWORDのSSH認証が行われている前提
             db_name_from_config = util.app_config.get(
-                'server', {}).get('DBNAME')
+                'paths', {}).get('db_name')
             max_attempts_from_config = util.app_config.get(
+                # これはserverセクションでOK
                 'server', {}).get('MAX_PASSWORD_ATTEMPTS', 3)
             if not db_name_from_config:
                 logging.error("DB名が設定されていません(webapp)")
@@ -728,7 +736,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
                 login_id = transport.get_username()
                 logging.info(f"SSH接続認証成功。 ユーザ名: {login_id} ({addr})")
                 db_name_from_config = util.app_config.get(
-                    'server', {}).get('DBNAME')
+                    'paths', {}).get('db_name')
                 if not db_name_from_config:
                     logging.error("DB名が設定されていません")
                     return
@@ -770,7 +778,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
         # ログイン後処理
         try:
             db_name_from_config = util.app_config.get(
-                'server', {}).get('DBNAME')
+                'paths', {}).get('db_name')
             if not db_name_from_config:
                 logging.error("DB名が設定されていません")
                 return
@@ -905,7 +913,7 @@ def handle_client(client, addr, host_key, is_web_app=True):
         logging.info(f"接続を閉じました: {addr}")
 
 
-def wait_for_connections(sock, host_key, is_web_app_server):
+def wait_for_connections(sock, host_keys, is_web_app_server):
     """
     指定されたソケットでクライアントからの接続を待ち受け、新しい接続があるたびにhandle_clientを呼び出す。
     """
@@ -945,7 +953,7 @@ def wait_for_connections(sock, host_key, is_web_app_server):
 
             # スレッド開始
             client_thread = threading.Thread(
-                target=handle_client, args=(client, addr, host_key, is_web_app_server), daemon=True)
+                target=handle_client, args=(client, addr, host_keys, is_web_app_server), daemon=True)
             client_thread.start()
         except socket.timeout:
             logging.info(
@@ -966,13 +974,43 @@ def main():
             f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         print(f"設定ファイル '{CONFIG_FILE_PATH}' の読み込みに失敗: {e}。サーバを起動できません。")
         return
+
+    # --- 環境変数からシスオペ情報を取得 ---
+    # Docker環境での初回起動時に使用される
+    sysop_id_from_env = os.getenv('GRASSROOTSBBS_SYSOP_ID')
+    if sysop_id_from_env:
+        sysop_id_from_env = sysop_id_from_env.strip()
+        if '#' in sysop_id_from_env:
+            sysop_id_from_env = sysop_id_from_env.split('#')[0].strip()
+    sysop_password_from_env = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
+
+    # --- ログ設定 ---
+    # util.load_app_config_from_path の後で実行
+    paths_config = util.app_config.get('paths', {})
+    log_dir = paths_config.get('log_dir', 'logs')  # デフォルト値
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    # 既存のハンドラをクリア
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(os.path.join(
+                log_dir, "server.log"), 'a', 'utf-8'),
+            logging.StreamHandler()
+        ]
+    )
+
     server_config = util.app_config.get('server', {})
     webapp_config = util.app_config.get('webapp', {})
 
-    db_name_from_config = server_config.get('DBNAME')
+    db_name_from_config = paths_config.get('db_name')
     bind_host_from_config = server_config.get('BIND_HOST', '0.0.0.0')
-    webapp_key_path_from_config = webapp_config.get(
-        'WEBAPP_KEY_PATH', '.sshkey/webapp_rsa.key')
+    host_key_dir_from_config = paths_config.get('host_key_dir')
     webapp_bind_port_from_config = webapp_config.get('WEBAPP_BIND_PORT')
     normal_bind_port_from_config = server_config.get('NORMAL_BIND_PORT_START')
     NORMAL_SSH_PORT_COUNT_from_config = server_config.get(
@@ -982,35 +1020,80 @@ def main():
         logging.critical("DB名が設定ファイルにありません")
         print("DB名が設定ファイルにありません")
         return
+
+    if not host_key_dir_from_config:
+        logging.critical("ホストキーのディレクトリ(paths.host_key_dir)が設定ファイルにありません。")
+        return
+
     # データベース初期化チェック
     if not os.path.isfile(db_name_from_config):
-        logging.info(
-            f"データベースファイル '{db_name_from_config}'が見つかりません。初期化を実行します。")
+        logging.info(f"データベースファイル '{db_name_from_config}' が見つかりません。初期化を実行します。")
+        if not (sysop_id_from_env and sysop_password_from_env):
+            logging.critical(
+                "初回起動には環境変数 GRASSROOTSBBS_SYSOP_ID と GRASSROOTSBBS_SYSOP_PASSWORD が必要です。")
+            return
+
         try:
-            util.make_sysop_and_database(db_name_from_config)
-            logging.info("データベースの初期化が完了しました。")
+            # 注: util.make_sysop_and_database がIDとパスワードを引数に取るように改修する必要があります。
+            util.make_sysop_and_database(
+                db_name_from_config, sysop_id_from_env, sysop_password_from_env)
+            logging.info(f"データベースとシスオペ '{sysop_id_from_env}' の初期化が完了しました。")
         except Exception as e:
-            logging.exception(f"データベースの初期化中にエラーが発生しました。: {e}")
+            logging.exception(
+                f"データベースの初期化中にエラーが発生しました。util.pyが引数に対応しているか確認してください。: {e}")
             return
     else:
-        logging.info(f"データベースファイル '{db_name_from_config}'を使用します。")
+        logging.info(f"データベースファイル '{db_name_from_config}' を使用します。")
 
-    # ホストキー読み込み
-    host_key = None
+    # ホストキーの準備
+    host_keys = []
     try:
-        host_key = paramiko.RSAKey(filename=webapp_key_path_from_config)
-        logging.info(f"ホストキー '{webapp_key_path_from_config}'を読み込みました。")
+        if not os.path.exists(host_key_dir_from_config):
+            os.makedirs(host_key_dir_from_config, mode=0o700)
+            logging.info(f"ホストキーディレクトリ '{host_key_dir_from_config}' を作成しました。")
+
+        # ディレクトリ内の秘密鍵ファイルを確認
+        key_files_exist = any(
+            os.path.isfile(os.path.join(host_key_dir_from_config, f)
+                           ) and not f.endswith('.pub')
+            for f in os.listdir(host_key_dir_from_config)
+        )
+
+        if not key_files_exist:
+            logging.info(f"ホストキーが見つかりません。新しいRSAキーを生成します。")
+            # RSAキー生成
+            rsa_key_path = os.path.join(host_key_dir_from_config, 'id_rsa')
+            rsa_key = paramiko.RSAKey.generate(4096)
+            rsa_key.write_private_key_file(rsa_key_path)
+            logging.info(f"新しいRSAホストキーを '{rsa_key_path}' に保存しました。")
+
+        # ディレクトリ内のすべての秘密鍵を読み込む
+        for filename in sorted(os.listdir(host_key_dir_from_config)):
+            if filename.endswith('.pub'):
+                continue
+            # authorized_keys はユーザーの公開鍵を格納するファイルであり、ホストキーではないためスキップ
+            if filename == os.path.basename(paths_config.get('authorized_keys')):
+                continue
+            filepath = os.path.join(host_key_dir_from_config, filename)
+            if not os.path.isfile(filepath):
+                continue
+            try:
+                key = paramiko.RSAKey(filename=filepath)
+                host_keys.append(key)
+                logging.info(f"ホストキー '{filepath}' を読み込みました。")
+            except (paramiko.SSHException, ValueError) as e:
+                logging.warning(f"ホストキー '{filepath}' の読み込みに失敗しました: {e}")
+
+        if not host_keys:
+            logging.critical("読み込めるホストキーがありません。サーバを起動できません。")
+            return
+
     except Exception as e:
-        logging.exception(
-            f"ホストキー '{webapp_key_path_from_config}'が見つからないか、読み込めません。")
-        print(f"エラー: ホストキー '{webapp_key_path_from_config}' が見つからないか、読み込めません。")
-        print("SSHサーバーを起動できません。")
-        print("RSAキーを生成してください (例: ssh-keygen -t rsa -f test_rsa.key)")
+        logging.exception(f"ホストキーの準備中にエラーが発生しました: {e}")
         return
 
     listening_sockets = []  # 起動したソケット用リスト
     threads = []  # 起動したスレッド用リスト
-
     # WEBアプリ用ソケット準備とスレッド作成
     if webapp_bind_port_from_config is not None:
         try:
@@ -1024,7 +1107,7 @@ def main():
             listening_sockets.append(webapp_sock)
 
             web_app_thread = threading.Thread(
-                target=wait_for_connections, args=(webapp_sock, host_key, True), daemon=True)
+                target=wait_for_connections, args=(webapp_sock, host_keys, True), daemon=True)
             web_app_thread.start()
             threads.append(web_app_thread)
         except Exception as e:
@@ -1058,7 +1141,7 @@ def main():
                         listening_sockets.append(normal_sock_instance)
 
                         normal_thread = threading.Thread(
-                            target=wait_for_connections, args=(normal_sock_instance, host_key, False), daemon=True)
+                            target=wait_for_connections, args=(normal_sock_instance, host_keys, False), daemon=True)
                         normal_thread.start()
                         threads.append(normal_thread)
                     except Exception as e:

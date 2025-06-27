@@ -1,12 +1,7 @@
-bbs.db
 __pycache__/
 .trashbox/
 .venv/
-venv
-.sshkey/authorized_keys.pub
-sqlite_check_table.py
-sqlite_create_db.py
-sqlite_create_table.py
-sqlite_data_insert.py
-text/textdata.yaml
 logs/*
+.sshkey/*
+data/bbs.db
+    

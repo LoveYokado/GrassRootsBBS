@@ -2,10 +2,6 @@
 
 title = "BicliModel Configuration"
 
-[ssh] #公開鍵のパスとファイル名
-KEY_DIR = ".sshkey"
-AUTH_KEYS_FILENAME = "authorized_keys.pub"
-
 [security]
 PBKDF2_ROUNDS = 100000   # パスワードハッシュのストレチッング数
 ID_MIN_LENGTH = 3        #IDの最小文字数
@@ -13,19 +9,36 @@ ID_MAX_LENGTH = 20       #IDの最大文字数
 PASSWORD_MIN_LENGTH = 8  #パスワードの最小文字数
 PASSWORD_MAX_LENGTH = 64 #パスワードの最大文字数
 
+[limits]
+mail_subject_max_length = 42        #メールタイトルの最大文字数
+mail_body_max_length = 8192         #メール本文の最大文字数
+bbs_title_max_length = 42           #掲示板タイトルの最大文字数
+bbs_body_max_length = 8192          #掲示板本文の最大文字数
+telegram_message_max_length = 42    #電報の最大文字数
+
 [server]
 BIND_HOST = "0.0.0.0"
 NORMAL_BIND_PORT_START = 50001        # 通常接続用ポートの開始番号
 NORMAL_SSH_PORT_COUNT = 1             # 通常接続のポート数
-MAX_CONCURRENT_NORMAL_SSH_CLIENTS = 4 # 通常接続の同時接続可能クライアント数 (0で無制限)
-DBNAME = "bbs.db"
+MAX_CONCURRENT_NORMAL_SSH_CLIENTS = 4 # 通常接続の同時接続可能クライアント数 (0で無制限) # DBNAME removed from here
 MAX_PASSWORD_ATTEMPTS = 3             # パスワード最大試行回数
 DEFAULT_AUTH_MENU_MODE = "1"          # デフォルトの認証メニューモード (1-3)
 ONLINE_SIGNUP = true                  # オンラインサインアップを有効化するか否か
 
 [webapp]
-WEBAPP_KEY_PATH = ".sshkey/webapp_rsa.key" # webアプリのキー
+# WEBAPP_KEY_PATH removed from here
 WEBAPP_BIND_PORT = 50000
 MAX_CONCURRENT_WEBAPP_CLIENTS = 4          # WebAppの同時接続可能クライアント数(0で無制限)
 WEBAPP_USER = 'user'                       # WebAppのデフォルトユーザー名 (本番環境では変更を推奨)
 WEBAPP_PASSWORD = 'pass'                   # WebAppのデフォルトパスワード (本番環境では変更を強く推奨)
+
+[paths]
+db_name = "data/bbs.db"                           # DBファイル名
+log_dir = "logs"                                # ログファイルの保存先
+host_key_dir = ".sshkey/"                       # SSHホストキーの保存ディレクトリ
+authorized_keys = ".sshkey/authorized_keys"     # SSH認証公開鍵 (ユーザー用)
+text_data_yaml = "setting/textdata.yaml"        # BBS内で使われる定型文データ
+bbs_mode1_yaml = "setting/bbs_mode1.yaml"       # mode1での掲示板の階層設定ファイル
+bbs_mode3_yaml = "setting/bbs_mode3.yaml"       # mode2,3での掲示板の階層設定ファイル
+chatroom_yaml = "setting/chatroom.yaml"         # チャットルームの階層設定ファイル
+bbs_sync_config = "setting/bbs.yaml"            # 掲示板同期設定ファイル (BoardManager用)

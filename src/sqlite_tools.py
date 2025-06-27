@@ -569,7 +569,7 @@ def get_board_by_shortcut_id(dbname, shortcut_id):
 def create_board_entry(dbname, shortcut_id, name, description, operators, default_permission, kanban_body, status):
     """新しい掲示板エントリをboardsテーブルに挿入"""
     sql = """
-    INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_title, kanban_body, status, last_posted_at)
+    INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at)
     VALUES(?, ?, ?, ?, ?, ?, ?, 0)
     """
     params = (shortcut_id, name, description, operators,

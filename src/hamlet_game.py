@@ -1,6 +1,10 @@
 import numpy as np
 import random
 import time
+import logging
+
+import ssh_input
+import util
 
 # 定数
 ROWS = 6
@@ -175,14 +179,14 @@ def is_board_full(board):
     return np.all(board != EMPTY)
 
 
-def print_board(board):
+def print_board(chan, board):
     """ゲーム盤を画像形式で表示する"""
     # 列番号の表示
-    col_numbers = "|" + "|".join([str(i+1) for i in range(COLS)]) + "|"
-    print(col_numbers)
+    col_numbers = "|" + "|".join([str(i+1) for i in range(COLS)]) + "|\r\n"
+    chan.send(col_numbers.encode('utf-8'))
 
     # 区切り線
-    print("-" * (COLS * 2 + 1))  # 各列の幅に合わせて調整
+    chan.send(b"-" * (COLS * 2 + 1) + b"\r\n")
 
     # 盤面の中身を表示 (上から下へ)
     for r in range(ROWS):
@@ -195,7 +199,7 @@ def print_board(board):
                 row_str += SYMBOL_HUMAN + "|"
             else:  # PLAYER_AI
                 row_str += SYMBOL_AI + "|"
-        print(row_str)
+        chan.send((row_str + "\r\n").encode('utf-8'))
         # 各行の間に空行（または罫線）を入れる場合はここに追加
         # print("-" * (COLS * 2 + 1)) # 必要であれば
 
@@ -205,57 +209,77 @@ def get_player_symbol(player_id):
     return SYMBOL_HUMAN if player_id == PLAYER_HUMAN else SYMBOL_AI
 
 
-def run_game_vs_ai():
+def run_game_vs_ai(chan, menu_mode):
     """人間 対 AI のゲームのメインループ"""
     board = create_board()
     game_over = False
     turn = 0  # 0は先攻、1は後攻
 
-    print("=== コネクトゲーム (人間 vs ヒューリスティックAI) ===")
-    print(f"盤面: {ROWS}行 x {COLS}列, {CONNECT_N}つ並べたら勝ち")
-    print(f"人間: {SYMBOL_HUMAN}, コンピュータ: {SYMBOL_AI}")
+    util.send_text_by_key(chan, "hamlet_game.title", menu_mode)
+    util.send_text_by_key(chan, "hamlet_game.rules",
+                          menu_mode, rows=ROWS, cols=COLS, connect_n=CONNECT_N)
+    util.send_text_by_key(chan, "hamlet_game.player_info",
+                          menu_mode, symbol_human=SYMBOL_HUMAN, symbol_ai=SYMBOL_AI)
 
     # 先手を選択するかどうか尋ねる
     while True:
-        first_choice = input("先手をとりませんか (Y または N): ").strip().upper()
+        util.send_text_by_key(
+            chan, "hamlet_game.prompt_first_move", menu_mode, add_newline=False)
+        first_choice_input = ssh_input.process_input(chan)
+        if first_choice_input is None:
+            return  # 切断
+        first_choice = first_choice_input.strip().upper()
+
         if first_choice == 'Y':
             current_player = PLAYER_HUMAN
-            print("あなたが先攻です。\n")
+            util.send_text_by_key(chan, "hamlet_game.you_are_first", menu_mode)
             break
         elif first_choice == 'N':
             current_player = PLAYER_AI
-            print("コンピュータが先攻です。\n")
+            util.send_text_by_key(chan, "hamlet_game.ai_is_first", menu_mode)
             turn = 1  # AIが先攻なので、ターンを1にする
             break
         else:
-            print("無効な入力です。Y または N を入力してください。")
+            util.send_text_by_key(
+                chan, "common_messages.invalid_command", menu_mode)
 
     while not game_over:
-        print_board(board)
+        print_board(chan, board)
 
         # プレイヤーの表示を画像形式に合わせる
         player_prompt_symbol = get_player_symbol(current_player)
 
         if current_player == PLAYER_HUMAN:
-            try:
-                # 0-indexed に変換
-                col_choice = int(input(f"あなた [{player_prompt_symbol}] : ")) - 1
-            except ValueError:
-                print("無効な入力です。数字を入力してください。")
-                continue
+            col_choice_str = ""
+            while True:
+                util.send_text_by_key(chan, "hamlet_game.prompt_your_turn",
+                                      menu_mode, symbol=player_prompt_symbol, add_newline=False)
+                col_choice_str = ssh_input.process_input(chan)
+                if col_choice_str is None:
+                    return  # 切断
+                if col_choice_str.strip().isdigit():
+                    break
+                else:
+                    util.send_text_by_key(
+                        chan, "common_messages.invalid_input", menu_mode)
+
+            col_choice = int(col_choice_str) - 1
 
             if is_valid_location(board, col_choice):
                 drop_piece(board, col_choice, current_player)
             else:
-                print("その列には置けません。別の列を選んでください。")
+                util.send_text_by_key(
+                    chan, "hamlet_game.invalid_column", menu_mode)
                 continue  # ターンを消費しない
         else:  # AIのターン
-            print(f"コンピュータ [{player_prompt_symbol}] が考えています...")
+            util.send_text_by_key(
+                chan, "hamlet_game.ai_thinking", menu_mode, symbol=player_prompt_symbol)
             time.sleep(1)  # 少し待機してAIが考えているように見せる
             ai_col = ai_choose_column_heuristic(board)  # ヒューリスティックAIを使用
 
             if ai_col != -1:
-                print(f"コンピュータは列 {ai_col + 1} に置きました。")
+                util.send_text_by_key(
+                    chan, "hamlet_game.ai_move", menu_mode, col=ai_col + 1)
                 drop_piece(board, ai_col, current_player)
             else:
                 # このケースは通常、盤面が埋まった場合にのみ発生する
@@ -263,20 +287,26 @@ def run_game_vs_ai():
 
         # 勝敗判定
         if check_win(board, current_player):
-            print_board(board)
-            print(
-                f"** {get_player_name(current_player)} ({get_player_symbol(current_player)}) の勝利です！おめでとうございます！ **")
+            print_board(chan, board)
+            winner_name = get_player_name(current_player, menu_mode)
+            winner_symbol = get_player_symbol(current_player)
+            util.send_text_by_key(chan, "hamlet_game.win_message",
+                                  menu_mode, winner=winner_name, symbol=winner_symbol)
             game_over = True
         elif is_board_full(board):
-            print_board(board)
+            print_board(chan, board)
             # あなたのルール: 「すべての石を打ち尽くした場合後手勝ち」
             # 先攻が current_player だった場合、その次のプレイヤーが後攻
             if current_player == PLAYER_HUMAN:  # 人間が最後に手番を打ったが、盤面が埋まった。AIが後攻。
-                print(
-                    f"** 盤面が埋まりました。{get_player_name(PLAYER_AI)} ({get_player_symbol(PLAYER_AI)}) の勝利です！ **")
+                winner_name = get_player_name(PLAYER_AI, menu_mode)
+                winner_symbol = get_player_symbol(PLAYER_AI)
+                util.send_text_by_key(chan, "hamlet_game.draw_win_message",
+                                      menu_mode, winner=winner_name, symbol=winner_symbol)
             else:  # AIが最後に手番を打ったが、盤面が埋まった。人間が後攻。
-                print(
-                    f"** 盤面が埋まりました。{get_player_name(PLAYER_HUMAN)} ({get_player_symbol(PLAYER_HUMAN)}) の勝利です！ **")
+                winner_name = get_player_name(PLAYER_HUMAN, menu_mode)
+                winner_symbol = get_player_symbol(PLAYER_HUMAN)
+                util.send_text_by_key(chan, "hamlet_game.draw_win_message",
+                                      menu_mode, winner=winner_name, symbol=winner_symbol)
             game_over = True
         else:
             turn += 1  # 次のプレイヤーへ
@@ -284,10 +314,9 @@ def run_game_vs_ai():
             current_player = PLAYER_AI if current_player == PLAYER_HUMAN else PLAYER_HUMAN
 
 
-def get_player_name(player_id):
+def get_player_name(player_id, menu_mode):
     """プレイヤーIDからプレイヤー名を取得する"""
-    return "あなた" if player_id == PLAYER_HUMAN else "コンピュータ"
-
-
-if __name__ == "__main__":
-    run_game_vs_ai()
+    if player_id == PLAYER_HUMAN:
+        return util.get_text_by_key("hamlet_game.player_name_human", menu_mode)
+    else:
+        return util.get_text_by_key("hamlet_game.player_name_ai", menu_mode)
