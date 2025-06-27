@@ -395,8 +395,9 @@ def generate_and_regenerate_ssh_key(username):
 
         key_dir_val = os.path.dirname(authorized_keys_path)
 
-        # 秘密鍵を生成
-        key = paramiko.Ed25519Key.generate()
+        # 秘密鍵を生成 (Ed25519Key.generate() は古いparamikoにないため、より互換性の高いRSAKeyを使用)
+        logging.info("Generating a new RSA 4096-bit key pair...")
+        key = paramiko.RSAKey.generate(4096)
         from io import StringIO
         private_key_io = StringIO()
         key.write_private_key(private_key_io)
