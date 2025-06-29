@@ -489,57 +489,6 @@ def regenerate_user_ssh_key(username):
         return None
 
 
-def show_textsfile(chan, filename, menu_mode='2'):
-    """テキストファイルを表示する"""
-    try:
-        sendm = txt_reads(filename+'.'+menu_mode)
-        for s in sendm:
-            chan.send(s + '\r')
-    except FileNotFoundError:
-        logging.warning(f"テキストファイル '{filename+'.'+menu_mode}' が見つかりません。")
-    except Exception as e:
-        logging.error(f"テキストファイル表示エラー: {e}")
-
-
-def show_textfile(chan, filename, menu_mode='2'):
-    try:
-        sendm = txt_read(filename+'.'+menu_mode)
-        chan.send(sendm)
-    except FileNotFoundError:
-        logging.warning(
-            f"テキストファイル '{filename+'.'+menu_mode}' が見つかりません。")
-    except Exception as e:
-        logging.error(f"テキストファイル表示エラー: {e}")
-
-
-def txt_reads(filename):
-    """ ./text/ の複数行のテキストファイルを読むだけ。"""
-    # ファイルパスを安全に結合
-    filepath = os.path.join('text', filename)
-    try:
-        # with 文を使ってファイルを確実に閉じる
-        with open(filepath, 'r', encoding='UTF-8', newline='\n') as f:
-            data = f.readlines()
-        return data
-    except FileNotFoundError:
-        logging.warning(f"エラー: ファイルが見つかりません - {filepath}")
-        return []  # 空のリストを返すなど、エラー処理を追加
-
-
-def txt_read(filename):
-    """./text/ の一行のテキストファイルを読むだけ。"""
-    # ファイルパスを安全に結合
-    filepath = os.path.join('text', filename)
-    try:
-        # with 文を使ってファイルを確実に閉じる
-        with open(filepath, 'r', encoding='UTF-8', newline='\n') as f:
-            data = f.read()
-        return data
-    except FileNotFoundError:
-        logging.warning(f"エラー: ファイルが見つかりません - {filepath}")
-        return ""  # 空文字列を返すなど、エラー処理を追加
-
-
 def remove_user_public_key(username):
     """
     指定されたユーザの公開鍵をファイルから削除する。
