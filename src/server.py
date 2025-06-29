@@ -13,7 +13,6 @@ import socket
 import os
 import time
 import logging
-import base64
 import datetime
 
 import user_pref_menu
@@ -858,22 +857,11 @@ def handle_client(client, addr, host_keys, is_web_app=True):
 
         # 接続数カウンタデクリメント
         if is_web_app:
-            with current_webapp_clients_lock:
-                global current_webapp_clients
-                current_webapp_clients = max(0, current_webapp_clients-1)
-                _max_webapp_clients = util.app_config.get(
-                    'server', {}).get('MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
-                logging.info(
-                    f"Webapp接続カウンタデクリメント: {current_webapp_clients}/{_max_webapp_clients}")
+            _decrement_connections(
+                current_webapp_clients_lock, 'current_webapp_clients', 'MAX_CONCURRENT_WEBAPP_CLIENTS', 'Webapp')
         else:
-            with current_normal_ssh_clients_lock:
-                global current_normal_ssh_clients
-                current_normal_ssh_clients = max(
-                    0, current_normal_ssh_clients-1)
-                _max_normal_clients = util.app_config.get('server', {}).get(
-                    'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', 0)
-                logging.info(
-                    f"通常SSH接続カウンタデクリメント: {current_normal_ssh_clients}/{_max_normal_clients}")
+            _decrement_connections(
+                current_normal_ssh_clients_lock, 'current_normal_ssh_clients', 'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', '通常SSH')
 
         # 正常ログオフでない場合、かつログイン成功していた場合のみ後処理を試みる
         if logged_in and not normal_logoff and login_id:
@@ -913,6 +901,57 @@ def handle_client(client, addr, host_keys, is_web_app=True):
         logging.info(f"接続を閉じました: {addr}")
 
 
+def _check_and_increment_connections(lock, counter_name, max_clients_key, client_type_str, addr, log_level=logging.INFO):
+    """
+    接続上限をチェックし、問題なければカウンタをインクリメントする。
+
+    Args:
+        lock (threading.Lock): 使用するロックオブジェクト。
+        counter_name (str): グローバルなカウンタ変数名。
+        max_clients_key (str): config.toml内の最大接続数設定キー。
+        client_type_str (str): ログ出力用のクライアント種別名。
+        addr (tuple): クライアントアドレス。
+        log_level (int): インクリメント時のログレベル。
+
+    Returns:
+        bool: 接続が許可された場合はTrue、拒否された場合はFalse。
+    """
+    with lock:
+        current_clients = globals()[counter_name]
+        max_clients = util.app_config.get('server', {}).get(max_clients_key, 0)
+
+        if max_clients > 0 and current_clients >= max_clients:
+            logging.info(
+                f"{client_type_str}接続上限({max_clients})に達しました。新規接続を拒否します({addr})")
+            return False
+
+        globals()[counter_name] += 1
+        new_count = globals()[counter_name]
+        logging.log(
+            log_level, f"{client_type_str}接続カウンタインクリメント: {new_count}/{max_clients}")
+        return True
+
+
+def _decrement_connections(lock, counter_name, max_clients_key, client_type_str, log_level=logging.INFO):
+    """
+    接続カウンタをデクリメントする。
+
+    Args:
+        lock (threading.Lock): 使用するロックオブジェクト。
+        counter_name (str): グローバルなカウンタ変数名。
+        max_clients_key (str): config.toml内の最大接続数設定キー。
+        client_type_str (str): ログ出力用のクライアント種別名。
+        log_level (int): デクリメント時のログレベル。
+    """
+    with lock:
+        # max(0, ...) でカウンタが負にならないようにする
+        globals()[counter_name] = max(0, globals()[counter_name] - 1)
+        new_count = globals()[counter_name]
+        max_clients = util.app_config.get('server', {}).get(max_clients_key, 0)
+        logging.log(
+            log_level, f"{client_type_str}接続カウンタデクリメント: {new_count}/{max_clients}")
+
+
 def wait_for_connections(sock, host_keys, is_web_app_server):
     """
     指定されたソケットでクライアントからの接続を待ち受け、新しい接続があるたびにhandle_clientを呼び出す。
@@ -921,35 +960,17 @@ def wait_for_connections(sock, host_keys, is_web_app_server):
         try:
             client, addr = sock.accept()
 
-            # 接続上限チェック
+            # 接続上限チェックとカウンタインクリメント
             if is_web_app_server:
-                with current_webapp_clients_lock:
-                    global current_webapp_clients
-                    _max_webapp_clients = util.app_config.get(
-                        'server', {}).get('MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
-                    if _max_webapp_clients > 0 and current_webapp_clients >= _max_webapp_clients:
-                        logging.info(
-                            f"Webapp接続上限({_max_webapp_clients})に達しました。新規接続を拒否します({addr})")
-                        client.close()
-                        continue
-                    current_webapp_clients += 1
-                    # ログ出力のために再度設定値を取得するか、頻繁に使うなら変数で渡す
-                    logging.debug(
-                        f"Webapp接続カウンタインクリメント: {current_webapp_clients}/{_max_webapp_clients}")
+                allowed = _check_and_increment_connections(
+                    current_webapp_clients_lock, 'current_webapp_clients', 'MAX_CONCURRENT_WEBAPP_CLIENTS', 'Webapp', addr, log_level=logging.DEBUG)
             else:
-                with current_normal_ssh_clients_lock:
-                    global current_normal_ssh_clients
-                    _max_normal_clients = util.app_config.get('server', {}).get(
-                        'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', 0)
-                    if _max_normal_clients > 0 and current_normal_ssh_clients >= _max_normal_clients:
-                        logging.info(
-                            f"通常SSH接続上限({_max_normal_clients})に達しました。新規接続を拒否します({addr})")
-                        client.close()
-                        continue
-                    current_normal_ssh_clients += 1
-                    # ログ出力のために再度設定値を取得
-                    logging.info(
-                        f"通常SSH接続カウンタインクリメント: {current_normal_ssh_clients}/{_max_normal_clients}")
+                allowed = _check_and_increment_connections(
+                    current_normal_ssh_clients_lock, 'current_normal_ssh_clients', 'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', '通常SSH', addr)
+
+            if not allowed:
+                client.close()
+                continue
 
             # スレッド開始
             client_thread = threading.Thread(
@@ -961,7 +982,7 @@ def wait_for_connections(sock, host_keys, is_web_app_server):
             continue
         except Exception as e:
             logging.error(
-                f"接続待ち受け中に予期せぬエラーが発生しました(is_web_app_server={is_web_app_server}): {e}")
+                f"接続待ち受け中に予期せぬエラーが発生しました(is_web_app_server={is_web_app_server}): {e}", exc_info=True)
             break
 
 
