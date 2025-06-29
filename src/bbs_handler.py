@@ -919,6 +919,13 @@ class CommandHandler:
 
             # 削除[*]
             elif key_input == "*":
+                # ゲストは削除/復元機能を使えないようにしないとね
+                if self.login_id.upper() == 'GUEST':
+                    self.chan.send(b'\a')  # ビープ音
+                    display_current_article_header()
+                    self.just_displayed_header_from_tail_h = False
+                    continue
+
                 if not articles or current_index == -1 or current_index == len(articles):
                     self.chan.send(b'\a')  # マーカ位置では無効
                     self.just_displayed_header_from_tail_h = False

@@ -16,6 +16,9 @@
         "User": "user",
         "Password": "pass",
         "Authentication": "Password"
+      },
+      "Terminal": {
+        "BackspaceFix": true
       }
     }
   ]

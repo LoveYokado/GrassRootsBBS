@@ -2,6 +2,7 @@ __pycache__/
 .trashbox/
 .venv/
 logs/*
-.sshkey/*
+.vscode
+.sshkey
 data/bbs.db
     
