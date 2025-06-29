@@ -7,6 +7,7 @@ import datetime
 
 import util
 import bbs_handler
+import bbs_manager
 
 
 def bbs_menu(chan):
@@ -334,7 +335,7 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
 
         board_id_pk = board_info_db['id']
         # 権限チェック
-        permission_manager = bbs_handler.PermissionManager(dbname)
+        permission_manager = bbs_manager.PermissionManager(dbname)
         if not permission_manager.can_view_board(board_info_db, user_id_pk, user_level):
             # 権限がないときはスキップ
             logging.debug(
@@ -438,7 +439,7 @@ def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user
 
         board_id_pk = board_info_db['id']
         # 権限チェック
-        permission_manager = bbs_handler.PermissionManager(dbname)
+        permission_manager = bbs_manager.PermissionManager(dbname)
         if not permission_manager.can_view_board(board_info_db, user_id_pk, user_level):
             logging.debug(
                 f"自動ダウンロード: ユーザー {login_id} は掲示板 {shortcut_id} を閲覧する権限がありません。")
