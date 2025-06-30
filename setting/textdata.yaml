@@ -1188,6 +1188,7 @@ bbs:
       [CTRL+C][ESC][E]    終了
       [*]                 削除
       [W]                 記事を書く
+      [@]                 探索リストに追加/削除
       [S]                 シグ看板
       [T]                 タイトル一覧
       [?]                 説明
@@ -1212,6 +1213,7 @@ bbs:
       [CTRL+C][ESC][E]   :  終了
       [*]                :  削除
       [W]                :  書く
+      [@]                : 探索リストに追加/削除
       [R]                :  新方向へ読み続ける
       [T]                :  タイトル一覧
       [?]                :  説明
@@ -1240,6 +1242,7 @@ bbs:
       | CTRL+C, ESC, E     | Exit: Leave bulletin board              |
       | *                  | Delete: Remove post (Sysop only)        |
       | W                  | Write: Create new post                  |
+      | @                  | Toggle Exploration List: Add/Remove board |
       | R                  | Continue Reading: Read next posts       |
       | T                  | Title List: Show all post titles        |
       | ?                  | Help: Display this help menu            |
@@ -1409,6 +1412,14 @@ bbs:
     mode_1: "** この掲示板に書き込む権限がありません **\r\n"
     mode_2: "** この掲示板に書き込む権限がありません **\r\n"
     mode_3: "** You do not have permission to write to this board **\r\n"
+  toggle_exploration_list_added:
+    mode_1: "探索リストに「{shortcut_id}」を追加しました。\r\n"
+    mode_2: "探索リストに「{shortcut_id}」を追加しました。\r\n"
+    mode_3: "Added '{shortcut_id}' to exploration list.\r\n"
+  toggle_exploration_list_removed:
+    mode_1: "探索リストから「{shortcut_id}」を削除しました。\r\n"
+    mode_2: "探索リストから「{shortcut_id}」を削除しました。\r\n"
+    mode_3: "Removed '{shortcut_id}' from exploration list.\r\n"
 auto_download:
   start_message:
     mode_1: ""

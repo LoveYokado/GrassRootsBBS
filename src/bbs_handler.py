@@ -763,6 +763,48 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
                 display_current_article_header()  # ヘルプ表示後に現在の行を再表示
 
+            elif key_input == "@":
+                if not articles or not (0 <= current_index < len(articles)):
+                    self.chan.send(b'\a')  # マーカ位置や記事がない場合は無効
+                    self.just_displayed_header_from_tail_h = False
+                    continue
+
+                # 現在の掲示板のショートカットIDを取得
+                target_shortcut_id = self.current_board.get('shortcut_id')
+                if not target_shortcut_id:
+                    logging.warning(
+                        f"探索リストのトグル操作中にショートカットIDが取得できませんでした。board: {self.current_board}")
+                    util.send_text_by_key(
+                        self.chan, "common_messages.error", self.menu_mode)
+                    display_current_article_header()
+                    self.just_displayed_header_from_tail_h = False
+                    continue
+
+                # ユーザーの現在の探索リストを取得
+                current_list_str = sqlite_tools.get_user_exploration_list(
+                    self.dbname, self.user_id_pk)
+                current_list = [item.strip()
+                                for item in current_list_str.split(',') if item.strip()]
+
+                # トグル処理
+                if target_shortcut_id in current_list:
+                    current_list.remove(target_shortcut_id)
+                    message_key = "bbs.toggle_exploration_list_removed"
+                else:
+                    current_list.append(target_shortcut_id)
+                    message_key = "bbs.toggle_exploration_list_added"
+
+                new_list_str = ",".join(current_list)
+                if sqlite_tools.set_user_exploration_list(self.dbname, self.user_id_pk, new_list_str):
+                    util.send_text_by_key(
+                        self.chan, message_key, self.menu_mode, shortcut_id=target_shortcut_id)
+                else:
+                    util.send_text_by_key(
+                        self.chan, "common_messages.db_update_error", self.menu_mode)
+
+                display_current_article_header()
+                self.just_displayed_header_from_tail_h = False
+
             elif key_input == "t":  # タイトル一覧 (連続スクロール)
                 if not articles:
                     self.chan.send(b'\a')

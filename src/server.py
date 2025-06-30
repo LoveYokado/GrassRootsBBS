@@ -982,6 +982,11 @@ def main():
         if '#' in sysop_password_from_env:
             sysop_password_from_env = sysop_password_from_env.split('#')[
                 0].strip()
+    sysop_email_from_env = os.getenv('GRASSROOTSBBS_SYSOP_EMAIL')
+    if sysop_email_from_env:
+        sysop_email_from_env = sysop_email_from_env.strip()
+        if '#' in sysop_email_from_env:
+            sysop_email_from_env = sysop_email_from_env.split('#')[0].strip()
 
     # --- ログ設定 ---
     # util.load_app_config_from_path の後で実行
@@ -1027,15 +1032,15 @@ def main():
     # データベース初期化チェック
     if not os.path.isfile(db_name_from_config):
         logging.info(f"データベースファイル '{db_name_from_config}' が見つかりません。初期化を実行します。")
-        if not (sysop_id_from_env and sysop_password_from_env):
+        if not (sysop_id_from_env and sysop_password_from_env and sysop_email_from_env):
             logging.critical(
-                "初回起動には環境変数 GRASSROOTSBBS_SYSOP_ID と GRASSROOTSBBS_SYSOP_PASSWORD が必要です。")
+                "初回起動には環境変数 GRASSROOTSBBS_SYSOP_ID, GRASSROOTSBBS_SYSOP_PASSWORD, GRASSROOTSBBS_SYSOP_EMAIL が必要です。")
             return
 
         try:
             # 注: util.make_sysop_and_database がIDとパスワードを引数に取るように改修する必要があります。
             util.make_sysop_and_database(
-                db_name_from_config, sysop_id_from_env, sysop_password_from_env)
+                db_name_from_config, sysop_id_from_env, sysop_password_from_env, sysop_email_from_env)
             logging.info(f"データベースとシスオペ '{sysop_id_from_env}' の初期化が完了しました。")
         except Exception as e:
             logging.exception(

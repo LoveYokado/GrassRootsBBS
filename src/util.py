@@ -40,15 +40,13 @@ def verify_password(stored_password_hash, salt_hex, provided_password, pbkdf2_ro
     """
     パスワードと保存されたハッシュの検証
     """
-
     try:
         salt = bytes.fromhex(salt_hex)
         provided_hash = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'),
                                             salt, pbkdf2_rounds).hex()
-
         is_match = (stored_password_hash == provided_hash)
-
         return is_match
+
     except Exception as e:
         logging.error(f"パスワード検証中エラー: {e}")
         return False
@@ -60,7 +58,6 @@ def _validate_config_or_log_warnings():
     """
     required_sections = {"ssh", "security", "server", "webapp"}
     for section in required_sections:
-
         if section not in app_config:
             logging.warning(f"設定ファイルに必須セクション '{section}' がありません。")
 
@@ -144,7 +141,6 @@ def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=
                     chan.send(processed_text + '\r\n')
                 else:
                     chan.send(processed_text)  # 既に改行で終わっている場合はそのまま送信
-
             else:
                 chan.send(processed_text)  # 末尾に改行を追加しない
 
@@ -195,7 +191,7 @@ def hash_password(password):
     return salt.hex(), hashed_password.hex()
 
 
-def make_sysop_and_database(dbname, sysop_id, sysop_password):
+def make_sysop_and_database(dbname, sysop_id, sysop_password, sysop_email):
     """データベースと初期テーブル、Sysop/Guestユーザーを作成する"""
     conn = None  # finally で確実に close するため
     cur = None  # finally で確実に close するため
@@ -239,9 +235,7 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
         cur.execute(
             "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email,auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (sysopname, sysop_hashed_pass, sysop_salt, 5, registdate, 0, 0,
-             # メールアドレスも動的に、認証は両方
-             # シスオペのSSH鍵自動生成は削除
-             'Sysop', f'{sysopname.lower()}@example.com', 'both')
+             'Sysop', sysop_email, 'both')
         )
 
         # --- SysopのSSH鍵を生成し、秘密鍵をファイルに保存 ---
@@ -831,7 +825,7 @@ def telegram_recieve(chan, dbname, username, current_menu_mode):
         send_text_by_key(chan, "telegram.receive_footer", current_menu_mode)
 
 
-def _is_valid_email_for_signup(email: str) -> bool:
+def is_valid_email(email: str) -> bool:
     """メールアドレスの簡易検証"""
     if not email:
         return False
@@ -841,7 +835,7 @@ def _is_valid_email_for_signup(email: str) -> bool:
     return False
 
 
-def _generate_random_password(length=12):
+def generate_random_password(length=12):
     """ランダムパスワード生成"""
     alphabet = string.ascii_letters + string.digits
     password = ''.join(secrets.choice(alphabet) for i in range(length))
