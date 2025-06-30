@@ -1,80 +1,100 @@
-import codecs
 import socket
 import logging
 
-
-def realtime_input(chan):
-    """実装実験、リアルタイム文字入力を実装する"""
-    input_buffer = ''
-    while True:
-        data = chan.recv(1)  # 1バイトずつデータを受信
-        # ascii以外は無視
-        try:
-            char = data.decode('ascii')
-        except UnicodeDecodeError:
-            continue
-        if char.isprintable() and ord(char) < 128:
-            input_buffer += char
-            return (char)
+# --- 定数定義 ---
+# 制御文字を定数として定義し、可読性を向上
+BACKSPACE = b'\x08'
+DELETE = b'\x7f'
+CR = b'\r'
+LF = b'\n'
+CRLF = b'\r\n'
 
 
-def _read_line_robust(chan, show_asterisk=False):
+def _read_line(chan, show_asterisk=False):
     """
-    SSHチャンネルから1行読み込むヘルパー関数。
-    CRLF, CR, LFの改行に対応し、Web-based terminalからの入力を安定させる。
+    SSHチャンネルから1行読み込む、堅牢なヘルパー関数。
+
+    - Backspace (\\x08) と Delete (\\x7f) の両方に対応。
+    - CRLF, CR, LF の異なる改行コードに対応。
+    - ソケットエラーを捕捉し、クライアント切断時に None を返す。
+    - チャンネルへの送信はバイト列 (bytes) に統一。
+    - UTF-8のマルチバイト文字入力に対応。
     """
     input_buffer = ''
-    while True:
-        data = chan.recv(1)
-        if not data:
-            logging.info("クライアントが切断されました。")
-            return None  # Connection closed
+    byte_buffer = b''  # UTF-8文字を一時的に保持するバッファ
+    try:
+        while True:
+            # 1バイトずつデータを受信
+            data = chan.recv(1)
+            if not data:
+                logging.info("クライアントが切断されました (recv returned empty)。")
+                return None
 
-        try:
-            char = data.decode('ascii')
-        except UnicodeDecodeError:
-            continue  # Ignore non-ascii characters
-
-        if char == '\x08':  # Backspace
-            if input_buffer:
-                input_buffer = input_buffer[:-1]
-                chan.send('\x08 \x08')
-        elif char == '\r':
-            # CRを検出。LFが続くかチェックし、続くなら読み飛ばす。
-            chan.settimeout(0.02)  # 20msの短いタイムアウト
-            try:
-                next_data = chan.recv(1)
-                if next_data != b'\n':
-                    # LFでなかった場合、この文字は次の入力の一部かもしれない。
-                    # paramikoにはpushbackがないため、このケースは無視する。
-                    # ほとんどのクライアントはCRLFかLFを送るので、実用上問題になりにくい。
+            # Backspace または Delete キーが押された場合
+            if data == BACKSPACE or data == DELETE:
+                if byte_buffer:
+                    # マルチバイト文字の入力途中であれば、その入力をキャンセル
+                    byte_buffer = b''
+                elif input_buffer:
+                    # 最後の文字をバッファから削除
+                    last_char = input_buffer[-1]
+                    input_buffer = input_buffer[:-1]
+                    # 画面から文字を削除 (TODO: マルチバイト文字の表示幅を考慮するとより良い)
+                    # 現在の実装では、表示幅が1でない文字を消すと表示が崩れる可能性がある
+                    chan.send(BACKSPACE + b' ' + BACKSPACE)
+            # Enterキー (CR) が押された場合
+            elif data == CR:
+                # Web端末によってはCRの後にLFが続く場合があるため、
+                # 短いタイムアウトで次のバイトを覗き見する。
+                chan.settimeout(0.02)  # 20ms
+                try:
+                    next_data = chan.recv(1)
+                    # LFが続いていれば、それは改行の一部なので何もしない。
+                    # LFでなければ、それは次の入力。paramikoにはpushbackがないため、
+                    # この文字は破棄されるが、実用上問題になることは稀。
+                    if next_data != LF:
+                        pass
+                except socket.timeout:
+                    # タイムアウト = CR単独の改行
                     pass
-            except socket.timeout:
-                # タイムアウトした = LFは来なかった
-                pass
-            finally:
-                chan.settimeout(None)
-            break  # CRを検出したらループを抜ける
-        elif char == '\n':
-            # LFのみを検出した場合もループを抜ける
-            break
-        else:
-            if char.isprintable():
-                input_buffer += char
-                if show_asterisk:
-                    chan.send('*')
-                else:
-                    chan.send(char)
+                finally:
+                    chan.settimeout(None)
+                break  # 行の終わり
+            # Enterキー (LF) が押された場合
+            elif data == LF:
+                break  # 行の終わり
+            # その他の表示可能な文字
+            else:
+                byte_buffer += data
+                try:
+                    # バッファ全体をUTF-8でデコード試行
+                    decoded_char = byte_buffer.decode('utf-8')
 
-    chan.send('\r\n')
-    return input_buffer
+                    # デコード成功 => 1文字が完成
+                    input_buffer += decoded_char
+                    if show_asterisk:
+                        chan.send(b'*')
+                    else:
+                        chan.send(byte_buffer)  # デコードできたバイト列をエコーバック
+                    byte_buffer = b''  # バッファをクリア
+                except UnicodeDecodeError:
+                    # マルチバイト文字の途中。次のバイトを待つ
+                    continue
+
+        # 入力完了後、新しい行に移動
+        chan.send(CRLF)
+        return input_buffer
+
+    except (socket.error, EOFError) as e:
+        logging.info(f"ソケット通信中にエラーが発生しました: {e}")
+        return None
 
 
 def process_input(chan):
-    """インクリメンタルデコーダを使用して入力を処理する関数"""
-    return _read_line_robust(chan, show_asterisk=False)
+    """ユーザーからの入力を1行読み込み、エコーバックする。"""
+    return _read_line(chan, show_asterisk=False)
 
 
 def hide_process_input(chan):
-    """非表示で("*"を表示する)エコーする関数"""
-    return _read_line_robust(chan, show_asterisk=True)
+    """ユーザーからの入力を1行読み込み、'*'でマスクしてエコーバックする。"""
+    return _read_line(chan, show_asterisk=True)
