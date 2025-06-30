@@ -16,6 +16,7 @@ main_bbs_menu:
       1. General Category
       2. Hobby Category
       E. Exit (to Top Menu)
+  prompt_key: "prompt.bbs_top"
   actions:
     "1": { type: "submenu", target_menu_id: "general_category_menu" }
     "2": { type: "submenu", target_menu_id: "hobby_category_menu" }
@@ -33,7 +34,6 @@ general_category_menu:
       1. Free Talk (bbs_free)
       B. Back
   actions:
-
     "1": { type: "board", board_id: "bbs_free" } # まだ実際の遷移はしない
     "b": { type: "back" }
     "": { type: "back" } # 空エンターで戻る
@@ -49,5 +49,5 @@ hobby_category_menu:
       1. Game Board (bbs_hobby_game)
       B. Back
   actions:
-    "1": { type: "board", board_id: "bbs_hobby_game" } 
+    "1": { type: "board", board_id: "bbs_hobby_game" }
     "": { type: "back" }

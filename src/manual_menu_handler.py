@@ -37,11 +37,12 @@ def _display_manual_menu(chan, menu_data, current_menu_mode):
                     "mode_1", f"mode{current_menu_mode}のテキストが見つからないので、mode1のテキストを表示します。")
                 if actual_display_text.startswith("Error:"):
                     logging.warning(
-                        f"mode'{current_menu_mode}' が display_text に見つかりません。フォールバックまたはエラーです。")
+                        f"Menu display text for mode '{current_menu_mode}' not found. Falling back or error.")
         elif isinstance(display_text_source, str):
             actual_display_text = display_text_source
         else:
-            logging.warning("メニュー データの表示テキスト形式が無効です。")
+            logging.warning(
+                f"Invalid format for display_text in menu data: {type(display_text_source)}")
             util.send_text_by_key(
                 chan, "common_messages.error", current_menu_mode)
             return
@@ -53,7 +54,7 @@ def _display_manual_menu(chan, menu_data, current_menu_mode):
             chan.send(b'\r\n')
 
     else:
-        logging.warning("メニュー データにdisplay_textがありません。")
+        logging.warning("Menu data is missing 'display_text'.")
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
 
 
@@ -88,16 +89,10 @@ def process_manual_menu(chan, dbname: str, login_id: str, menu_mode: str, menu_c
         current_menu_data = menu_config[current_menu_id]
         _display_manual_menu(chan, current_menu_data, menu_mode)
 
-        # デフォルトのプロンプトキー
-        default_prompt_key = "common_messages.select_prompt"
-        # BBSのトップメニューの場合にプロンプトキーを上書き
-        if menu_config_path == "setting/bbs_mode1.yaml" and current_menu_id == initial_menu_id and initial_menu_id == "main_bbs_menu":
-            prompt_key_to_use = "prompt.bbs_top"
-        else:
-            prompt_key_to_use = current_menu_data.get(
-                "prompt_key", default_prompt_key)
-
-        util.send_text_by_key(chan, prompt_key_to_use,
+        # YAMLで定義されたプロンプトキーを使用、なければデフォルト
+        prompt_key = current_menu_data.get(
+            "prompt_key", "common_messages.select_prompt")
+        util.send_text_by_key(chan, prompt_key,
                               menu_mode, add_newline=False)
         user_input_raw = ssh_input.process_input(chan)
 
@@ -106,15 +101,9 @@ def process_manual_menu(chan, dbname: str, login_id: str, menu_mode: str, menu_c
 
         user_input = user_input_raw.strip().lower()
 
-        action_to_take = None
-        # 入力されたキーに対応するアクションを探す
-        if "actions" in current_menu_data and user_input in current_menu_data["actions"]:
-            action_to_take = current_menu_data["actions"][user_input]
-        # からエンターに対応するアクションを探す
-        elif not user_input and "actions" in current_menu_data:
-            default_action_key = current_menu_data["default_action"]
-            if default_action_key in current_menu_data["actions", {}]:
-                action_to_take = current_menu_data["actions"][default_action_key]
+        # 入力に対応するアクションを取得 (空入力 "" もキーとして扱える)
+        actions = current_menu_data.get("actions", {})
+        action_to_take = actions.get(user_input)
 
         if action_to_take:
             action_type = action_to_take.get("type")
