@@ -99,7 +99,7 @@ def handle_online_signup(chan, dbname, menu_mode):
             return
 
         # メールアドレスの簡易検証
-        if not util._is_valid_email_for_signup(new_email):
+        if not util.is_valid_email(new_email):
             util.send_text_by_key(
                 chan, "online_signup.error_email_invalid", menu_mode)
             continue
@@ -115,7 +115,7 @@ def handle_online_signup(chan, dbname, menu_mode):
     # パスワード生成と長さチェック
     temp_password = ""
     while True:
-        temp_password = util.generate_random_password(length=12)  # 仮パス作成
+        temp_password = util.generate_random_password(length=12)
         if pw_min_len <= len(temp_password) <= pw_max_len:
             break
         logging.warning(f"仮パスワードの長さが制限外( {len(temp_password)} )です。")

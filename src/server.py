@@ -85,20 +85,10 @@ class Server(paramiko.ServerInterface):
             if user_auth_info and user_auth_info['auth_method'] in ('password_only', 'both'):
                 stored_hash = user_auth_info['password']
                 salt_hex = user_auth_info['salt']
-                try:
-                    salt = bytes.fromhex(salt_hex)
-                    provided_hash = hashlib.pbkdf2_hmac(
-                        'sha256',
-                        password.encode('utf-8'),
-                        salt,
-                        pbkdf2_rounds
-                    ).hex()
-                    if stored_hash == provided_hash:
-                        logging.info(f"パスワード認証成功: ユーザ名'{username}'")
-                        return paramiko.AUTH_SUCCESSFUL
-                except Exception as e:
-                    logging.error(f"通常接続パスワード検証中にエラー: ユーザ名'{username}': {e}")
-                logging.warning(f"通常接続パスワード認証失敗(不一致): ユーザ名'{username}'")
+                if util.verify_password(stored_hash, salt_hex, password, pbkdf2_rounds):
+                    logging.info(f"パスワード認証成功: ユーザ名'{username}'")
+                    return paramiko.AUTH_SUCCESSFUL
+                logging.warning(f"パスワード認証失敗(不一致): ユーザ名'{username}'")
             else:
                 logging.warning(
                     f"WEBアプリからの接続パスワード認証失敗: ユーザ名'{username}'はパスワード認証が許可されていないか、存在しません。")

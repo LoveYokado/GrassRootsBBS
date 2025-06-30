@@ -204,8 +204,8 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
         cur = conn.cursor()
 
         # --- users テーブル作成 ---
-        print("Creating users table...")
         # id,name,password,registdate,level,lastlogin,lastlogout,comment,mail
+        logging.info("Creating 'users' table...")
         cur.execute(
             '''CREATE TABLE users(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -226,7 +226,6 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
                 read_progress TEXT DEFAULT '{}'
             )'''
         )
-        print("users table created.")
 
         # Sysop 情報入力
         sysopname = sysop_id
@@ -236,7 +235,7 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
         sysop_salt, sysop_hashed_pass = hash_password(sysoppass)
 
         # シスオペ登録 (saltとハッシュ化パスワード保存)
-        print("Registering Sysop...")
+        logging.info(f"Registering Sysop '{sysopname}'...")
         cur.execute(
             "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email,auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (sysopname, sysop_hashed_pass, sysop_salt, 5, registdate, 0, 0,
@@ -244,7 +243,6 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
              # シスオペのSSH鍵自動生成は削除
              'Sysop', f'{sysopname.lower()}@example.com', 'both')
         )
-        print("Sysop registered.")
 
         # --- SysopのSSH鍵を生成し、秘密鍵をファイルに保存 ---
         try:
@@ -258,35 +256,28 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
                     with open(private_key_path, 'w') as f:
                         f.write(private_key_pem)
                     os.chmod(private_key_path, 0o600)
-                    print(
-                        f"Sysop's private key has been saved to: {private_key_path}")
                     logging.info(
                         f"Sysop's private key has been saved to: {private_key_path}")
                 else:
-                    print("Failed to generate SSH key for Sysop.")
                     logging.error("Failed to generate SSH key for Sysop.")
             else:
-                print(
-                    "paths.host_key_dir is not configured. Skipping Sysop's private key generation.")
                 logging.warning(
                     "paths.host_key_dir is not configured. Skipping Sysop's private key generation.")
         except Exception as e:
-            print(f"An error occurred while generating Sysop's SSH key: {e}")
             logging.error(
                 f"An error occurred while generating Sysop's SSH key: {e}", exc_info=True)
 
         # ゲスト登録 (saltとハッシュ化パスワード保存)
         guest_salt, guest_hashed_pass = hash_password('GUEST')
-        print("Registering Guest...")
+        logging.info("Registering 'GUEST' user...")
         cur.execute(
             "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email, auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ("GUEST", guest_hashed_pass, guest_salt, 1, registdate, 0, 0,
              'Guest', 'guest@example.com', 'webapp_only')   # 登録日も設定、ゲストはWebAPPのみ
         )
-        print("Guest registered.")
 
         # --- server_pref テーブル作成 ---
-        print("Creating server_pref table...")
+        logging.info("Creating 'server_pref' table...")
         cur.execute(
             '''CREATE TABLE server_pref(
                 bbs INTEGER DEFAULT 0,
@@ -303,11 +294,10 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
             "INSERT INTO server_pref(bbs, chat, mail, telegram, userpref, who, default_exploration_list) VALUES(?, ?, ?, ?, ?, ?, ?)",
             (0, 1, 1, 1, 1, 1, "")
         )
-        print("server_pref table created and initialized.")
 
         # メールボックステーブル作成
 
-        print("Creating mails table...")
+        logging.info("Creating 'mails' table...")
         cur.execute(
             '''CREATE TABLE mails(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -321,10 +311,9 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
                 recipient_deleted INTEGER DEFAULT 0
             )'''
         )
-        print("mail table created and initialized.")
 
         # --- telegram テーブル作成 (id カラムあり) ---
-        print("Creating telegram table...")
+        logging.info("Creating 'telegram' table...")
         cur.execute(
             '''CREATE TABLE telegram(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -334,31 +323,30 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
                 timestamp INTEGER NOT NULL
             )'''
         )
-        print("Telegram table created and initialized.")
 
         # --- BBS関連テーブル作成 ---
-        print("Creating BBS tables...")
+        logging.info("Creating BBS related tables...")
         sqlite_tools.create_bbs_tables_if_not_exist(cur)
 
         # データベースへコミット
         conn.commit()
-        print("Database and tables created successfully.")
+        logging.info("Database and initial tables created successfully.")
 
         # 作成されたテーブルの内容を表示 (確認用)
-        print("\n--- Users Table Contents ---")
+        logging.debug("\n--- Users Table Contents ---")
         cur.execute("SELECT * FROM users;")
         users = cur.fetchall()
         for user in users:
-            print(user)
+            logging.debug(user)
 
-        print("\n--- Server Pref Table Contents ---")
+        logging.debug("\n--- Server Pref Table Contents ---")
         cur.execute("SELECT * FROM server_pref;")
         serverprefs = cur.fetchall()
         for server_pref in serverprefs:
-            print(server_pref)
+            logging.debug(server_pref)
 
     except sqlite3.Error as e:
-        print(f"データベースエラーが発生しました: {e}")
+        logging.critical(f"データベースの初期化に失敗しました: {e}", exc_info=True)
         if conn:
             conn.rollback()  # エラー時はロールバック
 
@@ -368,7 +356,7 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password):
             cur.close()
         if conn:
             conn.close()
-        print("Database connection closed.")
+        logging.info("Database connection closed after initialization.")
 
 
 def prompt_handler(chan, dbname, login_id, menu_mode='2'):
