@@ -40,11 +40,15 @@ def verify_password(stored_password_hash, salt_hex, provided_password, pbkdf2_ro
     """
     パスワードと保存されたハッシュの検証
     """
+
     try:
         salt = bytes.fromhex(salt_hex)
         provided_hash = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'),
                                             salt, pbkdf2_rounds).hex()
-        return stored_password_hash == provided_hash
+
+        is_match = (stored_password_hash == provided_hash)
+
+        return is_match
     except Exception as e:
         logging.error(f"パスワード検証中エラー: {e}")
         return False

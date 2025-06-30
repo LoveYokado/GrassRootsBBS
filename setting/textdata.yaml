@@ -206,12 +206,12 @@ common_menu_names:
 user_pref_menu:
   header: # メニュー本体の表示
     mode_1: |
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9] 電報受信制限           ●
-      ●[2] パスワード変更     [6] 探索リスト登録          [10] ブラックリスト編集    ○
-      ○[3] プロフィール変更   [7] 探索リスト読み出し      [11] メールアドレス変更    ●
-      ●[4] 会員リスト         [8] 元探索リスト読み出し                               ○
-      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9] 電報受信制限        ●
+      ●[2] パスワード変更     [6] 探索リスト登録          [10] ブラックリスト編集 ○
+      ○[3] プロフィール変更   [7] 探索リスト読み出し      [11] メールアドレス変更 ●
+      ●[4] 会員リスト         [8] 元探索リスト読み出し    [12] SSH鍵生成          ○
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ====================================================
         端末環境設定の説明
@@ -227,6 +227,7 @@ user_pref_menu:
       [9] 電報受信制限
       [10] ブラックリスト編集
       [11] メールアドレス変更
+      [12] SSH鍵生成
       [E] 終了
       [H,?]: ヘルプ
       ====================================================
@@ -245,6 +246,7 @@ user_pref_menu:
       | 9       | Telegram Restrictions: Limit incoming messages |
       | 10      | Edit Blacklist: Manage blocked users           |
       | 11      | Change Email: Update mail address              |
+      | 12      | Generate SSH Key: Create a new SSH key pair    |
       | E       | Exit: Return to main menu                      |
       | H, ?    | Help: Display this help menu                   |
       +---------+------------------------------------------------+
@@ -392,11 +394,20 @@ user_pref_menu:
       mode_1: "パスワードを変更しました。\r\n"
       mode_2: "パスワードを変更しました。\r\n"
       mode_3: "Password changed.\r\n"
-    confirm_regenerate_ssh_key_yn:
-      mode_1: "SSH公開鍵を再生成しますか?"
-      mode_2: "SSH公開鍵を再生成しますか?"
-      mode_3: "Regenerate SSH public key?"
-    ssh_key_updated_success:
+  generate_ssh_key:
+    header:
+      mode_1: "** SSH鍵を生成します **\r\n"
+      mode_2: "** SSH鍵を生成します **\r\n"
+      mode_3: "** Generate SSH Key **\r\n"
+    confirm_yn:
+      mode_1: "現在の鍵は無効になります。本当に生成しますか？ (y/n): "
+      mode_2: "現在の鍵は無効になります。本当に生成しますか？ (y/n): "
+      mode_3: "Your current key will be invalidated. Are you sure? (y/n): "
+    new_private_key_info:
+      mode_1: "新しい秘密鍵を生成しました。以下をコピーしてファイルに保存してください。\r\n"
+      mode_2: "新しい秘密鍵を生成しました。以下をコピーしてファイルに保存してください。\r\n"
+      mode_3: "New private key generated. Please copy the following and save it to a file.\r\n"
+    success:
       mode_1: "この鍵をなくすとSSH接続ができなくなりますので、大切に保管してください。\r\n"
       mode_2: "この鍵をなくすとSSH接続ができなくなりますので、大切に保管してください。\r\n"
       mode_3: "This key will no longer work for SSH connections, so please keep it safe.\r\n"

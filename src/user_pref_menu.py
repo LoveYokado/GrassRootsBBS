@@ -61,6 +61,9 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
         elif command == '11':
             # メールアドレス変更
             change_email_address(chan, dbname, login_id, current_menu_mode)
+        elif command == '12':
+            # SSH鍵生成
+            generate_ssh_key(chan, dbname, login_id, current_menu_mode)
         elif command == 'e' or command == '':
             return "back_to_top"  # メニューから抜ける
         elif command == 'h' or command == '?':
@@ -130,7 +133,7 @@ def show_member_list(chan, dbname, current_menu_mode):
 def change_password(chan, dbname, login_id, current_menu_mode):
     """パスワード変更"""
     security_config = util.app_config.get('security', {})
-    pbkdf2_rounds = security_config.get('pbkdf2_rounds', 100000)
+    pbkdf2_rounds = security_config.get('PBKDF2_ROUNDS', 100000)
 
     # 今のパスワードを確認
     util.send_text_by_key(chan, "user_pref_menu.change_password.current_password",
@@ -197,33 +200,6 @@ def change_password(chan, dbname, login_id, current_menu_mode):
         util.send_text_by_key(chan, "common_messages.error",
                               current_menu_mode)  # パスワード変更エラー
         logging.error(f"パスワード変更エラー({login_id})")
-
-    # SSHキー再生成
-    util.send_text_by_key(
-        chan, "user_pref_menu.change_password.confirm_regenerate_ssh_key_yn", current_menu_mode, add_newline=False)
-    choice = ssh_input.process_input(chan)
-    # SSHキー再生成はキャンセルされてもパスワード変更は完了している
-    if choice is None:
-        return
-
-    if choice.lower() == 'y':
-        try:
-            private_key_pem = util.regenerate_user_ssh_key(login_id)
-            if private_key_pem:
-                chan.send(b'\r\n')
-                util.send_text_by_key(
-                    chan, "user_pref_menu.change_password.new_private_key_info", current_menu_mode)
-                for line in private_key_pem.splitlines():
-                    chan.send(line.encode('utf-8') + b'\r\n')
-                chan.send(b'\r\n')
-                util.send_text_by_key(
-                    chan, "user_pref_menu.change_password.ssh_key_updated_success", current_menu_mode)
-            else:
-                raise Exception("SSHキーの再生成に失敗しました。秘密鍵が取得できませんでした。")
-        except Exception as e:
-            logging.error(f"SSHキー再生成または表示中にエラー ({login_id}): {e}")
-            util.send_text_by_key(
-                chan, "common_messages.error", current_menu_mode)
 
 
 def change_profile(chan, dbname, login_id, current_menu_mode):
@@ -631,3 +607,34 @@ def change_email_address(chan, dbname, login_id, current_menu_mode):
     else:
         util.send_text_by_key(
             chan, "common_messages.db_update_error", current_menu_mode)
+
+
+def generate_ssh_key(chan, dbname, login_id, current_menu_mode):
+    """SSH鍵を生成または再生成する"""
+    util.send_text_by_key(
+        chan, "user_pref_menu.generate_ssh_key.header", current_menu_mode)
+    util.send_text_by_key(
+        chan, "user_pref_menu.generate_ssh_key.confirm_yn", current_menu_mode, add_newline=False)
+    choice = ssh_input.process_input(chan)
+    if choice is None or choice.lower().strip() != 'y':
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
+        return
+
+    try:
+        private_key_pem = util.regenerate_user_ssh_key(login_id)
+        if private_key_pem:
+            chan.send(b'\r\n')
+            util.send_text_by_key(
+                chan, "user_pref_menu.generate_ssh_key.new_private_key_info", current_menu_mode)
+            for line in private_key_pem.splitlines():
+                chan.send(line.encode('utf-8') + b'\r\n')
+            chan.send(b'\r\n')
+            util.send_text_by_key(
+                chan, "user_pref_menu.generate_ssh_key.success", current_menu_mode)
+        else:
+            raise Exception("SSHキーの再生成に失敗しました。秘密鍵が取得できませんでした。")
+    except Exception as e:
+        logging.error(f"SSHキー生成または表示中にエラー ({login_id}): {e}")
+        util.send_text_by_key(
+            chan, "common_messages.error", current_menu_mode)

@@ -623,23 +623,6 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                 chan, "auth.account_disabled", menu_mode=auth_menu_mode)  # ID停止通知
             return None, None, None
 
-        def verify_password(stored_password_hash, salt_hex, provided_password):
-            """入力されたパスワードが保存されたハッシュと一致するか検証"""
-            try:
-                salt = bytes.fromhex(salt_hex)
-                provided_hash = hashlib.pbkdf2_hmac(
-                    'sha256',
-                    provided_password.encode('utf-8'),
-                    salt,
-                    pbkdf2_rounds
-                ).hex()
-
-                match = (stored_password_hash == provided_hash)
-                return match
-            except Exception as e:  # その他の予期せぬエラー
-                logging.error(f"パスワード検証中にエラーが発生しました (ユーザー: {login_id}): {e}")
-                return False  # 検証失敗
-
         password_attempts = 0
         while password_attempts < max_attempts:
             util.send_text_by_key(
@@ -649,7 +632,7 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
                 logging.info(f"パスワード入力中に切断されました ({login_id}, {addr})")
                 return None, None, None
 
-            if verify_password(stored_hash, salt_hex, login_pass):
+            if util.verify_password(stored_hash, salt_hex, login_pass, pbkdf2_rounds):
                 # 認証成功
                 logging.info(f"認証成功: '{login_id}' ({addr})")
                 return login_id, user_id, userdata
@@ -1004,6 +987,11 @@ def main():
         if '#' in sysop_id_from_env:
             sysop_id_from_env = sysop_id_from_env.split('#')[0].strip()
     sysop_password_from_env = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
+    if sysop_password_from_env:
+        sysop_password_from_env = sysop_password_from_env.strip()
+        if '#' in sysop_password_from_env:
+            sysop_password_from_env = sysop_password_from_env.split('#')[
+                0].strip()
 
     # --- ログ設定 ---
     # util.load_app_config_from_path の後で実行
@@ -1017,7 +1005,7 @@ def main():
         logging.root.removeHandler(handler)
 
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,  # デバッグ用にログレベルをDEBUGに変更
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler(os.path.join(
