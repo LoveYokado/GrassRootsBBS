@@ -1,5 +1,6 @@
 import socket
 import logging
+import unicodedata
 
 # --- 定数定義 ---
 # 制御文字を定数として定義し、可読性を向上
@@ -39,9 +40,14 @@ def _read_line(chan, show_asterisk=False):
                     # 最後の文字をバッファから削除
                     last_char = input_buffer[-1]
                     input_buffer = input_buffer[:-1]
-                    # 画面から文字を削除 (TODO: マルチバイト文字の表示幅を考慮するとより良い)
-                    # 現在の実装では、表示幅が1でない文字を消すと表示が崩れる可能性がある
-                    chan.send(BACKSPACE + b' ' + BACKSPACE)
+                    # 削除する文字の表示幅を計算
+                    # 'F' (Fullwidth), 'W' (Wide), 'A' (Ambiguous) は2カラムとして扱う
+                    width = 2 if unicodedata.east_asian_width(
+                        last_char) in ('F', 'W', 'A') else 1
+
+                    # 表示幅の分だけカーソルを戻し、空白で上書きし、さらにカーソルを戻す
+                    backspace_sequence = (BACKSPACE + b' ' + BACKSPACE) * width
+                    chan.send(backspace_sequence)
             # Enterキー (CR) が押された場合
             elif data == CR:
                 # Web端末によってはCRの後にLFが続く場合があるため、
