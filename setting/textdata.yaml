@@ -394,6 +394,11 @@ user_pref_menu:
       mode_1: "パスワードを変更しました。\r\n"
       mode_2: "パスワードを変更しました。\r\n"
       mode_3: "Password changed.\r\n"
+    error_password_length:
+      mode_1: "PASSWORD must be between {min_len} and {max_len} characters."
+      mode_2: "パスワードは{min_len}文字以上、{max_len}文字以下にしてください。"
+      mode_3: "パスワードは{min_len}文字以上、{max_len}文字以下にしてください。"
+
   generate_ssh_key:
     header:
       mode_1: "** SSH鍵を生成します **\r\n"

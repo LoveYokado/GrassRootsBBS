@@ -126,7 +126,7 @@ def show_member_list(chan, dbname, current_menu_mode):
             chan.send(
                 f"{member.get('name', 'N/A')} {member.get('comment', 'N/A')}\r\n")
     else:
-        util.send_text_by_key(chan, "userpref_menu.member_list.notfound",
+        util.send_text_by_key(chan, "user_pref_menu.member_list.notfound",
                               current_menu_mode)  # リストが空のとき
 
 
@@ -174,7 +174,7 @@ def change_password(chan, dbname, login_id, current_menu_mode):
         pw_max_len = security_config.get('PASSWORD_MAX_LENGTH', 64)
         if not (pw_min_len <= len(new_pass1) <= pw_max_len):
             util.send_text_by_key(
-                chan, "online_signup.error_password_length", current_menu_mode, min_len=pw_min_len, max_len=pw_max_len)
+                chan, "user_pref_menu.change_password.error_password_length", current_menu_mode, min_len=pw_min_len, max_len=pw_max_len)
             continue
 
         util.send_text_by_key(
