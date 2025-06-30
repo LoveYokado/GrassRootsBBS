@@ -764,11 +764,6 @@ class CommandHandler:
                 display_current_article_header()  # ヘルプ表示後に現在の行を再表示
 
             elif key_input == "@":
-                if not articles or not (0 <= current_index < len(articles)):
-                    self.chan.send(b'\a')  # マーカ位置や記事がない場合は無効
-                    self.just_displayed_header_from_tail_h = False
-                    continue
-
                 # 現在の掲示板のショートカットIDを取得
                 target_shortcut_id = self.current_board.get('shortcut_id')
                 if not target_shortcut_id:
