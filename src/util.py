@@ -840,3 +840,71 @@ def generate_random_password(length=12):
     alphabet = string.ascii_letters + string.digits
     password = ''.join(secrets.choice(alphabet) for i in range(length))
     return password
+
+
+def display_exploration_list(chan, list_str: str):
+    """カンマ区切りの探索リスト文字列を整形して表示する共通関数"""
+    if not list_str:
+        # リストが空の場合は何も表示しない（メッセージは呼び出し元で制御）
+        return
+    items = list_str.split(",")
+    chan.send(b"\r\n")
+    for item in items:
+        item_stripped = item.strip()
+        if item_stripped:
+            chan.send(item_stripped.encode('utf-8') + b'\r\n')
+    chan.send(b"\r\n")
+
+
+def prompt_and_save_exploration_list(chan, menu_mode: str, save_callback: callable):
+    """探索リストの入力を促し、指定されたコールバック関数で保存する共通関数"""
+    send_text_by_key(
+        chan, "user_pref_menu.register_exploration_list.header", menu_mode)
+
+    exploration_items = []
+    item_number = 1
+    while True:
+        prompt_text = f"{item_number}: "
+        chan.send(prompt_text.encode('utf-8'))
+        item_input = ssh_input.process_input(chan)
+
+        if item_input is None:
+            return False  # 切断
+
+        if not item_input.strip():
+            break
+
+        cleaned_item_input = item_input.strip().lstrip(':').lstrip(';')
+        exploration_items.append(cleaned_item_input)
+        item_number += 1
+
+    if not exploration_items:
+        return True  # 何も入力されずに終了した場合
+
+    send_text_by_key(
+        chan, "user_pref_menu.register_exploration_list.confirm_yn", menu_mode, add_newline=False)
+    confirm_choice = ssh_input.process_input(chan)
+
+    if confirm_choice is None or confirm_choice.lower().strip() != 'y':
+        return True  # キャンセルまたは切断
+
+    exploration_list_str = ",".join(exploration_items)
+    if save_callback(exploration_list_str):
+        send_text_by_key(
+            chan, "user_pref_menu.register_exploration_list.success", menu_mode)
+    else:
+        logging.error("探索リスト保存時にエラーが発生しました。")
+        send_text_by_key(
+            chan, "common_messages.error", menu_mode)
+    return True
+
+
+def format_timestamp(timestamp, default_str='N/A', date_format='%Y-%m-%d %H:%M'):
+    """タイムスタンプを安全にフォーマットする"""
+    if not timestamp or timestamp <= 0:
+        return default_str
+    try:
+        return datetime.datetime.fromtimestamp(timestamp).strftime(date_format)
+    except (ValueError, OSError, TypeError):
+        logging.warning(f"Invalid timestamp for formatting: {timestamp}")
+        return 'Invalid Date'
