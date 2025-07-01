@@ -481,7 +481,7 @@ sysop_menu:
       ■[ALLW] 探索リストを書く                [KYGN] SSH鍵変更                   □
       □[MKBD] 掲示板作成                      [PASC] パスワード変更              ■
       ■[LSBD] 掲示板一覧                      [CHGU] ユーザーレベル変更          □
-      □[DLBD] 掲示板削除                      [PASU] 会員抹消                    ■
+      □[DLBD] 掲示板削除                      [DELU] 会員抹消                    ■
       ■[VSET] 設定一覧表示                    [REGS] 会員登録                    □
       □[TREE] 階層構造マップ                  [SYMR] シンボルテーブルを読む      ■
       ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く      □
@@ -500,7 +500,7 @@ sysop_menu:
       [LSBD] 掲示板一覧
       [DLBD] 掲示板削除
       [REGS] 会員登録
-      [PASU] 会員抹消
+      [DELU] 会員抹消
       [CHGU] ユーザーレベル変更
       [USRL] 会員一覧表示
       [VSET] 設定一覧表示
@@ -521,7 +521,7 @@ sysop_menu:
       | LSBD    | List Boards: View all boards              |
       | DLBD    | Delete Board: Remove bulletin board       |
       | REGS    | Register User: Add new member             |
-      | PASU    | Delete User: Remove member account        |
+      | DELU    | Delete User: Remove member account        |
       | CHGU    | Change User Level: Adjust user perms      |
       | USRL    | List Users: Show all members              |
       | VSET    | View Settings: Display system config      |
@@ -792,6 +792,31 @@ sysop_menu:
       mode_1: "データベースに登録されている掲示板はありません。"
       mode_2: "データベースに登録されている掲示板はありません。"
       mode_3: "No boards are registered in the database."
+  change_user_password:
+    header:
+      mode_1: "--- パスワード変更 ---"
+      mode_2: "--- パスワード変更 ---"
+      mode_3: "--- Change Password ---"
+    user_id_prompt:
+      mode_1: "変更したいユーザのIDを入力してください: "
+      mode_2: "変更したいユーザのIDを入力してください: "
+      mode_3: "Enter ID of user to change password for: "
+    cannot_change_sysop:
+      mode_1: "シスオペのパスワードは変更できません。"
+      mode_2: "シスオペのパスワードは変更できません。"
+      mode_3: "System operator's password cannot be changed."
+    user_not_found:
+      mode_1: "該当ユーザが存在しません。"
+      mode_2: "該当ユーザが存在しません。"
+      mode_3: "User not found."
+    confirm_yn:
+      mode_1: "(name:{name},password:{new_password})この内容で変更しますか? (y/N): "
+      mode_2: "(name:{name},password:{new_password})この内容で変更しますか? (y/N): "
+      mode_3: "(name:{name},password:{new_password})Do you want to change this? (y/N): "
+    success:
+      mode_1: "パスワードを変更しました。(name:{name},password:{new_password})"
+      mode_2: "パスワードを変更しました。(name:{name},password:{new_password})"
+      mode_3: "Password changed. (name:{name},password:{new_password})"
 mail_handler:
   main_prompt:
     mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "

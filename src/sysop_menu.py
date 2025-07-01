@@ -1,5 +1,6 @@
 import ssh_input
 import util
+import secrets
 import sqlite_tools
 import logging
 import datetime
@@ -16,7 +17,7 @@ def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
         'mkbd': make_board,
         'lsbd': list_boards,
         'dlbd': delete_board,
-        'pasu': user_delete,
+        'delu': user_delete,
         'regs': user_register,
         'pasc': change_user_password_by_sysop,
         'chgu': change_user_level,
@@ -428,10 +429,61 @@ def change_user_level(chan, dbname, sysop_login_id, current_menu_mode):
     return None
 
 
-def change_user_password_by_sysop(chan, dbname, _sysop_login_id, current_menu_mode):
-    """(未実装) シスオペによるユーザーパスワード変更"""
-    util.send_text_by_key(chan, "unimplemented.message",
-                          current_menu_mode, feature_name="pasc")
+def change_user_password_by_sysop(chan, dbname, sysop_login_id, current_menu_mode):
+    """ シスオペによるユーザーパスワード再発行 """
+    util.send_text_by_key(
+        chan, "sysop_menu.change_user_password.header", current_menu_mode)
+
+    while True:
+        util.send_text_by_key(chan, "sysop_menu.change_user_password.user_id_prompt",
+                              current_menu_mode, add_newline=False)
+        target_user_input = ssh_input.process_input(chan)
+        if target_user_input is None:
+            return None
+
+        target_user = target_user_input.strip().upper()
+        if not target_user:
+            return None
+
+        if target_user == sysop_login_id.upper():
+            util.send_text_by_key(chan, "sysop_menu.change_user_password.cannot_change_sysop",
+                                  current_menu_mode)
+            return None
+
+        user_data = sqlite_tools.get_user_auth_info(dbname, target_user)
+        if not user_data:
+            util.send_text_by_key(chan, "sysop_menu.change_user_password.user_not_found",
+                                  current_menu_mode, user_id=target_user)
+            return None
+
+        user_id_to_change = user_data['id']
+        user_name_to_change = user_data['name']
+
+        # ランダムな12文字のパスワードを生成
+        new_password = secrets.token_urlsafe(9)  # 12文字のランダムな文字列（URLセーフ）
+
+        util.send_text_by_key(chan, "sysop_menu.change_user_password.confirm_yn",
+                              current_menu_mode, name=user_name_to_change, new_password=new_password, add_newline=False)
+        confirm_input = ssh_input.process_input(chan)
+        if confirm_input is None:
+            return None
+
+        confirm_input = confirm_input.lower().strip()
+        if confirm_input == 'y':
+            # パスワードをハッシュ化して更新
+            salt_hex, hashed_password = util.hash_password(new_password)
+            if sqlite_tools.update_user_password(dbname, user_id_to_change, hashed_password, salt_hex):
+                util.send_text_by_key(chan, "sysop_menu.change_user_password.success",
+                                      current_menu_mode, name=user_name_to_change, new_password=new_password)
+            else:
+                util.send_text_by_key(
+                    chan, "common_messages.database_update_error", current_menu_mode)
+                logging.error(f"パスワード更新エラー (ユーザー: {user_name_to_change})")
+        else:
+            util.send_text_by_key(
+                chan, "common_messages.cancel", current_menu_mode)
+        return None
+
     return None
 
 

@@ -351,6 +351,20 @@ def update_user_password_and_salt(dbname, login_id, new_hashed_password, new_sal
         return False
 
 
+def update_user_password(dbname, user_id, new_hashed_password, new_salt_hex):
+    """ユーザIDを使ってパスワードとソルトを更新する"""
+    try:
+        sql = "UPDATE users SET password = ?, salt = ? WHERE id = ?"
+        sqlite_execute_query(
+            dbname, sql, (new_hashed_password, new_salt_hex, user_id))
+        logging.info(f"ユーザID '{user_id}' のパスワードとソルトを更新しました。")
+        return True
+    except Exception as e:
+        logging.error(
+            f"パスワードとソルトの更新中にDBエラー (UserID: {user_id}): {e}")
+        return False
+
+
 def update_user_profile_comment(dbname, user_id, new_comment):
     """ユーザーのプロフィールコメントを更新"""
     try:
