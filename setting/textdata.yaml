@@ -792,6 +792,31 @@ sysop_menu:
       mode_1: "データベースに登録されている掲示板はありません。"
       mode_2: "データベースに登録されている掲示板はありません。"
       mode_3: "No boards are registered in the database."
+  change_board:
+    header:
+      mode_1: "--- 掲示板設定変更 ---"
+      mode_2: "--- 掲示板設定変更 ---"
+      mode_3: "--- Change Board Settings ---"
+    shortcut_id_prompt:
+      mode_1: "設定を変更する掲示板のIDを入力してください: "
+      mode_2: "設定を変更する掲示板のIDを入力してください: "
+      mode_3: "Enter the ID of the board to change settings for: "
+    current_settings:
+      mode_1: "掲示板 '{shortcut_id}' の現在の設定 -> 閲覧レベル: {read_level}, 書き込みレベル: {write_level}"
+      mode_2: "掲示板 '{shortcut_id}' の現在の設定 -> 閲覧レベル: {read_level}, 書き込みレベル: {write_level}"
+      mode_3: "Current settings for board '{shortcut_id}' -> Read Level: {read_level}, Write Level: {write_level}"
+    no_changes:
+      mode_1: "変更はありませんでした。"
+      mode_2: "変更はありませんでした。"
+      mode_3: "No changes were made."
+    confirm_yn:
+      mode_1: "設定を R:{old_read}->{new_read}, W:{old_write}->{new_write} に変更しますか？ (y/N): "
+      mode_2: "設定を R:{old_read}->{new_read}, W:{old_write}->{new_write} に変更しますか？ (y/N): "
+      mode_3: "Change settings to R:{old_read}->{new_read}, W:{old_write}->{new_write}? (y/N): "
+    success:
+      mode_1: "掲示板 '{shortcut_id}' の設定を更新しました。"
+      mode_2: "掲示板 '{shortcut_id}' の設定を更新しました。"
+      mode_3: "Successfully updated settings for board '{shortcut_id}'."
   change_user_password:
     header:
       mode_1: "--- パスワード変更 ---"

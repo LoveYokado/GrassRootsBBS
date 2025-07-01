@@ -197,7 +197,9 @@ def create_bbs_tables_if_not_exist(cur):
                 description TEXT,
                 kanban_body TEXT DEFAULT '',
                 last_posted_at INTEGER DEFAULT 0,
-                status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived', 'hidden'))
+                status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived', 'hidden')),
+                read_level INTEGER NOT NULL DEFAULT 1,
+                write_level INTEGER NOT NULL DEFAULT 1
             )
         ''')
     logging.info("boards テーブルを作成または確認しました。")
@@ -575,19 +577,19 @@ def update_user_level(dbname, user_id, new_level):
 
 def get_board_by_shortcut_id(dbname, shortcut_id):
     """指定されたショートカットIDの掲示板情報をDBから取得"""
-    sql = "SELECT id, shortcut_id, name, description, operators, default_permission, kanban_body, last_posted_at, status FROM boards WHERE shortcut_id = ?"
+    sql = "SELECT id, shortcut_id, name, description, operators, default_permission, kanban_body, last_posted_at, status, read_level, write_level FROM boards WHERE shortcut_id = ?"
     results = sqlite_execute_query(dbname, sql, (shortcut_id,), fetch=True)
     return results[0] if results else None
 
 
-def create_board_entry(dbname, shortcut_id, name, description, operators, default_permission, kanban_body, status):
+def create_board_entry(dbname, shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1):
     """新しい掲示板エントリをboardsテーブルに挿入"""
     sql = """
-    INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at)
-    VALUES(?, ?, ?, ?, ?, ?, ?, 0)
+    INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level)
+    VALUES(?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     """
     params = (shortcut_id, name, description, operators,
-              default_permission, kanban_body, status)
+              default_permission, kanban_body, status, read_level, write_level)
     return sqlite_execute_query(dbname, sql, params)
 
 
@@ -866,3 +868,18 @@ def get_new_articles_for_board(dbname, board_id_pk, last_login_timestamp):
         params.append(last_login_timestamp)
     sql += " ORDER BY created_at ASC"
     return sqlite_execute_query(dbname, sql, tuple(params), fetch=True)
+
+
+def update_board_levels(dbname, board_id_pk, read_level, write_level):
+    """掲示板の閲覧・書き込みレベルを更新する"""
+    sql = "UPDATE boards SET read_level = ?, write_level = ? WHERE id = ?"
+    try:
+        success = sqlite_execute_query(
+            dbname, sql, (read_level, write_level, board_id_pk))
+        if success:
+            logging.info(
+                f"掲示板ID {board_id_pk} のレベルを R:{read_level}, W:{write_level} に更新しました。")
+        return success
+    except Exception as e:
+        logging.error(f"掲示板レベル更新中にDBエラー (BoardID: {board_id_pk}): {e}")
+        return False

@@ -169,34 +169,28 @@ class PermissionManager:
         if user_level >= 5:
             return True
 
-        board_id_pk = board_info["id"]
-        default_perm = board_info['default_permission'] if 'default_permission' in board_info.keys(
-        ) else 'unknown'
+        board_id_pk = board_info.get("id")
+        read_level = board_info.get('read_level', 1)  # デフォルトはレベル1
+
         user_specific_perm = sqlite_tools.get_user_permission_for_board(
             self.dbname, board_id_pk, str(user_id_pk))
 
-        if user_specific_perm == "deny":  # 明示的な拒否はNG
+        # 優先順位: 1. deny, 2. allow, 3. level check
+        if user_specific_perm == "deny":
             return False
+        if user_specific_perm == "allow":
+            return True
 
-        if default_perm == "open":
-            return True  # denyじゃないならOK
-        elif default_perm == "closed":
-            return user_specific_perm == "allow"  # allowされてればOK
-        elif default_perm == "readonly":
-            return True  # deny#じゃないなら閲覧OK
-        else:  # unknownなどなど
-            logging.warning(
-                f"掲示板ID {board_id_pk} のdefault_permissionが不明です: {default_perm}")
-            return False  # 不明だとNG
+        return user_level >= read_level
 
     def can_write_to_board(self, board_info, user_id_pk, user_level):
         """指定された掲示板の書き込み権限があるかチェックする"""
         if user_level >= 5:
             return True
 
-        board_id_pk = board_info["id"]
-        default_perm = board_info['default_permission'] if 'default_permission' in board_info.keys(
-        ) else 'unknown'
+        board_id_pk = board_info.get("id")
+        write_level = board_info.get('write_level', 1)  # デフォルトはレベル1
+
         user_specific_perm = sqlite_tools.get_user_permission_for_board(
             self.dbname, board_id_pk, str(user_id_pk))
 
@@ -210,17 +204,13 @@ class PermissionManager:
         except (json.JSONDecodeError, TypeError):
             pass  # エラー対策
 
-        if user_specific_perm == "deny":  # 明示的な拒否はNG
+        # 優先順位: 1. deny, 2. allow, 3. level check
+        if user_specific_perm == "deny":
             return False
+        if user_specific_perm == "allow":
+            return True
 
-        if default_perm == "open":
-            return True  # denyじゃないならOK
-        elif default_perm == "closed" or default_perm == "readonly":  # closed, readonlyは同じロジック
-            return user_specific_perm == "allow"  # allowされてればOK
-        else:  # unknownなどなど
-            logging.warning(
-                f"掲示板ID {board_id_pk} のdefault_permissionが不明です: {default_perm}")
-            return False  # 不明だとNG
+        return user_level >= write_level
 
     def get_permission_list(self, board_id):
         """指定された掲示板のパーミッションリストを取得する"""

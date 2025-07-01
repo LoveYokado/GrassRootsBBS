@@ -17,6 +17,7 @@ def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
         'mkbd': make_board,
         'lsbd': list_boards,
         'dlbd': delete_board,
+        'chbd': change_board_settings,
         'delu': user_delete,
         'regs': user_register,
         'pasc': change_user_password_by_sysop,
@@ -555,6 +556,38 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
             util.send_text_by_key(chan, "sysop_menu.make_board.invalid_permission", current_menu_mode,
                                   permission=", ".join(valid_permissions))
 
+    read_level = 1
+    while True:
+        chan.send("閲覧レベル (1-5, デフォルト:1): ".encode('utf-8'))
+        level_input = ssh_input.process_input(chan)
+        if level_input is None:
+            return None
+        if not level_input.strip():
+            break
+        try:
+            level = int(level_input)
+            if 1 <= level <= 5:
+                read_level = level
+                break
+        except ValueError:
+            pass
+
+    write_level = 1
+    while True:
+        chan.send("書込レベル (1-5, デフォルト:1): ".encode('utf-8'))
+        level_input = ssh_input.process_input(chan)
+        if level_input is None:
+            return None
+        if not level_input.strip():
+            break
+        try:
+            level = int(level_input)
+            if 1 <= level <= 5:
+                write_level = level
+                break
+        except ValueError:
+            pass
+
     operators_json = f'["{sysop_login_id}"]'
     kanban_body = ""
     status = "active"
@@ -568,7 +601,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
             chan, "common_messages.cancel", current_menu_mode)
         return None
 
-    if sqlite_tools.create_board_entry(dbname, shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status):
+    if sqlite_tools.create_board_entry(dbname, shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level):
         util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
                               current_menu_mode, shortcut_id=shortcut_id)
         util.send_text_by_key(
@@ -600,8 +633,8 @@ def delete_board(chan, dbname, _sysop_login_id, current_menu_mode):
                 chan, "sysop_menu.delete_board.board_not_found", current_menu_mode)
             continue
 
-        board_name_to_display = board_db_entry.get('name', shortcut_id_to_delete) if isinstance(
-            board_db_entry, dict) else shortcut_id_to_delete
+        board_name_to_display = board_db_entry['name'] if board_db_entry and 'name' in board_db_entry.keys(
+        ) else shortcut_id_to_delete
         chan.send(
             f"\"{board_name_to_display}\" (ID: {shortcut_id_to_delete})\r\n")
         util.send_text_by_key(chan, "sysop_menu.delete_board.confirm_yn", current_menu_mode,
@@ -629,7 +662,7 @@ def delete_board(chan, dbname, _sysop_login_id, current_menu_mode):
 
 def list_boards(chan, dbname, _sysop_login_id, current_menu_mode):
     """DBに登録されている掲示板一覧を表示"""
-    sql = "SELECT shortcut_id, name, operators, default_permission, status, last_posted_at FROM boards ORDER BY shortcut_id"
+    sql = "SELECT shortcut_id, name, operators, default_permission, status, last_posted_at, read_level, write_level FROM boards ORDER BY shortcut_id"
     boards = sqlite_tools.sqlite_execute_query(dbname, sql, fetch=True)
     if not boards:
         util.send_text_by_key(
@@ -638,8 +671,8 @@ def list_boards(chan, dbname, _sysop_login_id, current_menu_mode):
 
     util.send_text_by_key(
         chan, "sysop_menu.list_boards.header_title", current_menu_mode)
-    header_line = f"{'ID':<12} {'Name':<20} {'Ops':<15} {'Perm':<10} {'Status':<8} {'LastPost':<19}\r\n"
-    separator_line = "-" * (12 + 20 + 15 + 10 + 8 + 19 + 5*2) + "\r\n"
+    header_line = f"{'ID':<10} {'Name':<18} {'Perm':<8} {'R/W':<5} {'Status':<8} {'LastPost':<16} {'Ops'}\r\n"
+    separator_line = "-" * 78 + "\r\n"
     chan.send(header_line.encode('utf-8'))
     chan.send(separator_line.encode('utf-8'))
 
@@ -647,12 +680,14 @@ def list_boards(chan, dbname, _sysop_login_id, current_menu_mode):
     for board in boards:
         shortcut_id_str = board['shortcut_id']
         name_str = board['name']
-        name_str = (name_str[:17] + "...") if len(name_str) > 18 else name_str
+        name_str = (name_str[:15] + "...") if len(name_str) > 16 else name_str
         operators_str = board['operators']
-        if len(operators_str) > 13:
-            operators_str = operators_str[:12] + "..."
         default_permission_str = board['default_permission']
         status_str = board['status']
+        read_level_str = str(board['read_level']
+                             ) if 'read_level' in board.keys() else ''
+        write_level_str = str(board['write_level']
+                              ) if 'write_level' in board.keys() else ''
 
         last_posted_ts = board['last_posted_at']
         last_posted_str = "N/A"
@@ -662,7 +697,109 @@ def list_boards(chan, dbname, _sysop_login_id, current_menu_mode):
                     last_posted_ts).strftime('%Y-%m-%d %H:%M')
             except (ValueError, OSError, TypeError):
                 last_posted_str = 'Invalid Date'
-        board_list_details += f"{shortcut_id_str:<12} {name_str:<20} {operators_str:<15} {default_permission_str:<10} {status_str:<8} {last_posted_str:<19}\r\n"
+        board_list_details += f"{shortcut_id_str:<10} {name_str:<18} {default_permission_str:<8} {read_level_str}/{write_level_str:<3} {status_str:<8} {last_posted_str:<16} {operators_str}\r\n"
     chan.send(board_list_details.encode('utf-8'))
     chan.send(separator_line.encode('utf-8'))
+    return None
+
+
+def change_board_settings(chan, dbname, _sysop_login_id, current_menu_mode):
+    """掲示板の設定（R/Wレベルなど）を変更する"""
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board.header", current_menu_mode)
+
+    # 掲示板IDの入力
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board.shortcut_id_prompt", current_menu_mode, add_newline=False)
+    shortcut_id_input = ssh_input.process_input(chan)
+    if not shortcut_id_input or not shortcut_id_input.strip():
+        return None
+    shortcut_id = shortcut_id_input.strip()
+
+    # 掲示板情報の取得
+    board_info = sqlite_tools.get_board_by_shortcut_id(dbname, shortcut_id)
+    if not board_info:
+        util.send_text_by_key(
+            chan, "sysop_menu.delete_board.board_not_found", current_menu_mode, shortcut_id=shortcut_id)
+        return None
+
+    board_id_pk = board_info['id']
+    current_read_level = board_info['read_level'] if 'read_level' in board_info.keys(
+    ) else 1
+    current_write_level = board_info['write_level'] if 'write_level' in board_info.keys(
+    ) else 1
+
+    # 現在の設定を表示
+    util.send_text_by_key(chan, "sysop_menu.change_board.current_settings", current_menu_mode,
+                          shortcut_id=shortcut_id,
+                          read_level=current_read_level,
+                          write_level=current_write_level)
+
+    # 新しい閲覧レベルの入力
+    new_read_level = current_read_level
+    chan.send(
+        f"新しい閲覧レベル (1-5, 現在:{current_read_level}, 空入力で変更なし): ".encode('utf-8'))
+    level_input = ssh_input.process_input(chan)
+    if level_input is None:
+        return None
+    if level_input.strip():
+        try:
+            level = int(level_input)
+            if 1 <= level <= 5:
+                new_read_level = level
+            else:
+                util.send_text_by_key(
+                    chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
+                return None
+        except ValueError:
+            util.send_text_by_key(
+                chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
+            return None
+
+    # 新しい書き込みレベルの入力
+    new_write_level = current_write_level
+    chan.send(
+        f"新しい書込レベル (1-5, 現在:{current_write_level}, 空入力で変更なし): ".encode('utf-8'))
+    level_input = ssh_input.process_input(chan)
+    if level_input is None:
+        return None
+    if level_input.strip():
+        try:
+            level = int(level_input)
+            if 1 <= level <= 5:
+                new_write_level = level
+            else:
+                util.send_text_by_key(
+                    chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
+                return None
+        except ValueError:
+            util.send_text_by_key(
+                chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
+            return None
+
+    # 変更内容の確認
+    if new_read_level == current_read_level and new_write_level == current_write_level:
+        util.send_text_by_key(
+            chan, "sysop_menu.change_board.no_changes", current_menu_mode)
+        return None
+
+    util.send_text_by_key(chan, "sysop_menu.change_board.confirm_yn", current_menu_mode,
+                          shortcut_id=shortcut_id,
+                          old_read=current_read_level, new_read=new_read_level,
+                          old_write=current_write_level, new_write=new_write_level,
+                          add_newline=False)
+    confirm = ssh_input.process_input(chan)
+    if confirm is None or confirm.strip().lower() != 'y':
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
+        return None
+
+    # DB更新
+    if sqlite_tools.update_board_levels(dbname, board_id_pk, new_read_level, new_write_level):
+        util.send_text_by_key(
+            chan, "sysop_menu.change_board.success", current_menu_mode, shortcut_id=shortcut_id)
+    else:
+        util.send_text_by_key(
+            chan, "common_messages.database_update_error", current_menu_mode)
+
     return None
