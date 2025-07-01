@@ -17,7 +17,7 @@ def sysop_menu(chan, dbname, sysop_login_id, current_menu_mode):
         'mkbd': make_board,
         'lsbd': list_boards,
         'dlbd': delete_board,
-        'chbd': change_board_settings,
+        'bdlv': change_board_settings,
         'delu': user_delete,
         'regs': user_register,
         'pasc': change_user_password_by_sysop,

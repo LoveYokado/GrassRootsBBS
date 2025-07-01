@@ -482,10 +482,11 @@ sysop_menu:
       □[MKBD] 掲示板作成                      [PASC] パスワード変更              ■
       ■[LSBD] 掲示板一覧                      [CHGU] ユーザーレベル変更          □
       □[DLBD] 掲示板削除                      [DELU] 会員抹消                    ■
-      ■[VSET] 設定一覧表示                    [REGS] 会員登録                    □
+      ■[BDLV] 掲示板R/Wレベル設定             [REGS] 会員登録                    □
       □[TREE] 階層構造マップ                  [SYMR] シンボルテーブルを読む      ■
       ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く      □
-      □[EXIT] システム強制終了                [LETR] アンケート処理              ■
+      □[VSET] 設定一覧表示                                                       ■
+      ■[EXIT] システム強制終了                [LETR] アンケート処理              □
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ====================================================
@@ -498,6 +499,7 @@ sysop_menu:
       [KYGN] SSH鍵変更
       [MKBD] 掲示板作成
       [LSBD] 掲示板一覧
+      [BDLV] 掲示板R/Wレベル設定
       [DLBD] 掲示板削除
       [REGS] 会員登録
       [DELU] 会員抹消
@@ -519,6 +521,7 @@ sysop_menu:
       | KYGN    | Update SSH Key: Change SSH key            |
       | MKBD    | Create Board: Make new bulletin board     |
       | LSBD    | List Boards: View all boards              |
+      | BDLV    | Set Board Level: Adjust board access      |
       | DLBD    | Delete Board: Remove bulletin board       |
       | REGS    | Register User: Add new member             |
       | DELU    | Delete User: Remove member account        |
