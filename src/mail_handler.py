@@ -8,6 +8,56 @@ import socket
 import textwrap
 
 
+def format_mail_header_str(mail_data, dbname, view_mode, mail_id_width=5):
+    """指定されたメールのヘッダ情報（1行）を文字列として返す"""
+    if not mail_data:
+        return ""
+
+    mail_id = mail_data['id']
+    try:
+        sent_dt = datetime.datetime.fromtimestamp(mail_data['sent_at'])
+        date_str = sent_dt.strftime('%y-%m-%d %H:%M:%S')
+    except (ValueError, OSError, TypeError):
+        date_str = "---/--/-- --:--:--"
+
+    subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
+
+    status_mark_char = " "
+    is_mail_deleted_flag = False
+    display_subject_final = subject
+
+    try:
+        if view_mode == 'inbox' and mail_data['recipient_deleted'] == 1:
+            is_mail_deleted_flag = True
+        elif view_mode == 'outbox' and mail_data['sender_deleted'] == 1:
+            is_mail_deleted_flag = True
+
+        if is_mail_deleted_flag:
+            status_mark_char = "*"
+            display_subject_final = ""
+        else:
+            if view_mode == 'inbox' and mail_data['is_read'] == 0:
+                status_mark_char = "#"
+            display_subject_final = textwrap.shorten(
+                subject, width=39, placeholder="...")
+
+    except KeyError as e:
+        logging.warning(f"メールヘッダ表示中にキーエラー ({mail_id}): {e}")
+        display_subject_final = textwrap.shorten(
+            subject, width=39, placeholder="...")
+
+    mail_id_str = f"{mail_id:0{mail_id_width}d}"
+
+    if view_mode == 'inbox':
+        sender_name = sqlite_tools.get_user_name_from_user_id(
+            dbname, mail_data['sender_id'])
+        return f"{mail_id_str}  {date_str}  {sender_name:<7} {status_mark_char}{display_subject_final}"
+    else:  # outbox
+        recipient_name = sqlite_tools.get_user_name_from_user_id(
+            dbname, mail_data['recipient_id'])
+        return f"{mail_id_str}  {date_str}  {recipient_name:<7} {status_mark_char}{display_subject_final}"
+
+
 class MailViewer:
     """
     メール一覧の表示と操作を担当するクラス。
@@ -41,58 +91,10 @@ class MailViewer:
             '?': self._display_help,
         }
 
-    def _format_mail_header_line(self, mail_data):
-        """指定されたメールのヘッダ情報（1行）を文字列として返す"""
-        if not mail_data:
-            return ""
-
-        mail_id = mail_data['id']
-        try:
-            sent_dt = datetime.datetime.fromtimestamp(mail_data['sent_at'])
-            date_str = sent_dt.strftime('%y-%m-%d %H:%M:%S')
-        except (ValueError, OSError, TypeError):
-            date_str = "---/--/-- --:--:--"
-
-        subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
-
-        status_mark_char = " "
-        is_mail_deleted_flag = False
-        display_subject_final = subject
-
-        try:
-            if self.view_mode == 'inbox' and mail_data['recipient_deleted'] == 1:
-                is_mail_deleted_flag = True
-            elif self.view_mode == 'outbox' and mail_data['sender_deleted'] == 1:
-                is_mail_deleted_flag = True
-
-            if is_mail_deleted_flag:
-                status_mark_char = "*"
-                display_subject_final = ""
-            else:
-                if self.view_mode == 'inbox' and mail_data['is_read'] == 0:
-                    status_mark_char = "#"
-                display_subject_final = textwrap.shorten(
-                    subject, width=39, placeholder="...")
-
-        except KeyError as e:
-            logging.warning(f"メールヘッダ表示中にキーエラー ({mail_id}): {e}")
-            display_subject_final = textwrap.shorten(
-                subject, width=39, placeholder="...")
-
-        mail_id_str = f"{mail_id:0{self.mail_count_digits}d}"
-
-        if self.view_mode == 'inbox':
-            sender_name = sqlite_tools.get_user_name_from_user_id(
-                self.dbname, mail_data['sender_id'])
-            return f"{mail_id_str}  {date_str}  {sender_name:<7} {status_mark_char}{display_subject_final}"
-        else:  # outbox
-            recipient_name = sqlite_tools.get_user_name_from_user_id(
-                self.dbname, mail_data['recipient_id'])
-            return f"{mail_id_str}  {date_str}  {recipient_name:<7} {status_mark_char}{display_subject_final}"
-
     def _display_mail_header_line(self, mail_data):
         """指定されたメールのヘッダ情報（1行）を表示する"""
-        header_line = self._format_mail_header_line(mail_data)
+        header_line = format_mail_header_str(
+            mail_data, self.dbname, self.view_mode, self.mail_count_digits)
         if header_line:
             self.chan.send(header_line.encode('utf-8') + b"\r\n")
 

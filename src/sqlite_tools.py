@@ -875,3 +875,36 @@ def update_board_levels(dbname, board_id_pk, read_level, write_level):
     except Exception as e:
         logging.error(f"掲示板レベル更新中にDBエラー (BoardID: {board_id_pk}): {e}")
         return False
+
+
+def get_sysop_user_id(dbname):
+    """シスオペ(level=5)のユーザーIDを取得する。複数いる場合は最初の1人を返す。"""
+    sql = "SELECT id FROM users WHERE level = 5 ORDER BY id ASC LIMIT 1"
+    results = sqlite_execute_query(dbname, sql, fetch=True)
+    if results:
+        return results[0]['id']
+    logging.warning("シスオペ(level=5)が見つかりませんでした。")
+    return None
+
+
+def send_system_mail(dbname, recipient_id, subject, body):
+    """
+    システムから指定されたユーザーへメールを送信する。
+    送信者はシスオペ(level=5)とする。
+    """
+    sender_id = get_sysop_user_id(dbname)
+    if sender_id is None:
+        logging.error("システムメールの送信に失敗しました。送信者(シスオペ)が見つかりません。")
+        return False
+
+    sent_at = int(time.time())
+    sql = "INSERT INTO mails (sender_id, recipient_id, subject, body, sent_at) VALUES (?, ?, ?, ?, ?)"
+    params = (sender_id, recipient_id, subject, body, sent_at)
+    if sqlite_execute_query(dbname, sql, params):
+        logging.info(
+            f"システムメールを送信しました (To: UserID {recipient_id}, Subject: {subject})")
+        return True
+    else:
+        logging.error(
+            f"システムメールのDB保存に失敗しました (To: UserID {recipient_id})")
+        return False

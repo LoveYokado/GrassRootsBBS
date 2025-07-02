@@ -105,6 +105,12 @@ def handle_online_signup(chan, dbname, menu_mode):
             continue
         break
 
+    util.send_text_by_key(
+        chan, "online_signup.prompt_message", menu_mode, add_newline=False)
+    message_to_sysop = ssh_input.process_input(chan)
+    if message_to_sysop is None:
+        return  # 切断
+
     util.send_text_by_key(chan, "online_signup.confirm_registration_yn",
                           menu_mode, new_id=new_id, new_email=new_email, add_newline=False)
     confirm = ssh_input.process_input(chan)
@@ -130,6 +136,28 @@ def handle_online_signup(chan, dbname, menu_mode):
             chan, "online_signup.info_temp_password", menu_mode, temp_password=temp_password)
         util.send_text_by_key(
             chan, "online_signup.registration_success", menu_mode)
+
+        # シスオペにメールで通知
+        sysop_user_id = sqlite_tools.get_sysop_user_id(dbname)
+        if sysop_user_id:
+            mail_subject_template = util.get_text_by_key(
+                "online_signup.mail_subject", menu_mode, default_value="[System] New User Signup: {new_id}")
+            mail_body_template = util.get_text_by_key(
+                "online_signup.mail_body", menu_mode, default_value="New user signed up.\nID: {new_id}\nEmail: {new_email}\nMessage:\n{message_to_sysop}")
+
+            mail_subject = mail_subject_template.format(new_id=new_id)
+            mail_body = mail_body_template.format(
+                new_id=new_id,
+                new_email=new_email,
+                message_to_sysop=message_to_sysop.strip() if message_to_sysop else "(No message)"
+            )
+
+            if not sqlite_tools.send_system_mail(dbname, sysop_user_id, mail_subject, mail_body):
+                logging.error(
+                    f"オンラインサインアップ通知メールの送信に失敗しました (To SysOp ID: {sysop_user_id})")
+        else:
+            logging.warning(
+                "シスオペが見つからないため、オンラインサインアップ通知メールを送信できませんでした。")
 
         # 一応SSH鍵生成
         try:

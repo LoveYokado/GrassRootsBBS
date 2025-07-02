@@ -1598,6 +1598,39 @@ online_signup:
     mode_1: "** IDには使用できない文字が含まれています。英数字のみ使用可能です。 **\r\n"
     mode_2: "** IDには使用できない文字が含まれています。英数字のみ使用可能です。 **\r\n"
     mode_3: "** ID contains invalid characters. Only alphanumeric characters are allowed. **\r\n"
+  prompt_message:
+    mode_1: "シスオペへのメッセージを入力してください (空入力でスキップ): "
+    mode_2: "シスオペへのメッセージを入力してください (空入力でスキップ): "
+    mode_3: "Enter a message for the SysOp (leave blank to skip): "
+  mail_subject:
+    mode_1: "[System] 新規ユーザー登録: {new_id}"
+    mode_2: "[System] 新規ユーザー登録: {new_id}"
+    mode_3: "[System] New User Signup: {new_id}"
+  mail_body:
+    mode_1: |
+      新規ユーザーがオンラインサインアップで登録しました。
+
+      ID: {new_id}
+      Email: {new_email}
+
+      メッセージ:
+      {message_to_sysop}
+    mode_2: |
+      新規ユーザーがオンラインサインアップで登録しました。
+
+      ID: {new_id}
+      Email: {new_email}
+
+      メッセージ:
+      {message_to_sysop}
+    mode_3: |
+      A new user has signed up via online signup.
+
+      ID: {new_id}
+      Email: {new_email}
+
+      Message:
+      {message_to_sysop}
 explore_new_articles:
   start_message:
     mode_1: ""
