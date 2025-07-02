@@ -139,11 +139,24 @@ class MailViewer:
                         self.mails) if mail['id'] == current_mail_id), -1)
                     if found_index != -1:
                         new_index = found_index
+                else:
+                    # keep_index=False の場合、未読メールにフォーカス
+                    if self.view_mode == 'inbox':
+                        # 最初の未読メールを探す
+                        first_unread_index = next((i for i, mail in enumerate(self.mails)
+                                                   if mail['is_read'] == 0 and mail['recipient_deleted'] == 0), -1)
+                        if first_unread_index != -1:
+                            new_index = first_unread_index
+                        else:
+                            # 未読がなければ最終メールにフォーカス
+                            new_index = len(self.mails) - 1
+                    else:  # 送信箱の場合
+                        new_index = len(self.mails) - 1
                 self.mail_count_digits = max(5, len(str(len(self.mails) + 1)))
             else:
                 self.mail_count_digits = 5
 
-            self.current_index = new_index
+            self.current_index = new_index if new_index >= 0 else 0
             return True
         except Exception as e:
             logging.error(
@@ -200,6 +213,15 @@ class MailViewer:
 
         if not self._reload_mails(keep_index=False):
             return "back_to_top"
+
+        # ヘッダ表示
+        if self.view_mode == 'inbox':
+            util.send_text_by_key(
+                self.chan, "mail_handler.sender_header", self.menu_mode)
+        else:
+            util.send_text_by_key(
+                self.chan, "mail_handler.recipient_header", self.menu_mode)
+        self._display_current_header()
 
         while True:
             key_input = self._get_key_input()

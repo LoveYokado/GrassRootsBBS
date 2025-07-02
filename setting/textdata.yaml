@@ -934,12 +934,12 @@ mail_handler:
       ━━━━━━━━━━━━━━━━━━━━
        一覧形式でのメールの読み出しの使い方
       ━━━━━━━━━━━━━━━━━━━━
-       [CTRL+E][↑][K]      旧方向へ進む
-       [CTRL+R][←][H]      旧方向へ読み進む
-       [CTRL+D][RETURN]     現在位置を読む
-       [CTRL+F][→][L][TAB] 新方向へ読み進む
-       [CTRL+X][↓][J][ ]   新方向へ進む
-       [CTRL+C][ESC][E]     終了
+       [↑][K]              旧方向へ進む
+       [←][H]              旧方向へ読み進む
+       [RETURN]             現在位置を読む
+       [→][L][TAB]         新方向へ読み進む
+       [↓][J][ ]           新方向へ進む
+       [ESC][E]             終了
        [*]                  削除
        [W]                  書く
        [S]                  送信リスト/受信リスト切り替え
@@ -954,12 +954,12 @@ mail_handler:
       ━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       --------- メールメニュー ヘルプ ---------
-      [CTRL+E][↑][K]     : 旧方向へ進む
-      [CTRL+R][←][H]     : 旧方向へ読み進む
-      [CTRL+D][RETURN]    : 現在位置を読む
-      [CTRL+F][→][L][TAB]: 新方向へ読み進む
-      [CTRL+X][↓][J][ ]  : 新方向へ進む
-      [CTRL+C][ESC][E]   :  終了
+      [↑][K]            : 旧方向へ進む
+      [←][H]            : 旧方向へ読み進む
+      [RETURN]           : 現在位置を読む
+      [→][L][TAB]       : 新方向へ読み進む
+      [↓][J][ ]         : 新方向へ進む
+      [ESC][E]           :  終了
       [*]                :  削除
       [W]                :  書く
       [R]                :  新方向へ読み続ける
@@ -1026,10 +1026,7 @@ chat:
   help:
     mode_1: |
       ------------------------------------
-       行中 [CTRL+C] 入力行キャンセル(未実装)
-       [CTRL+R]      入力行リプリント(未実装)
-       行頭 [CTRL+C] チャットルームを退室
-       ^[RETURN]     同上
+       ^[RETURN]     チャットルームを退室
        ![RETURN]     電報機能
        !?[RETURN]    コマンドヘルプ
        !L[RETURN]    鍵をかける
@@ -1039,9 +1036,7 @@ chat:
       ------------------------------------
     mode_2: |
       チャットコマンド:
-       行中 [CTRL+C]      - 入力行キャンセル(未実装)
-       [CTRL+R]           - 入力行リプリント(未実装)
-       ^,行頭[CTRL+C]     - チャットルームを退室します。
+       ^                  - チャットルームを退室します。
        !?,!h              - このヘルプを表示します。
        ![RETURN]          - 電報機能
        !L[RETURN]         - 鍵をかける
@@ -1051,10 +1046,7 @@ chat:
        上記以外は全てチャットメッセージとして送信されます。
     mode_3: |
       ----------------------------------------------
-       In-line [CTRL+C]       Cancel input line (not implemented)
-       [CTRL+R]               Reprint input line (not implemented)
-       At line start [CTRL+C] Exit chat room
-       ^[RETURN]              Same as above
+       ^[RETURN]              Exit chat room
        ![RETURN]              Telegram function
        !?[RETURN]             Command help
        !L[RETURN]             Lock
@@ -1238,12 +1230,12 @@ bbs:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       電子掲示板の使い方
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      [CTRL+E][↑][K]      旧方向へ進む
-      [CTRL+R][←][H]      旧方向へ読み進む
-      [CTRL+D][RETURN]    現在位置を読む
-      [CTRL+F][→][L][TAB] 新方向へ読み進む
-      [CTRL+X][↓][J][ ]   新方向へ進む
-      [CTRL+C][ESC][E]    終了
+      [↑][K]             旧方向へ進む
+      [←][H]             旧方向へ読み進む
+      [RETURN]            現在位置を読む
+      [→][L][TAB]        新方向へ読み進む
+      [↓][J][ ]          新方向へ進む
+      [ESC][E]            終了
       [*]                 削除
       [W]                 記事を書く
       [@]                 探索リストに追加/削除
@@ -1263,12 +1255,12 @@ bbs:
       ====================================================
       掲示板メニュー ヘルプ
       ----------------------------------------------------
-      [CTRL+E][↑][K]     : 旧方向へ進む
-      [CTRL+R][←][H]     : 旧方向へ読み進む
-      [CTRL+D][RETURN]    : 現在位置を読む
-      [CTRL+F][→][L][TAB]: 新方向へ読み進む
-      [CTRL+X][↓][J][ ]  : 新方向へ進む
-      [CTRL+C][ESC][E]   :  終了
+      [↑][K]            : 旧方向へ進む
+      [←][H]            : 旧方向へ読み進む
+      [RETURN]           : 現在位置を読む
+      [→][L][TAB]       : 新方向へ読み進む
+      [↓][J][ ]         : 新方向へ進む
+      [ESC][E]           :  終了
       [*]                :  削除
       [W]                :  書く
       [@]                : 探索リストに追加/削除
@@ -1292,12 +1284,12 @@ bbs:
       +--------------------+-----------------------------------------+
       | Command            | Description                             |
       +--------------------+-----------------------------------------+
-      | CTRL+E, ↑, K       | Move Up: Go to previous post           |
-      | CTRL+R, ←, H       | Read Up: Read in previous direction    |
-      | CTRL+D, ENTER      | Read Current: View current post         |
-      | CTRL+F, →, L, TAB  | Read Down: Read in next direction      |
-      | CTRL+X, ↓, J, SPACE| Move Down: Go to next post             |
-      | CTRL+C, ESC, E     | Exit: Leave bulletin board              |
+      | ↑, K              | Move Up: Go to previous post           |
+      | ←, H              | Read Up: Read in previous direction    |
+      | ENTER              | Read Current: View current post         |
+      | →, L, TAB         | Read Down: Read in next direction      |
+      | ↓, J, SPACE       | Move Down: Go to next post             |
+      | E                  | Exit: Leave bulletin board              |
       | *                  | Delete: Remove post (Sysop only)        |
       | W                  | Write: Create new post                  |
       | @                  | Toggle Exploration List: Add/Remove board |
@@ -1914,14 +1906,12 @@ login:
       ────────────────────────────────────────
            ★   ☆   ★   ☆   ★   ☆   ★   ☆
         ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
-      ☆ ・ＢＩＧ−Ｍｏｄｅｌお試し版ネット・ ★
+      ☆ ・ Grass Roots BBS お試し版ネット ・ ★
         ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
            ★  ☆  ★  ☆  ★  ☆  ★  ☆
       ────────────────────────────────────────
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        ・guestID          = `GUEST`      ・
-        ・usersID/PASSWORD = `USERS/USERS`・
-        ・sysopID/PASSWORD = `SYSOP/SYSOP`・
+        ・guestID          = `GUEST/GUEST`      ・
 
     mode_2: |
       ------------
@@ -1932,6 +1922,7 @@ login:
       ☆    GR-BBSへようこそ!    ★
           < GrassRoots-BBS >
       =============================
+      guestID = `GUEST/GUEST` 
 
 
     mode_3: |
@@ -1941,6 +1932,7 @@ login:
       ||   *** GRBBS - GrassRoots BBS ***   ||
       ||       Connected to the Grid!       ||
       ========================================
+      guestID  = `GUEST/GUEST`
 
 
 
@@ -1960,14 +1952,12 @@ login:
       ────────────────────────────────────────
            ★   ☆   ★   ☆   ★   ☆   ★   ☆
         ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
-      ☆ ・ＢＩＧ−Ｍｏｄｅｌお試し版ネット・ ★
+      ☆ ・ Grass Roots BBS お試し版ネット ・ ★
         ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆
            ★  ☆  ★  ☆  ★  ☆  ★  ☆
       ────────────────────────────────────────
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         ・guestID          = `GUEST`      ・
-        ・usersID/PASSWORD = `USERS/USERS`・
-        ・sysopID/PASSWORD = `SYSOP/SYSOP`・
 
       IDを入力してください: {login_id}
       パスワードを入力してください: SSH Key Authenticated
