@@ -18,6 +18,7 @@ services:
     image: niruix/sshwifty:latest
     ports:
       - "8182:8182" # SshwiftyのWeb UIポート
+    user: "${UID}:${GID}"
     volumes:
       - ./sshwifty.conf.json:/app/sshwifty.conf.json:ro # 設定ファイルを読み取り専用でマウント
     depends_on:

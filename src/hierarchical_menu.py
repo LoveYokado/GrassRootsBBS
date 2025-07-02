@@ -80,9 +80,9 @@ class HierarchicalMenu:
         self._display_menu(items)
 
         # プロンプト表示
-        menu_type_loc_key = f"common_menu_names.{menu_type.lower()}"
+        menu_type_loc_key = f"common_menu_names.{self.menu_type.lower()}"
         menu_type_localized_name = util.get_text_by_key(
-            menu_type_loc_key, menu_mode, default_value=menu_type)
+            menu_type_loc_key, self.menu_mode, default_value=self.menu_type)
         current_hierarchy_path_str = "/".join(self.current_path_names)
         if not self.current_path_names:
             prompt_hierarchy_display_str = menu_type_localized_name
