@@ -107,6 +107,9 @@ def get_text_by_key(key_string, menu_mode, default_value=""):
             mode_specific_key = f"mode_{menu_mode}"
             text_value = current_level_data[mode_specific_key]
 
+            if text_value is None:
+                return ""  # YAMLで値が空の場合、Noneが返るので空文字列に変換
+
             if isinstance(text_value, list):
                 return "\r\n".join(text_value)  # 複数行の場合
             return str(text_value)  # 単行の場合

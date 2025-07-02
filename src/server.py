@@ -560,8 +560,9 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         return None, None, None
 
     try:
-        util.send_text_by_key(chan, "auth.connect_message",
-                              menu_mode=auth_menu_mode)  # 接続メッセージ
+        # WebApp接続時のウェルカムメッセージ (AAなど) をID/Pass入力の前に表示
+        util.send_text_by_key(
+            chan, "login.welcome_message_webapp", menu_mode=auth_menu_mode)
         util.send_text_by_key(chan, "auth.id_prompt", menu_mode=auth_menu_mode,
                               add_newline=False)  # ID入力プロンプト
 
@@ -781,9 +782,15 @@ def handle_client(client, addr, host_keys, is_web_app=True):
                         f"最終ログイン時刻の変換に失敗しました。 {last_login_time}")
                     last_login_str = "不明な日時"
 
-            # ウェルカムメッセージ
-            util.send_text_by_key(
-                chan, "login.welcome_message", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
+            # 接続方法に応じたログイン後メッセージを表示
+            if is_web_app:
+                # WebApp経由の場合 (対話認証後)
+                util.send_text_by_key(
+                    chan, "login.login_message_webapp", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
+            else:
+                # 通常のSSH接続の場合 (公開鍵認証など)
+                util.send_text_by_key(
+                    chan, "login.welcome_message_ssh", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
 
             # ログイン直後のトップメニュー表示
             util.send_text_by_key(
