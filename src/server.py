@@ -1007,7 +1007,7 @@ def main():
         logging.root.removeHandler(handler)
 
     logging.basicConfig(
-        level=logging.DEBUG,  # デバッグ用にログレベルをDEBUGに変更
+        level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler(os.path.join(

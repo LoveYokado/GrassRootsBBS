@@ -486,7 +486,7 @@ def update_user_read_progress(dbname, user_id, read_progress_dict):
         read_progress_json = json.dumps(read_progress_dict)
         sql = "UPDATE users SET read_progress=? WHERE id=?"
         sqlite_execute_query(dbname, sql, (read_progress_json, user_id))
-        logging.debug(f"ユーザID {user_id} の掲示板読み込み進捗を更新しました。")
+        logging.info(f"ユーザID {user_id} の掲示板読み込み進捗を更新しました。")
         return True
     except Exception as e:
         logging.error(f"掲示板読み込み進捗更新中にDBエラー (UserID: {user_id}): {e}")

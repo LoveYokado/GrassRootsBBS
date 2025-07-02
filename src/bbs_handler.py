@@ -88,8 +88,6 @@ class CommandHandler:
             self.user_read_progress_map[str(board_id_pk)] = article_number
             sqlite_tools.update_user_read_progress(
                 self.dbname, self.user_id_pk, self.user_read_progress_map)
-            logging.debug(
-                f"既読記事番号の更新 BoardID:{board_id_pk}, ArticleNo:{article_number}, LoginID:{self.login_id}")
 
     def display_board_entry_sequence(self):
         """掲示板に入った際の初期表示(ヘッダと看板)"""
