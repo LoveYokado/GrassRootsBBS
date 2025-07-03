@@ -293,6 +293,8 @@ class CommandHandler:
         self.just_displayed_header_from_tail_h = False  # フラグをリセット
 
         while True:
+            util.prompt_handler(
+                self.chan, self.dbname, self.login_id, self.menu_mode)
             util.send_text_by_key(
                 self.chan, "bbs.article_list_prompt", self.menu_mode, add_newline=False)
             key_input = None

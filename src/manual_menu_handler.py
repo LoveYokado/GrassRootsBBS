@@ -92,6 +92,8 @@ def process_manual_menu(chan, dbname: str, login_id: str, menu_mode: str, menu_c
         # YAMLで定義されたプロンプトキーを使用、なければデフォルト
         prompt_key = current_menu_data.get(
             "prompt_key", "common_messages.select_prompt")
+        # 新着チェックを追加
+        util.prompt_handler(chan, dbname, login_id, menu_mode)
         util.send_text_by_key(chan, prompt_key,
                               menu_mode, add_newline=False)
         user_input_raw = ssh_input.process_input(chan)

@@ -30,6 +30,7 @@ def userpref_menu(chan, dbname, login_id, current_menu_mode):
 
     while True:
         util.send_text_by_key(chan, "user_pref_menu.header", current_menu_mode)
+        util.prompt_handler(chan, dbname, login_id, current_menu_mode)
         util.send_text_by_key(chan, "common_messages.select_prompt",
                               current_menu_mode, add_newline=False)  # プロンプト表示
         input_buffer = ssh_input.process_input(chan)
