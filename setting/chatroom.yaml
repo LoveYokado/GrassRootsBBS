@@ -8,6 +8,7 @@ categories:
     description: | # カテゴリの概要説明（複数行）
       話題に限定はありません。
       初心者の方からベテランまで、どなたでもお気軽にご参加ください。
+    type: "child"
 
     # フリーチャットルーム直下のチャットルーム
     items:
@@ -57,6 +58,7 @@ categories:
     description: |
       特定のテーマに特化したチャットルームです。
       専門的な知識や情報交換にご利用ください。
+    type: "child"
 
     items: # 専門カテゴリ直下のルーム
       - id: "chat_military"
