@@ -6,14 +6,14 @@ import re
 import logging
 
 
-def userpref_menu(chan, dbname, login_id, current_menu_mode):
+def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
     """ユーザー設定メニュー"""
     # コマンドと対応する関数のディスパッチテーブル
     command_dispatch = {
         '1': change_menu_mode,
         '2': change_password,
         '3': change_profile,
-        '4': show_member_list,
+        '4': show_member_list,  # bbsmenu.who_menu を呼び出すように変更しても良い
         '5': set_lastlogin_datetime,
         '6': register_exploration_list,
         '7': read_exploration_list,

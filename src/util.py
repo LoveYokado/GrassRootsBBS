@@ -299,6 +299,8 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password, sysop_email):
             '''CREATE TABLE mails(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 sender_id INTEGER NOT NULL,
+                sender_display_name TEXT,
+                sender_ip_address TEXT,
                 recipient_id INTEGER NOT NULL,
                 subject TEXT NOT NULL,
                 body TEXT NOT NULL,
@@ -595,7 +597,7 @@ def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
     return None, None
 
 
-def handle_shortcut(chan, dbname: str, login_id: str, menu_mode: str, shortcut_input: str, online_members_func: callable):
+def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mode: str, shortcut_input: str, online_members_func: callable):
     """ショートカットを処理する。ショートカットとして処理が完了したらtrueを返す"""
     # ショートカットではない
     if not shortcut_input.startswith(';'):
@@ -631,7 +633,7 @@ def handle_shortcut(chan, dbname: str, login_id: str, menu_mode: str, shortcut_i
             send_text_by_key(chan, "shortcut.jumping_to_bbs",
                              menu_mode, board_name=board_info["name"])
             bbs_handler.handle_bbs_menu(
-                chan, dbname, login_id, menu_mode, shortcut_id_to_search)
+                chan, dbname, login_id, display_name, menu_mode, shortcut_id_to_search, chan.getpeername()[0])
             return True
         if target_type == "bbs":
             send_text_by_key(chan, "shortcut.not_found", menu_mode,
@@ -653,7 +655,7 @@ def handle_shortcut(chan, dbname: str, login_id: str, menu_mode: str, shortcut_i
                 chat_handler.set_online_members_function_for_chat(
                     online_members_func)
                 chat_handler.handle_chat_room(
-                    chan, dbname, login_id, menu_mode, shortcut_id_to_search, item_name
+                    chan, dbname, login_id, display_name, menu_mode, shortcut_id_to_search, item_name
                 )
                 return True
             if target_type == "chat":
@@ -699,7 +701,7 @@ def check_new_mail(chan, dbname, username, current_menu_mode):
         logging.error(f"新着メールチェック中にエラー (ユーザー: {username}): {e}")
 
 
-def telegram_send(chan, dbname, sender_name, online_members, current_menu_mode):
+def telegram_send(chan, dbname, display_name, online_members_ids, current_menu_mode):
     """
     オンラインのメンバーにのみ電報を送信し、データベースに保存する。
     """
@@ -715,7 +717,7 @@ def telegram_send(chan, dbname, sender_name, online_members, current_menu_mode):
         return
 
     # ここでオンラインチェック
-    if recipient_name not in online_members:
+    if recipient_name not in online_members_ids:
         send_text_by_key(chan, "telegram.recipient_not_online",
                          current_menu_mode, recipient_name=recipient_name)
         return
@@ -745,12 +747,13 @@ def telegram_send(chan, dbname, sender_name, online_members, current_menu_mode):
     try:
         current_timestamp = int(time.time())
         # sqlite_tools に save_telegram(dbname, sender, recipient, message, timestamp) 関数を実装する想定
+        # 送信者名は表示名(display_name)を保存
         sqlite_tools.save_telegram(
-            dbname, sender_name, recipient_name, message, current_timestamp)
+            dbname, display_name, recipient_name, message, current_timestamp)
         send_text_by_key(chan, "telegram.send_success", current_menu_mode)
     except Exception as e:
         logging.warning(
-            f"電報保存エラー (送信者: {sender_name}, 宛先: {recipient_name}): {e}")
+            f"電報保存エラー (送信者: {display_name}, 宛先: {recipient_name}): {e}")
         send_text_by_key(chan, "telegram.send_error", current_menu_mode)
 
 
@@ -911,3 +914,28 @@ def format_timestamp(timestamp, default_str='N/A', date_format='%Y-%m-%d %H:%M')
     except (ValueError, OSError, TypeError):
         logging.warning(f"Invalid timestamp for formatting: {timestamp}")
         return 'Invalid Date'
+
+
+def generate_guest_hash(ip_address: str) -> str:
+    """IPアドレスからゲスト用の短縮ハッシュを生成する"""
+    # app_configがロードされていることを前提とする
+    security_config = app_config.get('security', {})
+    salt = security_config.get('GUEST_ID_SALT')
+    if not salt:
+        logging.error("security.GUEST_ID_SALT が設定されていません。ゲストIDを生成できません。")
+        return "error"
+
+    # IPとソルトを結合してハッシュ化
+    hash_input = f"{ip_address}-{salt}".encode('utf-8')
+    full_hash = hashlib.sha256(hash_input).hexdigest()
+
+    # ハッシュの先頭7文字を使用
+    return full_hash[:7]
+
+
+def get_display_name(login_id: str, ip_address: str) -> str:
+    """ユーザーの表示名を取得する。ゲストの場合は動的IDを生成する。"""
+    if login_id.upper() == 'GUEST':
+        guest_hash = generate_guest_hash(ip_address)
+        return f"GUEST({guest_hash})"
+    return login_id

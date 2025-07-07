@@ -20,32 +20,25 @@ def bbs_menu(chan):
     return
 
 
-def who_menu(chan, dbname, online_members, current_menu_mode):
+def who_menu(chan, dbname, online_members_dict, current_menu_mode):
     """
     オンラインメンバー一覧を表示する
     """
     util.send_text_by_key(
         chan, "who_menu.header", current_menu_mode)
-    if not online_members:
+    if not online_members_dict:
         util.send_text_by_key(chan, "who_menu.nomembers",
                               current_menu_mode)
         return
 
-    for member_name in online_members:
-        # fetchall_idbase はリストを返す。ユーザー名は UNIQUE なので結果は 0 or 1 件
-        results = sqlite_tools.fetchall_idbase(
-            dbname, 'users', 'name', member_name)
-        if results:  # 結果が存在する場合
-            userdata = results[0]  # sqlite3.Row オブジェクトは辞書のようにアクセス可能
-            menu_mode = userdata['menu_mode'] if 'menu_mode' in userdata.keys(
-            ) else '?'
-            # コメントがない場合は空文字列
-            comment = userdata['comment'] if userdata['comment'] else ""
-            chan.send(f"{member_name:<15} mode{menu_mode} {comment}\r\n")
-        else:
-            # 基本的に online_members にいるユーザーは DB に存在するはずだが念のため
-            chan.send(f"{member_name:<15} {'(ユーザー情報取得エラー)'}\r\n")
-            print(f"警告: オンラインメンバー '{member_name}' の情報がDBに見つかりません。")
+    for login_id, member_data in online_members_dict.items():
+        display_name = member_data.get("display_name", login_id)
+        menu_mode = member_data.get("menu_mode", "?")
+        # コメントはDBから取得する必要がある
+        user_db_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+        comment = user_db_data['comment'] if user_db_data and user_db_data['comment'] is not None else ''
+        chan.send(
+            f"{display_name:<15} mode{menu_mode} {comment}\r\n".encode('utf-8'))
     util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)
 
 

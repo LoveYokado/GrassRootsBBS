@@ -17,11 +17,13 @@ import bbs_manager
 class CommandHandler:
     """ユーザー入力に応じたコマンド処理を行うクラス"""
 
-    def __init__(self, chan, dbname, login_id, menu_mode):
+    def __init__(self, chan, dbname, login_id, display_name, menu_mode, ip_address):
         self.chan = chan
         self.dbname = dbname
         self.login_id = login_id
+        self.display_name = display_name
         self.menu_mode = menu_mode
+        self.ip_address = ip_address
         self.board_manager = bbs_manager.BoardManager(dbname)
         self.article_manager = bbs_manager.ArticleManager(dbname)
         self.permission_manager = bbs_manager.PermissionManager(dbname)
@@ -242,13 +244,19 @@ class CommandHandler:
                 article = articles[current_index]
                 title = article['title'] if article['title'] else "(No Title)"
 
-                # 削除済みマーク
-                # is_deleted は 0 or 1
                 deleted_mark = "*" if article['is_deleted'] == 1 else ""
+
+                user_id_from_article = article['user_id']
                 user_name = sqlite_tools.get_user_name_from_user_id(
-                    self.dbname, article['user_id'])
+                    self.dbname, user_id_from_article)
+                display_sender_name = user_name
+                # 投稿者がゲスト(user_id=2)で、IPアドレスが記録されていれば動的IDを生成
+                if str(user_id_from_article) == '2' and 'ip_address' in article.keys() and article['ip_address']:
+                    display_sender_name = util.get_display_name(
+                        'GUEST', article['ip_address'])
+
                 user_name_short = textwrap.shorten(
-                    user_name if user_name else "(Unknown)", width=7, placeholder="..")
+                    display_sender_name if display_sender_name else "(Unknown)", width=7, placeholder="..")
                 try:
                     created_at_ts = article['created_at']
                     r_date_str = datetime.datetime.fromtimestamp(
@@ -1452,9 +1460,10 @@ class CommandHandler:
             util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
 
 
-def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
+def handle_bbs_menu(chan, dbname, login_id, display_name, menu_mode, shortcut_id, ip_address):
     """掲示板メニューのエントリーポイント"""
-    handler = CommandHandler(chan, dbname, login_id, menu_mode)
+    handler = CommandHandler(chan, dbname, login_id,
+                             display_name, menu_mode, ip_address)
     if shortcut_id:
         # ショートカットIDが指定されていれば、その掲示板に直接移動
         board_data_from_db = handler.board_manager.get_board_info(shortcut_id)
@@ -1492,9 +1501,8 @@ def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
         if selected_item and selected_item.get("type") == "board":
             shortcut_id_selected = selected_item.get("id")
             # 再度 handle_bbs_menu を呼び出すか、直接 CommandHandler の処理を続ける
-            # handle_bbs_menu からの戻り値をそのまま返す
-            return handle_bbs_menu(chan, dbname, login_id,
-                                   menu_mode, shortcut_id_selected)
+            # ショートカット時と同様に、IPアドレスも渡す
+            return handle_bbs_menu(chan, dbname, login_id, display_name, menu_mode, shortcut_id_selected, ip_address)
         # else: 選択されなかったか、boardタイプではなかった場合。handle_hierarchical_menu内でメッセージ表示済みのはず。
         # hierarchical_menu から戻ってきた場合は、通常トップメニュー表示で問題ない想定
         return "back_to_top"

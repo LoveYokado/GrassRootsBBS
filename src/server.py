@@ -27,7 +27,9 @@ import hamlet_game
 CONFIG_FILE_PATH = "setting/config.toml"
 
 online_members_lock = threading.Lock()  # ロックオブジェクト作成
-online_members = set()
+# オンラインメンバーの構造を set から辞書に変更
+# {login_id: {"addr": (ip, port), "display_name": "...", "menu_mode": "..."}}
+online_members = {}
 
 # 同時接続数とロック周り
 # webapp
@@ -209,10 +211,10 @@ def logoff_user(chan, dbname, login_id, user_id, menu_mode):
     # オンラインメンバーから削除
     removed_from_list = False
     with online_members_lock:
-        if login_id in online_members:
-            online_members.remove(login_id)
+        if login_id in online_members.keys():
+            del online_members[login_id]
             logging.info(
-                f"ユーザ {login_id} がログオフしました。オンライン: {len(online_members)}人")
+                f"ユーザ {login_id} がログオフしました。オンライン: {len(online_members.keys())}人")
             removed_from_list = True
         else:
             logging.warning(
@@ -220,17 +222,20 @@ def logoff_user(chan, dbname, login_id, user_id, menu_mode):
 
     # ログアウト時刻記録
     time_recorded = False
-    if user_id is not None:
+    # ゲスト(user_id=2)の場合、ログアウト時刻は記録しない
+    if user_id is not None and user_id != 2:
         try:
             logout_time = int(time.time())
             # sqlite_tools.update_idbase の第3引数は許可カラムリスト
             sqlite_tools.update_idbase(
                 dbname, 'users', ['lastlogout'], user_id, 'lastlogout', logout_time)
-            logging.info(f"ユーザ {login_id} のログアウト時刻を記録しました。")
+            logging.info(f"ユーザ {login_id} (ID:{user_id}) のログアウト時刻を記録しました。")
             time_recorded = True
         except Exception as e:
             logging.error(f"ログアウト時刻記録エラー ({login_id}): {e}")
     else:
+        # ゲストの場合は時刻記録をスキップするので、成功とみなす
+        time_recorded = True
         logging.warning(
             f"ログオフ処理中に user_id が不明なため、ログアウト時刻を記録できませんでした({login_id})")
 
@@ -242,10 +247,11 @@ def logoff_user(chan, dbname, login_id, user_id, menu_mode):
 def get_online_members_list():
     """オンラインメンバーのリストのコピーを返す"""
     with online_members_lock:
-        return list(online_members)
+        # 辞書全体を返すように変更。呼び出し元で必要な情報を取り出す。
+        return online_members.copy()
 
 
-def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref_dict, addr, initial_menu_mode):  # addr を追加
+def process_command_loop(chan, dbname, login_id, display_name, user_id, userlevel, server_pref_dict, addr, initial_menu_mode):  # addr, display_name を追加
     """
     メインのコマンド処理ループを実行する。
 
@@ -253,6 +259,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         chan: Paramikoチャンネルオブジェクト
         dbname: データベース名
         login_id: ログインID
+        display_name: 表示名 (GUEST(hash)など)
         user_id: ユーザーID
         userlevel: ユーザーレベル
         server_pref_dict: サーバー設定辞書
@@ -293,7 +300,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
             continue
 
         # ショートカット処理
-        if util.handle_shortcut(chan, dbname, login_id, current_loop_menu_mode, command, get_online_members_list):
+        if util.handle_shortcut(chan, dbname, login_id, display_name, current_loop_menu_mode, command, get_online_members_list):
             continue
 
         # ヘルプメニュー表示 ヘルプがHと?で別にもできる
@@ -349,7 +356,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         elif command == "s" and userlevel >= 5:
             # シスオペメニュー(menu_mode)
             # sysop_menu から戻ってきたらトップメニューを表示するため、結果を受け取る
-            sysop_menu_result = sysop_menu.sysop_menu(chan, dbname, login_id,
+            sysop_menu_result = sysop_menu.sysop_menu(chan, dbname, login_id, display_name,
                                                       current_loop_menu_mode)
 
         # サーバ設定メニュー
@@ -359,17 +366,18 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
 
         # オンラインメンバー一覧表示
         elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
-            online_list = get_online_members_list()
-            bbsmenu.who_menu(chan, dbname, online_list, current_loop_menu_mode)
+            online_members_dict = get_online_members_list()
+            bbsmenu.who_menu(chan, dbname, online_members_dict,
+                             current_loop_menu_mode)
             # who_menu 表示後はトップメニューを再表示
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
 
         # 電報送信
         elif command in ("#", "!") and userlevel >= server_pref_dict.get("telegram", 1):
-            online_list = get_online_members_list()
-            util.telegram_send(chan, dbname, login_id,
-                               online_list, current_loop_menu_mode)
+            online_members_dict = get_online_members_list()
+            util.telegram_send(chan, dbname, display_name,
+                               list(online_members_dict.keys()), current_loop_menu_mode)
             # telegram_send 後はトップメニューを再表示
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
@@ -377,9 +385,9 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
         # 　ユーザ環境設定(ゲスト以上すべて)
         elif command in ("u") and userlevel >= 1:
             previous_menu_mode_before_userpref = current_loop_menu_mode
-            # userpref_menu は変更後のメニューモード('1','2','3')または"back_to_top"、Noneを返す
-            user_pref_result = user_pref_menu.userpref_menu(  # 結果を user_pref_result に代入
-                chan, dbname, login_id, current_loop_menu_mode)
+            # userpref_menu は変更後のメニューモード('1','2','3')または"back_to_top"、Noneを返す。表示名も渡す
+            user_pref_result = user_pref_menu.userpref_menu(
+                chan, dbname, login_id, display_name, current_loop_menu_mode)
 
             # After returning from user_pref_menu, reload user data to get the latest lastlogin
             # This is important because user_pref_menu might update lastlogin or menu_mode
@@ -413,7 +421,7 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                     if selected_item and selected_item.get("type") == "board":
                         item_id = selected_item.get("id")
                         bbs_handler_result = bbs_handler.handle_bbs_menu(
-                            chan, dbname, login_id, current_loop_menu_mode, item_id)
+                            chan, dbname, login_id, display_name, current_loop_menu_mode, item_id, addr[0])
                     else:
                         # 階層メニューを抜けた場合
                         break
@@ -425,8 +433,8 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                         initial_menu_id="main_bbs_menu", menu_type="bbs")
 
                     if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
-                        bbs_handler_result = bbs_handler.handle_bbs_menu(
-                            chan, dbname, login_id, current_loop_menu_mode, selected_board_id)
+                        bbs_handler_result = bbs_handler.handle_bbs_menu(chan, dbname, login_id, display_name,
+                                                                         current_loop_menu_mode, selected_board_id, addr[0])
                     else:
                         # 手書きメニューを抜けた場合
                         if selected_board_id in ("exit_bbs_menu", "back_to_top"):
@@ -466,9 +474,9 @@ def process_command_loop(chan, dbname, login_id, user_id, userlevel, server_pref
                         util.send_text_by_key(
                             chan, "chat.entering_room", current_loop_menu_mode, room_name=item_name, room_id=item_id)
                         chat_handler.set_online_members_function_for_chat(
-                            get_online_members_list)
+                            get_online_members_list)  # 関数を渡す
                         chat_handler_result = chat_handler.handle_chat_room(  # 結果を受け取る
-                            chan, dbname, login_id, current_loop_menu_mode, item_id, item_name)
+                            chan, dbname, login_id, display_name, current_loop_menu_mode, item_id, item_name)
                     else:
                         # 汎用メニューで選択されたが、チャット機能では解釈できないtypeの場合
                         util.send_text_by_key(
@@ -762,13 +770,17 @@ def handle_client(client, addr, host_keys, is_web_app=True):
             sqlite_tools.update_idbase(
                 db_name_from_config, 'users', ['lastlogin'], user_id, 'lastlogin', login_time)
 
-            # オンラインメンバーに追加
-            with online_members_lock:
-                online_members.add(login_id)
-            logging.info(
-                f"ユーザ {login_id} がログインしました。オンライン: {len(online_members)}人")
+            # 表示名を生成
+            display_name = util.get_display_name(login_id, addr[0])
             initial_user_menu_mode = userdata['menu_mode'] if 'menu_mode' in userdata.keys(
             ) else '1'
+
+            # オンラインメンバーに追加
+            with online_members_lock:
+                online_members[login_id] = {
+                    "display_name": display_name, "addr": addr, "menu_mode": initial_user_menu_mode}
+            logging.info(
+                f"ユーザ {login_id}({display_name}) がログインしました。オンライン: {len(online_members)}人")
             # 最終ログイン時刻を文字列化
             last_login_time = userdata['lastlogin'] if userdata and 'lastlogin' in userdata.keys(
             ) else 0
@@ -813,7 +825,7 @@ def handle_client(client, addr, host_keys, is_web_app=True):
             ) else 0
 
             normal_logoff = process_command_loop(
-                chan, db_name_from_config, login_id, user_id, userlevel, server_pref_dict, addr, initial_user_menu_mode)
+                chan, db_name_from_config, login_id, display_name, user_id, userlevel, server_pref_dict, addr, initial_user_menu_mode)
 
         except Exception as e:
             logging.exception(
@@ -852,11 +864,11 @@ def handle_client(client, addr, host_keys, is_web_app=True):
             if login_id:
                 removed_from_list_finally = False
                 with online_members_lock:
-                    if login_id in online_members:
-                        online_members.remove(login_id)
+                    if login_id in online_members.keys():
+                        del online_members[login_id]
                         removed_from_list_finally = True
                         logging.info(
-                            f"オンラインリストから {login_id} を削除しました (finally)。オンライン: {len(online_members)}人")
+                            f"オンラインリストから {login_id} を削除しました (finally)。オンライン: {len(online_members.keys())}人")
 
             # ログアウト時刻記録 (user_id が None でないことを確認)
             if user_id is not None and db_name_from_config:

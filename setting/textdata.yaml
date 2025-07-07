@@ -855,13 +855,15 @@ mail_handler:
     mode_2: "送り先のIDを入力してください: "
     mode_3: "Enter recipient ID: "
   sender_header: # 受信箱ヘッダー
-    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n"
-    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n"
-    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n" 
+    mode_1: "-NUM-  -R.DATE- -R.TIME-  -SENDER-               -MAIL-\r\n"
+    mode_2: "-NUM-  -R.DATE- -R.TIME-  -SENDER-               -MAIL-\r\n"
+    mode_3: "-NUM-  -R.DATE- -R.TIME-  -SENDER-               -MAIL-\r\n"
+
   recipient_header: # 送信箱ヘッダー
-    mode_1: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
-    mode_2: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
-    mode_3: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
+    mode_1: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
+    mode_2: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
+    mode_3: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
+
   no_mails:
     mode_1: "メールはありません。\r\n"
     mode_2: "メールはありません。\r\n"
@@ -929,6 +931,22 @@ mail_handler:
     mode_1: "メールを送信しました。\r\n"
     mode_2: "メールを送信しました。\r\n"
     mode_3: "Mail sent.\r\n"
+  recipient_not_found:
+    mode_1: "** 送り先「{recipient_name}」が存在しません **\r\n"
+    mode_2: "** 送り先「{recipient_name}」が存在しません **\r\n"
+    mode_3: "** Recipient '{recipient_name}' not found **\r\n"
+  cannot_send_to_self:
+    mode_1: "** 自分自身にはメールを送れません **\r\n"
+    mode_2: "** 自分自身にはメールを送れません **\r\n"
+    mode_3: "** You cannot send mail to yourself **\r\n"
+  recipient_disabled:
+    mode_1: "** 送り先「{recipient_name}」は現在利用できません **\r\n"
+    mode_2: "** 送り先「{recipient_name}」は現在利用できません **\r\n"
+    mode_3: "** Recipient '{recipient_name}' is currently disabled **\r\n"
+  guest_to_guest_prohibited:
+    mode_1: "** ゲスト同士のメール送信はできません **\r\n"
+    mode_2: "** ゲスト同士のメール送信はできません **\r\n"
+    mode_3: "** Mail between guests is not allowed **\r\n"
   mail_help:
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━
