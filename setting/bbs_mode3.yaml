@@ -3,6 +3,7 @@ categories:
     number: 1
     name: "総合掲示板"
     description: "自由な話題で盛り上がりましょう！"
+    type: "child"
     items: # items の name も同様に修正
       - id: "bbs_free"
         number: 1
@@ -11,6 +12,9 @@ categories:
 
   - id: "bbs_hobby"
     number: 2
+    name: "趣味"
+    description: "趣味に関する話題はこちら"
+    type: "child"
     items:
       - id: "bbs_hobby_game"
         number: 1
@@ -20,6 +24,7 @@ categories:
         type: "board"
       - id: "bbs_hobby_music_create" # サブカテゴリの例
         number: 3
+        name: "音楽制作"
         type: "child" # サブカテゴリなので type: "child"
         items:
           - id: "bbs_dtm_general"
@@ -27,10 +32,13 @@ categories:
             type: "board"
           - id: "bbs_vocaloid"
             number: 2
-            description:
+            description: "ボーカロイドに関する話題"
             type: "board"
   - id: "bbs_local"
     number: 3
+    name: "地域"
+    description: "地域ごとの話題はこちら"
+    type: "child"
     items:
       - id: "bbs_local_hokkaido"
         number: 1
