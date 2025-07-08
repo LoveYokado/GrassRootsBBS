@@ -259,8 +259,8 @@ class CommandHandler:
                     display_sender_name = str(user_id_from_article)
 
                 # 投稿者名短縮
-                user_name_short = textwrap.shorten(
-                    display_sender_name if display_sender_name else "(Unknown)", width=14, placeholder="...")
+                user_name_short = util.shorten_text_by_slicing(
+                    display_sender_name if display_sender_name else "(Unknown)", width=14)
                 try:
                     created_at_ts = article['created_at']
                     r_date_str = datetime.datetime.fromtimestamp(
@@ -283,13 +283,12 @@ class CommandHandler:
                         except ValueError:
                             pass  # ID変換失敗時は見せない
                     if can_see_deleted_title:
-                        title_short = textwrap.shorten(
-                            title, width=28, placeholder="...")  # "* " を考慮して少し短く
+                        title_short = util.shorten_text_by_slicing(
+                            title, width=28)  # "* " を考慮して少し短く
                     else:
                         title_short = ""  # 一般ユーザーには表示しない
                 else:
-                    title_short = textwrap.shorten(
-                        title, width=32, placeholder="...")
+                    title_short = util.shorten_text_by_slicing(title, width=32)
                 # ユーザー名の後のスペースを調整
                 spaces_before_title_field = "  " if deleted_mark else "   "
                 # 左寄せ、指定幅
@@ -843,13 +842,13 @@ class CommandHandler:
                             except ValueError:
                                 pass
                         if can_see_deleted_title_list:
-                            title_short = textwrap.shorten(
-                                title, width=28, placeholder="...")
+                            title_short = util.shorten_text_by_slicing(
+                                title, width=28)
                         else:
                             title_short = ""
                     else:
-                        title_short = textwrap.shorten(
-                            title, width=32, placeholder="...")
+                        title_short = util.shorten_text_by_slicing(
+                            title, width=32)
                     deleted_mark_list = "*" if article['is_deleted'] == 1 else ""
                     user_id_from_article = article['user_id']
                     display_sender_name = ""
@@ -862,8 +861,8 @@ class CommandHandler:
                         display_sender_name = str(user_id_from_article)
 
                     spaces_before_title_field_list = "  " if deleted_mark_list else "   "
-                    user_name_short = textwrap.shorten(
-                        display_sender_name if display_sender_name else "(Unknown)", width=14, placeholder="...")
+                    user_name_short = util.shorten_text_by_slicing(
+                        display_sender_name if display_sender_name else "(Unknown)", width=14)
                     try:
                         created_at_ts = article['created_at']
                         r_date_str = datetime.datetime.fromtimestamp(

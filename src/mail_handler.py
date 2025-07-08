@@ -46,12 +46,12 @@ def format_mail_header_str(mail_data, dbname, view_mode, mail_id_width=5):  # no
         else:
             if view_mode == 'inbox' and mail_data['is_read'] == 0:
                 status_mark_char = "#"
-            display_subject_final = textwrap.shorten(
-                subject, width=SUBJECT_WIDTH, placeholder="...")
+            display_subject_final = util.shorten_text_by_slicing(
+                subject, width=SUBJECT_WIDTH)
     except KeyError as e:
         logging.warning(f"メールヘッダ表示中にキーエラー ({mail_id}): {e}")
-        display_subject_final = textwrap.shorten(
-            subject, width=SUBJECT_WIDTH, placeholder="...")
+        display_subject_final = util.shorten_text_by_slicing(
+            subject, width=SUBJECT_WIDTH)
 
     # --- Determine sender/recipient name ---
     display_name = ""
@@ -69,8 +69,8 @@ def format_mail_header_str(mail_data, dbname, view_mode, mail_id_width=5):  # no
         display_name = recipient_name if recipient_name else "(Unknown)"
 
     # Shorten the name to fit the column width
-    display_name_final = textwrap.shorten(
-        display_name, width=SENDER_RCPT_WIDTH, placeholder="...")
+    display_name_final = util.shorten_text_by_slicing(
+        display_name, width=SENDER_RCPT_WIDTH)
 
     # --- Format the final output string ---
     # The gap between name and status mark is one space

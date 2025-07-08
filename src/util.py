@@ -939,3 +939,20 @@ def get_display_name(login_id: str, ip_address: str) -> str:
         guest_hash = generate_guest_hash(ip_address)
         return f"GUEST({guest_hash})"
     return login_id
+
+
+def shorten_text_by_slicing(text, width, placeholder="..."):
+    """
+    テキストを指定された幅に単純なスライスで短縮する。
+    textwrap.shortenと異なり、長い単語でも先頭部分を残す。
+    """
+    if len(text) <= width:
+        return text
+
+    placeholder_len = len(placeholder)
+    if width <= placeholder_len:
+        # 幅がプレースホルダ自体より短いか等しい場合、プレースホルダを切り詰めて返す
+        return placeholder[:width]
+
+    truncated_len = width - placeholder_len
+    return text[:truncated_len] + placeholder
