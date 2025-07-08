@@ -812,19 +812,19 @@ def telegram_recieve(chan, dbname, username, current_menu_mode):
             timestamp_val = telegram_to_display['timestamp']
             try:
                 dt_obj = datetime.datetime.fromtimestamp(timestamp_val)
-                r_date_str = dt_obj.strftime('%y-%m-%d')
+                r_date_str = dt_obj.strftime('%y/%m/%d')
                 r_time_str = dt_obj.strftime('%H:%M:%S')
             except (ValueError, OSError, TypeError):  # TypeError も考慮
-                r_date_str = "xx-xx-xx"
-                r_time_str = "xx:xx:xx"
+                r_date_str = "----/--/--"
+                r_time_str = "--:--:--"
 
-            # 本文の長さを調整 (79 - (5+1+8+1+8+1+9) = 46)
-            shortened_message = textwrap.shorten(
-                message, width=46, placeholder="...")
-            # 送信者名の幅を調整 (ヘッダの -SENDER- と -TELEGRAM- の間のスペースに合わせる)
-            sender_padded = f"{sender:<9}"
+            # 掲示板のフォーマットに合わせる
+            # 投稿者名: 14文字, 本文: 32文字
+            sender_short = shorten_text_by_slicing(sender, width=14)
+            message_short = shorten_text_by_slicing(message, width=32)
 
-            line = f"{num_str} {r_date_str} {r_time_str} {sender_padded}{shortened_message}\r\n"
+            # 掲示板の表示フォーマットと完全に一致させる
+            line = f"{num_str}  {r_date_str} {r_time_str} {sender_short:<14}   {message_short}\r\n"
             chan.send(line.encode('utf-8'))
 
         # フッターを textdata.yaml から表示

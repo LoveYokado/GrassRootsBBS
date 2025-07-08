@@ -33,12 +33,19 @@ def who_menu(chan, dbname, online_members_dict, current_menu_mode):
 
     for login_id, member_data in online_members_dict.items():
         display_name = member_data.get("display_name", login_id)
+
+        # 掲示板のユーザ名表示(14文字)と合わせる
+        display_name_short = util.shorten_text_by_slicing(
+            display_name, width=14)
+
         menu_mode = member_data.get("menu_mode", "?")
         # コメントはDBから取得する必要がある
         user_db_data = sqlite_tools.get_user_auth_info(dbname, login_id)
         comment = user_db_data['comment'] if user_db_data and user_db_data['comment'] is not None else ''
+
+        # ヘッダーのCOMMENT列(17桁目開始)と合わせるため、14桁にパディング後、スペースを2つ追加
         chan.send(
-            f"{display_name:<15} mode{menu_mode} {comment}\r\n".encode('utf-8'))
+            f"{display_name_short:<14}  mode{menu_mode} {comment}\r\n".encode('utf-8'))
     util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)
 
 
@@ -388,8 +395,8 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
             except (ValueError, TypeError):
                 display_sender_name = str(user_id_from_article)
 
-            sender_name_short = textwrap.shorten(
-                display_sender_name if display_sender_name else "(Unknown)", width=16, placeholder="...")
+            sender_name_short = util.shorten_text_by_slicing(
+                display_sender_name if display_sender_name else "(Unknown)", width=14)
 
             created_at_str_date = "Unknown date"
             created_at_str_time = "Unknown time"
@@ -406,8 +413,8 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
             article_number_str = f"{article['article_number']:05d}"
             title_str = article['title'] if article['title'] else "(No Title)"
             # タイトル短縮
-            title_short_str = textwrap.shorten(
-                title_str, width=34, placeholder="...")
+            title_short_str = util.shorten_text_by_slicing(
+                title_str, width=32)
 
             # 表示
             util.send_text_by_key(
@@ -500,8 +507,8 @@ def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user
             except (ValueError, TypeError):
                 display_sender_name = str(user_id_from_article)
 
-            sender_name_short = textwrap.shorten(
-                display_sender_name if display_sender_name else "(Unknown)", width=16, placeholder="...")
+            sender_name_short = util.shorten_text_by_slicing(
+                display_sender_name if display_sender_name else "(Unknown)", width=14)
 
             created_at_str_date = "Unknown date"
             created_at_str_time = "Unknown time"
@@ -516,8 +523,8 @@ def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user
 
             article_number_str = f"{article['article_number']:05d}"
             title_str = article['title'] if article['title'] else "(No Title)"
-            title_short_str = textwrap.shorten(
-                title_str, width=34, placeholder="...")
+            title_short_str = util.shorten_text_by_slicing(
+                title_str, width=32)
 
             util.send_text_by_key(
                 chan, "auto_download.article_info_format", menu_mode,

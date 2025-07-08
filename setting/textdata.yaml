@@ -455,15 +455,15 @@ who_menu:
   header:
     mode_1: |
       オンラインメンバー一覧
-      NAME            COMMENT
+      NAME                  COMMENT
       -------------------------------------------------------------------
     mode_2: |
       オンラインメンバー一覧
-      NAME            COMMENT
+      NAME                  COMMENT
       -------------------------------------------------------------------
     mode_3: |
       Online Members List
-      NAME            COMMENT
+      NAME                  COMMENT
       -------------------------------------------------------------------
   footer:
     mode_1: |
@@ -1152,9 +1152,9 @@ telegram:
     mode_2: "--- 電報が届いています ---\r\n"
     mode_3: "--- Telegrams Received ---\r\n"
   receive_headings:
-    mode_1: "-NUM- -R.DATE- -R.TIME- -SENDER- -TELEGRAM-\r\n"
-    mode_2: "-NUM- -R.DATE- -R.TIME- -SENDER- -TELEGRAM-\r\n"
-    mode_3: "-NUM- -R.DATE- -R.TIME- -SENDER- -TELEGRAM-\r\n"
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -TELEGRAM-\r\n"
+    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -TELEGRAM-\r\n"
+    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -TELEGRAM-\r\n"
   receive_footer:
     mode_1: "** 以上 **\r\n"
     mode_2: "--- 電報ここまで ---\r\n"
@@ -1506,9 +1506,9 @@ auto_download:
     mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
     mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
   article_info_format: # {article_number_str}, {r_date_str}, {r_time_str}, {sender_name_short}, {title_short}
-    mode_1: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<16}  {title_short}"
-    mode_2: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<16}  {title_short}"
-    mode_3: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<16}  {title_short}"
+    mode_1: "{article_number_str}  {r_date_str} {r_time_str} {sender_name_short:<14}   {title_short}"
+    mode_2: "{article_number_str}  {r_date_str} {r_time_str} {sender_name_short:<14}   {title_short}"
+    mode_3: "{article_number_str}  {r_date_str} {r_time_str} {sender_name_short:<14}   {title_short}"
 
   article_header_format: # {article_number}, {title}, {sender_name}, {created_at_str}
     mode_1: ""
