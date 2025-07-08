@@ -41,10 +41,11 @@ class HierarchicalMenu:
                     board_info_db = sqlite_tools.get_board_by_shortcut_id(
                         self.dbname, shortcut_id)
                     if board_info_db:
-                        enriched_item['name'] = board_info_db.get(
-                            'name', shortcut_id)
-                        enriched_item['description'] = board_info_db.get(
-                            'description', '')
+                        # sqlite3.Rowは.get()メソッドを持たないため、辞書ライクなアクセスと存在確認に変更
+                    enriched_item['name'] = board_info_db['name'] if 'name' in board_info_db.keys(
+                    ) else shortcut_id
+                    enriched_item['description'] = board_info_db['description'] if 'description' in board_info_db.keys(
+                    ) else ''
                     else:
                         enriched_item['name'] = f"{shortcut_id} (unregistered)"
                         enriched_item['description'] = 'This board is not registered in the database.'

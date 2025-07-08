@@ -673,8 +673,8 @@ def list_boards(chan, dbname, _sysop_login_id, current_menu_mode):
 
     util.send_text_by_key(
         chan, "sysop_menu.list_boards.header_title", current_menu_mode)
-    header_line = f"{'ID':<10} {'Name':<18} {'Perm':<8} {'R/W':<5} {'Status':<8} {'LastPost':<16} {'Ops'}\r\n"
-    separator_line = "-" * 78 + "\r\n"
+    header_line = f"{'ID':<15} {'Name':<18} {'Perm':<8} {'R/W':<5} {'Status':<8} {'LastPost':<16} {'Ops'}\r\n"
+    separator_line = "-" * 83 + "\r\n"
     chan.send(header_line.encode('utf-8'))
     chan.send(separator_line.encode('utf-8'))
 
@@ -699,7 +699,7 @@ def list_boards(chan, dbname, _sysop_login_id, current_menu_mode):
                     last_posted_ts).strftime('%Y-%m-%d %H:%M')
             except (ValueError, OSError, TypeError):
                 last_posted_str = 'Invalid Date'
-        board_list_details += f"{shortcut_id_str:<10} {name_str:<18} {default_permission_str:<8} {read_level_str}/{write_level_str:<3} {status_str:<8} {last_posted_str:<16} {operators_str}\r\n"
+        board_list_details += f"{shortcut_id_str:<15} {name_str:<18} {default_permission_str:<8} {read_level_str}/{write_level_str:<3} {status_str:<8} {last_posted_str:<16} {operators_str}\r\n"
     chan.send(board_list_details.encode('utf-8'))
     chan.send(separator_line.encode('utf-8'))
     return None
