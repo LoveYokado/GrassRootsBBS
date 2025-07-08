@@ -20,32 +20,32 @@ def bbs_menu(chan):
     return
 
 
-def who_menu(chan, dbname, online_members, current_menu_mode):
+def who_menu(chan, dbname, online_members_dict, current_menu_mode):
     """
     オンラインメンバー一覧を表示する
     """
     util.send_text_by_key(
         chan, "who_menu.header", current_menu_mode)
-    if not online_members:
+    if not online_members_dict:
         util.send_text_by_key(chan, "who_menu.nomembers",
                               current_menu_mode)
         return
 
-    for member_name in online_members:
-        # fetchall_idbase はリストを返す。ユーザー名は UNIQUE なので結果は 0 or 1 件
-        results = sqlite_tools.fetchall_idbase(
-            dbname, 'users', 'name', member_name)
-        if results:  # 結果が存在する場合
-            userdata = results[0]  # sqlite3.Row オブジェクトは辞書のようにアクセス可能
-            menu_mode = userdata['menu_mode'] if 'menu_mode' in userdata.keys(
-            ) else '?'
-            # コメントがない場合は空文字列
-            comment = userdata['comment'] if userdata['comment'] else ""
-            chan.send(f"{member_name:<15} mode{menu_mode} {comment}\r\n")
-        else:
-            # 基本的に online_members にいるユーザーは DB に存在するはずだが念のため
-            chan.send(f"{member_name:<15} {'(ユーザー情報取得エラー)'}\r\n")
-            print(f"警告: オンラインメンバー '{member_name}' の情報がDBに見つかりません。")
+    for login_id, member_data in online_members_dict.items():
+        display_name = member_data.get("display_name", login_id)
+
+        # 掲示板のユーザ名表示(14文字)と合わせる
+        display_name_short = util.shorten_text_by_slicing(
+            display_name, width=14)
+
+        menu_mode = member_data.get("menu_mode", "?")
+        # コメントはDBから取得する必要がある
+        user_db_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+        comment = user_db_data['comment'] if user_db_data and user_db_data['comment'] is not None else ''
+
+        # ヘッダーのCOMMENT列(17桁目開始)と合わせるため、14桁にパディング後、スペースを2つ追加
+        chan.send(
+            f"{display_name_short:<14}  mode{menu_mode} {comment}\r\n".encode('utf-8'))
     util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)
 
 
@@ -385,10 +385,18 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
 
         # 記事詳細を表示
         for article in new_articles:
-            sender_name = sqlite_tools.get_user_name_from_user_id(
-                dbname, article['user_id'])
-            sender_name_short = textwrap.shorten(
-                sender_name if sender_name else "(Unknown)", width=7, placeholder="..")
+            user_id_from_article = article['user_id']
+            display_sender_name = ""
+            try:
+                user_id_int = int(user_id_from_article)
+                user_name = sqlite_tools.get_user_name_from_user_id(
+                    dbname, user_id_int)
+                display_sender_name = user_name if user_name else "(Unknown)"
+            except (ValueError, TypeError):
+                display_sender_name = str(user_id_from_article)
+
+            sender_name_short = util.shorten_text_by_slicing(
+                display_sender_name if display_sender_name else "(Unknown)", width=14)
 
             created_at_str_date = "Unknown date"
             created_at_str_time = "Unknown time"
@@ -405,8 +413,8 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
             article_number_str = f"{article['article_number']:05d}"
             title_str = article['title'] if article['title'] else "(No Title)"
             # タイトル短縮
-            title_short_str = textwrap.shorten(
-                title_str, width=43, placeholder="...")
+            title_short_str = util.shorten_text_by_slicing(
+                title_str, width=32)
 
             # 表示
             util.send_text_by_key(
@@ -489,10 +497,18 @@ def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user
             util.send_text_by_key(chan, "bbs.article_list_header", menu_mode)
 
             # 2. 見出し行を表示
-            sender_name = sqlite_tools.get_user_name_from_user_id(
-                dbname, article['user_id'])
-            sender_name_short = textwrap.shorten(
-                sender_name if sender_name else "(Unknown)", width=7, placeholder="..")
+            user_id_from_article = article['user_id']
+            display_sender_name = ""
+            try:
+                user_id_int = int(user_id_from_article)
+                user_name = sqlite_tools.get_user_name_from_user_id(
+                    dbname, user_id_int)
+                display_sender_name = user_name if user_name else "(Unknown)"
+            except (ValueError, TypeError):
+                display_sender_name = str(user_id_from_article)
+
+            sender_name_short = util.shorten_text_by_slicing(
+                display_sender_name if display_sender_name else "(Unknown)", width=14)
 
             created_at_str_date = "Unknown date"
             created_at_str_time = "Unknown time"
@@ -507,8 +523,8 @@ def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user
 
             article_number_str = f"{article['article_number']:05d}"
             title_str = article['title'] if article['title'] else "(No Title)"
-            title_short_str = textwrap.shorten(
-                title_str, width=43, placeholder="...")
+            title_short_str = util.shorten_text_by_slicing(
+                title_str, width=32)
 
             util.send_text_by_key(
                 chan, "auto_download.article_info_format", menu_mode,

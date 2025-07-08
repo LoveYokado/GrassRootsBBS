@@ -29,19 +29,19 @@ def get_room_history(room_id: str) -> collections.deque:
         return chat_room_histories[room_id]
 
 
-def add_message_to_history(room_id: str, sender: str, message: str, is_system_message=False):
+def add_message_to_history(room_id: str, display_name: str, message: str, is_system_message=False):
     """指定された部屋の履歴にメッセージを追加"""
     history = get_room_history(room_id)
     if is_system_message:
         formatted_message = f"System: {message}"
     else:
-        formatted_message = f"{sender}: {message}"
+        formatted_message = f"{display_name}: {message}"
     history.append(formatted_message)
     logging.info(f"ChatHistory[{room_id}]: {formatted_message}")
 
 
 # room_name_for_prompt は実際には使われません
-def broadcast_to_room(room_id: str, dbname: str, sender_name: str,
+def broadcast_to_room(room_id: str, dbname: str, display_name: str,
                       message_body: str, is_system_message: bool,
                       exclude_login_id: str = None,
                       message_key_for_system: str = None,
@@ -110,17 +110,17 @@ def broadcast_to_room(room_id: str, dbname: str, sender_name: str,
                     if base_format_string:
                         try:
                             formatted_message = base_format_string.format(
-                                sender=sender_name, message=message_body)
+                                sender=display_name, message=message_body)
                         except KeyError as e:
                             logging.error(
                                 f"Formatting error for key 'chat.broadcast_user_message_format' (mode: {target_menu_mode}): {e}. Raw: '{base_format_string}'")
-                            # Fallback
-                            formatted_message = f"{sender_name}: {message_body}"
+                            # Fallback - sender_name is not defined here, should be display_name
+                            formatted_message = f"{display_name}: {message_body}"
                     else:
                         logging.warning(
                             f"Text key 'chat.broadcast_user_message_format' for mode '{target_menu_mode}' not found. Using default.")
                         # Fallback
-                        formatted_message = f"{sender_name}: {message_body}"
+                        formatted_message = f"{display_name}: {message_body}"
                 message_payload = formatted_message.replace(
                     '\n', '\r\n') + '\r\n'
                 try:
@@ -145,7 +145,7 @@ def set_online_members_function_for_chat(func):
     ONLINE_MEMBERS_FUNC = func
 
 
-def user_joins_room(room_id: str, dbname: str, login_id: str, chan, room_name: str, menu_mode: str):
+def user_joins_room(room_id: str, dbname: str, login_id: str, display_name: str, chan, room_name: str, menu_mode: str):
     """ユーザーがルームに入室したときに呼び出される"""
     with chat_rooms_lock:
         if room_id not in active_chat_rooms:
@@ -154,15 +154,16 @@ def user_joins_room(room_id: str, dbname: str, login_id: str, chan, room_name: s
         active_chat_rooms[room_id]["users"][login_id] = {
             "chan": chan, "menu_mode": menu_mode}
 
-    join_notification = f"{login_id} が入室しました。"
+    join_notification = f"{display_name} が入室しました。"
     # 履歴には残さず、サーバーログには手動で記録することも可能 (今回はブロードキャストのみ)
-    logging.info(f"ChatEvent[{room_id}]: User {login_id} joined.")
+    logging.info(
+        f"ChatEvent[{room_id}]: User {login_id}({display_name}) joined.")
     # システムメッセージとしてブロードキャスト (画面表示用)
     broadcast_to_room(room_id, dbname, "System", join_notification,
                       is_system_message=True, exclude_login_id=login_id)
 
 
-def user_leaves_room(room_id: str, dbname: str, login_id: str, room_name: str):
+def user_leaves_room(room_id: str, dbname: str, login_id: str, display_name: str, room_name: str):
     """ユーザーがルームから退室したときに呼び出される"""
     chan_left = None
     user_was_in_room = False
@@ -192,14 +193,15 @@ def user_leaves_room(room_id: str, dbname: str, login_id: str, room_name: str):
                     format_args_for_system={"room_name": room_name, "owner": login_id})
 
     if chan_left:
-        leave_notification = f"{login_id} が退室しました。"
+        leave_notification = f"{display_name} が退室しました。"
         # 履歴には残さず、サーバーログには手動で記録することも可能
-        logging.info(f"ChatEvent[{room_id}]: User {login_id} left.")
+        logging.info(
+            f"ChatEvent[{room_id}]: User {login_id}({display_name}) left.")
         broadcast_to_room(room_id, dbname, "System",
                           leave_notification, is_system_message=True)
 
 
-def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: str, room_name: str):
+def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_mode: str, room_id: str, room_name: str):
     """
     チャットルーム本体
     """
@@ -212,8 +214,9 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
         if room_data and room_data.get("locked_by") and room_data.get("locked_by") != login_id:
             util.send_text_by_key(chan, "chat.room_locked", menu_mode,
                                   room_name=room_name, owner=room_data.get("locked_by"))
-            return  # 入室せずに終了
-    user_joins_room(room_id, dbname, login_id, chan, room_name, menu_mode)
+            return "back_one_level"  # 入室せずに終了
+    user_joins_room(room_id, dbname, login_id, display_name,
+                    chan, room_name, menu_mode)
 
     try:
         while True:
@@ -234,17 +237,18 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
             elif user_input.lower() == "!":
                 # 電報をチャット内から送信
                 if ONLINE_MEMBERS_FUNC:
-                    online_list = ONLINE_MEMBERS_FUNC()
-                    util.telegram_send(
-                        chan, dbname, login_id, online_list, menu_mode)
+                    online_members_dict = ONLINE_MEMBERS_FUNC()
+                    util.telegram_send(chan, dbname, display_name, list(
+                        online_members_dict.keys()), menu_mode)
                 else:
                     util.send_text_by_key(
                         chan, "common_messages.error", menu_mode)
             elif user_input.lower() == "!w":
                 # WHOをチャット内から参照
                 if ONLINE_MEMBERS_FUNC:
-                    online_list = ONLINE_MEMBERS_FUNC()
-                    bbsmenu.who_menu(chan, dbname, online_list, menu_mode)
+                    online_members_dict = ONLINE_MEMBERS_FUNC()
+                    bbsmenu.who_menu(
+                        chan, dbname, online_members_dict, menu_mode)
                 else:
                     util.send_text_by_key(
                         chan, "common_messages.error", menu_mode)
@@ -344,26 +348,26 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                 if base_my_message_format:
                     try:
                         my_message_display = base_my_message_format.format(
-                            sender=login_id, message=user_input)
+                            sender=display_name, message=user_input)
                     except KeyError as e:
                         logging.error(
                             f"Formatting error for key 'chat.my_message_format' (mode: {menu_mode}): {e}. Raw: '{base_my_message_format}'")
                         # Fallback
-                        my_message_display = f"{login_id}: {user_input}"
+                        my_message_display = f"{display_name}: {user_input}"
                 else:
                     logging.warning(
                         f"Text key 'chat.my_message_format' for mode '{menu_mode}' not found. Using default.")
                     # Fallback
-                    my_message_display = f"{login_id}: {user_input}"
+                    my_message_display = f"{display_name}: {user_input}"
                 # 自分のメッセージ表示
                 chan.send(b"\r\033[2K" +
                           f"{my_message_display}\r\n".encode('utf-8'))
 
                 # 履歴に追加 (現状のフォーマットを維持)
-                add_message_to_history(room_id, login_id, user_input)
+                add_message_to_history(room_id, display_name, user_input)
 
                 # 他のユーザーにブロードキャスト
-                broadcast_to_room(room_id, dbname, login_id, user_input, is_system_message=False,
+                broadcast_to_room(room_id, dbname, display_name, user_input, is_system_message=False,
                                   exclude_login_id=login_id)
 
             # 各コマンド処理またはメッセージ送信後、新着電報をチェック
@@ -387,6 +391,6 @@ def handle_chat_room(chan, dbname: str, login_id: str, menu_mode: str, room_id: 
                 f"User {login_id} finished chat in room{room_id}: {e_send}")
 
     finally:
-        user_leaves_room(room_id, dbname, login_id, room_name)
+        user_leaves_room(room_id, dbname, login_id, display_name, room_name)
         logging.info(f"User {login_id} finished chat in room {room_id}.")
         # finallyブロックでは明示的な戻り値を返さない（例外発生時などはNoneが返る）

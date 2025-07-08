@@ -455,15 +455,15 @@ who_menu:
   header:
     mode_1: |
       オンラインメンバー一覧
-      NAME            COMMENT
+      NAME                  COMMENT
       -------------------------------------------------------------------
     mode_2: |
       オンラインメンバー一覧
-      NAME            COMMENT
+      NAME                  COMMENT
       -------------------------------------------------------------------
     mode_3: |
       Online Members List
-      NAME            COMMENT
+      NAME                  COMMENT
       -------------------------------------------------------------------
   footer:
     mode_1: |
@@ -855,13 +855,15 @@ mail_handler:
     mode_2: "送り先のIDを入力してください: "
     mode_3: "Enter recipient ID: "
   sender_header: # 受信箱ヘッダー
-    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n"
-    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n"
-    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -MAIL-\r\n" 
+    mode_1: "-NUM-  -R.DATE- -R.TIME-  -SENDER-               -MAIL-\r\n"
+    mode_2: "-NUM-  -R.DATE- -R.TIME-  -SENDER-               -MAIL-\r\n"
+    mode_3: "-NUM-  -R.DATE- -R.TIME-  -SENDER-               -MAIL-\r\n"
+
   recipient_header: # 送信箱ヘッダー
-    mode_1: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
-    mode_2: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
-    mode_3: "-NUM-  -S.DATE- -S.TIME- -RCPT-    -MAIL-\r\n"
+    mode_1: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
+    mode_2: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
+    mode_3: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
+
   no_mails:
     mode_1: "メールはありません。\r\n"
     mode_2: "メールはありません。\r\n"
@@ -929,6 +931,22 @@ mail_handler:
     mode_1: "メールを送信しました。\r\n"
     mode_2: "メールを送信しました。\r\n"
     mode_3: "Mail sent.\r\n"
+  recipient_not_found:
+    mode_1: "** 送り先「{recipient_name}」が存在しません **\r\n"
+    mode_2: "** 送り先「{recipient_name}」が存在しません **\r\n"
+    mode_3: "** Recipient '{recipient_name}' not found **\r\n"
+  cannot_send_to_self:
+    mode_1: "** 自分自身にはメールを送れません **\r\n"
+    mode_2: "** 自分自身にはメールを送れません **\r\n"
+    mode_3: "** You cannot send mail to yourself **\r\n"
+  recipient_disabled:
+    mode_1: "** 送り先「{recipient_name}」は現在利用できません **\r\n"
+    mode_2: "** 送り先「{recipient_name}」は現在利用できません **\r\n"
+    mode_3: "** Recipient '{recipient_name}' is currently disabled **\r\n"
+  guest_to_guest_prohibited:
+    mode_1: "** ゲスト同士のメール送信はできません **\r\n"
+    mode_2: "** ゲスト同士のメール送信はできません **\r\n"
+    mode_3: "** Mail between guests is not allowed **\r\n"
   mail_help:
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━
@@ -1134,9 +1152,9 @@ telegram:
     mode_2: "--- 電報が届いています ---\r\n"
     mode_3: "--- Telegrams Received ---\r\n"
   receive_headings:
-    mode_1: "-NUM- -R.DATE- -R.TIME- -SENDER- -TELEGRAM-\r\n"
-    mode_2: "-NUM- -R.DATE- -R.TIME- -SENDER- -TELEGRAM-\r\n"
-    mode_3: "-NUM- -R.DATE- -R.TIME- -SENDER- -TELEGRAM-\r\n"
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -TELEGRAM-\r\n"
+    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -TELEGRAM-\r\n"
+    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -TELEGRAM-\r\n"
   receive_footer:
     mode_1: "** 以上 **\r\n"
     mode_2: "--- 電報ここまで ---\r\n"
@@ -1214,9 +1232,9 @@ bbs:
     mode_2: "  [?] 説明 (総数: {total_count} 未読:{unread_count})"
     mode_3: "  [?] Explanation (Total: {total_count} Unread: {unread_count})"
   article_list_header: # 記事一覧のヘッダー
-    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
-    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
-    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -CONTENTS-\r\n"
+    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -CONTENTS-\r\n"
+    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -CONTENTS-\r\n"
   no_articles: # 記事がない場合
     mode_1: "この記事はありません。\r\n"
     mode_2: "この記事はありません。\r\n"
@@ -1488,9 +1506,9 @@ auto_download:
     mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
     mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
   article_info_format: # {article_number_str}, {r_date_str}, {r_time_str}, {sender_name_short}, {title_short}
-    mode_1: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<7}  {title_short}"
-    mode_2: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<7}  {title_short}"
-    mode_3: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<7}  {title_short}"
+    mode_1: "{article_number_str}  {r_date_str} {r_time_str} {sender_name_short:<14}   {title_short}"
+    mode_2: "{article_number_str}  {r_date_str} {r_time_str} {sender_name_short:<14}   {title_short}"
+    mode_3: "{article_number_str}  {r_date_str} {r_time_str} {sender_name_short:<14}   {title_short}"
 
   article_header_format: # {article_number}, {title}, {sender_name}, {created_at_str}
     mode_1: ""

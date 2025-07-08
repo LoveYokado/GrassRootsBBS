@@ -93,11 +93,11 @@ class ArticleManager:
             return article_data
         return None
 
-    def create_article(self, board_id_pk, user_id_pk, title, body, ip_address=None):
+    def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None):
         """
         記事を新規作成する
         board_id_pkはboardsテーブルの主キー
-        user_id_pkはusersテーブルの主キー
+        user_identifierはusersテーブルの主キー(int)またはゲストの表示名(str)
         戻り値は作成された記事のID、失敗したらNone
         """
         conn = None
@@ -107,13 +107,13 @@ class ArticleManager:
                 self.dbname, board_id_pk)
             if next_article_number is None:
                 logging.error(
-                    f"記事の作成に失敗しました(BoardID:{board_id_pk}, UserID:{user_id_pk}): 次の記事番号の取得に失敗")
+                    f"記事の作成に失敗しました(BoardID:{board_id_pk}, User:{user_identifier}): 次の記事番号の取得に失敗")
                 return None
 
             # 記事を挿入
             current_timestamp = int(time.time())
             article_id = sqlite_tools.insert_article(
-                self.dbname, board_id_pk, next_article_number, user_id_pk, title, body, current_timestamp, ip_address
+                self.dbname, board_id_pk, next_article_number, user_identifier, title, body, current_timestamp, ip_address
             )
 
             if article_id is not None:
@@ -121,14 +121,14 @@ class ArticleManager:
                 sqlite_tools.update_board_last_posted_at(
                     self.dbname, board_id_pk, current_timestamp)
                 logging.info(
-                    f"記事を作成しました(BoardID:{board_id_pk}, ArticleNo:{next_article_number}, UserID:{user_id_pk}, ArticleDBID:{article_id})")
+                    f"記事を作成しました(BoardID:{board_id_pk}, ArticleNo:{next_article_number}, User:{user_identifier}, ArticleDBID:{article_id})")
                 return article_id
             else:
                 return None
 
         except Exception as e:
             logging.error(
-                f"記事の作成に失敗しました(BoardID:{board_id_pk}, UserID:{user_id_pk}): {e}")
+                f"記事の作成に失敗しました(BoardID:{board_id_pk}, User:{user_identifier}): {e}")
             return None
         finally:
             if conn:

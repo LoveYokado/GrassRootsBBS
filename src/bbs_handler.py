@@ -17,11 +17,13 @@ import bbs_manager
 class CommandHandler:
     """ユーザー入力に応じたコマンド処理を行うクラス"""
 
-    def __init__(self, chan, dbname, login_id, menu_mode):
+    def __init__(self, chan, dbname, login_id, display_name, menu_mode, ip_address):
         self.chan = chan
         self.dbname = dbname
         self.login_id = login_id
+        self.display_name = display_name
         self.menu_mode = menu_mode
+        self.ip_address = ip_address
         self.board_manager = bbs_manager.BoardManager(dbname)
         self.article_manager = bbs_manager.ArticleManager(dbname)
         self.permission_manager = bbs_manager.PermissionManager(dbname)
@@ -242,13 +244,23 @@ class CommandHandler:
                 article = articles[current_index]
                 title = article['title'] if article['title'] else "(No Title)"
 
-                # 削除済みマーク
-                # is_deleted は 0 or 1
                 deleted_mark = "*" if article['is_deleted'] == 1 else ""
-                user_name = sqlite_tools.get_user_name_from_user_id(
-                    self.dbname, article['user_id'])
-                user_name_short = textwrap.shorten(
-                    user_name if user_name else "(Unknown)", width=7, placeholder="..")
+
+                user_id_from_article = article['user_id']
+                display_sender_name = ""
+                try:
+                    # user_idが数値に変換できるか試す (登録ユーザー)
+                    user_id_int = int(user_id_from_article)
+                    user_name = sqlite_tools.get_user_name_from_user_id(
+                        self.dbname, user_id_int)
+                    display_sender_name = user_name if user_name else "(Unknown)"
+                except (ValueError, TypeError):
+                    # 数値に変換できない場合 (GUEST(hash)など)、そのまま表示名として使用
+                    display_sender_name = str(user_id_from_article)
+
+                # 投稿者名短縮
+                user_name_short = util.shorten_text_by_slicing(
+                    display_sender_name if display_sender_name else "(Unknown)", width=14)
                 try:
                     created_at_ts = article['created_at']
                     r_date_str = datetime.datetime.fromtimestamp(
@@ -271,20 +283,19 @@ class CommandHandler:
                         except ValueError:
                             pass  # ID変換失敗時は見せない
                     if can_see_deleted_title:
-                        title_short = textwrap.shorten(
-                            title, width=36, placeholder="...")  # "* " を考慮して少し短く
+                        title_short = util.shorten_text_by_slicing(
+                            title, width=28)  # "* " を考慮して少し短く
                     else:
                         title_short = ""  # 一般ユーザーには表示しない
                 else:
-                    title_short = textwrap.shorten(
-                        title, width=38, placeholder="...")
+                    title_short = util.shorten_text_by_slicing(title, width=32)
                 # ユーザー名の後のスペースを調整
                 spaces_before_title_field = "  " if deleted_mark else "   "
                 # 左寄せ、指定幅
                 article_no_str = f"{article['article_number']:0{article_id_width}d}"
 
                 self.chan.send(
-                    f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<7}{spaces_before_title_field}{deleted_mark}{title_short}\r\n".encode('utf-8'))
+                    f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<14}{spaces_before_title_field}{deleted_mark}{title_short}\r\n".encode('utf-8'))
             else:
                 util.send_text_by_key(
                     self.chan, "bbs.no_article", self.menu_mode)
@@ -710,8 +721,8 @@ class CommandHandler:
                     is_owner = (int(article_user_id_from_db)
                                 == self.user_id_pk)
                 except ValueError:
-                    logging.warning(
-                        f"記事(ID:{article_id_pk})の投稿者ID({article_user_id_from_db})を数値に変換できませんでした。")
+                    # GUEST(hash) のような文字列はintに変換できないので、投稿者本人ではないと判断
+                    is_owner = False
                 if self.userlevel >= 5 or is_owner:
                     if self.article_manager.toggle_delete_article(article_id_pk):
                         # トグル前の状態
@@ -831,20 +842,27 @@ class CommandHandler:
                             except ValueError:
                                 pass
                         if can_see_deleted_title_list:
-                            title_short = textwrap.shorten(
-                                title, width=36, placeholder="...")
+                            title_short = util.shorten_text_by_slicing(
+                                title, width=28)
                         else:
                             title_short = ""
                     else:
-                        title_short = textwrap.shorten(
-                            title, width=38, placeholder="...")
-                    # title_short の後に評価
+                        title_short = util.shorten_text_by_slicing(
+                            title, width=32)
                     deleted_mark_list = "*" if article['is_deleted'] == 1 else ""
-                    user_name = sqlite_tools.get_user_name_from_user_id(
-                        self.dbname, article['user_id'])
+                    user_id_from_article = article['user_id']
+                    display_sender_name = ""
+                    try:
+                        user_id_int = int(user_id_from_article)
+                        user_name = sqlite_tools.get_user_name_from_user_id(
+                            self.dbname, user_id_int)
+                        display_sender_name = user_name if user_name else "(Unknown)"
+                    except (ValueError, TypeError):
+                        display_sender_name = str(user_id_from_article)
+
                     spaces_before_title_field_list = "  " if deleted_mark_list else "   "
-                    user_name_short = textwrap.shorten(
-                        user_name if user_name else "(不明)", width=7, placeholder="..")
+                    user_name_short = util.shorten_text_by_slicing(
+                        display_sender_name if display_sender_name else "(Unknown)", width=14)
                     try:
                         created_at_ts = article['created_at']
                         r_date_str = datetime.datetime.fromtimestamp(
@@ -855,7 +873,7 @@ class CommandHandler:
                         r_date_str = "----/--/--"
                         r_time_str = "--:--"
                     self.chan.send(
-                        f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<7}{spaces_before_title_field_list}{deleted_mark_list}{title_short}\r\n".encode('utf-8'))
+                        f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<14}{spaces_before_title_field_list}{deleted_mark_list}{title_short}\r\n".encode('utf-8'))
                 self.chan.send(b'\r\n')  # タイトル一覧の最後に空行
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
@@ -1312,8 +1330,17 @@ class CommandHandler:
             # util.send_text_by_key(
             #     self.chan, "bbs.article_header", self.menu_mode,
             #     article_number=article['article_number'], title=title)
-            user_name = sqlite_tools.get_user_name_from_user_id(
-                self.dbname, article['user_id'])
+            user_id_from_article = article['user_id']
+            display_sender_name = ""
+            try:
+                # user_idが数値に変換できるか試す (登録ユーザー)
+                user_id_int = int(user_id_from_article)
+                user_name = sqlite_tools.get_user_name_from_user_id(
+                    self.dbname, user_id_int)
+                display_sender_name = user_name if user_name else "(Unknown)"
+            except (ValueError, TypeError):
+                # 数値に変換できない場合 (GUEST(hash)など)、そのまま表示名として使用
+                display_sender_name = str(user_id_from_article)
             try:
                 created_at_str = datetime.datetime.fromtimestamp(
                     article['created_at']).strftime("%Y/%m/%d %H:%M:%S")
@@ -1321,7 +1348,7 @@ class CommandHandler:
                 created_at_str = "----/--/-- --:--:--"
 
             self.chan.send(
-                f"Sender: {user_name if user_name else 'Unknown'}\r\n".encode('utf-8'))
+                f"Sender: {display_sender_name}\r\n".encode('utf-8'))
             self.chan.send(
                 f"Date: {created_at_str}\r\n".encode('utf-8'))
             self.chan.send(b'\r\n')
@@ -1339,8 +1366,8 @@ class CommandHandler:
                     if article_owner_id == self.user_id_pk:  # 投稿者本人は読める
                         can_read_deleted_body = True
                 except ValueError:
-                    logging.warning(
-                        f"記事(ID:{article['id']})の投稿者ID({article['user_id']})を数値に変換できませんでした（本文閲覧チェック時）。")
+                    # GUEST(hash) のような文字列はintに変換できないので、投稿者本人ではないと判断
+                    can_read_deleted_body = False
 
             if not can_read_deleted_body:
                 # 権限がない場合はメッセージを表示して本文表示をスキップ
@@ -1445,16 +1472,27 @@ class CommandHandler:
             util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
             return  # キャンセル
 
-        if self.article_manager.create_article(board_id_pk, self.user_id_pk, title, body, ip_address=client_ip):
+        # 投稿者識別子を決定
+        user_identifier = None
+        if self.login_id.upper() == 'GUEST':
+            # ゲストの場合、IPからハッシュ付きの表示名を生成
+            # util.get_display_name は 'GUEST(hash)' を返す
+            user_identifier = util.get_display_name(self.login_id, client_ip)
+        else:
+            # 登録ユーザーの場合、ユーザーID(数値)を使用
+            user_identifier = self.user_id_pk
+
+        if self.article_manager.create_article(board_id_pk, user_identifier, title, body, ip_address=client_ip):
             util.send_text_by_key(
                 self.chan, "bbs.post_success", self.menu_mode)
         else:
             util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
 
 
-def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
+def handle_bbs_menu(chan, dbname, login_id, display_name, menu_mode, shortcut_id, ip_address):
     """掲示板メニューのエントリーポイント"""
-    handler = CommandHandler(chan, dbname, login_id, menu_mode)
+    handler = CommandHandler(chan, dbname, login_id,
+                             display_name, menu_mode, ip_address)
     if shortcut_id:
         # ショートカットIDが指定されていれば、その掲示板に直接移動
         board_data_from_db = handler.board_manager.get_board_info(shortcut_id)
@@ -1492,9 +1530,8 @@ def handle_bbs_menu(chan, dbname, login_id, menu_mode, shortcut_id):
         if selected_item and selected_item.get("type") == "board":
             shortcut_id_selected = selected_item.get("id")
             # 再度 handle_bbs_menu を呼び出すか、直接 CommandHandler の処理を続ける
-            # handle_bbs_menu からの戻り値をそのまま返す
-            return handle_bbs_menu(chan, dbname, login_id,
-                                   menu_mode, shortcut_id_selected)
+            # ショートカット時と同様に、IPアドレスも渡す
+            return handle_bbs_menu(chan, dbname, login_id, display_name, menu_mode, shortcut_id_selected, ip_address)
         # else: 選択されなかったか、boardタイプではなかった場合。handle_hierarchical_menu内でメッセージ表示済みのはず。
         # hierarchical_menu から戻ってきた場合は、通常トップメニュー表示で問題ない想定
         return "back_to_top"

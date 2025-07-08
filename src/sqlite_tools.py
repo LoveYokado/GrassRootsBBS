@@ -651,7 +651,7 @@ def get_articles_by_board_id(dbname, board_id_pk, order_by="article_number ASC",
     指定された掲示板IDの記事リストを取得する。
     include_deleted=True の場合、削除済み記事も含む。
     """
-    sql = f"SELECT id, article_number, user_id, title, body, created_at, is_deleted FROM articles WHERE board_id = ?"
+    sql = f"SELECT id, article_number, user_id, title, body, created_at, is_deleted, ip_address FROM articles WHERE board_id = ?"
     params = [board_id_pk]
 
     if not include_deleted:
@@ -898,8 +898,9 @@ def send_system_mail(dbname, recipient_id, subject, body):
         return False
 
     sent_at = int(time.time())
-    sql = "INSERT INTO mails (sender_id, recipient_id, subject, body, sent_at) VALUES (?, ?, ?, ?, ?)"
-    params = (sender_id, recipient_id, subject, body, sent_at)
+    sql = "INSERT INTO mails (sender_id, recipient_id, subject, body, sent_at, sender_ip_address) VALUES (?, ?, ?, ?, ?, ?)"
+    params = (sender_id, recipient_id, subject, body,
+              sent_at, None)  # システムメールなのでIPはNone
     if sqlite_execute_query(dbname, sql, params):
         logging.info(
             f"システムメールを送信しました (To: UserID {recipient_id}, Subject: {subject})")
