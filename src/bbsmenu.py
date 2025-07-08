@@ -378,10 +378,18 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
 
         # 記事詳細を表示
         for article in new_articles:
-            sender_name = sqlite_tools.get_user_name_from_user_id(
-                dbname, article['user_id'])
+            user_id_from_article = article['user_id']
+            display_sender_name = ""
+            try:
+                user_id_int = int(user_id_from_article)
+                user_name = sqlite_tools.get_user_name_from_user_id(
+                    dbname, user_id_int)
+                display_sender_name = user_name if user_name else "(Unknown)"
+            except (ValueError, TypeError):
+                display_sender_name = str(user_id_from_article)
+
             sender_name_short = textwrap.shorten(
-                sender_name if sender_name else "(Unknown)", width=7, placeholder="..")
+                display_sender_name if display_sender_name else "(Unknown)", width=16, placeholder="...")
 
             created_at_str_date = "Unknown date"
             created_at_str_time = "Unknown time"
@@ -399,7 +407,7 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
             title_str = article['title'] if article['title'] else "(No Title)"
             # タイトル短縮
             title_short_str = textwrap.shorten(
-                title_str, width=43, placeholder="...")
+                title_str, width=34, placeholder="...")
 
             # 表示
             util.send_text_by_key(
@@ -482,10 +490,18 @@ def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user
             util.send_text_by_key(chan, "bbs.article_list_header", menu_mode)
 
             # 2. 見出し行を表示
-            sender_name = sqlite_tools.get_user_name_from_user_id(
-                dbname, article['user_id'])
+            user_id_from_article = article['user_id']
+            display_sender_name = ""
+            try:
+                user_id_int = int(user_id_from_article)
+                user_name = sqlite_tools.get_user_name_from_user_id(
+                    dbname, user_id_int)
+                display_sender_name = user_name if user_name else "(Unknown)"
+            except (ValueError, TypeError):
+                display_sender_name = str(user_id_from_article)
+
             sender_name_short = textwrap.shorten(
-                sender_name if sender_name else "(Unknown)", width=7, placeholder="..")
+                display_sender_name if display_sender_name else "(Unknown)", width=16, placeholder="...")
 
             created_at_str_date = "Unknown date"
             created_at_str_time = "Unknown time"
@@ -501,7 +517,7 @@ def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user
             article_number_str = f"{article['article_number']:05d}"
             title_str = article['title'] if article['title'] else "(No Title)"
             title_short_str = textwrap.shorten(
-                title_str, width=43, placeholder="...")
+                title_str, width=34, placeholder="...")
 
             util.send_text_by_key(
                 chan, "auto_download.article_info_format", menu_mode,

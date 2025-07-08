@@ -1232,9 +1232,9 @@ bbs:
     mode_2: "  [?] 説明 (総数: {total_count} 未読:{unread_count})"
     mode_3: "  [?] Explanation (Total: {total_count} Unread: {unread_count})"
   article_list_header: # 記事一覧のヘッダー
-    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
-    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
-    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-\r\n"
+    mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -CONTENTS-\r\n"
+    mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -CONTENTS-\r\n"
+    mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -CONTENTS-\r\n"
   no_articles: # 記事がない場合
     mode_1: "この記事はありません。\r\n"
     mode_2: "この記事はありません。\r\n"
@@ -1506,9 +1506,9 @@ auto_download:
     mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
     mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
   article_info_format: # {article_number_str}, {r_date_str}, {r_time_str}, {sender_name_short}, {title_short}
-    mode_1: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<7}  {title_short}"
-    mode_2: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<7}  {title_short}"
-    mode_3: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<7}  {title_short}"
+    mode_1: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<16}  {title_short}"
+    mode_2: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<16}  {title_short}"
+    mode_3: "{article_number_str}  {r_date_str} {r_time_str}  {sender_name_short:<16}  {title_short}"
 
   article_header_format: # {article_number}, {title}, {sender_name}, {created_at_str}
     mode_1: ""
