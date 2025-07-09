@@ -22,6 +22,7 @@ def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mo
         'regs': user_register,
         'pasc': change_user_password_by_sysop,
         'chgu': change_user_level,
+        'chga': change_auth_method,
         'kygn': regenerate_user_ssh_key,
         'vset': view_settings,
         'mnpm': change_top_menu_permission,
@@ -500,6 +501,79 @@ def change_user_password_by_sysop(chan, dbname, sysop_login_id, current_menu_mod
             util.send_text_by_key(
                 chan, "common_messages.cancel", current_menu_mode)
         return None
+
+    return None
+
+
+def change_auth_method(chan, dbname, sysop_login_id, current_menu_mode):
+    """ユーザーの認証方法を変更する"""
+    util.send_text_by_key(
+        chan, "sysop_menu.change_auth_method.header", current_menu_mode)
+    util.send_text_by_key(
+        chan, "sysop_menu.change_auth_method.user_name_prompt", current_menu_mode, add_newline=False)
+    target_user_input = ssh_input.process_input(chan)
+    if target_user_input is None:
+        return None
+    target_user = target_user_input.strip().upper()
+    if not target_user:
+        return None
+
+    user_data = sqlite_tools.get_user_auth_info(dbname, target_user)
+    if not user_data:
+        util.send_text_by_key(chan, "sysop_menu.change_auth_method.user_not_found",
+                              current_menu_mode, user_id=target_user)
+        return None
+
+    user_id_to_change = user_data['id']
+    user_name_to_change = user_data['name']
+    current_auth_method = user_data['auth_method']
+
+    # GUESTユーザーの認証方法は変更できないようにする
+    if user_name_to_change.upper() == 'GUEST':
+        util.send_text_by_key(
+            chan, "sysop_menu.change_auth_method.cannot_change_guest", current_menu_mode)
+        return None
+
+    util.send_text_by_key(chan, "sysop_menu.change_auth_method.current_method_info", current_menu_mode,
+                          name=user_name_to_change, user_id=user_id_to_change, method=current_auth_method)
+
+    valid_methods = ['key_only', 'password_only', 'both', 'webapp_only']
+    new_method = None
+    while new_method is None:
+        util.send_text_by_key(chan, "sysop_menu.change_auth_method.new_method_prompt", current_menu_mode,
+                              methods=", ".join(valid_methods), add_newline=False)
+        method_input = ssh_input.process_input(chan)
+        if method_input is None:
+            return None
+        method_input_stripped = method_input.strip().lower()
+        if not method_input_stripped:
+            return None
+
+        if method_input_stripped in valid_methods:
+            new_method = method_input_stripped
+        else:
+            util.send_text_by_key(
+                chan, "sysop_menu.change_auth_method.invalid_method", current_menu_mode)
+
+    if new_method == current_auth_method:
+        util.send_text_by_key(
+            chan, "sysop_menu.change_auth_method.no_change", current_menu_mode)
+        return None
+
+    util.send_text_by_key(chan, "sysop_menu.change_auth_method.confirm_yn", current_menu_mode,
+                          name=user_name_to_change, old_method=current_auth_method, new_method=new_method, add_newline=False)
+    confirm_input = ssh_input.process_input(chan)
+    if confirm_input is None or confirm_input.lower().strip() != 'y':
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
+        return None
+
+    if sqlite_tools.update_user_auth_method(dbname, user_id_to_change, new_method):
+        util.send_text_by_key(
+            chan, "sysop_menu.change_auth_method.success", current_menu_mode)
+    else:
+        util.send_text_by_key(
+            chan, "common_messages.database_update_error", current_menu_mode)
 
     return None
 

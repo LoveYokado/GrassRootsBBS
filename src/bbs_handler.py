@@ -64,7 +64,8 @@ class CommandHandler:
         if not self.current_board:
             return
 
-        kanban_body = self.current_board.get('kanban_body', '')
+        kanban_body = self.current_board['kanban_body'] if 'kanban_body' in self.current_board.keys(
+        ) else ''
 
         if not kanban_body:
             return  # 看板がなければ表示しない
@@ -776,7 +777,8 @@ class CommandHandler:
 
             elif key_input == "@":
                 # 現在の掲示板のショートカットIDを取得
-                target_shortcut_id = self.current_board.get('shortcut_id')
+                target_shortcut_id = self.current_board['shortcut_id'] if 'shortcut_id' in self.current_board.keys(
+                ) else None
                 if not target_shortcut_id:
                     logging.warning(
                         f"探索リストのトグル操作中にショートカットIDが取得できませんでした。board: {self.current_board}")

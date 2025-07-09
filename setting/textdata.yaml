@@ -483,7 +483,7 @@ sysop_menu:
       ■[LSBD] 掲示板一覧                      [CHGU] ユーザーレベル変更          □
       □[DLBD] 掲示板削除                      [DELU] 会員抹消                    ■
       ■[BDLV] 掲示板R/Wレベル設定             [REGS] 会員登録                    □
-      □[TREE] 階層構造マップ                  [SYMR] シンボルテーブルを読む      ■
+      □[TREE] 階層構造マップ                  [CHGA] 認証方法変更                ■
       ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く      □
       □[VSET] 設定一覧表示                                                       ■
       ■[EXIT] システム強制終了                [LETR] アンケート処理              □
@@ -504,6 +504,7 @@ sysop_menu:
       [REGS] 会員登録
       [DELU] 会員抹消
       [CHGU] ユーザーレベル変更
+      [CHGA] 認証方法変更
       [USRL] 会員一覧表示
       [VSET] 設定一覧表示
       [MNPM] トップメニューの会員レベル設定
@@ -526,6 +527,7 @@ sysop_menu:
       | REGS    | Register User: Add new member             |
       | DELU    | Delete User: Remove member account        |
       | CHGU    | Change User Level: Adjust user perms      |
+      | CHGA    | Change Auth Method: Set key/pass auth     |
       | USRL    | List Users: Show all members              |
       | VSET    | View Settings: Display system config      |
       | MNPM    | Set Menu Perms: Configure top menu access |
@@ -724,6 +726,47 @@ sysop_menu:
       mode_1: "ユーザーの権限レベルを変更しました。\r\n"
       mode_2: "ユーザーの権限レベルを変更しました。\r\n"
       mode_3: "UserLevel Changed.\r\n"
+  change_auth_method:
+    header:
+      mode_1: "** 認証方法を変更します **"
+      mode_2: "** 認証方法を変更します **"
+      mode_3: "** Change Authentication Method **"
+    user_name_prompt:
+      mode_1: "変更するユーザー名を入力してください: "
+      mode_2: "変更するユーザー名を入力してください: "
+      mode_3: "Enter username to change: "
+    user_not_found:
+      mode_1: "** ユーザー '{user_id}' は存在しません **"
+      mode_2: "** ユーザー '{user_id}' は存在しません **"
+      mode_3: "** User '{user_id}' not found **"
+    cannot_change_guest:
+      mode_1: "** GUESTユーザーの認証方法は変更できません。 **"
+      mode_2: "** GUESTユーザーの認証方法は変更できません。 **"
+      mode_3: "** The authentication method of the GUEST user cannot be changed. **"
+    current_method_info:
+      mode_1: "ユーザー '{name}' (ID: {user_id}) の現在の認証方法: {method}\r\n"
+      mode_2: "ユーザー '{name}' (ID: {user_id}) の現在の認証方法: {method}\r\n"
+      mode_3: "User '{name}' (ID: {user_id}) current auth method: {method}\r\n"
+    new_method_prompt:
+      mode_1: "新しい認証方法を入力してください ({methods}): "
+      mode_2: "新しい認証方法を入力してください ({methods}): "
+      mode_3: "Enter new auth method ({methods}): "
+    invalid_method:
+      mode_1: "無効な認証方法です。リストから選択してください。\r\n"
+      mode_2: "無効な認証方法です。リストから選択してください。\r\n"
+      mode_3: "Invalid auth method. Please select from the list.\r\n"
+    no_change:
+      mode_1: "現在の認証方法と同じため、変更はありません。\r\n"
+      mode_2: "現在の認証方法と同じため、変更はありません。\r\n"
+      mode_3: "No change, as it's the same as the current auth method.\r\n"
+    confirm_yn:
+      mode_1: "ユーザー '{name}' の認証方法を {old_method} から {new_method} に変更しますか？ (y/n): "
+      mode_2: "ユーザー '{name}' の認証方法を {old_method} から {new_method} に変更しますか？ (y/n): "
+      mode_3: "Change auth method for user '{name}' from {old_method} to {new_method}? (y/n): "
+    success:
+      mode_1: "ユーザーの認証方法を変更しました。\r\n"
+      mode_2: "ユーザーの認証方法を変更しました。\r\n"
+      mode_3: "User authentication method changed.\r\n"
   make_board:
     header_direct:
       mode_1: "--- 掲示板エントリー作成 ---"
@@ -1918,6 +1961,10 @@ auth:
     mode_1: "\r\n認証中にエラーが発生しました。切断します。\r\n"
     mode_2: "\r\n認証中にエラーが発生しました。切断します。\r\n"
     mode_3: "\r\nAn error occurred during authentication. Disconnecting.\r\n"
+  method_not_allowed:
+    mode_1: "この認証方法は許可されていません。\r\n"
+    mode_2: "この認証方法は許可されていません。\r\n"
+    mode_3: "This authentication method is not allowed.\r\n"
 
 # --- ログイン後処理関連 ---
 login:

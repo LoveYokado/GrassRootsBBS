@@ -616,6 +616,17 @@ def authenticate_user(chan, addr, dbname, max_password_attempts):
         stored_hash = userdata['password']
         salt_hex = userdata['salt']
 
+        # 認証方法のチェック (Webアプリからの対話認証)
+        auth_method = userdata['auth_method'] if 'auth_method' in userdata.keys(
+        ) else 'password_only'
+        # 'key_only' のユーザーはWebアプリからログインできないようにする
+        if auth_method not in ('password_only', 'both', 'webapp_only'):
+            logging.warning(
+                f"認証失敗: ユーザー '{login_id}' はWebアプリからのパスワード認証が許可されていません (auth_method: {auth_method}) ({addr})")
+            util.send_text_by_key(
+                chan, "auth.method_not_allowed", menu_mode=auth_menu_mode)
+            return None, None, None
+
         if userdata['level'] == 0:
             logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
             util.send_text_by_key(

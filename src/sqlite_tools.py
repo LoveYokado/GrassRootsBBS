@@ -567,6 +567,23 @@ def update_user_level(dbname, user_id, new_level):
         return False
 
 
+def update_user_auth_method(dbname, user_id, new_auth_method):
+    """ユーザーの認証方法を更新"""
+    ALLOWED_METHODS = ['key_only', 'password_only', 'both', 'webapp_only']
+    if new_auth_method not in ALLOWED_METHODS:
+        logging.error(f"無効な認証方法が指定されました: {new_auth_method}")
+        return False
+    sql = "UPDATE users SET auth_method=? WHERE id=?"
+    try:
+        success = sqlite_execute_query(dbname, sql, (new_auth_method, user_id))
+        if success:
+            logging.info(f"ユーザーID {user_id} の認証方法を {new_auth_method} に更新しました。")
+        return success
+    except Exception as e:
+        logging.error(f"認証方法更新中にDBエラー (UserID: {user_id}): {e}")
+        return False
+
+
 def get_board_by_shortcut_id(dbname, shortcut_id):
     """指定されたショートカットIDの掲示板情報をDBから取得"""
     sql = "SELECT id, shortcut_id, name, description, operators, default_permission, kanban_body, last_posted_at, status, read_level, write_level FROM boards WHERE shortcut_id = ?"
