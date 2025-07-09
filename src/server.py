@@ -499,7 +499,7 @@ def process_command_loop(chan, dbname, login_id, display_name, user_id, userleve
         elif command == "l":
             online_signup_enabled = util.app_config.get(  # serverセクションのキーを大文字に
                 'server', {}).get('ONLINE_SIGNUP', False)
-            if online_signup_enabled:
+            if online_signup_enabled and userlevel == 1:
                 bbsmenu.handle_online_signup(
                     chan, dbname, current_loop_menu_mode)
                 util.send_text_by_key(
