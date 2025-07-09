@@ -293,17 +293,23 @@ def view_settings(chan, dbname, _sysop_login_id, current_menu_mode):
     """設定一覧表示"""
     server_prefs_list = sqlite_tools.read_server_pref(dbname)
     if server_prefs_list:
-        pref_names = ['bbs', 'chat', 'mail',
-                      'telegram', 'userpref', 'who', 'hamlet']
+        # sqlite_tools.read_server_pref が返すリストの順序と一致させる必要がある
+        all_pref_names = ['bbs', 'chat', 'mail', 'telegram',
+                          'userpref', 'who', 'default_exploration_list', 'hamlet']
+        server_prefs_dict = dict(zip(all_pref_names, server_prefs_list))
+
+        # vset で表示する項目
+        display_pref_names = ['bbs', 'chat', 'mail',
+                              'telegram', 'userpref', 'who', 'hamlet']
+
         util.send_text_by_key(
             chan, "sysop_menu.view_settings.header", current_menu_mode)
-        for i, name in enumerate(pref_names):
-            if i < len(server_prefs_list):
-                chan.send('{:<20} {:<20}\r\n'.format(
-                    name, server_prefs_list[i]))
-            else:
-                chan.send('{:<20} {:<20}\r\n'.format(name, '(error)'))
-        chan.send('-' * 36 + "\r\n")
+        for name in display_pref_names:
+            value = server_prefs_dict.get(name, '(error)')
+            line = '{:<20} {:<20}\r\n'.format(str(name), str(value))
+            chan.send(line.encode('utf-8'))
+
+        chan.send(('-' * 41 + "\r\n").encode('utf-8'))
     else:
         util.send_text_by_key(
             chan, "sysop_menu.view_settings.no_settings_error", current_menu_mode)

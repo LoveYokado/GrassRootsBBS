@@ -604,6 +604,12 @@ def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mo
     if not shortcut_input.startswith(';'):
         return False
 
+    # ゲストはショートカット機能を使えないようにする
+    if login_id.upper().startswith('GUEST'):
+        send_text_by_key(chan, "common_messages.permission_denied", menu_mode)
+        # ショートカットとして処理したが、権限なしで終了したことを示す
+        return True
+
     raw_shortcut_id_with_prefix = shortcut_input[1:]
     if not raw_shortcut_id_with_prefix:
         return True  # 空のショートカットは無視
