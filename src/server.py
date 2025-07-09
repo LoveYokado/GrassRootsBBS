@@ -1,28 +1,18 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado) <hogehoge@gmail.com>
 # SPDX-License-Identifier: MIT
 
-import mail_handler
 import sqlite_tools
-import bbsmenu
 import util
 import ssh_input
 import threading
 import paramiko
-import hashlib
 import socket
 import os
 import time
 import logging
 import datetime
 
-import user_pref_menu
-import util
-import sysop_menu
-import hierarchical_menu
-import chat_handler
-import bbs_handler
-import manual_menu_handler
-import hamlet_game
+import command_dispatcher
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
@@ -269,268 +259,57 @@ def process_command_loop(chan, dbname, login_id, display_name, user_id, userleve
     Returns:
         bool: 正常にログオフした場合はTrue、それ以外はFalse
     """
-    current_loop_menu_mode = initial_menu_mode
-    normal_logoff = False  # ループ内でログオフ状態を管理
-    while True:
-        # 定期実行
-        util.prompt_handler(chan, dbname, login_id, current_loop_menu_mode)
+    current_menu_mode = initial_menu_mode
+    normal_logoff = False
 
-        # プロンプト表示
+    while True:
+        util.prompt_handler(chan, dbname, login_id, current_menu_mode)
         util.send_text_by_key(chan, "prompt.topmenu",
-                              current_loop_menu_mode, add_newline=False)
+                              current_menu_mode, add_newline=False)
         input_buffer = ssh_input.process_input(chan)
 
-        if input_buffer is None:  # クライアント切断
+        if input_buffer is None:
             logging.info(f"ユーザ {login_id} が切断しました。({addr})")
-            normal_logoff = False  # 異常終了
-            break  # ループを抜ける
+            normal_logoff = False
+            break
 
         command = input_buffer.lower().strip()
 
-        # bbs_handler_result をループの先頭で初期化
-        bbs_handler_result = None
-        chat_handler_result = None
-        mail_handler_result = None
-        user_pref_result = None  # user_pref_menu の結果用
-        sysop_menu_result = None  # sysop_menu の結果用
-        # 空エンターの場合はトップメニューを再表示
         if command == "":
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
+            util.send_text_by_key(chan, "top_menu.menu", current_menu_mode)
             continue
 
-        # ショートカット処理
-        if util.handle_shortcut(chan, dbname, login_id, display_name, current_loop_menu_mode, command, get_online_members_list):
+        if util.handle_shortcut(chan, dbname, login_id, display_name, current_menu_mode, command, get_online_members_list):
             continue
 
-        # ヘルプメニュー表示 ヘルプがHと?で別にもできる
-        if command in ('h'):
-            # ヘルプメニュー表示(menu_mode)
-            util.send_text_by_key(chan, "top_menu.help_h",
-                                  current_loop_menu_mode)
-        elif command in ('?'):
-            util.send_text_by_key(chan, "top_menu.help_q",
-                                  current_loop_menu_mode)
-            # ヘルプ表示後はトップメニューを再表示
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
+        context = {
+            'chan': chan,
+            'dbname': dbname,
+            'login_id': login_id,
+            'display_name': display_name,
+            'user_id': user_id,
+            'userlevel': userlevel,
+            'server_pref_dict': server_pref_dict,
+            'addr': addr,
+            'menu_mode': current_menu_mode,
+            'online_members_func': get_online_members_list,
+        }
 
-        # 新アーティクル探索
-        elif command == "n" and userlevel >= server_pref_dict.get("bbs", 1):
-            bbsmenu._handle_explore_new_articles(
-                chan, dbname, login_id, user_id, userlevel, current_loop_menu_mode
-            )
-            # 表示後はトップメニューを再表示
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
+        result = command_dispatcher.dispatch_command(command, context)
 
-        # 全シグ探索 (X) - BBS閲覧権限があれば使用可能
-        elif command == "x" and userlevel >= server_pref_dict.get("bbs", 1):
-            default_exploration_list = server_pref_dict.get(
-                "default_exploration_list", "")
-            bbsmenu._handle_full_sig_exploration(
-                chan, dbname, login_id, user_id, userlevel, current_loop_menu_mode, default_exploration_list
-            )
-            # 表示後はトップメニューを再表示
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-
-        elif command == "o" and userlevel >= server_pref_dict.get("bbs", 1):
-
-            bbsmenu.handle_new_article_headlines(
-                chan, dbname, login_id, user_id, userlevel, current_loop_menu_mode
-            )
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-
-        # 新アーティクル自動ダウンロード
-        elif command == "a" and userlevel >= server_pref_dict.get("bbs", 1):
-            bbsmenu.handle_auto_download(
-                chan, dbname, login_id, user_id, userlevel, current_loop_menu_mode
-            )
-            # 表示後はトップメニューを再表示
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-
-        # シスオペメニュー
-        elif command == "s" and userlevel >= 5:
-            # シスオペメニュー(menu_mode)
-            # sysop_menu から戻ってきたらトップメニューを表示するため、結果を受け取る
-            sysop_menu_result = sysop_menu.sysop_menu(chan, dbname, login_id, display_name,
-                                                      current_loop_menu_mode)
-
-        # サーバ設定メニュー
-        elif command == "v" and userlevel >= 5:
-            # サーバ設定メニュー(menu_mode)
-            pass
-
-        # オンラインメンバー一覧表示
-        elif command == "w" and userlevel >= server_pref_dict.get("who", 1):
-            online_members_dict = get_online_members_list()
-            bbsmenu.who_menu(chan, dbname, online_members_dict,
-                             current_loop_menu_mode)
-            # who_menu 表示後はトップメニューを再表示
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-
-        # 電報送信
-        elif command in ("#", "!") and userlevel >= server_pref_dict.get("telegram", 1):
-            online_members_dict = get_online_members_list()
-            util.telegram_send(chan, dbname, display_name,
-                               list(online_members_dict.keys()), current_loop_menu_mode)
-            # telegram_send 後はトップメニューを再表示
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-
-        # ユーザー環境設定
-        elif command == "u" and userlevel >= server_pref_dict.get("userpref", 1):
-            previous_menu_mode_before_userpref = current_loop_menu_mode
-            # userpref_menu は変更後のメニューモード('1','2','3')または"back_to_top"、Noneを返す
-            user_pref_result = user_pref_menu.userpref_menu(
-                chan, dbname, login_id, display_name, current_loop_menu_mode)
-
-            # After returning from user_pref_menu, reload user data to get the latest lastlogin
-            # This is important because user_pref_menu might update lastlogin or menu_mode
-            reloaded_user_data = sqlite_tools.get_user_auth_info(
-                dbname, login_id)
-            # reloaded_user_data を使って何かをする必要があればここに記述
-            # 現状は、次に CommandHandler がインスタンス化される際に最新情報が使われることを期待
-
-            if user_pref_result in ('1', '2', '3'):  # 有効なメニューモード文字列が返ってきた場合
-                current_loop_menu_mode = user_pref_result  # current_loop_menu_mode を更新
-                if current_loop_menu_mode != previous_menu_mode_before_userpref:
-                    # メニューモードが実際に変更された場合、新しいモードでトップメニューを表示
-                    util.send_text_by_key(
-                        chan, "top_menu.menu", current_loop_menu_mode)
-
-        # メール送信
-        elif command == "m" and userlevel >= server_pref_dict.get("mail", 1):
-            mail_handler_result = mail_handler.mail(
-                chan, dbname, login_id, current_loop_menu_mode)
-        # 掲示板
-        elif command == "b" and userlevel >= server_pref_dict.get("bbs", 1):
-            while True:  # 掲示板メニュー内をループ
-                bbs_handler_result = None  # ループごとにリセット
-                if current_loop_menu_mode in ('2', '3'):
-                    paths_config = util.app_config.get('paths', {})
-                    bbs_config_path = paths_config.get('bbs_mode3_yaml')
-                    selected_item = hierarchical_menu.handle_hierarchical_menu(
-                        chan, bbs_config_path, current_loop_menu_mode, menu_type="BBS",
-                        dbname=dbname, enrich_boards=True)
-
-                    if selected_item and selected_item.get("type") == "board":
-                        item_id = selected_item.get("id")
-                        bbs_handler_result = bbs_handler.handle_bbs_menu(
-                            chan, dbname, login_id, display_name, current_loop_menu_mode, item_id, addr[0])
-                    else:
-                        # 階層メニューを抜けた場合
-                        break
-                else:  # mode1
-                    paths_config = util.app_config.get('paths', {})
-                    selected_board_id = manual_menu_handler.process_manual_menu(
-                        chan, dbname, login_id, current_loop_menu_mode, menu_config_path=paths_config.get(
-                            'bbs_mode1_yaml'),
-                        initial_menu_id="main_bbs_menu", menu_type="bbs")
-
-                    if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
-                        bbs_handler_result = bbs_handler.handle_bbs_menu(chan, dbname, login_id, display_name,
-                                                                         current_loop_menu_mode, selected_board_id, addr[0])
-                    else:
-                        # 手書きメニューを抜けた場合
-                        if selected_board_id in ("exit_bbs_menu", "back_to_top"):
-                            logging.info(
-                                f"手書きメニューが終了、またはトップに戻りました: {selected_board_id}")
-                        elif selected_board_id is None:
-                            logging.info(f"手書きメニュー処理中に切断されました。")
-                        break
-
-                # 掲示板から戻ってきたときの処理
-                if bbs_handler_result == "back_one_level":
-                    # 1階層戻る = ボード選択メニューを再表示
-                    continue
-                else:
-                    # 切断(None)またはその他の理由で掲示板メニューを抜ける
-                    break
-            # 掲示板メニューから抜けたときにトップメニューを再表示
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-
-        # チャット
-        elif command == "c" and userlevel >= server_pref_dict.get("chat", 1):
-            while True:  # チャットメニュー内をループ
-                chat_handler_result = None  # ループごとにリセット
-                paths_config = util.app_config.get('paths', {})
-                chat_config_path = paths_config.get('chatroom_yaml')
-                selected_item = hierarchical_menu.handle_hierarchical_menu(
-                    chan, chat_config_path, current_loop_menu_mode, menu_type="CHAT"
-                )
-                if selected_item:
-                    # selected_item の type や id に応じた処理
-                    terminal_item_type = selected_item.get("type")
-                    item_id = selected_item.get("id")
-                    item_name = selected_item.get("name", "未定義の項目")
-
-                    if terminal_item_type == "room":  # チャットでは "room"
-                        util.send_text_by_key(
-                            chan, "chat.entering_room", current_loop_menu_mode, room_name=item_name, room_id=item_id)
-                        chat_handler.set_online_members_function_for_chat(
-                            get_online_members_list)  # 関数を渡す
-                        chat_handler_result = chat_handler.handle_chat_room(  # 結果を受け取る
-                            chan, dbname, login_id, display_name, current_loop_menu_mode, item_id, item_name)
-                    else:
-                        # 汎用メニューで選択されたが、チャット機能では解釈できないtypeの場合
-                        util.send_text_by_key(
-                            chan, "common_messages.error", current_loop_menu_mode)
-                        logging.warning(
-                            f"項目「{item_name}」(ID: {item_id}, Type: {terminal_item_type}) が選択されましたが、この機能では処理できません。")
-                        break  # ループを抜ける
-                else:
-                    # 階層メニューを抜けた場合
-                    break
-
-                if chat_handler_result == "back_one_level":
-                    continue
-                else:
-                    break
-            # チャットメニューから抜けたときにトップメニューを再表示
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-        # オンラインサインアップ(config.toml の online_signup 設定で有効/無効を切り替え)
-        elif command == "l":
-            online_signup_enabled = util.app_config.get(  # serverセクションのキーを大文字に
-                'server', {}).get('ONLINE_SIGNUP', False)
-            if online_signup_enabled and userlevel == 1:
-                bbsmenu.handle_online_signup(
-                    chan, dbname, current_loop_menu_mode)
+        if result['status'] == 'continue':
+            if 'new_menu_mode' in result:
+                current_menu_mode = result['new_menu_mode']
                 util.send_text_by_key(
-                    chan, "top_menu.menu", current_loop_menu_mode)
-            else:
-                util.send_text_by_key(
-                    chan, "common_messages.invalid_command", current_loop_menu_mode)
-        # 切断処理
-        elif command == "e":
+                    chan, "top_menu.menu", current_menu_mode)
+            continue
+        elif result['status'] == 'logoff':
             normal_logoff = logoff_user(
-                chan, dbname, login_id, user_id, current_loop_menu_mode)
+                chan, dbname, login_id, user_id, current_menu_mode)
             break  # ループを抜ける
-
-        # ハムレットゲーム
-        elif command == "z" and userlevel >= server_pref_dict.get("hamlet", 1):
-            hamlet_game.run_game_vs_ai(chan, current_loop_menu_mode)
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-
-        else:
-            util.send_text_by_key(chan, "top_menu.help_h",
-                                  current_loop_menu_mode)
-            # 不明なコマンドの後もトップメニューを表示（ヘルプ表示と同じ扱い）
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-
-        # 各ハンドラから "back_to_top" が返ってきた場合にトップメニューを表示
-        if mail_handler_result == "back_to_top" or user_pref_result == "back_to_top" or sysop_menu_result == "back_to_top":
-            util.send_text_by_key(chan, "top_menu.menu",
-                                  current_loop_menu_mode)
-        # コマンドループ終了 (while True)
+        elif result['status'] == 'break':
+            normal_logoff = False  # 異常終了
+            break
 
     return normal_logoff  # ログオフ状態を返す
 
@@ -746,8 +525,8 @@ def handle_client(client, addr, host_keys, is_web_app=True):
                 if results:
                     userdata = results[0]
                     user_id = userdata['id']
-                    user_level_val = userdata['level'] if 'level' in userdata.keys(
-                    ) else 0
+                    user_level_val = userdata.get('level', 0)
+                    initial_user_menu_mode = userdata.get('menu_mode', '1')
 
                     if user_level_val == 0:
                         logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
@@ -761,8 +540,9 @@ def handle_client(client, addr, host_keys, is_web_app=True):
                     logging.warning(
                         f"SSH鍵認証ユーザ '{login_id}'はDBに登録されていません ({addr})")
                     if chan.active:
+                        # ユーザー情報がないため、メニューモードはデフォルト値'1'を直接使用
                         util.send_text_by_key(
-                            chan, "auth.account_disabled", initial_user_menu_mode)
+                            chan, "auth.account_disabled", "1")
                     return
             else:
                 logging.warning(f"通常接続でparamiko認証に失敗しました。 ({addr})")
