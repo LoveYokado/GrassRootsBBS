@@ -22,6 +22,7 @@ def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
         '10': edit_blacklist,
         '11': change_email_address,
         '12': generate_ssh_key,
+        '13': change_auth_method,
         'e': lambda *args: "back_to_top",  # メニュー終了
         '': lambda *args: "back_to_top",   # 空入力もメニュー終了
         'h': display_help,
@@ -423,6 +424,70 @@ def edit_blacklist(chan, dbname, login_id, current_menu_mode):
         logging.error(f"ブラックリスト更新時にエラーが発生しました。{login_id}")
         util.send_text_by_key(
             chan, "common_messages.error", current_menu_mode)
+    return None
+
+
+def change_auth_method(chan, dbname, login_id, current_menu_mode):
+    """ユーザー自身の認証方法を変更する"""
+    util.send_text_by_key(
+        chan, "user_pref_menu.change_auth_method.header", current_menu_mode)
+
+    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+    if not user_data:
+        util.send_text_by_key(
+            chan, "common_messages.user_not_found", current_menu_mode)
+        return None
+
+    user_id_to_change = user_data['id']
+    user_name_to_change = user_data['name']
+    current_auth_method = user_data['auth_method']
+
+    if user_name_to_change.upper() == 'GUEST':
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_auth_method.cannot_change_guest", current_menu_mode)
+        return None
+
+    util.send_text_by_key(chan, "user_pref_menu.change_auth_method.current_method_info", current_menu_mode,
+                          method=current_auth_method)
+
+    valid_methods = ['key_only', 'password_only', 'both', 'webapp_only']
+    new_method = None
+    while new_method is None:
+        util.send_text_by_key(chan, "user_pref_menu.change_auth_method.new_method_prompt", current_menu_mode,
+                              methods=", ".join(valid_methods), add_newline=False)
+        method_input = ssh_input.process_input(chan)
+        if method_input is None:
+            return None
+        method_input_stripped = method_input.strip().lower()
+        if not method_input_stripped:
+            return None
+
+        if method_input_stripped in valid_methods:
+            new_method = method_input_stripped
+        else:
+            util.send_text_by_key(
+                chan, "user_pref_menu.change_auth_method.invalid_method", current_menu_mode)
+
+    if new_method == current_auth_method:
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_auth_method.no_change", current_menu_mode)
+        return None
+
+    util.send_text_by_key(chan, "user_pref_menu.change_auth_method.confirm_yn", current_menu_mode,
+                          old_method=current_auth_method, new_method=new_method, add_newline=False)
+    confirm_input = ssh_input.process_input(chan)
+    if confirm_input is None or confirm_input.lower().strip() != 'y':
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
+        return None
+
+    if sqlite_tools.update_user_auth_method(dbname, user_id_to_change, new_method):
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_auth_method.success", current_menu_mode)
+    else:
+        util.send_text_by_key(
+            chan, "common_messages.database_update_error", current_menu_mode)
+
     return None
 
 

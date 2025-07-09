@@ -211,6 +211,7 @@ user_pref_menu:
       ●[2] パスワード変更     [6] 探索リスト登録          [10] ブラックリスト編集 ○
       ○[3] プロフィール変更   [7] 探索リスト読み出し      [11] メールアドレス変更 ●
       ●[4] 会員リスト         [8] 元探索リスト読み出し    [12] SSH鍵生成          ○
+      ○[13] 認証方法変更                                                          ●
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ====================================================
@@ -228,6 +229,7 @@ user_pref_menu:
       [10] ブラックリスト編集
       [11] メールアドレス変更
       [12] SSH鍵生成
+      [13] 認証方法変更
       [E] 終了
       [H,?]: ヘルプ
       ====================================================
@@ -247,6 +249,7 @@ user_pref_menu:
       | 10      | Edit Blacklist: Manage blocked users           |
       | 11      | Change Email: Update mail address              |
       | 12      | Generate SSH Key: Create a new SSH key pair    |
+      | 13      | Change Auth Method: Set key/pass auth          |
       | E       | Exit: Return to main menu                      |
       | H, ?    | Help: Display this help menu                   |
       +---------+------------------------------------------------+
@@ -433,6 +436,39 @@ user_pref_menu:
       mode_1: "プロフィールの更新をキャンセルしました。\r\n"
       mode_2: "プロフィールの更新をキャンセルしました。\r\n"
       mode_3: "Profile update cancelled.\r\n"
+  change_auth_method:
+    header:
+      mode_1: "** 認証方法を変更します **"
+      mode_2: "** 認証方法を変更します **"
+      mode_3: "** Change Authentication Method **"
+    cannot_change_guest:
+      mode_1: "** GUESTユーザーの認証方法は変更できません。 **"
+      mode_2: "** GUESTユーザーの認証方法は変更できません。 **"
+      mode_3: "** The authentication method of the GUEST user cannot be changed. **"
+    current_method_info:
+      mode_1: "現在の認証方法: {method}\r\n"
+      mode_2: "現在の認証方法: {method}\r\n"
+      mode_3: "Current auth method: {method}\r\n"
+    new_method_prompt:
+      mode_1: "新しい認証方法を入力してください ({methods}): "
+      mode_2: "新しい認証方法を入力してください ({methods}): "
+      mode_3: "Enter new auth method ({methods}): "
+    invalid_method:
+      mode_1: "無効な認証方法です。リストから選択してください。\r\n"
+      mode_2: "無効な認証方法です。リストから選択してください。\r\n"
+      mode_3: "Invalid auth method. Please select from the list.\r\n"
+    no_change:
+      mode_1: "現在の認証方法と同じため、変更はありません。\r\n"
+      mode_2: "現在の認証方法と同じため、変更はありません。\r\n"
+      mode_3: "No change, as it's the same as the current auth method.\r\n"
+    confirm_yn:
+      mode_1: "認証方法を {old_method} から {new_method} に変更しますか？ (y/n): "
+      mode_2: "認証方法を {old_method} から {new_method} に変更しますか？ (y/n): "
+      mode_3: "Change auth method from {old_method} to {new_method}? (y/n): "
+    success:
+      mode_1: "認証方法を変更しました。\r\n"
+      mode_2: "認証方法を変更しました。\r\n"
+      mode_3: "Authentication method changed.\r\n"
   change_email:
     current_email:
       mode_1: "現在のメールアドレスは「{email}」です。\r\n"
