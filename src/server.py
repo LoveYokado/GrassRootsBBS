@@ -721,9 +721,17 @@ def handle_client(client, addr, host_keys, is_web_app=True):
                 if not db_name_from_config:
                     logging.error("DB名が設定されていません")
                     return
+
+                # 動的ゲストIDに対応するための修正
+                id_to_lookup = login_id
+                if login_id.upper().startswith('GUEST('):
+                    id_to_lookup = 'GUEST'
+                    logging.info(
+                        f"動的ゲストID '{login_id}' を検出。DB検索用に 'GUEST' を使用します。")
+
                 # SSHユーザ名でDBからユーザ情報を取得
                 results = sqlite_tools.fetchall_idbase(
-                    db_name_from_config, 'users', 'name', login_id)
+                    db_name_from_config, 'users', 'name', id_to_lookup)
                 if results:
                     userdata = results[0]
                     user_id = userdata['id']
