@@ -293,7 +293,8 @@ def view_settings(chan, dbname, _sysop_login_id, current_menu_mode):
     """設定一覧表示"""
     server_prefs_list = sqlite_tools.read_server_pref(dbname)
     if server_prefs_list:
-        pref_names = ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who']
+        pref_names = ['bbs', 'chat', 'mail',
+                      'telegram', 'userpref', 'who', 'hamlet']
         util.send_text_by_key(
             chan, "sysop_menu.view_settings.header", current_menu_mode)
         for i, name in enumerate(pref_names):
@@ -313,7 +314,8 @@ def change_top_menu_permission(chan, dbname, _sysop_login_id, current_menu_mode)
     """トップメニューのアクセス権限変更"""
     util.send_text_by_key(
         chan, "sysop_menu.set_permissions.header", current_menu_mode)
-    valid_menus = ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who']
+    valid_menus = ['bbs', 'chat', 'mail',
+                   'telegram', 'userpref', 'who', 'hamlet']
     menu_to_change = None
 
     while menu_to_change is None:
@@ -390,6 +392,12 @@ def change_user_level(chan, dbname, sysop_login_id, current_menu_mode):
     user_id_to_change = user_data['id']
     user_name_to_change = user_data['name']
     current_level = user_data['level']
+
+    # GUESTユーザーのレベル変更を禁止
+    if user_name_to_change.upper() == 'GUEST':
+        util.send_text_by_key(
+            chan, "sysop_menu.change_user_level.cannot_change_guest", current_menu_mode)
+        return None
 
     util.send_text_by_key(chan, "sysop_menu.change_user_level.current_level_info", current_menu_mode,
                           name=user_name_to_change, user_id=user_id_to_change, level=current_level)

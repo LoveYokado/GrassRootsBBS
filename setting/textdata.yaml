@@ -577,9 +577,9 @@ sysop_menu:
       mode_2: "各BBSメニューのユーザレベルごとのパーミッションを設定します。"
       mode_3: "Set Permissions for BBS Menus"
     prompt:
-      mode_1: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): "
-      mode_2: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who): "
-      mode_3: "Select a feature to set user level for (bbs,chat,mail,telegram,userpref,who): "
+      mode_1: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who,hamlet): "
+      mode_2: "ユーザレベルを設定する機能を選択してください(bbs,chat,mail,telegram,userpref,who,hamlet): "
+      mode_3: "Select a feature to set user level for (bbs,chat,mail,telegram,userpref,who,hamlet): "
     user_level_message:
       mode_1: "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n"
       mode_2: "0:無効 1:ゲスト 2:一般ユーザ 3:シグオペ 4:サブオペ 5:シスオペ\r\n"
@@ -696,6 +696,10 @@ sysop_menu:
       mode_1: "** {user_id} は存在しません **"
       mode_2: "** {user_id} は存在しません **"
       mode_3: "** {user_id} not found **"
+    cannot_change_guest:
+      mode_1: "** GUESTユーザーのレベルは変更できません。 **"
+      mode_2: "** GUESTユーザーのレベルは変更できません。 **"
+      mode_3: "** The level of the GUEST user cannot be changed. **"
     current_level_info:
       mode_1: "ユーザー '{name}' (ID: {user_id}) の現在の権限レベル: {level}\r\n"
       mode_2: "ユーザー '{name}' (ID: {user_id}) の現在の権限レベル: {level}\r\n"

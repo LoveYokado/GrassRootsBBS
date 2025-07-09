@@ -382,10 +382,10 @@ def process_command_loop(chan, dbname, login_id, display_name, user_id, userleve
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
 
-        # 　ユーザ環境設定(ゲスト以上すべて)
-        elif command in ("u") and userlevel >= 1:
+        # ユーザー環境設定
+        elif command == "u" and userlevel >= server_pref_dict.get("userpref", 1):
             previous_menu_mode_before_userpref = current_loop_menu_mode
-            # userpref_menu は変更後のメニューモード('1','2','3')または"back_to_top"、Noneを返す。表示名も渡す
+            # userpref_menu は変更後のメニューモード('1','2','3')または"back_to_top"、Noneを返す
             user_pref_result = user_pref_menu.userpref_menu(
                 chan, dbname, login_id, display_name, current_loop_menu_mode)
 
@@ -513,8 +513,8 @@ def process_command_loop(chan, dbname, login_id, display_name, user_id, userleve
                 chan, dbname, login_id, user_id, current_loop_menu_mode)
             break  # ループを抜ける
 
-        elif command == "z":
-            # ハムレットゲーム
+        # ハムレットゲーム
+        elif command == "z" and userlevel >= server_pref_dict.get("hamlet", 1):
             hamlet_game.run_game_vs_ai(chan, current_loop_menu_mode)
             util.send_text_by_key(chan, "top_menu.menu",
                                   current_loop_menu_mode)
@@ -818,16 +818,16 @@ def handle_client(client, addr, host_keys, is_web_app=True):
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(db_name_from_config)
-            # default_exploration_list を追加
             pref_names = ['bbs', 'chat', 'mail', 'telegram',
-                          'userpref', 'who', 'default_exploration_list']
-            if pref_list and len(pref_list) == len(pref_names):
+                          'userpref', 'who', 'default_exploration_list', 'hamlet']
+            if pref_list and len(pref_list) >= len(pref_names):
                 server_pref_dict = dict(zip(pref_names, pref_list))
             else:
                 # sqlite_tools.read_server_pref がデフォルト値を返すようになったため、
                 logging.error("サーバ設定読み込みエラーです。デフォルト値を使用します。")
-                default_prefs = {'bbs': 0, 'chat': 1, 'mail': 1,
-                                 'telegram': 1, 'userpref': 1, 'who': 1}
+                # 最新のデフォルト値に更新
+                default_prefs = {'bbs': 2, 'chat': 2, 'mail': 2,
+                                 'telegram': 2, 'userpref': 2, 'who': 2, 'hamlet': 2, 'default_exploration_list': ''}
                 server_pref_dict = default_prefs
             userlevel = userdata['level'] if userdata and 'level' in userdata.keys(
             ) else 0
