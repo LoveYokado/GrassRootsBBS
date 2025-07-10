@@ -190,13 +190,23 @@ class Server(paramiko.ServerInterface):
         return ''
 
 
-def logoff_user(chan, dbname, login_id, user_id, menu_mode):
+def logoff_user(chan, dbname, login_id, display_name, user_id, menu_mode):
     """ユーザの正常なログオフ処理を行う"""
     global online_members_lock, online_members
     logged_off_successfully = False  # ログオフフラグ
 
     # ログオフメッセージ表示
     util.send_text_by_key(chan, "logoff.message", menu_mode)
+
+    # 接続ログファイルへの記録
+    try:
+        connection_logger = logging.getLogger('connection_log')
+        ip_address = chan.getpeername(
+        )[0] if chan.active and chan.getpeername() else "N/A"
+        connection_logger.info(
+            f"LOGOFF - ID: {login_id}, DisplayName: {display_name}, IP: {ip_address}")
+    except Exception as e:
+        logging.error(f"ログオフ時の接続ログ記録に失敗 ({login_id}): {e}")
 
     # オンラインメンバーから削除
     removed_from_list = False
@@ -309,7 +319,7 @@ def process_command_loop(chan, dbname, login_id, display_name, user_id, userleve
             continue
         elif result['status'] == 'logoff':
             normal_logoff = logoff_user(
-                chan, dbname, login_id, user_id, current_menu_mode)
+                chan, dbname, login_id, display_name, user_id, current_menu_mode)
             break  # ループを抜ける
         elif result['status'] == 'break':
             normal_logoff = False  # 異常終了
@@ -582,6 +592,11 @@ def handle_client(client, addr, host_keys, is_web_app=True):
             with online_members_lock:
                 online_members[login_id] = {
                     "display_name": display_name, "addr": addr, "menu_mode": initial_user_menu_mode}
+            # 接続ログファイルへの記録
+            connection_logger = logging.getLogger('connection_log')
+            connection_logger.info(
+                f"LOGIN - ID: {login_id}, DisplayName: {display_name}, IP: {addr[0]}")
+
             logging.info(
                 f"ユーザ {login_id}({display_name}) がログインしました。オンライン: {len(online_members)}人")
             # 最終ログイン時刻を文字列化
@@ -670,6 +685,12 @@ def handle_client(client, addr, host_keys, is_web_app=True):
             logging.warning(
                 f"予期せぬ切断またはエラーのため、追加のログオフ処理を実行します。: {login_id}")
 
+            # 接続ログファイルへの記録 (異常切断)
+            connection_logger = logging.getLogger('connection_log')
+            display_name_for_log = util.get_display_name(
+                login_id, addr[0])
+            connection_logger.info(
+                f"DISCONNECT - ID: {login_id}, DisplayName: {display_name_for_log}, IP: {addr[0]}")
             # オンラインメンバーから削除 (login_id が None でないことを確認)
             if login_id:
                 removed_from_list_finally = False
@@ -837,6 +858,20 @@ def main():
             logging.StreamHandler()
         ]
     )
+
+    # 接続ログ用のロガーをセットアップ
+    connection_logger = logging.getLogger('connection_log')
+    connection_logger.setLevel(logging.INFO)
+    # ログが親ロガー(root)に伝播しないようにする
+    connection_logger.propagate = False
+    # ハンドラが既に追加されているかチェック (複数回mainが呼ばれる可能性を考慮)
+    if not connection_logger.handlers:
+        conn_log_path = os.path.join(log_dir, "connection.log")
+        conn_handler = logging.FileHandler(conn_log_path, 'a', 'utf-8')
+        # フォーマットは時刻とメッセージのみ
+        conn_formatter = logging.Formatter('%(asctime)s - %(message)s')
+        conn_handler.setFormatter(conn_formatter)
+        connection_logger.addHandler(conn_handler)
 
     server_config = util.app_config.get('server', {})
     webapp_config = util.app_config.get('webapp', {})
