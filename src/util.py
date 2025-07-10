@@ -284,13 +284,14 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password, sysop_email):
                 userpref INTEGER DEFAULT 1,
                 who INTEGER DEFAULT 1,
                 default_exploration_list TEXT DEFAULT '',
-                hamlet INTEGER DEFAULT 1
+                hamlet INTEGER DEFAULT 1,
+                login_message TEXT DEFAULT ''
             )'''
         )
         # 初期設定を挿入 (プレースホルダーを使用)
         cur.execute(
-            "INSERT INTO server_pref(bbs, chat, mail, telegram, userpref, who, default_exploration_list, hamlet) VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-            (2, 2, 2, 2, 2, 2, "", 2)
+            "INSERT INTO server_pref(bbs, chat, mail, telegram, userpref, who, default_exploration_list, hamlet, login_message) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (2, 2, 2, 2, 2, 2, "", 2, 'GR-BBSへようこそ！')
         )
 
         # メールボックステーブル作成
@@ -359,12 +360,14 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password, sysop_email):
         logging.info("Database connection closed after initialization.")
 
 
-def prompt_handler(chan, dbname, login_id, menu_mode='2'):
+def prompt_handler(chan, dbname, login_id, menu_mode='2', mail_notified_flag=False):
     """ 定型実行のまとめ """
-    check_new_mail(chan, dbname, login_id, menu_mode)
+    # check_new_mail の戻り値でフラグを更新
+    updated_mail_notified_flag = check_new_mail(
+        chan, dbname, login_id, menu_mode, mail_notified_flag)
     telegram_recieve(chan, dbname, login_id, menu_mode)
     server_prefs = sqlite_tools.read_server_pref(dbname)
-    return server_prefs
+    return server_prefs, updated_mail_notified_flag
 
 
 def generate_and_regenerate_ssh_key(username):
@@ -679,33 +682,46 @@ def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mo
     return True
 
 
-def check_new_mail(chan, dbname, username, current_menu_mode):
-    """新着メールがないか確認し、あれば通知する"""
+def check_new_mail(chan, dbname, username, current_menu_mode, notified_in_session):
+    """新着メールがないか確認し、あれば通知する。通知はセッション中に一度だけ。ただし未読が0になるとリセットされる。"""
     user_id = sqlite_tools.get_user_id_from_user_name(dbname, username)
     if user_id is None:
-        return
+        return notified_in_session  # ユーザーが見つからない場合は元の状態を返す
 
     try:
         unread_count = sqlite_tools.get_total_unread_mail_count(
             dbname, user_id)
-        total_mail_count = sqlite_tools.get_total_mail_count(dbname, user_id)
 
-        if unread_count > 0:  # 未読メールがある場合のみ通知
-            notification_message_format = get_text_by_key(
-                "mail_handler.new_mail_notification", current_menu_mode
-            )
-            if notification_message_format:  # キーが存在する場合のみ
-                message_payload = notification_message_format.format(
-                    total_mail_count=total_mail_count, unread_mail_count=unread_count)
-                # ユーザーの入力を邪魔しないように通知 (カーソル位置保存・復元)
-                chan.send(b"\033[s\r\n\r" + message_payload.replace('\n',
-                          '\r\n').encode('utf-8') + b"\r\n\033[u")
-            else:
-                logging.warning(
-                    f"新着メール通知のキー 'mail_handler.new_mail_notification' (mode: {current_menu_mode}) が見つかりません。")
+        # 未読メールが0件なら、通知フラグをリセット(False)して終了
+        if unread_count == 0:
+            return False
+
+        # --- ここから下は unread_count > 0 が確定 ---
+
+        # 既に通知済みなら、何もしないでフラグを維持(True)
+        if notified_in_session:
+            return True
+
+        # まだ通知していない場合、通知処理を行う
+        total_mail_count = sqlite_tools.get_total_mail_count(dbname, user_id)
+        notification_message_format = get_text_by_key(
+            "mail_handler.new_mail_notification", current_menu_mode
+        )
+        if notification_message_format:
+            message_payload = notification_message_format.format(
+                total_mail_count=total_mail_count, unread_mail_count=unread_count)
+            chan.send(b"\033[s\r\n\r" + message_payload.replace('\n',
+                      '\r\n').encode('utf-8') + b"\r\n\033[u")
+            return True  # 通知したのでフラグをオン(True)にする
+        else:
+            logging.warning(
+                f"新着メール通知のキー 'mail_handler.new_mail_notification' (mode: {current_menu_mode}) が見つかりません。")
 
     except Exception as e:
         logging.error(f"新着メールチェック中にエラー (ユーザー: {username}): {e}")
+
+    # 通知しなかった場合やエラーの場合は、元のフラグ状態を維持
+    return notified_in_session
 
 
 def telegram_send(chan, dbname, display_name, online_members_ids, current_menu_mode):

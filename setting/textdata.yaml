@@ -521,7 +521,7 @@ sysop_menu:
       ■[BDLV] 掲示板R/Wレベル設定             [REGS] 会員登録                    □
       □[TREE] 階層構造マップ                  [CHGA] 認証方法変更                ■
       ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く      □
-      □[VSET] 設定一覧表示                                                       ■
+      □[VSET] 設定一覧表示                    [LGMG] ログインメッセージ変更      ■
       ■[EXIT] システム強制終了                [LETR] アンケート処理              □
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
@@ -545,6 +545,7 @@ sysop_menu:
       [VSET] 設定一覧表示
       [MNPM] トップメニューの会員レベル設定
       [VSET] 設定一覧表示
+      [LGMG] ログインメッセージ変更
       [EXIT] システム強制終了
       ====================================================
     mode_3: |
@@ -567,6 +568,7 @@ sysop_menu:
       | USRL    | List Users: Show all members              |
       | VSET    | View Settings: Display system config      |
       | MNPM    | Set Menu Perms: Configure top menu access |
+      | LGMG    | Change Login Message: Update login msg    |
       | EXIT    | Force Shutdown: Terminate system          |
       +---------+-------------------------------------------+
   system_quit:
@@ -928,6 +930,24 @@ sysop_menu:
       mode_1: "パスワードを変更しました。(name:{name},password:{new_password})"
       mode_2: "パスワードを変更しました。(name:{name},password:{new_password})"
       mode_3: "Password changed. (name:{name},password:{new_password})"
+
+  change_login_message:
+    header:
+      mode_1: "** ログインメッセージを変更します **\r\n"
+      mode_2: "** ログインメッセージを変更します **\r\n"
+      mode_3: "** Change Login Message **\r\n"
+    prompt:
+      mode_1: "新しいログインメッセージを入力してください: "
+      mode_2: "新しいログインメッセージを入力してください: "
+      mode_3: "Enter new login message: "
+    success:
+      mode_1: "ログインメッセージを変更しました。\r\n"
+      mode_2: "ログインメッセージを変更しました。\r\n"
+      mode_3: "Login message changed successfully.\r\n"
+    current:
+      mode_1: "現在のログインメッセージ: {message}\r\n"
+      mode_2: "現在のログインメッセージ: {message}\r\n"
+      mode_3: "Current login message: {message}\r\n"
 mail_handler:
   main_prompt:
     mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "
@@ -1918,9 +1938,9 @@ hamlet_game:
             is valid.
             If all pieces are played, the second player wins.
             -------------------------------------------------------------------------------------
-  player_info:
-    mode_1: "人間: {symbol_human}, コンピュータ: {symbol_ai}"
-    mode_2: "人間: {symbol_human}, コンピュータ: {symbol_ai}"
+  player_info: # このキーは現在未使用
+    mode_1: "人間: {symbol_human}, コンピュータ: {symbol_ai}" # このキーは現在未使用
+    mode_2: "人間: {symbol_human}, コンピュータ: {symbol_ai}" # このキーは現在未使用
     mode_3: "Human: {symbol_human}, Computer: {symbol_ai}"
   prompt_first_move:
     mode_1: "先手をとりますか (Y または N): "
@@ -1935,9 +1955,9 @@ hamlet_game:
     mode_2: "コンピュータが先攻です。\n"
     mode_3: "The computer is first.\n"
   prompt_your_turn:
-    mode_1: "あなた [{symbol}] : "
-    mode_2: "あなた [{symbol}] : "
-    mode_3: "You [{symbol}] : "
+    mode_1: "あなた [{symbol}] (A:中断): "
+    mode_2: "あなた [{symbol}] (A:中断): "
+    mode_3: "You [{symbol}] (A:Abort): "
   invalid_column:
     mode_1: "その列には置けません。別の列を選んでください。"
     mode_2: "その列には置けません。別の列を選んでください。"
@@ -1966,6 +1986,14 @@ hamlet_game:
     mode_1: "コンピュータ"
     mode_2: "コンピュータ"
     mode_3: "Computer"
+  abort_prompt:
+    mode_1: "ゲームを中断しますか？ (y/n): "
+    mode_2: "ゲームを中断しますか？ (y/n): "
+    mode_3: "Abort the game? (y/n): "
+  game_aborted:
+    mode_1: "ゲームを中断しました。\r\n"
+    mode_2: "ゲームを中断しました。\r\n"
+    mode_3: "Game aborted.\r\n"
 
 # --- 認証関連 ---
 auth:
@@ -2093,7 +2121,10 @@ login:
 
       *** Welcome to GRBBS, {login_id}! ***
       Last Login: {last_login_str}
-
+  daily_message:
+    mode_1: "{message}\r\n"
+    mode_2: "** 今日の一言 **\r\n{message}\r\n"
+    mode_3: "** Daily message **\r\n{message}\r\n"
 # --- 未実装機能のプレースホルダー ---
 unimplemented:
   message:

@@ -238,7 +238,7 @@ def create_bbs_tables_if_not_exist(cur):
 
 def read_server_pref(dbname):
     """サーバー設定を読み込む"""
-    sql = 'SELECT bbs, chat, mail, telegram, userpref, who, default_exploration_list, hamlet FROM server_pref'
+    sql = 'SELECT bbs, chat, mail, telegram, userpref, who, default_exploration_list, hamlet, login_message FROM server_pref'
     # server_pref は通常1行しかないので fetchone() でも良いかも
     results = sqlite_execute_query(dbname, sql, fetch=True)
     if results:
@@ -248,7 +248,7 @@ def read_server_pref(dbname):
         # テーブルが存在しないか空の場合(念の為)
         logging.warning("警告: server_pref テーブルが見つからないか、空です。")
         # デフォルト値を返す
-        return [2, 2, 2, 2, 2, 2, "", 2]  # 例: デフォルト値を返す
+        return [2, 2, 2, 2, 2, 2, "", 2, ""]  # login_messageのデフォルト値を追加
 
 
 def save_telegram(dbname, sender_name, recipient_name, message, current_timestamp):

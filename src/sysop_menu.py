@@ -26,14 +26,18 @@ def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mo
         'kygn': regenerate_user_ssh_key,
         'vset': view_settings,
         'mnpm': change_top_menu_permission,
+        'lgmg': change_login_message,  # ログインメッセージ
         'exit': system_quit,
         '': lambda *args: "back_to_top",  # 空入力でメニュー終了
     }
 
+    mail_notified_flag = False  # シスオペメニュー内での通知状態を管理
     while True:
         util.send_text_by_key(chan, "sysop_menu.menu", current_menu_mode)
-        util.prompt_handler(chan, dbname, sysop_login_id,
-                            current_menu_mode)
+        # プロンプト前の定型処理。通知フラグを渡して、更新されたフラグを受け取る
+        _, mail_notified_flag = util.prompt_handler(
+            chan, dbname, sysop_login_id, current_menu_mode, mail_notified_flag
+        )
         util.send_text_by_key(chan, "common_messages.select_prompt",
                               current_menu_mode, add_newline=False)  # プロンプト表示
         input_buffer = ssh_input.process_input(chan)
@@ -70,6 +74,55 @@ def write_default_exploration_list(chan, dbname, _sysop_login_id, current_menu_m
     def save_func(exploration_list_str): return sqlite_tools.update_server_default_exploration_list(
         dbname, exploration_list_str)
     util.prompt_and_save_exploration_list(chan, current_menu_mode, save_func)
+    return None
+
+
+def change_login_message(chan, dbname, _sysop_login_id, current_menu_mode):
+    """ログインメッセージ変更"""
+    util.send_text_by_key(
+        chan, "sysop_menu.change_login_message.header", current_menu_mode)
+
+    # 現在のログインメッセージを表示
+    server_prefs = sqlite_tools.read_server_pref(dbname)
+    if server_prefs and len(server_prefs) > 8:
+        current_login_message = server_prefs[8]
+        util.send_text_by_key(chan, "sysop_menu.change_login_message.current", current_menu_mode,
+                              message=current_login_message if current_login_message else "(設定されていません)")
+    else:
+        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
+        logging.error("サーバー設定の読み込みに失敗しました (ログインメッセージ変更)")
+        return None
+
+    # 新しいログインメッセージの入力を促す
+    util.send_text_by_key(
+        chan, "sysop_menu.change_login_message.prompt", current_menu_mode, add_newline=False)
+    new_login_message = ssh_input.process_input(chan)
+    if new_login_message is None:
+        return None
+
+    # 確認
+    util.send_text_by_key(chan, "common_messages.confirm_yn",
+                          current_menu_mode, add_newline=False)
+    final_confirm = ssh_input.process_input(chan)
+
+    if final_confirm is None or final_confirm.strip().lower() != 'y':
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
+        return None
+
+    # DBを更新
+    try:
+        sql = "UPDATE server_pref SET login_message=?"
+        sqlite_tools.sqlite_execute_query(dbname, sql, (new_login_message,))
+        util.send_text_by_key(
+            chan, "sysop_menu.change_login_message.success", current_menu_mode)
+        logging.info(f"ログインメッセージを更新しました: {new_login_message[:50]}...")
+
+    except Exception as e:
+        util.send_text_by_key(
+            chan, "common_messages.database_update_error", current_menu_mode)
+        logging.error(f"ログインメッセージ更新中にDBエラー: {e}")
+
     return None
 
 

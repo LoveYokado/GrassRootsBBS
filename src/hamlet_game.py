@@ -250,20 +250,35 @@ def run_game_vs_ai(chan, menu_mode):
         player_prompt_symbol = get_player_symbol(current_player)
 
         if current_player == PLAYER_HUMAN:
-            col_choice_str = ""
-            while True:
+            col_choice = -1
+            while True:  # Loop for getting valid input
                 util.send_text_by_key(chan, "hamlet_game.prompt_your_turn",
                                       menu_mode, symbol=player_prompt_symbol, add_newline=False)
-                col_choice_str = ssh_input.process_input(chan)
-                if col_choice_str is None:
+                input_str = ssh_input.process_input(chan)
+                if input_str is None:
                     return  # 切断
-                if col_choice_str.strip().isdigit():
-                    break
+
+                choice = input_str.strip().lower()
+
+                if choice == 'a':
+                    util.send_text_by_key(
+                        chan, "hamlet_game.abort_prompt", menu_mode, add_newline=False)
+                    confirm_abort = ssh_input.process_input(chan)
+                    if confirm_abort and confirm_abort.strip().lower() == 'y':
+                        util.send_text_by_key(
+                            chan, "hamlet_game.game_aborted", menu_mode)
+                        return  # ゲーム関数を終了
+                    else:
+                        # 中断をキャンセルした場合、盤面を再表示して入力を促す
+                        print_board(chan, board)
+                        continue  # 入力ループを継続
+
+                if choice.isdigit():
+                    col_choice = int(choice) - 1
+                    break  # 入力ループを抜ける
                 else:
                     util.send_text_by_key(
                         chan, "common_messages.invalid_input", menu_mode)
-
-            col_choice = int(col_choice_str) - 1
 
             if is_valid_location(board, col_choice):
                 drop_piece(board, col_choice, current_player)

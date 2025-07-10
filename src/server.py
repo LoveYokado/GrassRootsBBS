@@ -261,9 +261,13 @@ def process_command_loop(chan, dbname, login_id, display_name, user_id, userleve
     """
     current_menu_mode = initial_menu_mode
     normal_logoff = False
+    mail_notified_this_session = False  # 新着メール通知をセッションで1回に制限するフラグ
 
     while True:
-        util.prompt_handler(chan, dbname, login_id, current_menu_mode)
+        # プロンプト前の定型処理。通知フラグを渡して、更新されたフラグを受け取る
+        _, mail_notified_this_session = util.prompt_handler(
+            chan, dbname, login_id, current_menu_mode, mail_notified_this_session
+        )
         util.send_text_by_key(chan, "prompt.topmenu",
                               current_menu_mode, add_newline=False)
         input_buffer = ssh_input.process_input(chan)
@@ -603,23 +607,30 @@ def handle_client(client, addr, host_keys, is_web_app=True):
                 util.send_text_by_key(
                     chan, "login.welcome_message_ssh", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
 
-            # ログイン直後のトップメニュー表示
-            util.send_text_by_key(
-                chan, "top_menu.menu", initial_user_menu_mode)
-
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(db_name_from_config)
             pref_names = ['bbs', 'chat', 'mail', 'telegram',
-                          'userpref', 'who', 'default_exploration_list', 'hamlet']
+                          'userpref', 'who', 'default_exploration_list', 'hamlet', 'login_message']
             if pref_list and len(pref_list) >= len(pref_names):
                 server_pref_dict = dict(zip(pref_names, pref_list))
             else:
                 # sqlite_tools.read_server_pref がデフォルト値を返すようになったため、
                 logging.error("サーバ設定読み込みエラーです。デフォルト値を使用します。")
                 # 最新のデフォルト値に更新
-                default_prefs = {'bbs': 2, 'chat': 2, 'mail': 2,
-                                 'telegram': 2, 'userpref': 2, 'who': 2, 'hamlet': 2, 'default_exploration_list': ''}
+                default_prefs = {'bbs': 2, 'chat': 2, 'mail': 2, 'telegram': 2,
+                                 'userpref': 2, 'who': 2, 'hamlet': 2,
+                                 'default_exploration_list': '', 'login_message': ''}
                 server_pref_dict = default_prefs
+
+            # 「今日の一言」表示
+            if server_pref_dict and 'login_message' in server_pref_dict and server_pref_dict['login_message']:
+                util.send_text_by_key(chan, "login.daily_message", initial_user_menu_mode,
+                                      message=server_pref_dict['login_message'])
+
+            # ログイン直後のトップメニュー表示
+            util.send_text_by_key(
+                chan, "top_menu.menu", initial_user_menu_mode)
+
             userlevel = userdata['level'] if userdata and 'level' in userdata.keys(
             ) else 0
 
