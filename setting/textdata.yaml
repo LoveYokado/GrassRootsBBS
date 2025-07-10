@@ -2123,8 +2123,8 @@ login:
       Last Login: {last_login_str}
   daily_message:
     mode_1: "{message}\r\n"
-    mode_2: "** 今日の一言 **\r\n{message}\r\n"
-    mode_3: "** Daily message **\r\n{message}\r\n"
+    mode_2: "** \x1b[36m今日の一言\x1b[0m **\r\n\x1b[33m{message}\x1b[0m\r\n" 
+    mode_3: "** \x1b[36mDaily message\x1b[0m **\r\n\x1b[33m{message}\x1b[0m\r\n"
 # --- 未実装機能のプレースホルダー ---
 unimplemented:
   message:
