@@ -2029,6 +2029,10 @@ auth:
     mode_1: "この認証方法は許可されていません。\r\n"
     mode_2: "この認証方法は許可されていません。\r\n"
     mode_3: "This authentication method is not allowed.\r\n"
+  already_logged_in:
+    mode_1: "このIDは既に使用されています。切断します。\r\n"
+    mode_2: "このIDは既に使用されています。切断します。\r\n"
+    mode_3: "This ID is already in use. Disconnecting.\r\n"
 
 # --- ログイン後処理関連 ---
 login:

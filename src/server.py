@@ -588,6 +588,16 @@ def handle_client(client, addr, host_keys, is_web_app=True):
             initial_user_menu_mode = userdata['menu_mode'] if 'menu_mode' in userdata.keys(
             ) else '1'
 
+            # マルチログインチェック
+            with online_members_lock:
+                # GUEST以外のユーザーで、既にログインしているかチェック
+                if login_id.upper() != 'GUEST' and login_id in online_members:
+                    logging.warning(
+                        f"マルチログインが試みられました: {login_id} from {addr}")
+                    util.send_text_by_key(
+                        chan, "auth.already_logged_in", initial_user_menu_mode)
+                    return  # 接続を終了
+
             # オンラインメンバーに追加
             with online_members_lock:
                 online_members[login_id] = {
