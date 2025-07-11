@@ -830,6 +830,14 @@ sysop_menu:
       mode_1: "説明: "
       mode_2: "説明: "
       mode_3: "Description: "
+  board_type_prompt:
+    mode_1: "掲示板タイプ ({types}, 空入力でsimple): "
+    mode_2: "掲示板タイプ ({types}, 空入力でsimple): "
+    mode_3: "Board Type ({types}, blank for simple): "
+  invalid_board_type:
+    mode_1: "無効な掲示板タイプです。{types} から選択してください。"
+    mode_2: "無効な掲示板タイプです。{types} から選択してください。"
+    mode_3: "Invalid board type. Please choose from {types}."
     default_permission_prompt:
       mode_1: "デフォルトパーミッション ({permissions}): "
       mode_2: "デフォルトパーミッション ({permissions}): "

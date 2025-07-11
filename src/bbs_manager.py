@@ -93,7 +93,7 @@ class ArticleManager:
             return article_data
         return None
 
-    def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None):
+    def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None):
         """
         記事を新規作成する
         board_id_pkはboardsテーブルの主キー
@@ -113,7 +113,7 @@ class ArticleManager:
             # 記事を挿入
             current_timestamp = int(time.time())
             article_id = sqlite_tools.insert_article(
-                self.dbname, board_id_pk, next_article_number, user_identifier, title, body, current_timestamp, ip_address
+                self.dbname, board_id_pk, next_article_number, user_identifier, title, body, current_timestamp, ip_address, parent_article_id
             )
 
             if article_id is not None:

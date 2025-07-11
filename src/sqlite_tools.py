@@ -197,6 +197,7 @@ def create_bbs_tables_if_not_exist(cur):
                 description TEXT,
                 kanban_body TEXT DEFAULT '',
                 last_posted_at INTEGER DEFAULT 0,
+                board_type TEXT NOT NULL DEFAULT 'simple' CHECK(board_type IN ('simple', 'thread')),
                 status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived', 'hidden')),
                 read_level INTEGER NOT NULL DEFAULT 1,
                 write_level INTEGER NOT NULL DEFAULT 1
@@ -210,6 +211,7 @@ def create_bbs_tables_if_not_exist(cur):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 board_id INTEGER NOT NULL,
                 article_number INTEGER NOT NULL,
+                parent_article_id INTEGER,
                 user_id TEXT NOT NULL,
                 title TEXT,
                 body TEXT NOT NULL,
@@ -591,14 +593,14 @@ def get_board_by_shortcut_id(dbname, shortcut_id):
     return results[0] if results else None
 
 
-def create_board_entry(dbname, shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1):
+def create_board_entry(dbname, shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple"):
     """新しい掲示板エントリをboardsテーブルに挿入"""
     sql = """
-    INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level)
+    INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level,board_type)
     VALUES(?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     """
     params = (shortcut_id, name, description, operators,
-              default_permission, kanban_body, status, read_level, write_level)
+              default_permission, kanban_body, status, read_level, write_level, board_type)
     return sqlite_execute_query(dbname, sql, params)
 
 
@@ -634,16 +636,16 @@ def update_board_last_posted_at(dbname, board_id_pk, timestamp=None):
     return sqlite_execute_query(dbname, sql, (timestamp, board_id_pk))
 
 
-def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body, timestamp, ip_address=None):
+def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body, timestamp, ip_address=None, parent_article_id=None):
     """
     articlesテーブルに新しい記事を挿入し、挿入された記事のIDを返す。
     失敗した場合はNoneを返す。
     """
     sql = """
-        INSERT INTO articles (board_id, article_number, user_id, title, body, created_at, ip_address)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """
-    params = (board_id_pk, article_number, user_id_pk,
+    params = (board_id_pk, article_number, user_id_pk, parent_article_id,
               title, body, timestamp, ip_address)
     conn = None
     try:
@@ -892,6 +894,49 @@ def update_board_levels(dbname, board_id_pk, read_level, write_level):
     except Exception as e:
         logging.error(f"掲示板レベル更新中にDBエラー (BoardID: {board_id_pk}): {e}")
         return False
+
+
+def get_thread_root_articles_with_reply_count(dbname, board_id_pk, include_deleted=False):
+    """
+    指定された掲示板の親記事（スレッドルート）と、それぞれの返信数を取得する。
+    """
+    # is_deleted の条件をサブクエリとメインクエリの両方に入れる
+    deleted_cond = "" if include_deleted else "AND is_deleted = 0"
+
+    sql = f"""
+        SELECT
+            p.id,
+            p.article_number,
+            p.user_id,
+            p.title,
+            p.body,
+            p.created_at,
+            p.is_deleted,
+            p.ip_address,
+            (SELECT COUNT(*) FROM articles AS r WHERE r.parent_article_id = p.id {deleted_cond}) AS reply_count
+        FROM
+            articles AS p
+        WHERE
+            p.board_id = ?
+            AND p.parent_article_id IS NULL
+            {deleted_cond}
+        ORDER BY
+            p.created_at ASC, p.article_number ASC
+    """
+    params = (board_id_pk,)
+    results = sqlite_execute_query(dbname, sql, params, fetch=True)
+    return results if results else []
+
+
+def get_replies_for_article(dbname, parent_article_id, include_deleted=False):
+    """指定された親記事への返信をすべて取得する"""
+    sql = "SELECT id,article_number,user_id,title,body,created_at,is_deleted,ip_address FROM articles WHERE parent_article_id=?"
+    params = [parent_article_id]
+    if not include_deleted:
+        sql += " AND is_deleted=0"
+    sql += " ORDER BY created_at ASC,article_number ASC"
+    results = sqlite_execute_query(dbname, sql, tuple(params), fetch=True)
+    return results if results else []
 
 
 def get_sysop_user_id(dbname):
