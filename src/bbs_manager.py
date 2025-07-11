@@ -106,11 +106,15 @@ class ArticleManager:
             conn = sqlite3.connect(self.dbname)
             # conn.execute('BEGIN') # sqlite3モジュールはDMLで暗黙的にトランザクションを開始します
 
-            # 次の記事番号取得 (トランザクション内で実行)
-            next_article_number = sqlite_tools.get_next_article_number(
-                self.dbname, board_id_pk, conn=conn)
-            if next_article_number is None:
-                raise Exception("次の記事番号の取得に失敗")
+            # 返信の場合は記事番号を採番せず、スレッド作成の場合のみ採番する
+            if parent_article_id is not None:
+                next_article_number = None  # 返信には記事番号を割り当てない
+            else:
+                # 次の記事番号取得 (トランザクション内で実行)
+                next_article_number = sqlite_tools.get_next_article_number(
+                    self.dbname, board_id_pk, conn=conn)
+                if next_article_number is None:
+                    raise Exception("次の記事番号の取得に失敗")
 
             # 記事を挿入 (トランザクション内で実行)
             current_timestamp = int(time.time())

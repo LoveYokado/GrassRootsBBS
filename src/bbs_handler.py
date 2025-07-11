@@ -300,13 +300,16 @@ class CommandHandler:
                     else:
                         title_short = ""  # 一般ユーザーには表示しない
                 else:
+                    to_marker = "(T/O)" if article['body'] == '(T/O)' else ""
                     if board_type == 'thread':
-                        # 返信数を表示するスペースを確保
-                        title_short = util.shorten_text_by_slicing(
-                            title, width=24)
-                    else:
-                        title_short = util.shorten_text_by_slicing(
-                            title, width=32)
+                        # 返信数と(T/O)マークを表示するスペースを確保
+                        title_part = util.shorten_text_by_slicing(
+                            title, width=24 - len(to_marker))
+                        title_short = f"{title_part}{to_marker}"
+                    else:  # simple
+                        title_part = util.shorten_text_by_slicing(
+                            title, width=32 - len(to_marker))
+                        title_short = f"{title_part}{to_marker}"
                 # ユーザー名の後のスペースを調整
                 spaces_before_title_field = "  " if deleted_mark else "   "
                 # 左寄せ、指定幅
@@ -872,12 +875,16 @@ class CommandHandler:
                         else:
                             title_short = ""
                     else:
+                        to_marker_list = "(T/O)" if article['body'] == '(T/O)' else ""
                         if board_type == 'thread':
-                            title_short = util.shorten_text_by_slicing(
-                                title, width=24)
-                        else:
-                            title_short = util.shorten_text_by_slicing(
-                                title, width=32)
+                            title_part = util.shorten_text_by_slicing(
+                                title, width=24 - len(to_marker_list))
+                            title_short = f"{title_part}{to_marker_list}"
+                        else:  # simple
+                            title_part = util.shorten_text_by_slicing(
+                                title, width=32 - len(to_marker_list))
+                            title_short = f"{title_part}{to_marker_list}"
+
                     deleted_mark_list = "*" if article['is_deleted'] == 1 else ""
                     user_id_from_article = article['user_id']
                     display_sender_name = ""
@@ -901,7 +908,7 @@ class CommandHandler:
                     except:
                         r_date_str = "----/--/--"
                         r_time_str = "--:--"
-                    reply_count = f" ({reply_count})" if board_type == 'thread' else ""
+                    reply_count_str = f"({reply_count})" if board_type == 'thread' else ""
                     self.chan.send(
                         f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<14}{spaces_before_title_field_list}{deleted_mark_list}{title_short}{reply_count_str}\r\n".encode('utf-8'))
                 self.chan.send(b'\r\n')  # タイトル一覧の最後に空行
@@ -1380,13 +1387,15 @@ class CommandHandler:
                 # show_back_prompt が True の場合でも、この後のプロンプトループは実行されない
                 return
 
-        body_to_send = article['body'].replace(
-            '\r\n', '\n').replace('\n', '\r\n')
-        # textwrap を使って本文を折り返す
-        wrapped_body_lines = textwrap.wrap(
-            body_to_send, width=78, replace_whitespace=False, drop_whitespace=False)
-        for line in wrapped_body_lines:
-            self.chan.send(line.encode('utf-8') + b'\r\n')
+        # (T/O) の場合は本文を表示しない
+        if article['body'] != '(T/O)':
+            body_to_send = article['body'].replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            # textwrap を使って本文を折り返す
+            wrapped_body_lines = textwrap.wrap(
+                body_to_send, width=78, replace_whitespace=False, drop_whitespace=False)
+            for line in wrapped_body_lines:
+                self.chan.send(line.encode('utf-8') + b'\r\n')
 
         # 本文表示後、改行を1行だけ入れる
         self.chan.send(b'\r\n')
@@ -1447,20 +1456,6 @@ class CommandHandler:
 
         # 記事本文表示後、既読として記録
         self._update_read_progress(board_id_pk, article_number)
-
-        if show_back_prompt:
-            while True:
-                util.send_text_by_key(
-                    self.chan, "bbs.back_to_list_prompt", self.menu_mode, add_newline=False)
-                user_input = ssh_input.process_input(self.chan)
-                if user_input is None:
-                    return  # 切断
-                command = user_input.strip().lower()
-                if command == 'e' or command == '':
-                    return
-                else:
-                    util.send_text_by_key(
-                        self.chan, "common_messages.invalid_command", self.menu_mode)
 
     def _reply_to_article(self, parent_article):
         """記事に返信する"""

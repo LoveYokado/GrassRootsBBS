@@ -213,7 +213,7 @@ def create_bbs_tables_if_not_exist(cur):
             CREATE TABLE IF NOT EXISTS articles (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 board_id INTEGER NOT NULL,
-                article_number INTEGER NOT NULL,
+                article_number INTEGER,
                 parent_article_id INTEGER,
                 user_id TEXT NOT NULL,
                 title TEXT,
