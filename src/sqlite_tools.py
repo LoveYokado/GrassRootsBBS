@@ -134,12 +134,14 @@ def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode_param):
     return False, 0
 
 
-def sqlite_execute_query(dbname, sql, params=None, fetch=False):
-    """汎用的なSQLiteクエリ実行関数"""
-    conn = None  # finally で確実に close するため
-    try:
+def sqlite_execute_query(dbname, sql, params=None, fetch=False, conn=None):
+    """汎用的なSQLiteクエリ実行関数。connが渡された場合はその接続を使い、コミットやクローズは行わない。"""
+    close_conn_locally = False
+    if conn is None:
         conn = sqlite3.connect(dbname)
-        # Row ファクトリを設定して辞書ライクなアクセスを可能にする (任意だが推奨)
+        close_conn_locally = True
+
+    try:
         conn.row_factory = sqlite3.Row
         cur = conn.cursor()
         cur.execute(sql, params or ())
@@ -147,15 +149,16 @@ def sqlite_execute_query(dbname, sql, params=None, fetch=False):
             results = cur.fetchall()
             return results
         else:
-            conn.commit()
+            if close_conn_locally:  # ローカルで接続した場合のみコミット
+                conn.commit()
             return True
     except sqlite3.Error as e:
         logging.error(f"SQLiteエラー: {e} (SQL: {sql[:100]})")
-        if conn:
-            conn.rollback()  # 書き込みエラーの場合ロールバック
+        if close_conn_locally and conn:  # ローカルで接続した場合のみロールバック
+            conn.rollback()
         return False
     finally:
-        if conn:
+        if close_conn_locally and conn:  # ローカルで接続した場合のみクローズ
             conn.close()
 
 
@@ -588,7 +591,7 @@ def update_user_auth_method(dbname, user_id, new_auth_method):
 
 def get_board_by_shortcut_id(dbname, shortcut_id):
     """指定されたショートカットIDの掲示板情報をDBから取得"""
-    sql = "SELECT id, shortcut_id, name, description, operators, default_permission, kanban_body, last_posted_at, status, read_level, write_level FROM boards WHERE shortcut_id = ?"
+    sql = "SELECT id, shortcut_id, name, description, operators, default_permission, kanban_body, last_posted_at, status, read_level, write_level, board_type FROM boards WHERE shortcut_id = ?"
     results = sqlite_execute_query(dbname, sql, (shortcut_id,), fetch=True)
     return results[0] if results else None
 
@@ -597,7 +600,7 @@ def create_board_entry(dbname, shortcut_id, name, description, operators, defaul
     """新しい掲示板エントリをboardsテーブルに挿入"""
     sql = """
     INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level,board_type)
-    VALUES(?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+    VALUES(?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
     """
     params = (shortcut_id, name, description, operators,
               default_permission, kanban_body, status, read_level, write_level, board_type)
@@ -619,49 +622,55 @@ def get_all_boards(dbname):
     return sqlite_execute_query(dbname, sql, fetch=True)
 
 
-def get_next_article_number(dbname, board_id_pk):
+def get_next_article_number(dbname, board_id_pk, conn=None):
     sql = "SELECT COALESCE(MAX(article_number), 0) + 1 FROM articles WHERE board_id=?"
     results = sqlite_execute_query(
-        dbname, sql, (board_id_pk,), fetch=True)
+        dbname, sql, (board_id_pk,), fetch=True, conn=conn)
     if results and results[0] is not None:
         return results[0][0]
     return 1  # エラー、または記事がないなら1から
 
 
-def update_board_last_posted_at(dbname, board_id_pk, timestamp=None):
+def update_board_last_posted_at(dbname, board_id_pk, timestamp=None, conn=None):
     # boardsテーブルのlast_posted_atを更新
     if timestamp is None:
         timestamp = int(time.time())
     sql = "UPDATE boards SET last_posted_at=? WHERE id=?"
-    return sqlite_execute_query(dbname, sql, (timestamp, board_id_pk))
+    return sqlite_execute_query(dbname, sql, (timestamp, board_id_pk), conn=conn)
 
 
-def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body, timestamp, ip_address=None, parent_article_id=None):
+def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body, timestamp, ip_address=None, parent_article_id=None, conn=None):
     """
     articlesテーブルに新しい記事を挿入し、挿入された記事のIDを返す。
     失敗した場合はNoneを返す。
     """
+    # この関数はconnを受け取るが、lastrowidを取得するためにsqlite_execute_queryは使わない
     sql = """
         INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """
     params = (board_id_pk, article_number, user_id_pk, parent_article_id,
               title, body, timestamp, ip_address)
-    conn = None
-    try:
+
+    close_conn_locally = False
+    if conn is None:
         conn = sqlite3.connect(dbname)
+        close_conn_locally = True
+
+    try:
         cur = conn.cursor()
         cur.execute(sql, params)
         article_id = cur.lastrowid
-        conn.commit()
+        if close_conn_locally:
+            conn.commit()
         return article_id
     except sqlite3.Error as e:
         logging.error(f"記事挿入中にSQLiteエラー: {e} (SQL: {sql}, Params: {params})")
-        if conn:
+        if close_conn_locally and conn:
             conn.rollback()
         return None
     finally:
-        if conn:
+        if close_conn_locally and conn:
             conn.close()
 
 
@@ -684,12 +693,7 @@ def get_articles_by_board_id(dbname, board_id_pk, order_by="article_number ASC",
 def get_article_by_board_and_number(dbname, board_id_pk, article_number, include_deleted=False):
     """指定された掲示板IDと記事番号の記事を取得する"""
     # is_deleted が 0 (または FALSE) の記事のみ取得
-    sql = "SELECT id, article_number, user_id, title, body, created_at, ip_address FROM articles WHERE board_id = ? AND article_number = ? AND is_deleted = 0"
-    # sqlite_execute_query は fetchone=True で単一の sqlite3.Row オブジェクトを返す想定
-    # もし sqlite_execute_query が fetchone をサポートしていない場合は、fetch=True で取得し、結果リストの最初の要素を使う
-    # ここでは fetchone があると仮定
-    # result = sqlite_execute_query(dbname, sql, (board_id_pk, article_number), fetchone=True)
-    sql = "SELECT id, article_number, user_id, title, body, created_at, ip_address, is_deleted FROM articles WHERE board_id = ? AND article_number = ?"
+    sql = "SELECT id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, is_deleted FROM articles WHERE board_id = ? AND article_number = ?"
     params = [board_id_pk, article_number]
     if not include_deleted:
         sql += " AND is_deleted = 0"
@@ -697,6 +701,16 @@ def get_article_by_board_and_number(dbname, board_id_pk, article_number, include
         dbname, sql, (board_id_pk, article_number), fetch=True)
     result = results[0] if results else None
     return result
+
+
+def get_article_by_id(dbname, article_id_pk, include_deleted=False):
+    """指定された記事ID(主キー)の記事を取得する"""
+    sql = "SELECT id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, is_deleted FROM articles WHERE id = ?"
+    params = [article_id_pk]
+    if not include_deleted:
+        sql += " AND is_deleted = 0"
+    results = sqlite_execute_query(dbname, sql, tuple(params), fetch=True)
+    return results[0] if results else None
 
 
 def toggle_article_deleted_status(dbname, article_id):
