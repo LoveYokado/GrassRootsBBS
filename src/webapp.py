@@ -8,11 +8,14 @@ import logging
 import sys
 from functools import wraps
 import datetime
+import threading
+import collections
 import unicodedata
 # このファイルは 'src' ディレクトリ内にあるため、他の 'src' 内のモジュールは直接インポートできます。
 import util
 import sqlite_tools
 import bbs_manager
+import command_dispatcher
 
 # --- プロジェクトルートとパスの設定 ---
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
@@ -41,8 +44,116 @@ except Exception as e:
     sys.exit(1)
 
 # --- クライアントごとの状態管理 ---
-# {sid: {"input_buffer": "..."}}
+# {sid: WebTerminalHandler_instance}
 client_states = {}
+
+# --- 定数 ---
+BPS_DELAYS = {
+    '300': 10.0 / 300,    # 約 33.3 ms/char (8-N-1を想定し10bit/char)
+    '2400': 10.0 / 2400,   # 約 4.17 ms/char
+    '4800': 10.0 / 4800,   # 約 2.08 ms/char
+    '9600': 10.0 / 9600,   # 約 1.04 ms/char
+    'full': 0,
+}
+
+
+class WebTerminalHandler:
+    """Webターミナルセッションの状態とロジックを管理するクラス"""
+
+    def __init__(self, sid, db_name, user_session):
+        self.sid = sid
+        self.db_name = db_name
+        self.user_session = user_session
+        self.input_buffer = ""
+        self.command_history = collections.deque(maxlen=50)
+        self.history_index = -1
+        self.speed = 'full'
+        self.bps_delay = 0
+        self.output_queue = collections.deque()
+        self.stop_worker_event = threading.Event()
+
+        # SSHの `paramiko.Channel` のように振る舞うアダプタクラス
+        class WebChannel:
+            def __init__(self, handler_instance):
+                self.handler = handler_instance
+
+            def send(self, data):
+                # dataはstrかbytes。WebSocketではstrをemitする必要がある。
+                if isinstance(data, bytes):
+                    text_to_send = data.decode('utf-8', 'ignore')
+                else:
+                    text_to_send = str(data)
+
+                # ワーカースレッドが処理するようにキューに追加する
+                self.handler.output_queue.append(text_to_send)
+
+            def getpeername(self):
+                # sessionからIPを取得するのは難しいのでダミーを返す
+                return ('127.0.0.1', 12345)
+
+        self.channel = WebChannel(self)
+        socketio.start_background_task(self._sender_worker)
+
+    def _sender_worker(self):
+        """出力キューを監視し、クライアントにデータを送信するワーカースレッド"""
+        while not self.stop_worker_event.is_set():
+            try:
+                text = self.output_queue.popleft()
+                if self.bps_delay > 0:
+                    for char in text:
+                        if self.stop_worker_event.is_set():
+                            break
+                        socketio.emit('server_output', char, to=self.sid)
+                        socketio.sleep(self.bps_delay)
+                else:
+                    socketio.emit('server_output', text, to=self.sid)
+            except IndexError:
+                socketio.sleep(0.01)  # キューが空なら待機
+
+    def stop_worker(self):
+        """ワーカースレッドを停止させる"""
+        self.stop_worker_event.set()
+
+    def show_prompt(self):
+        """現在の状態に応じたプロンプトを表示する"""
+        username = self.user_session.get('username', 'user')
+        prompt = f"\r\n{username}> "
+        self.output_queue.append(prompt)
+
+    def handle_command(self, command):
+        """入力されたコマンドを処理する"""
+        # 空のコマンドは履歴に追加しない
+        if command:
+            # 履歴の先頭が同じコマンドでなければ追加
+            if not self.command_history or self.command_history[0] != command:
+                self.command_history.appendleft(command)
+        self.history_index = -1  # コマンド実行後は履歴インデックスをリセット
+
+        # command_dispatcher に渡すためのコンテキストを作成
+        context = {
+            'chan': self.channel,
+            'dbname': self.db_name,
+            'login_id': self.user_session.get('username'),
+            # Webでは表示名はログインIDと同じ
+            'display_name': self.user_session.get('username'),
+            'user_id': self.user_session.get('user_id'),
+            'userlevel': self.user_session.get('userlevel'),
+            'server_pref_dict': {},  # TODO: 必要に応じてDBから読み込む
+            'addr': self.channel.getpeername(),
+            'menu_mode': self.user_session.get('menu_mode', '2'),
+            'online_members_func': lambda: {},  # TODO: WebとSSHで共有する仕組みが必要
+        }
+
+        result = command_dispatcher.dispatch_command(command, context)
+
+        if result.get('status') == 'logoff':
+            util.send_text_by_key(
+                self.channel, "logoff.message", context['menu_mode'])
+            socketio.disconnect(self.sid)
+            return
+
+        # コマンド処理後にプロンプトを再表示
+        self.show_prompt()
 
 # --- デコレータ ---
 
@@ -110,19 +221,43 @@ def logout():
 
 
 @socketio.on('connect')
-def handle_connect():
-    """クライアント接続時の処理"""
+def handle_connect(auth=None):
+    """クライアント接続時の処理。auth引数はSocketIOから渡される可能性があるため受け取る。"""
     if 'user_id' not in session:
         return False  # 未認証ユーザーは接続を拒否
 
     sid = request.sid
-    client_states[sid] = {"input_buffer": ""}
+    # ユーザーセッション情報を辞書としてハンドラに渡す
+    user_session_data = {
+        'user_id': session.get('user_id'),
+        'username': session.get('username'),
+        'userlevel': session.get('userlevel'),
+        'menu_mode': '2'  # WebUIのメニューモードは '2' に固定
+    }
+    handler = WebTerminalHandler(sid, DB_NAME, user_session_data)
+    client_states[sid] = handler
 
     logging.info(
         f"WebTerminal client connected: {session.get('username')} (sid: {sid})")
-    # 接続時にウェルカムメッセージを送信
-    emit('server_output', 'Welcome to GR-BBS Web Terminal!\r\n')
-    emit('server_output', f"{session.get('username')}> ")
+
+    # ウェルカムメッセージとトップメニュー表示
+    util.send_text_by_key(handler.channel, "login.welcome_message_webapp",
+                          handler.user_session.get('menu_mode', '2'))
+    util.send_text_by_key(handler.channel, "top_menu.menu",
+                          handler.user_session.get('menu_mode', '2'))
+    handler.show_prompt()
+
+
+@socketio.on('set_speed')
+def handle_set_speed(speed_name):
+    """クライアントから速度設定を受け取る"""
+    sid = request.sid
+    if sid in client_states:
+        handler = client_states[sid]
+        handler.speed = speed_name
+        handler.bps_delay = BPS_DELAYS.get(speed_name, 0)
+        logging.info(
+            f"WebTerminal speed set for {session.get('username')}: {speed_name}")
 
 
 @socketio.on('disconnect')
@@ -130,6 +265,7 @@ def handle_disconnect():
     """クライアント切断時の処理"""
     sid = request.sid
     if sid in client_states:
+        client_states[sid].stop_worker()
         del client_states[sid]
     logging.info(
         f"WebTerminal client disconnected: {session.get('username')} (sid: {sid})")
@@ -142,33 +278,55 @@ def handle_client_input(data):
     if sid not in client_states:
         return  # 状態がない場合は何もしない
 
-    state = client_states[sid]
-    input_buffer = state.get("input_buffer", "")
+    handler = client_states[sid]
+    username = handler.user_session.get('username', 'user')
+    prompt = f"{username}> "
 
-    if data == '\r' or data == '\n':  # Enterキー
-        command = input_buffer
-        emit('server_output', '\r\n')  # 改行をエコー
+    # --- エスケープシーケンス処理 (矢印キーなど) ---
+    if data == '\x1b[A':  # 上矢印
+        if handler.history_index < len(handler.command_history) - 1:
+            handler.history_index += 1
+            new_buffer = handler.command_history[handler.history_index]
+            handler.input_buffer = new_buffer
+            # 行をクリアして新しいバッファの内容を表示
+            handler.output_queue.append(f'\r{prompt}\x1b[K{new_buffer}')
+        return
+    elif data == '\x1b[B':  # 下矢印
+        if handler.history_index > 0:
+            handler.history_index -= 1
+            new_buffer = handler.command_history[handler.history_index]
+            handler.input_buffer = new_buffer
+            handler.output_queue.append(f'\r{prompt}\x1b[K{new_buffer}')
+        elif handler.history_index <= 0:  # 履歴の末尾または履歴がない場合
+            handler.history_index = -1
+            handler.input_buffer = ""
+            handler.output_queue.append(f'\r{prompt}\x1b[K')
+        return
 
-        # (将来のコマンド処理ロジック)
-        emit('server_output', f"Command received: {command}\r\n")
+    # --- 通常のキー入力処理 ---
+    elif data == '\r' or data == '\n':  # Enterキー
+        command = handler.input_buffer
+        handler.output_queue.append('\r\n')  # 改行をエコー
 
-        emit('server_output', f"{session.get('username')}> ")
-        state["input_buffer"] = ""  # バッファをクリア
+        # ハンドラにコマンドを渡して処理
+        handler.handle_command(command)
+
+        handler.input_buffer = ""  # バッファをクリア
 
     elif data == '\x7f' or data == '\x08':  # Backspace or Delete
-        if input_buffer:
-            last_char = input_buffer[-1]
-            input_buffer = input_buffer[:-1]
+        if handler.input_buffer:
+            last_char = handler.input_buffer[-1]
+            handler.input_buffer = handler.input_buffer[:-1]
             width = 2 if unicodedata.east_asian_width(
                 last_char) in ('F', 'W', 'A') else 1
             backspace_sequence = ('\b \b') * width
-            emit('server_output', backspace_sequence)
-            state["input_buffer"] = input_buffer
+            handler.output_queue.append(backspace_sequence)
+
     else:  # 通常の文字
-        if not unicodedata.category(data[0]).startswith('C'):
-            input_buffer += data
-            emit('server_output', data)  # 入力された文字をエコー
-            state["input_buffer"] = input_buffer
+        # 制御文字は無視 (エスケープシーケンスは上で処理済み)
+        if not data.startswith('\x1b') and not unicodedata.category(data[0]).startswith('C'):
+            handler.input_buffer += data
+            handler.output_queue.append(data)  # 入力された文字をエコー
 
 
 # --- HTMLテンプレートの準備 ---
