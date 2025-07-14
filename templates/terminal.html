@@ -82,8 +82,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
-    <!-- <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script> -->
-    <!-- 固定サイズなので不要 -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
     <script>
@@ -154,6 +152,14 @@
 
         socket.on('server_output', data => {
             term.write(data);
+        });
+
+        // サーバーからの切断要求を処理
+        socket.on('force_disconnect', (data) => {
+            // サーバーから送られてきたメッセージを表示する
+            const message = (data && data.message) ? data.message : '[Connection closed by server]';
+            term.writeln('\r\n\n' + message);
+            socket.disconnect();
         });
 
         socket.on('connect', () => {

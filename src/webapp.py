@@ -1,7 +1,7 @@
 # /home/yuki/python/GrassRootsBBS/src/webapp.py
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, disconnect
 import os
 import secrets
 import logging
@@ -48,6 +48,10 @@ except Exception as e:
 # --- クライアントごとの状態管理 ---
 # {sid: WebTerminalHandler_instance}
 client_states = {}
+
+current_webapp_clients = 0
+current_webapp_clients_lock = threading.Lock()
+
 
 # --- 定数 ---
 BPS_DELAYS = {
@@ -201,10 +205,14 @@ class WebTerminalHandler:
                 result = command_dispatcher.dispatch_command(command, context)
 
                 if result.get('status') == 'logoff':
-                    util.send_text_by_key(
-                        self.channel, "logoff.message", context['menu_mode'])
+                    # ログオフメッセージを取得して、クライアントに切断イベントと共に送信
+                    logoff_message_text = util.get_text_by_key(
+                        "logoff.message", context['menu_mode'])
+                    processed_text = logoff_message_text.replace(
+                        '\r\n', '\n').replace('\n', '\r\n')
                     self.main_thread_active = False
-                    socketio.disconnect(self.sid)
+                    socketio.emit('force_disconnect', {
+                                  'message': processed_text}, to=self.sid)
                     break
 
                 if 'new_menu_mode' in result:
@@ -291,6 +299,17 @@ def handle_connect(auth=None):
     if 'user_id' not in session:
         return False  # 未認証ユーザーは接続を拒否
 
+    # --- 接続数チェック ---
+    global current_webapp_clients
+    with current_webapp_clients_lock:
+        max_clients = util.app_config.get(
+            'webapp', {}).get('MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
+        if max_clients > 0 and current_webapp_clients >= max_clients:
+            logging.warning(
+                f"WebUI connection limit ({max_clients}) reached. Rejecting new connection from {request.remote_addr}")
+            return False  # 接続を拒否
+        current_webapp_clients += 1
+
     sid = request.sid
     # ユーザーセッション情報を辞書としてハンドラに渡す
     user_session_data = {
@@ -303,7 +322,8 @@ def handle_connect(auth=None):
     client_states[sid] = handler
 
     logging.info(
-        f"WebTerminal client connected: {session.get('username')} (sid: {sid})")
+        f"WebTerminal client connected: {session.get('username')} (sid: {sid}). "
+        f"Current clients: {current_webapp_clients}/{max_clients if max_clients > 0 else 'unlimited'}")
 
 
 @socketio.on('set_speed')
@@ -321,12 +341,18 @@ def handle_set_speed(speed_name):
 @socketio.on('disconnect')
 def handle_disconnect():
     """クライアント切断時の処理"""
+    global current_webapp_clients
+    with current_webapp_clients_lock:
+        current_webapp_clients = max(0, current_webapp_clients - 1)
+
     sid = request.sid
     if sid in client_states:
         client_states[sid].stop_worker()  # これで両方のスレッドが停止する
         del client_states[sid]
+
     logging.info(
-        f"WebTerminal client disconnected: {session.get('username')} (sid: {sid})")
+        f"WebTerminal client disconnected: {session.get('username')} (sid: {sid}). "
+        f"Current clients: {current_webapp_clients}")
 
 
 @socketio.on('client_input')
