@@ -1,4 +1,4 @@
-# /home/yuki/python/GrassRootsBBS/webapp.py
+# /home/yuki/python/GrassRootsBBS/src/webapp.py
 
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_socketio import SocketIO, emit
@@ -9,6 +9,7 @@ import sys
 from functools import wraps
 import datetime
 import threading
+import socket
 import collections
 import unicodedata
 # このファイルは 'src' ディレクトリ内にあるため、他の 'src' 内のモジュールは直接インポートできます。
@@ -16,6 +17,7 @@ import util
 import sqlite_tools
 import bbs_manager
 import command_dispatcher
+import ssh_input
 
 # --- プロジェクトルートとパスの設定 ---
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
@@ -64,18 +66,25 @@ class WebTerminalHandler:
         self.sid = sid
         self.db_name = db_name
         self.user_session = user_session
-        self.input_buffer = ""
-        self.command_history = collections.deque(maxlen=50)
-        self.history_index = -1
         self.speed = 'full'
         self.bps_delay = 0
         self.output_queue = collections.deque()
+        self.input_queue = collections.deque()
+        self.input_event = threading.Event()
         self.stop_worker_event = threading.Event()
+        self.main_thread_active = True
 
         # SSHの `paramiko.Channel` のように振る舞うアダプタクラス
         class WebChannel:
             def __init__(self, handler_instance):
                 self.handler = handler_instance
+                self.recv_buffer = b''
+                self.active = True
+                self._timeout = None
+
+            def settimeout(self, timeout):
+                """ssh_input.pyから呼び出されるタイムアウト設定"""
+                self._timeout = timeout
 
             def send(self, data):
                 # dataはstrかbytes。WebSocketではstrをemitする必要がある。
@@ -87,12 +96,46 @@ class WebTerminalHandler:
                 # ワーカースレッドが処理するようにキューに追加する
                 self.handler.output_queue.append(text_to_send)
 
+            def recv(self, n):
+                """ssh_inputから呼ばれる。クライアントからの入力をバイト列で返す。"""
+                while len(self.recv_buffer) < n and self.active:
+                    # キューが空なら、新しい入力が来るまで待機
+                    if not self.handler.input_queue:
+                        # wait()はタイムアウトするとFalseを返す
+                        if not self.handler.input_event.wait(timeout=self._timeout):
+                            raise socket.timeout("timed out")
+                        self.handler.input_event.clear()  # Reset for next wait
+                        # 待機後に再度アクティブチェック
+                        if not self.active:
+                            break
+
+                    # キューからデータを取得して内部バッファに追加
+                    try:
+                        data_str = self.handler.input_queue.popleft()
+                        self.recv_buffer += data_str.encode('utf-8')
+                    except IndexError:
+                        # 他のスレッドが先にキューを空にした場合など
+                        continue
+
+                if not self.active and not self.recv_buffer:
+                    return b''  # 接続が閉じてバッファも空なら空バイトを返す
+
+                # 要求されたバイト数を返す
+                ret = self.recv_buffer[:n]
+                self.recv_buffer = self.recv_buffer[n:]
+                return ret
+
             def getpeername(self):
                 # sessionからIPを取得するのは難しいのでダミーを返す
                 return ('127.0.0.1', 12345)
 
+            def close(self):
+                self.active = False
+                self.handler.input_event.set()  # Waiting recv() should be unblocked
+
         self.channel = WebChannel(self)
         socketio.start_background_task(self._sender_worker)
+        socketio.start_background_task(self._bbs_main_loop)
 
     def _sender_worker(self):
         """出力キューを監視し、クライアントにデータを送信するワーカースレッド"""
@@ -108,52 +151,74 @@ class WebTerminalHandler:
                 else:
                     socketio.emit('server_output', text, to=self.sid)
             except IndexError:
-                socketio.sleep(0.01)  # キューが空なら待機
+                socketio.sleep(0.01)  # キューが空なら少し待機
 
     def stop_worker(self):
         """ワーカースレッドを停止させる"""
+        self.main_thread_active = False
+        self.channel.close()
         self.stop_worker_event.set()
 
-    def show_prompt(self):
-        """現在の状態に応じたプロンプトを表示する"""
-        username = self.user_session.get('username', 'user')
-        prompt = f"\r\n{username}> "
-        self.output_queue.append(prompt)
+    def _bbs_main_loop(self):
+        """BBSのメインロジックを実行するスレッド"""
+        try:
+            # ウェルカムメッセージとトップメニュー表示
+            util.send_text_by_key(self.channel, "login.welcome_message_webapp",
+                                  self.user_session.get('menu_mode', '2'))
+            util.send_text_by_key(self.channel, "top_menu.menu",
+                                  self.user_session.get('menu_mode', '2'))
 
-    def handle_command(self, command):
-        """入力されたコマンドを処理する"""
-        # 空のコマンドは履歴に追加しない
-        if command:
-            # 履歴の先頭が同じコマンドでなければ追加
-            if not self.command_history or self.command_history[0] != command:
-                self.command_history.appendleft(command)
-        self.history_index = -1  # コマンド実行後は履歴インデックスをリセット
+            # server.pyのprocess_command_loopを模倣
+            while self.main_thread_active:
+                context = {
+                    'chan': self.channel,
+                    'dbname': self.db_name,
+                    'login_id': self.user_session.get('username'),
+                    'display_name': self.user_session.get('username'),
+                    'user_id': self.user_session.get('user_id'),
+                    'userlevel': self.user_session.get('userlevel'),
+                    'server_pref_dict': {},  # TODO: 必要に応じてDBから読み込む
+                    'addr': self.channel.getpeername(),
+                    'menu_mode': self.user_session.get('menu_mode', '2'),
+                    'online_members_func': lambda: {},  # TODO: WebとSSHで共有する仕組みが必要
+                }
 
-        # command_dispatcher に渡すためのコンテキストを作成
-        context = {
-            'chan': self.channel,
-            'dbname': self.db_name,
-            'login_id': self.user_session.get('username'),
-            # Webでは表示名はログインIDと同じ
-            'display_name': self.user_session.get('username'),
-            'user_id': self.user_session.get('user_id'),
-            'userlevel': self.user_session.get('userlevel'),
-            'server_pref_dict': {},  # TODO: 必要に応じてDBから読み込む
-            'addr': self.channel.getpeername(),
-            'menu_mode': self.user_session.get('menu_mode', '2'),
-            'online_members_func': lambda: {},  # TODO: WebとSSHで共有する仕組みが必要
-        }
+                util.send_text_by_key(
+                    self.channel, "prompt.topmenu", context['menu_mode'], add_newline=False)
 
-        result = command_dispatcher.dispatch_command(command, context)
+                command = ssh_input.process_input(self.channel)
 
-        if result.get('status') == 'logoff':
-            util.send_text_by_key(
-                self.channel, "logoff.message", context['menu_mode'])
-            socketio.disconnect(self.sid)
-            return
+                if command is None:  # 切断
+                    self.main_thread_active = False
+                    break
 
-        # コマンド処理後にプロンプトを再表示
-        self.show_prompt()
+                command = command.strip().lower()
+                if not command:
+                    util.send_text_by_key(
+                        self.channel, "top_menu.menu", context['menu_mode'])
+                    continue
+
+                result = command_dispatcher.dispatch_command(command, context)
+
+                if result.get('status') == 'logoff':
+                    util.send_text_by_key(
+                        self.channel, "logoff.message", context['menu_mode'])
+                    self.main_thread_active = False
+                    socketio.disconnect(self.sid)
+                    break
+
+                if 'new_menu_mode' in result:
+                    self.user_session['menu_mode'] = result['new_menu_mode']
+                    util.send_text_by_key(
+                        self.channel, "top_menu.menu", self.user_session['menu_mode'])
+
+        except Exception as e:
+            logging.error(
+                f"BBSメインループでエラー発生 ({self.user_session.get('username')}): {e}", exc_info=True)
+        finally:
+            self.stop_worker()
+            logging.info(
+                f"BBSメインループが終了しました ({self.user_session.get('username')})")
 
 # --- デコレータ ---
 
@@ -168,8 +233,8 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- ルーティング（URLと関数の紐付け） ---
 
+# --- ルーティング（URLと関数の紐付け） ---
 
 @app.route('/')
 @login_required
@@ -217,8 +282,8 @@ def logout():
     session.pop('userlevel', None)
     return redirect(url_for('login'))
 
-# --- WebSocketイベントハンドラ ---
 
+# --- WebSocketイベントハンドラ ---
 
 @socketio.on('connect')
 def handle_connect(auth=None):
@@ -240,13 +305,6 @@ def handle_connect(auth=None):
     logging.info(
         f"WebTerminal client connected: {session.get('username')} (sid: {sid})")
 
-    # ウェルカムメッセージとトップメニュー表示
-    util.send_text_by_key(handler.channel, "login.welcome_message_webapp",
-                          handler.user_session.get('menu_mode', '2'))
-    util.send_text_by_key(handler.channel, "top_menu.menu",
-                          handler.user_session.get('menu_mode', '2'))
-    handler.show_prompt()
-
 
 @socketio.on('set_speed')
 def handle_set_speed(speed_name):
@@ -265,7 +323,7 @@ def handle_disconnect():
     """クライアント切断時の処理"""
     sid = request.sid
     if sid in client_states:
-        client_states[sid].stop_worker()
+        client_states[sid].stop_worker()  # これで両方のスレッドが停止する
         del client_states[sid]
     logging.info(
         f"WebTerminal client disconnected: {session.get('username')} (sid: {sid})")
@@ -273,60 +331,14 @@ def handle_disconnect():
 
 @socketio.on('client_input')
 def handle_client_input(data):
-    """クライアントからの入力を受け取り、処理する"""
+    """クライアントからの入力を受け取り、対応するハンドラのキューに入れる"""
     sid = request.sid
     if sid not in client_states:
         return  # 状態がない場合は何もしない
 
     handler = client_states[sid]
-    username = handler.user_session.get('username', 'user')
-    prompt = f"{username}> "
-
-    # --- エスケープシーケンス処理 (矢印キーなど) ---
-    if data == '\x1b[A':  # 上矢印
-        if handler.history_index < len(handler.command_history) - 1:
-            handler.history_index += 1
-            new_buffer = handler.command_history[handler.history_index]
-            handler.input_buffer = new_buffer
-            # 行をクリアして新しいバッファの内容を表示
-            handler.output_queue.append(f'\r{prompt}\x1b[K{new_buffer}')
-        return
-    elif data == '\x1b[B':  # 下矢印
-        if handler.history_index > 0:
-            handler.history_index -= 1
-            new_buffer = handler.command_history[handler.history_index]
-            handler.input_buffer = new_buffer
-            handler.output_queue.append(f'\r{prompt}\x1b[K{new_buffer}')
-        elif handler.history_index <= 0:  # 履歴の末尾または履歴がない場合
-            handler.history_index = -1
-            handler.input_buffer = ""
-            handler.output_queue.append(f'\r{prompt}\x1b[K')
-        return
-
-    # --- 通常のキー入力処理 ---
-    elif data == '\r' or data == '\n':  # Enterキー
-        command = handler.input_buffer
-        handler.output_queue.append('\r\n')  # 改行をエコー
-
-        # ハンドラにコマンドを渡して処理
-        handler.handle_command(command)
-
-        handler.input_buffer = ""  # バッファをクリア
-
-    elif data == '\x7f' or data == '\x08':  # Backspace or Delete
-        if handler.input_buffer:
-            last_char = handler.input_buffer[-1]
-            handler.input_buffer = handler.input_buffer[:-1]
-            width = 2 if unicodedata.east_asian_width(
-                last_char) in ('F', 'W', 'A') else 1
-            backspace_sequence = ('\b \b') * width
-            handler.output_queue.append(backspace_sequence)
-
-    else:  # 通常の文字
-        # 制御文字は無視 (エスケープシーケンスは上で処理済み)
-        if not data.startswith('\x1b') and not unicodedata.category(data[0]).startswith('C'):
-            handler.input_buffer += data
-            handler.output_queue.append(data)  # 入力された文字をエコー
+    handler.input_queue.append(data)
+    handler.input_event.set()  # BBSメインループに新しい入力があったことを通知
 
 
 # --- HTMLテンプレートの準備 ---
@@ -359,6 +371,7 @@ if not os.path.exists(login_html_path):
 </body>
 </html>
 """)
+
 
 # --- Webサーバーの起動 ---
 if __name__ == '__main__':
