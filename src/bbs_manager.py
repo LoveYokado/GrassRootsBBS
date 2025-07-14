@@ -1,5 +1,6 @@
 import logging
 import time
+import sqlite3
 import json
 import util
 import sqlite_tools
@@ -93,46 +94,64 @@ class ArticleManager:
             return article_data
         return None
 
-    def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None):
+    def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None):
         """
         記事を新規作成する
         board_id_pkはboardsテーブルの主キー
         user_identifierはusersテーブルの主キー(int)またはゲストの表示名(str)
         戻り値は作成された記事のID、失敗したらNone
         """
-        conn = None
+        conn = None  # for finally block
         try:
-            # 次の記事番号取得
-            next_article_number = sqlite_tools.get_next_article_number(
-                self.dbname, board_id_pk)
-            if next_article_number is None:
-                logging.error(
-                    f"記事の作成に失敗しました(BoardID:{board_id_pk}, User:{user_identifier}): 次の記事番号の取得に失敗")
-                return None
+            conn = sqlite3.connect(self.dbname)
+            # conn.execute('BEGIN') # sqlite3モジュールはDMLで暗黙的にトランザクションを開始します
 
-            # 記事を挿入
+            # 返信の場合は記事番号を採番せず、スレッド作成の場合のみ採番する
+            if parent_article_id is not None:
+                next_article_number = None  # 返信には記事番号を割り当てない
+            else:
+                # 次の記事番号取得 (トランザクション内で実行)
+                next_article_number = sqlite_tools.get_next_article_number(
+                    self.dbname, board_id_pk, conn=conn)
+                if next_article_number is None:
+                    raise Exception("次の記事番号の取得に失敗")
+
+            # 記事を挿入 (トランザクション内で実行)
             current_timestamp = int(time.time())
             article_id = sqlite_tools.insert_article(
-                self.dbname, board_id_pk, next_article_number, user_identifier, title, body, current_timestamp, ip_address
+                self.dbname, board_id_pk, next_article_number, user_identifier, title, body, current_timestamp, ip_address, parent_article_id, conn=conn
             )
+            if article_id is None:
+                raise Exception("記事の挿入に失敗")
 
-            if article_id is not None:
-                # 掲示板の最終投稿日時を更新
-                sqlite_tools.update_board_last_posted_at(
-                    self.dbname, board_id_pk, current_timestamp)
-                logging.info(
-                    f"記事を作成しました(BoardID:{board_id_pk}, ArticleNo:{next_article_number}, User:{user_identifier}, ArticleDBID:{article_id})")
-                return article_id
-            else:
-                return None
+            # 掲示板の最終投稿日時を更新 (トランザクション内で実行)
+            if not sqlite_tools.update_board_last_posted_at(
+                    self.dbname, board_id_pk, current_timestamp, conn=conn):
+                raise Exception("掲示板の最終投稿日時更新に失敗")
+
+            # 全ての処理が成功したらコミット
+            conn.commit()
+            logging.info(
+                f"記事を作成しました(BoardID:{board_id_pk}, ArticleNo:{next_article_number}, User:{user_identifier}, ArticleDBID:{article_id})")
+            return article_id
 
         except Exception as e:
             logging.error(
                 f"記事の作成に失敗しました(BoardID:{board_id_pk}, User:{user_identifier}): {e}")
+            if conn:
+                conn.rollback()  # エラー発生時はロールバック
             return None
         finally:
             if conn:
                 conn.close()
+
+    def get_threads(self, board_id, include_deleted=False):
+        """指定された掲示板のスレッド一覧(親記事と返信数)を取得"""
+        return sqlite_tools.get_thread_root_articles_with_reply_count(self.dbname, board_id, include_deleted)
+
+    def get_replies(self, parent_article_id, include_deleted=False):
+        """指定された親記事の返信をすべて取得"""
+        return sqlite_tools.get_replies_for_article(self.dbname, parent_article_id, include_deleted)
 
     def update_article(self, article_id, title, body):
         """記事を更新する（主に看板用）"""

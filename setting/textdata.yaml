@@ -830,6 +830,14 @@ sysop_menu:
       mode_1: "説明: "
       mode_2: "説明: "
       mode_3: "Description: "
+    board_type_prompt:
+      mode_1: "掲示板タイプ ({types}, 空入力でsimple): "
+      mode_2: "掲示板タイプ ({types}, 空入力でsimple): "
+      mode_3: "Board Type ({types}, blank for simple): "
+    invalid_board_type:
+      mode_1: "無効な掲示板タイプです。{types} から選択してください。"
+      mode_2: "無効な掲示板タイプです。{types} から選択してください。"
+      mode_3: "Invalid board type. Please choose from {types}."
     default_permission_prompt:
       mode_1: "デフォルトパーミッション ({permissions}): "
       mode_2: "デフォルトパーミッション ({permissions}): "
@@ -1319,6 +1327,26 @@ bbs:
     mode_1: "** 登録に失敗しました **\r\n"
     mode_2: "** 登録に失敗しました **\r\n"
     mode_3: "** Article posting failed **\r\n"
+  reply_prompt:
+    mode_1: "この記事に返信しますか？ ([R]eply / [Enter]続ける): "
+    mode_2: "この記事に返信しますか？ ([R]eply / [Enter]続ける): "
+    mode_3: "Reply to this article? ([R]eply / [Enter]Continue): "
+  reply_header:
+    mode_1: "** 記事 {parent_id} への返信 **\r\n"
+    mode_2: "** 記事 {parent_id} への返信 **\r\n"
+    mode_3: "** Replying to article {parent_id} **\r\n"
+  title_required:
+    mode_1: "新規スレッドにはタイトルが必須です。\r\n"
+    mode_2: "新規スレッドにはタイトルが必須です。\r\n"
+    mode_3: "New threads require a title.\r\n"
+  thread_list_header: # スレッド一覧のヘッダー
+    mode_1: "-NUM- -R.DATE- -R.TIME- -SENDER-         -TITLE (REPLIES)-\r\n"
+    mode_2: "-NUM- -R.DATE- -R.TIME- -SENDER-         -TITLE (REPLIES)-\r\n"
+    mode_3: "-NUM- -R.DATE- -R.TIME- -SENDER-         -TITLE (REPLIES)-\r\n"
+  read_replies_header: # 返信一覧表示時のヘッダー
+    mode_1: "\r\n--- 記事 {parent_article_number} への返信一覧 ---\r\n"
+    mode_2: "\r\n--- 記事 {parent_article_number} への返信一覧 ---\r\n"
+    mode_3: "\r\n--- Replies to Article {parent_article_number} ---\r\n"
   title_truncated:
     mode_1: "タイトルが長すぎるため、{max_len}文字に切り詰めました。\r\n"
     mode_2: "タイトルが長すぎるため、{max_len}文字に切り詰めました。\r\n"
@@ -1427,6 +1455,10 @@ bbs:
       | 'Keyword + ENTER   | Full-Text Search: Search post content   |
       | ;Target + ENTER    | SIG Jump: Switch between SIGs           |
       +--------------------+-----------------------------------------+
+  back_to_list_prompt: # 記事閲覧後、一覧に戻るかのプロンプト
+    mode_1: "一覧に戻りますか？ ([E]xit / [Enter]戻る): "
+    mode_2: "一覧に戻りますか？ ([E]xit / [Enter]戻る): "
+    mode_3: "Back to list? ([E]xit / [Enter]Back): "
   main_prompt:
     mode_1: "選択してください ([W]書き込み [R]読み出し [E]終了): "
     mode_2: "選択してください ([W]書き込み [R]読み出し [E]終了): "

@@ -156,6 +156,7 @@ class CommandHandler:
 
         board_id_pk = self.current_board['id']
         articles = []  # この行で articles を初期化
+        board_type = self.current_board.get('board_type', 'simple')
         current_index = 0
         article_id_width = 5  # 記事番号桁数
 
@@ -166,8 +167,12 @@ class CommandHandler:
             nonlocal articles, current_index, article_id_width, display_initial_header, last_login_timestamp
             current_article_id_on_reload = None
 
-            fetched_articles = self.article_manager.get_articles_by_board(
-                board_id_pk, include_deleted=True)  # 常に削除済み記事も取得
+            if board_type == 'thread':
+                fetched_articles = self.article_manager.get_threads(
+                    board_id_pk, include_deleted=True)
+            else:  # simple
+                fetched_articles = self.article_manager.get_articles_by_board(
+                    board_id_pk, include_deleted=True)  # 常に削除済み記事も取得
             articles = fetched_articles if fetched_articles else []
 
             # last_login_timestamp 以降の記事にジャンプする
@@ -217,8 +222,12 @@ class CommandHandler:
                     self.chan, "bbs.article_list_count", self.menu_mode,
                     total_count=total_articles, unread_count=unread_articles_count
                 )
-                util.send_text_by_key(
-                    self.chan, "bbs.article_list_header", self.menu_mode)
+                if board_type == 'thread':
+                    util.send_text_by_key(
+                        self.chan, "bbs.thread_list_header", self.menu_mode)
+                else:
+                    util.send_text_by_key(
+                        self.chan, "bbs.article_list_header", self.menu_mode)
             if not articles:
                 util.send_text_by_key(
                     self.chan, "bbs.no_article", self.menu_mode)
@@ -244,6 +253,8 @@ class CommandHandler:
             elif articles and 0 <= current_index < len(articles):
                 article = articles[current_index]
                 title = article['title'] if article['title'] else "(No Title)"
+                reply_count = article['reply_count'] if board_type == 'thread' and 'reply_count' in article.keys(
+                ) else 0
 
                 deleted_mark = "*" if article['is_deleted'] == 1 else ""
 
@@ -289,14 +300,24 @@ class CommandHandler:
                     else:
                         title_short = ""  # 一般ユーザーには表示しない
                 else:
-                    title_short = util.shorten_text_by_slicing(title, width=32)
+                    to_marker = "(T/O)" if article['body'] == '(T/O)' else ""
+                    if board_type == 'thread':
+                        # 返信数と(T/O)マークを表示するスペースを確保
+                        title_part = util.shorten_text_by_slicing(
+                            title, width=24 - len(to_marker))
+                        title_short = f"{title_part}{to_marker}"
+                    else:  # simple
+                        title_part = util.shorten_text_by_slicing(
+                            title, width=32 - len(to_marker))
+                        title_short = f"{title_part}{to_marker}"
                 # ユーザー名の後のスペースを調整
                 spaces_before_title_field = "  " if deleted_mark else "   "
                 # 左寄せ、指定幅
                 article_no_str = f"{article['article_number']:0{article_id_width}d}"
 
+                reply_count_str = f"({reply_count})" if board_type == 'thread' else ""
                 self.chan.send(
-                    f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<14}{spaces_before_title_field}{deleted_mark}{title_short}\r\n".encode('utf-8'))
+                    f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<14}{spaces_before_title_field}{deleted_mark}{title_short}{reply_count_str}\r\n".encode('utf-8'))
             else:
                 util.send_text_by_key(
                     self.chan, "bbs.no_article", self.menu_mode)
@@ -597,16 +618,15 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
 
             # 現在位置を読む[ctrl+d][enter]
-            elif key_input == '\x04' or key_input == "ENTER":
+            elif key_input == '\x04' or key_input == "ENTER" or key_input == 'p':
                 if articles and 0 <= current_index < len(articles):
-                    display_current_article_header()  # 1. 1行ヘッダを表示 (末尾に改行を含む)
-                    self.chan.send(b'\r\n')          # 2. 1行ヘッダと本文の間に空行を追加
                     self.read_article(
                         articles[current_index]['article_number'],
-                        show_header=False,
-                        show_back_prompt=False
-                    )  # 3. 本文を表示 (このメソッドの末尾で改行が1つ入る)
-                    # 4. 記事一覧の全体ヘッダは再表示せず、現在のカーソル位置のヘッダ表示とループ末尾のプロンプト表示に任せる
+                        show_header=True,
+                        show_back_prompt=True
+                    )
+                    # read_articleから戻ってきたら、リストを再描画
+                    # (返信が投稿された可能性を考慮)
                     reload_articles_display(keep_index=True)
                 elif not articles or current_index == -1 or current_index == len(articles):
                     self.chan.send(b'\a')  # マーカー位置では読めない
@@ -823,8 +843,12 @@ class CommandHandler:
                     start_idx = 0  # 先頭マーカーなら0から
 
                 self.chan.send(b'\r\n')
-                util.send_text_by_key(
-                    self.chan, "bbs.article_list_header", self.menu_mode)
+                if board_type == 'thread':
+                    util.send_text_by_key(
+                        self.chan, "bbs.thread_list_header", self.menu_mode)
+                else:
+                    util.send_text_by_key(
+                        self.chan, "bbs.article_list_header", self.menu_mode)
                 for i in range(start_idx, len(articles)):
                     article = articles[i]
                     # 左寄せ、指定幅
@@ -832,6 +856,8 @@ class CommandHandler:
                     article_no_str = f"{article['article_number']:0{article_id_width}d}"
                     title = article['title'] if article['title'] else "(No Title)"
 
+                    reply_count = article['reply_count'] if board_type == 'thread' and 'reply_count' in article.keys(
+                    ) else 0
                     # タイトル表示の調整 (記事一覧表示と同様のロジック)
                     if article['is_deleted'] == 1:
                         can_see_deleted_title_list = False
@@ -849,8 +875,16 @@ class CommandHandler:
                         else:
                             title_short = ""
                     else:
-                        title_short = util.shorten_text_by_slicing(
-                            title, width=32)
+                        to_marker_list = "(T/O)" if article['body'] == '(T/O)' else ""
+                        if board_type == 'thread':
+                            title_part = util.shorten_text_by_slicing(
+                                title, width=24 - len(to_marker_list))
+                            title_short = f"{title_part}{to_marker_list}"
+                        else:  # simple
+                            title_part = util.shorten_text_by_slicing(
+                                title, width=32 - len(to_marker_list))
+                            title_short = f"{title_part}{to_marker_list}"
+
                     deleted_mark_list = "*" if article['is_deleted'] == 1 else ""
                     user_id_from_article = article['user_id']
                     display_sender_name = ""
@@ -874,8 +908,9 @@ class CommandHandler:
                     except:
                         r_date_str = "----/--/--"
                         r_time_str = "--:--"
+                    reply_count_str = f"({reply_count})" if board_type == 'thread' else ""
                     self.chan.send(
-                        f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<14}{spaces_before_title_field_list}{deleted_mark_list}{title_short}\r\n".encode('utf-8'))
+                        f"{article_no_str}  {r_date_str} {r_time_str} {user_name_short:<14}{spaces_before_title_field_list}{deleted_mark_list}{title_short}{reply_count_str}\r\n".encode('utf-8'))
                 self.chan.send(b'\r\n')  # タイトル一覧の最後に空行
                 current_index = len(articles)  # 末尾マーカーへ
                 display_current_article_header()
@@ -1327,32 +1362,6 @@ class CommandHandler:
                 article_number=article['article_number'],
                 title=f"{deleted_mark}{display_title}",  # 削除マークと調整済みタイトル
             )
-            # util.send_text_by_key でタイトル行は表示されるので、以下の個別のタイトル表示は不要
-            # title = article['title'] if article['title'] else "(No Title)"
-            # util.send_text_by_key(
-            #     self.chan, "bbs.article_header", self.menu_mode,
-            #     article_number=article['article_number'], title=title)
-            user_id_from_article = article['user_id']
-            display_sender_name = ""
-            try:
-                # user_idが数値に変換できるか試す (登録ユーザー)
-                user_id_int = int(user_id_from_article)
-                user_name = sqlite_tools.get_user_name_from_user_id(
-                    self.dbname, user_id_int)
-                display_sender_name = user_name if user_name else "(Unknown)"
-            except (ValueError, TypeError):
-                # 数値に変換できない場合 (GUEST(hash)など)、そのまま表示名として使用
-                display_sender_name = str(user_id_from_article)
-            try:
-                created_at_str = datetime.datetime.fromtimestamp(
-                    article['created_at']).strftime("%Y/%m/%d %H:%M:%S")
-            except:
-                created_at_str = "----/--/-- --:--:--"
-
-            self.chan.send(
-                f"Sender: {display_sender_name}\r\n".encode('utf-8'))
-            self.chan.send(
-                f"Date: {created_at_str}\r\n".encode('utf-8'))
             self.chan.send(b'\r\n')
 
         # 削除済み記事の本文表示に関する権限チェック
@@ -1378,33 +1387,130 @@ class CommandHandler:
                 # show_back_prompt が True の場合でも、この後のプロンプトループは実行されない
                 return
 
-        body_to_send = article['body'].replace(
-            '\r\n', '\n').replace('\n', '\r\n')
-        # textwrap を使って本文を折り返す
-        wrapped_body_lines = textwrap.wrap(
-            body_to_send, width=78, replace_whitespace=False, drop_whitespace=False)
-        for line in wrapped_body_lines:
-            self.chan.send(line.encode('utf-8') + b'\r\n')
+        # (T/O) の場合は本文を表示しない
+        if article['body'] != '(T/O)':
+            body_to_send = article['body'].replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            # textwrap を使って本文を折り返す
+            wrapped_body_lines = textwrap.wrap(
+                body_to_send, width=78, replace_whitespace=False, drop_whitespace=False)
+            for line in wrapped_body_lines:
+                self.chan.send(line.encode('utf-8') + b'\r\n')
 
         # 本文表示後、改行を1行だけ入れる
         self.chan.send(b'\r\n')
 
+        # --- スレッド形式の場合、返信を表示 ---
+        board_type = self.current_board.get('board_type', 'simple')
+        is_parent_article = article['parent_article_id'] is None
+
+        if board_type == 'thread' and is_parent_article:
+            replies = self.article_manager.get_replies(article['id'])
+            if replies:
+                util.send_text_by_key(
+                    self.chan, "bbs.read_replies_header", self.menu_mode,
+                    parent_article_number=article['article_number']
+                )
+                for i, reply in enumerate(replies):
+                    # 返信の表示
+                    reply_sender_name = ""
+                    try:
+                        user_id_int = int(reply['user_id'])
+                        user_name = sqlite_tools.get_user_name_from_user_id(
+                            self.dbname, user_id_int)
+                        reply_sender_name = user_name if user_name else "(Unknown)"
+                    except (ValueError, TypeError):
+                        reply_sender_name = str(reply['user_id'])
+
+                    try:
+                        created_at_str = datetime.datetime.fromtimestamp(
+                            reply['created_at']).strftime("%Y/%m/%d %H:%M:%S")
+                    except:
+                        created_at_str = "----/--/-- --:--:--"
+
+                    # 返信本文の折り返し
+                    reply_body_wrapped = textwrap.wrap(
+                        reply['body'].replace('\r\n', '\n'),
+                        width=78, replace_whitespace=False, drop_whitespace=False
+                    )
+
+                    # 返信ヘッダ
+                    self.chan.send(
+                        f"{i+1}: {reply_sender_name} ({created_at_str})\r\n".encode('utf-8'))
+                    # 返信本文
+                    for line in reply_body_wrapped:
+                        self.chan.send(f"  {line}\r\n".encode('utf-8'))
+                    self.chan.send(b'\r\n')  # 返信ごとの空行
+
+        # --- スレッド形式で、かつ親記事を読んでいる場合、返信を促す ---
+        if board_type == 'thread' and is_parent_article and show_back_prompt:
+            util.send_text_by_key(
+                self.chan, "bbs.reply_prompt", self.menu_mode, add_newline=False)
+            reply_choice = ssh_input.process_input(self.chan)
+            if reply_choice and reply_choice.strip().lower() == 'r':
+                self._reply_to_article(article)
+                # 返信後は記事一覧に戻るため、ここで処理を終了
+                # 注意: 現状では返信内容は即時反映されません。一度掲示板を抜けて入り直すと表示されます。
+                #      この動作は今後のステップで改善される可能性があります。
+                return
+
         # 記事本文表示後、既読として記録
         self._update_read_progress(board_id_pk, article_number)
 
-        if show_back_prompt:
-            while True:
-                util.send_text_by_key(
-                    self.chan, "bbs.back_to_list_prompt", self.menu_mode, add_newline=False)
-                user_input = ssh_input.process_input(self.chan)
-                if user_input is None:
-                    return  # 切断
-                command = user_input.strip().lower()
-                if command == 'e' or command == '':
-                    return
-                else:
-                    util.send_text_by_key(
-                        self.chan, "common_messages.invalid_command", self.menu_mode)
+    def _reply_to_article(self, parent_article):
+        """記事に返信する"""
+        if not self.permission_manager.can_write_to_board(self.current_board, self.user_id_pk, self.userlevel):
+            util.send_text_by_key(
+                self.chan, "bbs.permission_denied_write_article", self.menu_mode)
+            return
+
+        util.send_text_by_key(
+            self.chan, "bbs.reply_header", self.menu_mode,
+            parent_id=parent_article['article_number']
+        )
+
+        limits_config = util.app_config.get('limits', {})
+        body_max_len = limits_config.get('bbs_body_max_length', 8192)
+        util.send_text_by_key(
+            self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
+
+        body_lines = []
+        while True:
+            line = ssh_input.process_input(self.chan)
+            if line is None:
+                return  # 切断
+            if line == '^':
+                break
+            body_lines.append(line)
+        body = '\r\n'.join(body_lines)
+
+        if len(body) > body_max_len:
+            body = body[:body_max_len]
+            util.send_text_by_key(
+                self.chan, "bbs.body_truncated", self.menu_mode, max_len=body_max_len)
+
+        if not body.strip():
+            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
+            return
+
+        util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
+                              self.menu_mode, add_newline=False)
+        confirm = ssh_input.process_input(self.chan)
+        if confirm is None or confirm.strip().lower() != 'y':
+            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
+            return
+
+        # 投稿者識別子を決定
+        user_identifier = util.get_display_name(
+            self.login_id, self.ip_address) if self.login_id.upper() == 'GUEST' else self.user_id_pk
+
+        # 返信をDBに保存
+        # 返信はタイトルなし(None)、親記事IDを指定してcreate_articleを呼び出す
+        if self.article_manager.create_article(self.current_board['id'], user_identifier, None, body, ip_address=self.ip_address, parent_article_id=parent_article['id']):
+            util.send_text_by_key(
+                self.chan, "bbs.post_success", self.menu_mode)
+        else:
+            util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
 
     def write_article(self):
         """記事を新規作成"""
@@ -1443,8 +1549,12 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "bbs.title_truncated", self.menu_mode, max_len=title_max_len)
 
-        if not title:
-            return  # タイトルがなければキャンセル
+        board_type = self.current_board.get('board_type', 'simple')
+        if not title and board_type == 'thread':
+            # スレッド形式の場合、新規投稿（スレッド作成）にはタイトルが必須
+            util.send_text_by_key(
+                self.chan, "bbs.title_required", self.menu_mode)
+            return
 
         body_max_len = limits_config.get('bbs_body_max_length', 8192)
         util.send_text_by_key(
@@ -1464,8 +1574,13 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "bbs.body_truncated", self.menu_mode, max_len=body_max_len)
 
-        if not body.strip():
-            title = title+'(T/O)'  # タイトルをタイトルオンリーに
+        # 本文が空の場合の処理
+        if not body.strip() and not title.strip():
+            # タイトルも本文も空の場合はキャンセル
+            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
+            return
+        elif not body.strip():
+            body = '(T/O)'  # 本文が空なら、本文に(T/O)と入れる
 
         util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
                               self.menu_mode, add_newline=False)

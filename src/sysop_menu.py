@@ -686,6 +686,21 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
         return None
     description = desc_input.strip()
 
+    board_type = ""
+    balid_types = ["simple", "thread"]
+    while board_type not in balid_types:
+        util.send_text_by_key(chan, "sysop_menu.make_board.board_type_prompt", current_menu_mode,
+                              types=", ".join(balid_types), add_newline=False)
+        type_input = ssh_input.process_input(chan)
+        if type_input is None:
+            return None
+        board_type = type_input.strip().lower()
+        if not board_type:
+            board_type = "simple"
+        if board_type not in balid_types:
+            util.send_text_by_key(chan, "sysop_menu.make_board.invalid_board_type", current_menu_mode,
+                                  types=", ".join(balid_types))
+
     default_permission = ""
     valid_permissions = ["open", "close", "readonly"]
     while default_permission not in valid_permissions:
@@ -744,7 +759,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
             chan, "common_messages.cancel", current_menu_mode)
         return None
 
-    if sqlite_tools.create_board_entry(dbname, shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level):
+    if sqlite_tools.create_board_entry(dbname, shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level, board_type):
         util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
                               current_menu_mode, shortcut_id=shortcut_id)
         util.send_text_by_key(
