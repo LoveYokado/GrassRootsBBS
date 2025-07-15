@@ -1,6 +1,7 @@
 import ssh_input
 import util
 import sqlite_tools
+import json
 import textwrap
 import logging
 import datetime
@@ -385,6 +386,7 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
 
         # 記事詳細を表示
         for article in new_articles:
+
             user_id_from_article = article['user_id']
             display_sender_name = ""
             try:

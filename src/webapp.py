@@ -26,7 +26,8 @@ PROJECT_ROOT = os.path.dirname(_current_dir)
 
 # --- Flaskアプリケーションのセットアップ ---
 # Flaskにtemplatesフォルダの場所を教えます（プロジェクトルート直下）。
-app = Flask(__name__, template_folder=os.path.join(PROJECT_ROOT, 'templates'))
+app = Flask(__name__, template_folder=os.path.join(
+    PROJECT_ROOT, 'templates'), static_folder=os.path.join(PROJECT_ROOT, 'static'))
 # セッション管理のために、ランダムな秘密鍵を設定します
 app.secret_key = secrets.token_hex(16)
 # WebSocketのためのSocketIOラッパー
@@ -254,6 +255,11 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """ログインページ"""
+    webapp_config = util.app_config.get('webapp', {})
+    page_title = webapp_config.get('LOGIN_PAGE_TITLE', 'Login')
+    logo_path = webapp_config.get('LOGIN_PAGE_LOGO_PATH')
+    message = webapp_config.get('LOGIN_PAGE_MESSAGE', 'Welcome.')
+
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
@@ -276,10 +282,17 @@ def login():
         # 認証失敗
         error = 'IDまたはパスワードが違います。'
         logging.warning(f"WebUI Login Failed: {username}")
-        return render_template('login.html', error=error)
+        return render_template('login.html',
+                               error=error,
+                               page_title=page_title,
+                               logo_path=logo_path,
+                               message=message)
 
     # GETリクエストの場合はログインフォームを表示
-    return render_template('login.html')
+    return render_template('login.html',
+                           page_title=page_title,
+                           logo_path=logo_path,
+                           message=message)
 
 
 @app.route('/logout')
@@ -365,38 +378,6 @@ def handle_client_input(data):
     handler = client_states[sid]
     handler.input_queue.append(data)
     handler.input_event.set()  # BBSメインループに新しい入力があったことを通知
-
-
-# --- HTMLテンプレートの準備 ---
-# Flaskにtemplatesフォルダの場所を教えたので、その場所にファイルを作成します。
-templates_dir = os.path.join(PROJECT_ROOT, 'templates')
-if not os.path.exists(templates_dir):
-    os.makedirs(templates_dir)
-
-login_html_path = os.path.join(templates_dir, 'login.html')
-if not os.path.exists(login_html_path):
-    with open(login_html_path, 'w', encoding='utf-8') as f:
-        f.write("""<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>ログイン</title>
-</head>
-<body>
-    <h2>ログイン</h2>
-    {% if error %}
-        <p style="color: red;">{{ error }}</p>
-    {% endif %}
-    <form method="post">
-        <label for="username">ID:</label><br>
-        <input type="text" id="username" name="username" required><br><br>
-        <label for="password">パスワード:</label><br>
-        <input type="password" id="password" name="password" required><br><br>
-        <button type="submit">ログイン</button>
-    </form>
-</body>
-</html>
-""")
 
 
 # --- Webサーバーの起動 ---
