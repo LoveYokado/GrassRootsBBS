@@ -25,9 +25,18 @@
             border: 2px solid #555;
             border-radius: 15px;
             padding: 25px;
-            /* ベゼルの余白を広げる */
-            padding-bottom: 15px;
+            padding-bottom: 60px;
+            /* ファンクションキーのスペースを確保 */
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            position: relative;
+            /* 絶対位置の基準として設定 */
+        }
+
+        .monitor-footer {
+            position: relative;
+            width: 100%;
+            height: 40px;
+            /* ファンクションキーの高さに合わせて調整 */
         }
 
         .monitor-screen {
@@ -35,16 +44,20 @@
             padding: 10px;
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
             border: 1px solid #444;
+            margin-bottom: 0px;
+            /* function-keys-containerとの間隔 */
         }
 
-        .monitor-footer {
-            padding-top: 15px;
-            /* 画面とキーの間の余白 */
-        }
-
-        .function-keys-bottom {
+        #function-keys-container {
             display: flex;
             justify-content: space-between;
+            position: absolute;
+            bottom: 10px;
+            /* ベゼルの下端に近づける */
+            left: 25px;
+            /* ベゼルのパディングに合わせる */
+            right: 25px;
+            /* ベゼルのパディングに合わせる */
         }
 
         .f-key-group {
@@ -155,7 +168,7 @@
             <div id="terminal"></div>
         </div>
         <div class="monitor-footer">
-            <div class="function-keys-bottom">
+            <div id="function-keys-container">
                 <div class="f-key-group" id="f-keys-left"></div>
                 <div class="f-key-group" id="f-keys-right"></div>
             </div>
@@ -163,6 +176,11 @@
     </div>
 
     <!-- 設定用ポップアップ -->
+    <div id="function-keys-container">
+        <div class="f-key-group" id="f-keys-left"></div>
+        <div class="f-key-group" id="f-keys-right"></div>
+    </div>
+
     <div id="popup-overlay" class="popup-overlay"></div>
     <div id="popup-window" class="popup-window">
         <div class="popup-header">
@@ -250,7 +268,7 @@
         const fkeysLeftContainer = document.getElementById('f-keys-left');
         const fkeysRightContainer = document.getElementById('f-keys-right');
 
-        for (let i = 1; i <= 12; i++) {
+        for (let i = 1; i <= 8; i++) {
             const key = document.createElement('div');
             key.classList.add('f-key');
 
@@ -262,7 +280,7 @@
                 key.textContent = `[F NONAME]`;
             }
 
-            if (i <= 6) {
+            if (i <= 4) {
                 fkeysLeftContainer.appendChild(key);
             } else {
                 fkeysRightContainer.appendChild(key);
