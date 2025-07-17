@@ -25,18 +25,8 @@
             border: 2px solid #555;
             border-radius: 15px;
             padding: 25px;
-            padding-bottom: 60px;
-            /* ファンクションキーのスペースを確保 */
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
             position: relative;
-            /* 絶対位置の基準として設定 */
-        }
-
-        .monitor-footer {
-            position: relative;
-            width: 100%;
-            height: 40px;
-            /* ファンクションキーの高さに合わせて調整 */
         }
 
         .monitor-screen {
@@ -44,20 +34,27 @@
             padding: 10px;
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
             border: 1px solid #444;
-            margin-bottom: 0px;
-            /* function-keys-containerとの間隔 */
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            /* 必要に応じて高さを調整 */
+        }
+
+        #terminal {
+            flex-grow: 1;
+            /* ターミナルが可能な限り伸びる */
+            /* xterm.jsがサイズを管理するため、明示的な高さは不要 */
         }
 
         #function-keys-container {
             display: flex;
             justify-content: space-between;
-            position: absolute;
-            bottom: 10px;
-            /* ベゼルの下端に近づける */
-            left: 25px;
-            /* ベゼルのパディングに合わせる */
-            right: 25px;
-            /* ベゼルのパディングに合わせる */
+            padding: 5px 0;
+            /* ターミナルとの間隔を調整 */
+            background-color: #000;
+            /* ターミナル画面に合わせる */
+            border-top: 1px solid #444;
+            /* 視覚的な区切り */
         }
 
         .f-key-group {
@@ -166,12 +163,13 @@
     <div class="monitor-chassis">
         <div class="monitor-screen">
             <div id="terminal"></div>
-        </div>
-        <div class="monitor-footer">
             <div id="function-keys-container">
                 <div class="f-key-group" id="f-keys-left"></div>
                 <div class="f-key-group" id="f-keys-right"></div>
             </div>
+        </div>
+        <div class="monitor-footer">
+            <!-- 必要ならここに他の要素を追加 -->
         </div>
     </div>
 
