@@ -111,6 +111,12 @@
             min-width: 300px;
         }
 
+        #line-editor-window {
+            width: 80%;
+            max-width: 900px;
+            /* あまりに広くなりすぎないように最大幅も設定 */
+        }
+
         .popup-overlay.visible,
         .popup-window.visible {
             display: block;
@@ -166,6 +172,16 @@
             transform: translateY(1px);
         }
 
+        .popup-window input[type="text"] {
+            width: 95%;
+            padding: 8px;
+            margin-bottom: 15px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            color: #333;
+            font-family: '"M+ 1m", "Courier New", monospace';
+        }
+
         #terminal {
             /* サイズはxterm.jsが管理するため、CSSでの指定は不要 */
         }
@@ -186,10 +202,20 @@
         </div>
     </div>
 
-    <!-- 設定用ポップアップ -->
-    <div id="function-keys-container">
-        <div class="f-key-group" id="f-keys-left"></div>
-        <div class="f-key-group" id="f-keys-right"></div>
+    <!-- １行エディタ用ポップアップ -->
+    <div id="line-editor-overlay" class="popup-overlay"></div>
+    <div id="line-editor-window" class="popup-window">
+        <div class="popup-header">
+            <h2>Line Editor</h2>
+            <button id="line-editor-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content">
+            <input type="text" id="line-editor-input" maxlength="256">
+            <div>
+                <button id="line-editor-insert-btn">Insert</button>
+                <button id="line-editor-cancel-btn">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <div id="popup-overlay" class="popup-overlay"></div>
@@ -279,6 +305,64 @@
         const popupWindow = document.getElementById('popup-window');
         const popupCloseBtn = document.getElementById('popup-close-btn');
 
+        // --- １行エディタ用ポップアップ ---
+        const lineEditorOverlay = document.getElementById('line-editor-overlay');
+        const lineEditorWindow = document.getElementById('line-editor-window');
+        const lineEditorCloseBtn = document.getElementById('line-editor-close-btn');
+        const lineEditorInput = document.getElementById('line-editor-input');
+        const lineEditorInsertBtn = document.getElementById('line-editor-insert-btn');
+        const lineEditorCancelBtn = document.getElementById('line-editor-cancel-btn');
+        const lineEditorHistory = [];
+        let historyIndex = -1;
+
+        function openLineEditor() {
+            lineEditorInput.value = ''; // 以前の入力をクリア
+            historyIndex = lineEditorHistory.length; // 履歴の末尾にインデックスを設定
+            lineEditorOverlay.classList.add('visible');
+            lineEditorWindow.classList.add('visible');
+            lineEditorInput.focus(); // 入力フィールドにフォーカス
+        }
+
+        function closeLineEditor() {
+            lineEditorOverlay.classList.remove('visible');
+            lineEditorWindow.classList.remove('visible');
+        }
+
+        lineEditorInsertBtn.addEventListener('click', () => {
+            const textToInsert = lineEditorInput.value;
+            if (textToInsert) {
+                // 履歴に追加（最後の履歴と重複しない場合）
+                if (lineEditorHistory.length === 0 || lineEditorHistory[lineEditorHistory.length - 1] !== textToInsert) {
+                    lineEditorHistory.push(textToInsert);
+                }
+                // サーバーの入力バッファに送る
+                socket.emit('client_input', textToInsert);
+            }
+            closeLineEditor();
+        });
+
+        lineEditorInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // フォームの送信を防ぐ
+                lineEditorInsertBtn.click();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    lineEditorInput.value = lineEditorHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < lineEditorHistory.length - 1) {
+                    historyIndex++;
+                    lineEditorInput.value = lineEditorHistory[historyIndex];
+                } else if (historyIndex === lineEditorHistory.length - 1) {
+                    historyIndex++;
+                    lineEditorInput.value = ''; // 履歴の末尾の次は新しい入力
+                }
+            }
+        });
+
         function openPopup() {
             popupOverlay.classList.add('visible');
             popupWindow.classList.add('visible');
@@ -309,6 +393,8 @@
                         // コマンドを送信し、Enterキーも送信する
                         socket.emit('client_input', definition.value + '\r');
                     });
+                } else if (definition.action === 'open_line_editor') {
+                    key.addEventListener('click', openLineEditor);
                 } else if (definition.action === 'toggle_logging') {
                     key.id = 'f2-log-btn'; // スタイル変更のためにIDを付与
                     key.addEventListener('click', () => {
@@ -332,6 +418,9 @@
 
         popupCloseBtn.addEventListener('click', closePopup);
         popupOverlay.addEventListener('click', closePopup);
+        lineEditorCloseBtn.addEventListener('click', closeLineEditor);
+        lineEditorCancelBtn.addEventListener('click', closeLineEditor);
+        lineEditorOverlay.addEventListener('click', closeLineEditor);
 
 
         // 初期テーマの適用

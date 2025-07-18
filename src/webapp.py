@@ -299,6 +299,7 @@ def index():
         "f2": {"label": "LOGGING", "action": "toggle_logging"},
         "f3": {"label": "WHO", "action": "send_command", "value": "w"},
         "f4": {"label": "BBS", "action": "send_command", "value": "b"},
+        "f5": {"label": "Line Edit", "action": "open_line_editor"},
         "f8": {"label": "ReConnect", "action": "redirect", "value": url_for('login')},
     }
     return render_template('terminal.html', fkey_definitions=fkey_definitions)
