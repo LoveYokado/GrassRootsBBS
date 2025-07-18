@@ -2,3 +2,4 @@ numpy
 paramiko
 toml
 PyYAML
+flask-session

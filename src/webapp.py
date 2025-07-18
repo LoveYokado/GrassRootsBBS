@@ -1,5 +1,6 @@
 # /home/yuki/python/GrassRootsBBS/src/webapp.py
 
+from flask_session import Session
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_socketio import SocketIO, emit, disconnect
 import os
@@ -7,15 +8,13 @@ import secrets
 import logging
 import sys
 from functools import wraps
-import datetime
+import time
 import threading
 import socket
 import collections
-import unicodedata
-# このファイルは 'src' ディレクトリ内にあるため、他の 'src' 内のモジュールは直接インポートできます。
+
 import util
 import sqlite_tools
-import bbs_manager
 import command_dispatcher
 import ssh_input
 
@@ -42,6 +41,13 @@ try:
     if not db_path_relative:
         raise ValueError("データベース名が設定ファイルに見つかりません。")
     DB_NAME = os.path.join(PROJECT_ROOT, db_path_relative)
+
+    app.config['SESSION_TYPE'] = 'filesystem'  # ファイルシステムに保存
+    app.config['SESSION_PERMANENT'] = True  # ブラウザを閉じてもセッションを保持
+    app.config['SESSION_USE_SIGNER'] = True  # セッションデータの改ざん防止
+    app.config['SESSION_KEY_PREFIX'] = 'grbbs_'
+
+    sess = Session()
 except Exception as e:
     logging.critical(f"設定の読み込みに失敗しました: {e}")
     sys.exit(1)
@@ -292,28 +298,61 @@ def login():
         password = request.form.get('password')
         error = None
 
+        # GUESTアカウントはロックアウト対象外
+        is_guest = username.upper() == 'GUEST'
+
+        if not is_guest:
+            # ロックアウト状態かチェック
+            if session.get('lockout_expiration', 0) > time.time():
+                remaining_time = session.get(
+                    'lockout_expiration', 0) - time.time()
+                error = f"アカウントは一時的にロックされています。{remaining_time:.0f}秒後に再試行してください。"
+                logging.warning(
+                    f"ログイン試行失敗: アカウントロック中 {username} (残り{remaining_time:.0f}秒)")
+                return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message)
+
         # 既存の認証ロジックを再利用
         user_auth_info = sqlite_tools.get_user_auth_info(DB_NAME, username)
 
+        auth_success = False
         if user_auth_info:
             pbkdf2_rounds = util.app_config.get(
                 'security', {}).get('PBKDF2_ROUNDS', 100000)
             if util.verify_password(user_auth_info['password'], user_auth_info['salt'], password, pbkdf2_rounds):
-                # 認証成功
-                session['user_id'] = user_auth_info['id']
-                session['username'] = user_auth_info['name']
-                session['userlevel'] = user_auth_info['level']
-                logging.info(f"WebUI Login Success: {username}")
-                return redirect(url_for('index'))
+                auth_success = True
 
-        # 認証失敗
-        error = 'IDまたはパスワードが違います。'
-        logging.warning(f"WebUI Login Failed: {username}")
-        return render_template('login.html',
-                               error=error,
-                               page_title=page_title,
-                               logo_path=logo_path,
-                               message=message)
+        if auth_success:
+            # 認証成功
+            if not is_guest:
+                # エラーカウントとロックをリセット
+                session['login_attempts'] = 0
+                session['lockout_expiration'] = 0
+
+            session['user_id'] = user_auth_info['id']
+            session['username'] = user_auth_info['name']
+            session['userlevel'] = user_auth_info['level']
+            logging.info(f"WebUI Login Success: {username}")
+            return redirect(url_for('index'))
+        else:
+            # 認証失敗
+            if not is_guest:
+                session['login_attempts'] = session.get(
+                    'login_attempts', 0) + 1
+                logging.warning(
+                    f"ログイン試行失敗: {username} ({session['login_attempts']} 回目)")
+                if session['login_attempts'] >= app.config['MAX_LOGIN_ATTEMPTS']:
+                    session['lockout_expiration'] = time.time() + \
+                        app.config['LOCKOUT_TIME']
+                    error = f"アカウントはロックされました。{app.config['LOCKOUT_TIME']/60:.0f}分後に再試行してください。"
+                    logging.warning(
+                        f"アカウントをロックしました: {username} (試行回数超過)")
+                else:
+                    error = 'IDまたはパスワードが違います。'
+            else:
+                error = 'IDまたはパスワードが違います。'
+
+            logging.warning(f"WebUI Login Failed: {username}")
+            return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message)
 
     # GETリクエストの場合はログインフォームを表示
     return render_template('login.html',
