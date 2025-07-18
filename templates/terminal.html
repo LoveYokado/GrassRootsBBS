@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>GR-BBS Web Terminal</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+1m:wght@400&display=swap" rel="stylesheet">
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            background-color: #282c34;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: '"M+ 1m", "Courier New", monospace';
+        }
+
+        .monitor-chassis {
+            background: #f7f2c7;
+            /* クリーム色 */
+            border: 2px solid #555;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            position: relative;
+        }
+
+        .monitor-footer {
+            text-align: center;
+            padding-top: 15px;
+            /* 画面とロゴの間隔 */
+            font-size: 1.2em;
+            font-weight: bold;
+            /* 背景色より少し暗い色で文字を描画 */
+            color: #dbd4a3;
+            /* 明るいシャドウで凹んだような効果を出す */
+            text-shadow: 1px 1px 1px #fff;
+        }
+
+        .monitor-screen {
+            background-color: #000;
+            padding: 10px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+            border: 1px solid #444;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            /* 必要に応じて高さを調整 */
+        }
+
+        #terminal {
+            flex-grow: 1;
+            /* ターミナルが可能な限り伸びる */
+            /* xterm.jsがサイズを管理するため、明示的な高さは不要 */
+        }
+
+        #function-keys-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            /* ターミナルとの間隔を調整 */
+            background-color: #000;
+            /* ターミナル画面に合わせる */
+            margin-top: 15px;
+            /* 視覚的な区切り */
+        }
+
+        .f-key-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .f-key {
+            background-color: #FFFFFF;
+            color: #000000;
+            padding: 2px 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 2px;
+        }
+
+        /* --- ポップアップ --- */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .popup-window {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #e0e0e0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+            min-width: 300px;
+        }
+
+        .popup-overlay.visible,
+        .popup-window.visible {
+            display: block;
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .popup-header h2 {
+            margin: 0;
+            color: #333;
+        }
+
+        .popup-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .popup-content h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #444;
+        }
+
+        .popup-content div {
+            margin-bottom: 15px;
+        }
+
+        .popup-content button {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-bottom: 2px solid #aaa;
+            padding: 8px 12px;
+            margin: 2px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .popup-content button:hover {
+            background-color: #e9e9e9;
+        }
+
+        .popup-content button:active {
+            border-bottom-width: 1px;
+            transform: translateY(1px);
+        }
+
+        #terminal {
+            /* サイズはxterm.jsが管理するため、CSSでの指定は不要 */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="monitor-chassis">
+        <div class="monitor-screen">
+            <div id="terminal"></div>
+            <div id="function-keys-container">
+                <div class="f-key-group" id="f-keys-left"></div>
+                <div class="f-key-group" id="f-keys-right"></div>
+            </div>
+        </div>
+        <div class="monitor-footer">
+            GR-BBS
+        </div>
+    </div>
+
+    <!-- 設定用ポップアップ -->
+    <div id="function-keys-container">
+        <div class="f-key-group" id="f-keys-left"></div>
+        <div class="f-key-group" id="f-keys-right"></div>
+    </div>
+
+    <div id="popup-overlay" class="popup-overlay"></div>
+    <div id="popup-window" class="popup-window">
+        <div class="popup-header">
+            <h2>Settings</h2>
+            <button id="popup-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content">
+            <div id="theme-selector">
+                <h3>Theme</h3>
+                <button data-theme="default">Default</button>
+                <button data-theme="green">Green</button>
+                <button data-theme="amber">Amber</button>
+            </div>
+            <div id="speed-selector">
+                <h3>Speed</h3>
+                <button data-speed="full">Full</button>
+                <button data-speed="9600">9600bps</button>
+                <button data-speed="4800">4800bps</button>
+                <button data-speed="2400">2400bps</button>
+                <button data-speed="300">300bps</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <script>
+        const themes = {
+            default: {
+                background: '#000000',
+                foreground: '#FFFFFF',
+                cursor: '#FFFFFF',
+            },
+            green: {
+                background: '#000000',
+                foreground: '#00FF00',
+                cursor: '#00FF00',
+            },
+            amber: {
+                background: '#1a1000',
+                foreground: '#FFB000',
+                cursor: '#FFB000',
+            }
+        };
+
+        function applyTheme(themeName) {
+            const theme = themes[themeName] || themes.default;
+            term.options.theme = theme;
+            localStorage.setItem('terminalTheme', themeName); // 選択を保存
+        }
+
+        function applySpeed(speedName) {
+            // サーバに速度設定を通知
+            socket.emit('set_speed', speedName);
+            localStorage.setItem('terminalSpeed', speedName); // 選択を保存
+        }
+
+        const term = new Terminal({
+            cols: 80, // 幅を80文字に固定
+            rows: 25, // 高さを25行に戻す
+            cursorBlink: true,
+            fontSize: 16, // 固定サイズなので少し見やすく
+        });
+
+        term.open(document.getElementById('terminal'));
+
+        const socket = io();
+
+        // --- ポップアップ処理 ---
+        const popupOverlay = document.getElementById('popup-overlay');
+        const popupWindow = document.getElementById('popup-window');
+        const popupCloseBtn = document.getElementById('popup-close-btn');
+
+        function openPopup() {
+            popupOverlay.classList.add('visible');
+            popupWindow.classList.add('visible');
+        }
+
+        function closePopup() {
+            popupOverlay.classList.remove('visible');
+            popupWindow.classList.remove('visible');
+        }
+
+        // --- ファンクションキー生成 ---
+        const fkeysLeftContainer = document.getElementById('f-keys-left');
+        const fkeysRightContainer = document.getElementById('f-keys-right');
+
+        for (let i = 1; i <= 8; i++) {
+            const key = document.createElement('div');
+            key.classList.add('f-key');
+
+            if (i === 1) {
+                key.id = 'settings-btn';
+                key.textContent = `[F${i} SETTING]`;
+                key.addEventListener('click', openPopup);
+            } else {
+                key.textContent = `[F NONAME]`;
+            }
+
+            if (i <= 4) {
+                fkeysLeftContainer.appendChild(key);
+            } else {
+                fkeysRightContainer.appendChild(key);
+            }
+        }
+
+        popupCloseBtn.addEventListener('click', closePopup);
+        popupOverlay.addEventListener('click', closePopup);
+
+
+        // 初期テーマの適用
+        const savedTheme = localStorage.getItem('terminalTheme') || 'default';
+
+        // 初期速度の適用
+        const savedSpeed = localStorage.getItem('terminalSpeed') || 'full';
+
+        // ボタンにイベントリスナーを設定
+        document.getElementById('theme-selector').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                applyTheme(e.target.dataset.theme);
+                closePopup(); // 設定を選んだら閉じる
+            }
+        });
+
+        document.getElementById('speed-selector').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                applySpeed(e.target.dataset.speed);
+                closePopup(); // 設定を選んだら閉じる
+            }
+        });
+
+        term.onData(data => {
+            socket.emit('client_input', data);
+        });
+
+        socket.on('server_output', data => {
+            term.write(data);
+        });
+
+        // サーバーからの切断要求を処理
+        socket.on('force_disconnect', (data) => {
+            // サーバーから送られてきたメッセージを表示する
+            const message = (data && data.message) ? data.message : '[Connection closed by server]';
+            term.writeln('\r\n\n' + message);
+            socket.disconnect();
+        });
+
+        socket.on('connect', () => {
+            // 接続が確立したら、保存されている設定をサーバに送信
+            applyTheme(savedTheme);
+            applySpeed(savedSpeed);
+        });
+    </script>
+</body>
+
+</html>

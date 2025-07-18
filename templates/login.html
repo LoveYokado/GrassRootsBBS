@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ page_title }}</title>
+    <style>
+        body {
+            font-family: monospace;
+            background-color: #333;
+            color: #eee;
+            text-align: center;
+            padding-top: 50px;
+        }
+
+        .logo-container {
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .login-box {
+            background-color: #444;
+            padding: 30px;
+            border-radius: 5px;
+            display: inline-block;
+            border: 1px solid #555;
+            width: 300px;
+            /* ボックスの幅を固定 */
+        }
+
+        .message {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            text-align: left;
+        }
+
+        input {
+            margin-bottom: 15px;
+            padding: 8px;
+            width: 200px;
+            background-color: #555;
+            border: 1px solid #666;
+            color: #eee;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #666;
+            color: #eee;
+            border: 1px solid #777;
+            border-radius: 3px;
+        }
+
+        button:hover {
+            background-color: #777;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-box">
+        {% if logo_path %}
+        <div class="logo-container"><img src="{{ url_for('static', filename=logo_path) }}" alt="Logo"></div>
+        {% endif %}
+        {% if message %}
+        <p class="message">{{ message }}</p>
+        {% endif %}
+        <h2>Login</h2>
+        {% if error %}
+        <p style="color: #ff6b6b;">{{ error }}</p>
+        {% endif %}
+        <form method="post">
+            <label for="username">ID:</label>
+            <input type="text" id="username" name="username" required><br>
+            <label for="password">PASSWORD:</label>
+            <input type="password" id="password" name="password" required><br>
+            <button type="submit">Connect</button>
+        </form>
+    </div>
+</body>
+
+</html>
