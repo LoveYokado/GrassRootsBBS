@@ -309,6 +309,11 @@
                         // コマンドを送信し、Enterキーも送信する
                         socket.emit('client_input', definition.value + '\r');
                     });
+                } else if (definition.action === 'toggle_logging') {
+                    key.id = 'f2-log-btn'; // スタイル変更のためにIDを付与
+                    key.addEventListener('click', () => {
+                        socket.emit('toggle_logging');
+                    });
                 } else if (definition.action === 'redirect') {
                     key.addEventListener('click', () => {
                         window.location.href = definition.value;
@@ -356,6 +361,34 @@
 
         socket.on('server_output', data => {
             term.write(data);
+        });
+
+        // --- ログ記録関連のイベントリスナー ---
+        socket.on('logging_started', () => {
+            const f2LogBtn = document.getElementById('f2-log-btn');
+            if (f2LogBtn) {
+                f2LogBtn.textContent = '[F2 LOGGING...]';
+            }
+        });
+
+        socket.on('log_saved', (data) => {
+            const f2LogBtn = document.getElementById('f2-log-btn');
+            if (f2LogBtn) {
+                f2LogBtn.textContent = '[F2 LOGGING]';
+            }
+
+            // ダウンロードをトリガーするための隠しリンクを作成してクリック
+            const link = document.createElement('a');
+            link.href = data.url;
+            link.download = data.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        socket.on('logging_stopped', (data) => {
+            const f2LogBtn = document.getElementById('f2-log-btn');
+            // ログが空だった場合などのメッセージはターミナルに表示しない
         });
 
         // サーバーからの切断要求を処理

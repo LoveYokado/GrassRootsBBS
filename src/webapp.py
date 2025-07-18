@@ -1,13 +1,14 @@
 # /home/yuki/python/GrassRootsBBS/src/webapp.py
 
 from flask_session import Session
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from flask_socketio import SocketIO, emit, disconnect
 import os
 import secrets
 import logging
 import sys
 from functools import wraps
+import datetime
 import time
 import threading
 import socket
@@ -24,6 +25,7 @@ import ssh_input
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
+LOG_DIR = os.path.join(PROJECT_ROOT, 'logs', 'webapp_sessions')
 
 # --- Flaskアプリケーションのセットアップ ---
 # Flaskにtemplatesフォルダの場所を教えます（プロジェクトルート直下）。
@@ -43,6 +45,8 @@ try:
     if not db_path_relative:
         raise ValueError("データベース名が設定ファイルに見つかりません。")
     DB_NAME = os.path.join(PROJECT_ROOT, db_path_relative)
+    if not os.path.exists(LOG_DIR):
+        os.makedirs(LOG_DIR)
 
     app.config['SESSION_TYPE'] = 'filesystem'  # ファイルシステムに保存
     app.config['SESSION_PERMANENT'] = True  # ブラウザを閉じてもセッションを保持
@@ -103,6 +107,8 @@ class WebTerminalHandler:
         self.input_queue = collections.deque()
         self.input_event = threading.Event()
         self.stop_worker_event = threading.Event()
+        self.is_logging = False
+        self.log_buffer = []
         self.mail_notified_this_session = False  # 明示的に初期化
         self.main_thread_active = True
 
@@ -124,6 +130,9 @@ class WebTerminalHandler:
                     text_to_send = data.decode('utf-8', 'ignore')
                 else:
                     text_to_send = str(data)
+
+                if self.handler.is_logging:
+                    self.handler.log_buffer.append(text_to_send)
 
                 # ワーカースレッドが処理するようにキューに追加する
                 self.handler.output_queue.append(text_to_send)
@@ -287,7 +296,7 @@ def index():
     # url_forはリクエストコンテキスト内で呼び出す必要がある
     fkey_definitions = {
         "f1": {"label": "SETTING", "action": "open_popup"},
-        "f2": {"label": "HELP", "action": "send_command", "value": "?"},
+        "f2": {"label": "LOGGING", "action": "toggle_logging"},
         "f3": {"label": "WHO", "action": "send_command", "value": "w"},
         "f4": {"label": "BBS", "action": "send_command", "value": "b"},
         "f8": {"label": "ReConnect", "action": "redirect", "value": url_for('login')},
@@ -454,6 +463,61 @@ def handle_client_input(data):
     handler = client_states[sid]
     handler.input_queue.append(data)
     handler.input_event.set()  # BBSメインループに新しい入力があったことを通知
+
+
+@socketio.on('toggle_logging')
+def handle_toggle_logging():
+    """ロギングの開始/停止をトグルする"""
+    sid = request.sid
+    if sid not in client_states:
+        return
+
+    handler = client_states[sid]
+    if handler.is_logging:
+        # --- ロギング停止処理 ---
+        handler.is_logging = False
+        log_content = "".join(handler.log_buffer)
+        handler.log_buffer.clear()
+
+        if not log_content.strip():
+            emit('logging_stopped', {'message': 'ログに内容がありません。'})
+            return
+
+        # ファイル名生成
+        bbs_name = util.app_config.get('server', {}).get('BBS_NAME', 'GR-BBS')
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{bbs_name}_{timestamp}.log"
+        filepath = os.path.join(LOG_DIR, filename)
+
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(log_content)
+
+            # クライアントにダウンロード用のURLを通知
+            download_url = url_for('download_log', filename=filename)
+            emit('log_saved', {'url': download_url, 'filename': filename})
+            logging.info(
+                f"セッションログを保存しました: {filepath} (User: {handler.user_session.get('username')})")
+
+        except Exception as e:
+            logging.error(f"ログファイルの保存に失敗しました: {e}")
+            emit('logging_stopped', {'message': 'ログファイルの保存に失敗しました。'})
+
+    else:
+        # --- ロギング開始処理 ---
+        handler.is_logging = True
+        handler.log_buffer.clear()
+        emit('logging_started')
+        logging.info(
+            f"セッションロギングを開始しました (User: {handler.user_session.get('username')})")
+
+
+@app.route('/download_log/<path:filename>')
+@login_required
+def download_log(filename):
+    """保存されたログファイルをダウンロードさせる"""
+    # セキュリティのため、LOG_DIRからのみファイルを送信する
+    return send_from_directory(LOG_DIR, filename, as_attachment=True)
 
 
 # --- Webサーバーの起動 ---
