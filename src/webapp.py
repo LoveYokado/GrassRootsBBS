@@ -64,6 +64,24 @@ BPS_DELAYS = {
 }
 
 
+def get_webapp_online_members():
+    """Web UIでオンラインのメンバーリストを生成する"""
+    members = {}
+    # 辞書のコピーに対して反復処理を行うことで、反復中の変更によるエラーを回避
+    for sid, handler in client_states.copy().items():
+        user_session = handler.user_session
+        if user_session:
+            login_id = user_session.get('username')
+            if login_id:
+                # server.pyのonline_membersと同じ形式の辞書を作成
+                members[login_id] = {
+                    "display_name": user_session.get('username'),
+                    "addr": handler.channel.getpeername(),  # ダミーIPを返す
+                    "menu_mode": user_session.get('menu_mode', '?')
+                }
+    return members
+
+
 class WebTerminalHandler:
     """Webターミナルセッションの状態とロジックを管理するクラス"""
 
@@ -77,6 +95,7 @@ class WebTerminalHandler:
         self.input_queue = collections.deque()
         self.input_event = threading.Event()
         self.stop_worker_event = threading.Event()
+        self.mail_notified_this_session = False  # 明示的に初期化
         self.main_thread_active = True
 
         # SSHの `paramiko.Channel` のように振る舞うアダプタクラス
@@ -175,6 +194,14 @@ class WebTerminalHandler:
 
             # server.pyのprocess_command_loopを模倣
             while self.main_thread_active:
+                # プロンプト前の定型処理 (メール/電報通知)
+                _, self.mail_notified_this_session = util.prompt_handler(
+                    self.channel, self.db_name, self.user_session.get(
+                        'username'),
+                    self.user_session.get(
+                        'menu_mode', '2'), self.mail_notified_this_session
+                )
+
                 context = {
                     'chan': self.channel,
                     'dbname': self.db_name,
@@ -185,7 +212,7 @@ class WebTerminalHandler:
                     'server_pref_dict': {},  # TODO: 必要に応じてDBから読み込む
                     'addr': self.channel.getpeername(),
                     'menu_mode': self.user_session.get('menu_mode', '2'),
-                    'online_members_func': lambda: {},  # TODO: WebとSSHで共有する仕組みが必要
+                    'online_members_func': get_webapp_online_members,
                 }
 
                 util.send_text_by_key(
