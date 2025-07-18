@@ -182,6 +182,17 @@
             font-family: '"M+ 1m", "Courier New", monospace';
         }
 
+        .popup-window textarea {
+            height: 250px;
+            padding: 8px;
+            margin-bottom: 15px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            color: #333;
+            font-family: '"M+ 1m", "Courier New", monospace';
+            resize: vertical;
+        }
+
         #terminal {
             /* サイズはxterm.jsが管理するため、CSSでの指定は不要 */
         }
@@ -214,6 +225,22 @@
             <div>
                 <button id="line-editor-insert-btn">Insert</button>
                 <button id="line-editor-cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- マルチラインエディタ用ポップアップ -->
+    <div id="multiline-editor-overlay" class="popup-overlay"></div>
+    <div id="multiline-editor-window" class="popup-window">
+        <div class="popup-header">
+            <h2>Editor</h2>
+            <button id="multiline-editor-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content">
+            <textarea id="multiline-editor-input" cols="80"></textarea>
+            <div>
+                <button id="multiline-editor-insert-btn">Insert</button>
+                <button id="multiline-editor-cancel-btn">Cancel</button>
             </div>
         </div>
     </div>
@@ -315,6 +342,37 @@
         const lineEditorHistory = [];
         let historyIndex = -1;
 
+        // --- マルチラインエディタ用ポップアップ ---
+        const multilineEditorOverlay = document.getElementById('multiline-editor-overlay');
+        const multilineEditorWindow = document.getElementById('multiline-editor-window');
+        const multilineEditorCloseBtn = document.getElementById('multiline-editor-close-btn');
+        const multilineEditorInput = document.getElementById('multiline-editor-input');
+        const multilineEditorInsertBtn = document.getElementById('multiline-editor-insert-btn');
+        const multilineEditorCancelBtn = document.getElementById('multiline-editor-cancel-btn');
+
+        function openMultilineEditor() {
+            multilineEditorInput.value = ''; // 以前の入力をクリア
+            multilineEditorOverlay.classList.add('visible');
+            multilineEditorWindow.classList.add('visible');
+            multilineEditorInput.focus(); // 入力フィールドにフォーカス
+        }
+
+        function closeMultilineEditor() {
+            multilineEditorOverlay.classList.remove('visible');
+            multilineEditorWindow.classList.remove('visible');
+        }
+
+        multilineEditorInsertBtn.addEventListener('click', () => {
+            const textToInsert = multilineEditorInput.value;
+            if (textToInsert) {
+                const lines = textToInsert.split('\n');
+                lines.forEach(line => {
+                    socket.emit('client_input', line + '\r');
+                });
+            }
+            closeMultilineEditor();
+        });
+
         function openLineEditor() {
             lineEditorInput.value = ''; // 以前の入力をクリア
             historyIndex = lineEditorHistory.length; // 履歴の末尾にインデックスを設定
@@ -393,6 +451,8 @@
                         // コマンドを送信し、Enterキーも送信する
                         socket.emit('client_input', definition.value + '\r');
                     });
+                } else if (definition.action === 'open_multiline_editor') {
+                    key.addEventListener('click', openMultilineEditor);
                 } else if (definition.action === 'open_line_editor') {
                     key.addEventListener('click', openLineEditor);
                 } else if (definition.action === 'toggle_logging') {
@@ -421,6 +481,9 @@
         lineEditorCloseBtn.addEventListener('click', closeLineEditor);
         lineEditorCancelBtn.addEventListener('click', closeLineEditor);
         lineEditorOverlay.addEventListener('click', closeLineEditor);
+        multilineEditorCloseBtn.addEventListener('click', closeMultilineEditor);
+        multilineEditorCancelBtn.addEventListener('click', closeMultilineEditor);
+        multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
 
 
         // 初期テーマの適用
