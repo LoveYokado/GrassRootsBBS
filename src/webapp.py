@@ -12,9 +12,11 @@ import time
 import threading
 import socket
 import collections
-
+import unicodedata
+# このファイルは 'src' ディレクトリ内にあるため、他の 'src' 内のモジュールは直接インポートできます。
 import util
 import sqlite_tools
+import bbs_manager
 import command_dispatcher
 import ssh_input
 
@@ -282,7 +284,15 @@ def login_required(f):
 @login_required
 def index():
     """ターミナルページを表示"""
-    return render_template('terminal.html')
+    # url_forはリクエストコンテキスト内で呼び出す必要がある
+    fkey_definitions = {
+        "f1": {"label": "SETTING", "action": "open_popup"},
+        "f2": {"label": "HELP", "action": "send_command", "value": "?"},
+        "f3": {"label": "WHO", "action": "send_command", "value": "w"},
+        "f4": {"label": "BBS", "action": "send_command", "value": "b"},
+        "f8": {"label": "ReConnect", "action": "redirect", "value": url_for('login')},
+    }
+    return render_template('terminal.html', fkey_definitions=fkey_definitions)
 
 
 @app.route('/login', methods=['GET', 'POST'])

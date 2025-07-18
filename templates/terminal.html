@@ -224,22 +224,36 @@
                 background: '#000000',
                 foreground: '#FFFFFF',
                 cursor: '#FFFFFF',
+                fkey_bg: '#FFFFFF',
+                fkey_fg: '#000000'
             },
             green: {
                 background: '#000000',
                 foreground: '#00FF00',
                 cursor: '#00FF00',
+                fkey_bg: '#00FF00',
+                fkey_fg: '#000000'
             },
             amber: {
                 background: '#1a1000',
                 foreground: '#FFB000',
                 cursor: '#FFB000',
+                fkey_bg: '#FFB000',
+                fkey_fg: '#1a1000'
             }
         };
 
         function applyTheme(themeName) {
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
+
+            // ファンクションキーのスタイルを更新
+            const fkeys = document.querySelectorAll('.f-key');
+            fkeys.forEach(key => {
+                key.style.backgroundColor = theme.fkey_bg;
+                key.style.color = theme.fkey_fg;
+            });
+
             localStorage.setItem('terminalTheme', themeName); // 選択を保存
         }
 
@@ -278,17 +292,30 @@
         // --- ファンクションキー生成 ---
         const fkeysLeftContainer = document.getElementById('f-keys-left');
         const fkeysRightContainer = document.getElementById('f-keys-right');
+        const fkeyDefinitions = {{ fkey_definitions | tojson }};
 
         for (let i = 1; i <= 8; i++) {
             const key = document.createElement('div');
             key.classList.add('f-key');
+            const fkeyId = `f${i}`;
+            const definition = fkeyDefinitions[fkeyId];
 
-            if (i === 1) {
-                key.id = 'settings-btn';
-                key.textContent = `[SETTING]`;
-                key.addEventListener('click', openPopup);
+            if (definition) {
+                key.textContent = `[F${i} ${definition.label}]`;
+                if (definition.action === 'open_popup') {
+                    key.addEventListener('click', openPopup);
+                } else if (definition.action === 'send_command') {
+                    key.addEventListener('click', () => {
+                        // コマンドを送信し、Enterキーも送信する
+                        socket.emit('client_input', definition.value + '\r');
+                    });
+                } else if (definition.action === 'redirect') {
+                    key.addEventListener('click', () => {
+                        window.location.href = definition.value;
+                    });
+                }
             } else {
-                key.textContent = `[F NONAME]`;
+                key.textContent = `[F${i} NONAME]`;
             }
 
             if (i <= 4) {
