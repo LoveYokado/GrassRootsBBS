@@ -12,8 +12,7 @@ import secrets
 import string
 import textwrap
 
-import sqlite_tools
-import ssh_input
+from . import sqlite_tools, ssh_input
 # テキストデータのキャッシュ用グローバル変数
 _master_text_data_cache = None
 

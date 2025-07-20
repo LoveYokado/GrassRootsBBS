@@ -1,25 +1,30 @@
 # /home/yuki/python/GrassRootsBBS/src/webapp.py
 
+# Gunicorn + gevent で WebSocket を動作させるために必須
+# monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
+# インポートする前に、可能な限り早く呼び出す必要があります。
+from . import bbs_manager, command_dispatcher, ssh_input, sqlite_tools, util
+from flask_socketio import SocketIO, emit, disconnect
 from flask_session import Session
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
-from flask_socketio import SocketIO, emit, disconnect
-import os
-import secrets
-import logging
-import sys
 from functools import wraps
-import datetime
 import time
 import threading
+import sys
 import socket
+import secrets
+import os
+import logging
+import datetime
 import collections
-import unicodedata
+from gevent import monkey
+monkey.patch_all()
+
+# --- 標準ライブラリ ---
+
+# --- サードパーティライブラリ ---
+
 # このファイルは 'src' ディレクトリ内にあるため、他の 'src' 内のモジュールは直接インポートできます。
-import util
-import sqlite_tools
-import bbs_manager
-import command_dispatcher
-import ssh_input
 
 # --- プロジェクトルートとパスの設定 ---
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
@@ -202,14 +207,27 @@ class WebTerminalHandler:
 
     def _bbs_main_loop(self):
         """BBSのメインロジックを実行するスレッド"""
+        server_pref_dict = {}
         try:
+            # サーバ設定読み込み
+            pref_list = sqlite_tools.read_server_pref(self.db_name)
+            pref_names = ['bbs', 'chat', 'mail', 'telegram',
+                          'userpref', 'who', 'default_exploration_list', 'hamlet', 'login_message']
+            if pref_list and len(pref_list) >= len(pref_names):
+                server_pref_dict = dict(zip(pref_names, pref_list))
+            else:
+                logging.error(
+                    f"サーバ設定読み込みエラーです。デフォルト値を使用します。 (User: {self.user_session.get('username')})")
+                server_pref_dict = {'bbs': 2, 'chat': 2, 'mail': 2, 'telegram': 2,
+                                    'userpref': 2, 'who': 2, 'hamlet': 2,
+                                    'default_exploration_list': '', 'login_message': ''}
+
             # ウェルカムメッセージとトップメニュー表示
             util.send_text_by_key(self.channel, "login.welcome_message_webapp",
                                   self.user_session.get('menu_mode', '2'))
             util.send_text_by_key(self.channel, "top_menu.menu",
                                   self.user_session.get('menu_mode', '2'))
 
-            # server.pyのprocess_command_loopを模倣
             while self.main_thread_active:
                 # プロンプト前の定型処理 (メール/電報通知)
                 _, self.mail_notified_this_session = util.prompt_handler(
@@ -223,10 +241,10 @@ class WebTerminalHandler:
                     'chan': self.channel,
                     'dbname': self.db_name,
                     'login_id': self.user_session.get('username'),
-                    'display_name': self.user_session.get('username'),
+                    'display_name': util.get_display_name(self.user_session.get('username'), self.channel.getpeername()[0]),
                     'user_id': self.user_session.get('user_id'),
                     'userlevel': self.user_session.get('userlevel'),
-                    'server_pref_dict': {},  # TODO: 必要に応じてDBから読み込む
+                    'server_pref_dict': server_pref_dict,
                     'addr': self.channel.getpeername(),
                     'menu_mode': self.user_session.get('menu_mode', '2'),
                     'online_members_func': get_webapp_online_members,

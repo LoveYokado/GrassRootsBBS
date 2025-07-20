@@ -1,9 +1,8 @@
-import ssh_input
-import util
 import datetime
-import sqlite_tools
 import re
 import logging
+
+from . import ssh_input, util, sqlite_tools
 
 
 def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):

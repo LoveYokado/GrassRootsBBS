@@ -1,14 +1,11 @@
-import ssh_input
-import util
-import sqlite_tools
 import json
 import textwrap
 import logging
 import datetime
 
-import util
-import bbs_handler
-import bbs_manager
+from . import ssh_input, util, sqlite_tools
+from . import bbs_handler
+from . import bbs_manager
 
 
 def bbs_menu(chan):

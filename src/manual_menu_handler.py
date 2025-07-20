@@ -1,8 +1,7 @@
 import yaml
 import logging
 
-import ssh_input
-import util
+from . import ssh_input, util
 
 
 def _load_manual_menu_config(config_path: str):

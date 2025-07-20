@@ -1,16 +1,16 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado) <hogehoge@gmail.com>
 # SPDX-License-Identifier: MIT
 
-import util
-import bbsmenu
-import user_pref_menu
-import sysop_menu
-import mail_handler
-import hierarchical_menu
-import chat_handler
-import bbs_handler
-import manual_menu_handler
-import hamlet_game
+from . import util
+from . import bbsmenu
+from . import user_pref_menu
+from . import sysop_menu
+from . import mail_handler
+from . import hierarchical_menu
+from . import chat_handler
+from . import bbs_handler
+from . import manual_menu_handler
+from . import hamlet_game
 
 # --- Command Handlers ---
 
@@ -279,7 +279,7 @@ def dispatch_command(command, context):
 
     if command_info.get('guest_only', False):
         online_signup_enabled = util.app_config.get(
-            'server', {}).get('ONLINE_SIGNUP', False)
+            'webapp', {}).get('ONLINE_SIGNUP', False)
         if not online_signup_enabled or user_level != 1:
             util.send_text_by_key(
                 context['chan'], "common_messages.invalid_command", context['menu_mode'])

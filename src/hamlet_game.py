@@ -3,8 +3,7 @@ import random
 import time
 import logging
 
-import ssh_input
-import util
+from . import ssh_input, util
 
 # 定数
 ROWS = 6

@@ -1,11 +1,10 @@
-import ssh_input
-import util
 import datetime
-import sqlite_tools
 import time
 import logging
 import socket
 import textwrap
+
+from . import ssh_input, util, sqlite_tools
 
 
 def format_mail_header_str(mail_data, dbname, view_mode, mail_id_width=5):  # noqa

@@ -2,8 +2,8 @@ import logging
 import time
 import sqlite3
 import json
-import util
-import sqlite_tools
+
+from . import util, sqlite_tools
 
 
 class BoardManager:
