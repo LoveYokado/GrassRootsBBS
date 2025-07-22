@@ -49,9 +49,31 @@
             box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
             border: 1px solid #444;
             display: flex;
+            position: relative;
+            /* 擬似要素の基準点 */
+            overflow: hidden;
+            /* はみ出した擬似要素を隠す */
             flex-direction: column;
             height: 100%;
             /* 必要に応じて高さを調整 */
+        }
+
+        /* CRTの走査線エフェクト */
+        .monitor-screen::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: repeating-linear-gradient(0deg,
+                    rgba(0, 0, 0, 0.15),
+                    rgba(0, 0, 0, 0.15) 1px,
+                    transparent 1px,
+                    transparent 2px);
+            pointer-events: none;
+            /* クリックを邪魔しない */
         }
 
         #terminal {
@@ -362,6 +384,7 @@
                 cursor: '#FFFFFF',
                 fkey_bg: '#FFFFFF',
                 fkey_fg: '#000000',
+                filter_glow: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.3))',
                 // パソコン通信時代を彷彿とさせる、より鮮やかなANSIカラーパレット
                 black: '#000000',      // 標準の黒はそのまま
                 red: '#FF0000',      // 鮮やかな赤
@@ -386,6 +409,7 @@
                 cursor: '#00FF00',
                 fkey_bg: '#00FF00',
                 fkey_fg: '#000000',
+                filter_glow: 'drop-shadow(0 0 1px rgba(180, 255, 180, 0.4)) drop-shadow(0 0 3px rgba(100, 255, 100, 0.3))',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#00FF00',
                 red: '#00FF00',
@@ -410,6 +434,7 @@
                 cursor: '#FFB000',
                 fkey_bg: '#FFB000',
                 fkey_fg: '#1a1000',
+                filter_glow: 'drop-shadow(0 0 1px rgba(255, 176, 0, 0.4)) drop-shadow(0 0 3px rgba(255, 176, 0, 0.3))',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#FFB000',
                 red: '#FFB000',
@@ -433,6 +458,10 @@
         function applyTheme(themeName) {
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
+
+            // ターミナル要素に直接filterを適用して、文字のにじみ（グロー）を表現
+            const terminalElement = document.getElementById('terminal');
+            terminalElement.style.filter = theme.filter_glow || 'none';
 
             // ファンクションキーのスタイルを更新
             const fkeys = document.querySelectorAll('.f-key');
