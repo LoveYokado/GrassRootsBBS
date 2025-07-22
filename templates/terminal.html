@@ -240,6 +240,19 @@
         #terminal {
             /* サイズはxterm.jsが管理するため、CSSでの指定は不要 */
         }
+
+        /* Xterm.jsが内部で生成するスクロールバーを非表示にする */
+        .xterm-viewport {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        .xterm-viewport::-webkit-scrollbar {
+            display: none;
+            /* Safari and Chrome */
+        }
     </style>
 </head>
 
@@ -456,6 +469,7 @@
             rows: 25, // 高さを25行に戻す
             cursorBlink: true,
             fontSize: 16, // 固定サイズなので少し見やすく
+            scrollback: 0, // スクロールバックバッファを行数と同じにし、スクロールバーを非表示にする
         });
 
         term.open(document.getElementById('terminal'));
