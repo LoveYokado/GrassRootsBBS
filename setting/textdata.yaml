@@ -2091,8 +2091,9 @@ login:
       ☆    GR-BBSへようこそ!    ★
           < GrassRoots-BBS >
       =============================
-      guestID = `GUEST/GUEST` 
 
+      ようこそ、{login_id}さん！
+      最終ログイン: {last_login_str}
 
     mode_3: |
       ..... Connected!      

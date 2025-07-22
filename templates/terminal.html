@@ -215,6 +215,17 @@
             /* ボタンのフォントは読みやすく */
         }
 
+        /* xterm.jsの点滅(blink)を有効にするためのCSSアニメーション */
+        .xterm .xterm-screen .blinking {
+            animation: xterm-blink 1s steps(1, start) infinite;
+        }
+
+        @keyframes xterm-blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
 
         #terminal {
             /* サイズはxterm.jsが管理するため、CSSでの指定は不要 */
@@ -260,7 +271,7 @@
             <button id="multiline-editor-close-btn" class="popup-close-btn">&times;</button>
         </div>
         <div class="popup-content">
-            <textarea id="multiline-editor-input" cols="80"></textarea>
+
             <div id="ansi-controls">
                 <div class="control-group">
                     <button class="ansi-btn" data-sequence="[1m">Bold</button>
@@ -280,6 +291,7 @@
                     <button class="ansi-btn" data-sequence="[37m" style="color: #666;">White</button>
                 </div>
             </div>
+            <textarea id="multiline-editor-input" cols="80"></textarea>
             <div>
                 <button id="multiline-editor-insert-btn">Insert</button>
                 <button id="multiline-editor-cancel-btn">Cancel</button>
@@ -320,21 +332,72 @@
                 foreground: '#FFFFFF',
                 cursor: '#FFFFFF',
                 fkey_bg: '#FFFFFF',
-                fkey_fg: '#000000'
+                fkey_fg: '#000000',
+                // パソコン通信時代を彷彿とさせる、より鮮やかなANSIカラーパレット
+                black: '#000000',      // 標準の黒はそのまま
+                red: '#FF0000',      // 鮮やかな赤
+                green: '#00FF00',      // 鮮やかな緑
+                yellow: '#FFFF00',      // 鮮やかな黄
+                blue: '#0000FFFF',      // 鮮やかな青
+                magenta: '#FF00FF',      // 鮮やかなマゼンタ
+                cyan: '#00FFFF',      // 鮮やかなシアン
+                white: '#FFFFFF',      // 真っ白
+                brightBlack: '#7F7F7F',
+                brightRed: '#FF0000',
+                brightGreen: '#00FF00',
+                brightYellow: '#FFFF00',
+                brightBlue: '#0000FFFF',
+                brightMagenta: '#FF00FF',
+                brightCyan: '#00FFFF',
+                brightWhite: '#FFFFFF'
             },
             green: {
                 background: '#000000',
                 foreground: '#00FF00',
                 cursor: '#00FF00',
                 fkey_bg: '#00FF00',
-                fkey_fg: '#000000'
+                fkey_fg: '#000000',
+                // 全てのANSIカラーをテーマ色で上書き
+                black: '#00FF00',
+                red: '#00FF00',
+                green: '#00FF00',
+                yellow: '#00FF00',
+                blue: '#00FF00',
+                magenta: '#00FF00',
+                cyan: '#00FF00',
+                white: '#00FF00',
+                brightBlack: '#00FF00',
+                brightRed: '#00FF00',
+                brightGreen: '#00FF00',
+                brightYellow: '#00FF00',
+                brightBlue: '#00FF00',
+                brightMagenta: '#00FF00',
+                brightCyan: '#00FF00',
+                brightWhite: '#00FF00'
             },
             amber: {
                 background: '#1a1000',
                 foreground: '#FFB000',
                 cursor: '#FFB000',
                 fkey_bg: '#FFB000',
-                fkey_fg: '#1a1000'
+                fkey_fg: '#1a1000',
+                // 全てのANSIカラーをテーマ色で上書き
+                black: '#FFB000',
+                red: '#FFB000',
+                green: '#FFB000',
+                yellow: '#FFB000',
+                blue: '#FFB000',
+                magenta: '#FFB000',
+                cyan: '#FFB000',
+                white: '#FFB000',
+                brightBlack: '#FFB000',
+                brightRed: '#FFB000',
+                brightGreen: '#FFB000',
+                brightYellow: '#FFB000',
+                brightBlue: '#FFB000',
+                brightMagenta: '#FFB000',
+                brightCyan: '#FFB000',
+                brightWhite: '#FFB000'
             }
         };
 
@@ -397,18 +460,39 @@
         ansiControls.addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON' && e.target.dataset.sequence) {
                 const sequenceCode = e.target.dataset.sequence;
-                const sequence = '\x1b' + sequenceCode; // ESC文字とコードを結合
+                const startSequence = '\x1b' + sequenceCode;
+                const endSequence = '\x1b[0m'; // 基本的にリセットシーケンスで閉じる
                 const textarea = multilineEditorInput;
                 const start = textarea.selectionStart;
                 const end = textarea.selectionEnd;
                 const text = textarea.value;
+                const selectedText = text.substring(start, end);
 
-                // カーソル位置にシーケンスを挿入
-                textarea.value = text.substring(0, start) + sequence + text.substring(end);
+                let newText;
+                let newStart;
+                let newEnd;
 
-                const newCursorPos = start + sequence.length;
-                textarea.selectionStart = newCursorPos;
-                textarea.selectionEnd = newCursorPos;
+                // リセットボタンの場合は、選択範囲があっても単純挿入
+                if (sequenceCode === '[0m') {
+                    newText = text.substring(0, start) + startSequence + text.substring(end);
+                    newStart = start + startSequence.length;
+                    newEnd = newStart;
+                } else if (selectedText) {
+                    // テキストが選択されている場合、選択範囲を囲む
+                    const replacement = startSequence + selectedText + endSequence;
+                    newText = text.substring(0, start) + replacement + text.substring(end);
+                    newStart = start; // 変更後の選択範囲の開始位置
+                    newEnd = start + replacement.length; // 変更後の選択範囲の終了位置
+                } else {
+                    // テキストが選択されていない場合（カーソル位置に挿入）
+                    newText = text.substring(0, start) + startSequence + text.substring(end);
+                    newStart = start + startSequence.length;
+                    newEnd = newStart;
+                }
+
+                textarea.value = newText;
+                textarea.selectionStart = newStart;
+                textarea.selectionEnd = newEnd;
                 textarea.focus();
             }
         });

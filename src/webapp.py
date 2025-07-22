@@ -222,9 +222,23 @@ class WebTerminalHandler:
                                     'userpref': 2, 'who': 2, 'hamlet': 2,
                                     'default_exploration_list': '', 'login_message': ''}
 
+            # 最終ログイン時刻を文字列化
+            last_login_time = self.user_session.get('lastlogin', 0)
+            last_login_str = "なし"
+            if last_login_time and last_login_time > 0:
+                try:
+                    last_login_str = datetime.datetime.fromtimestamp(
+                        last_login_time).strftime('%Y-%m-%d %H:%M:%S')
+                except (OSError,  TypeError, ValueError):
+                    logging.warning(
+                        f"最終ログイン時刻の変換に失敗しました。 {last_login_time}")
+                    last_login_str = "不明な日時"
+
             # ウェルカムメッセージとトップメニュー表示
             util.send_text_by_key(self.channel, "login.welcome_message_webapp",
-                                  self.user_session.get('menu_mode', '2'))
+                                  self.user_session.get('menu_mode', '2'),
+                                  login_id=self.user_session.get('username'),
+                                  last_login_str=last_login_str)
             util.send_text_by_key(self.channel, "top_menu.menu",
                                   self.user_session.get('menu_mode', '2'))
 
@@ -367,10 +381,19 @@ def login():
                 session['login_attempts'] = 0
                 session['lockout_expiration'] = 0
 
+            # 最終ログイン時刻をセッションに保存（DB更新前）
+            session['lastlogin'] = user_auth_info['lastlogin'] if 'lastlogin' in user_auth_info.keys(
+            ) else 0
+
             session['user_id'] = user_auth_info['id']
             session['username'] = user_auth_info['name']
             session['userlevel'] = user_auth_info['level']
             logging.info(f"WebUI Login Success: {username}")
+
+            # DBのログイン時刻を更新
+            sqlite_tools.update_idbase(DB_NAME, 'users', [
+                                       'lastlogin'], user_auth_info['id'], 'lastlogin', int(time.time()))
+
             return redirect(url_for('index'))
         else:
             # 認証失敗
@@ -434,6 +457,7 @@ def handle_connect(auth=None):
         'user_id': session.get('user_id'),
         'username': session.get('username'),
         'userlevel': session.get('userlevel'),
+        'lastlogin': session.get('lastlogin', 0),
         'menu_mode': '2'  # WebUIのメニューモードは '2' に固定
     }
     handler = WebTerminalHandler(sid, DB_NAME, user_session_data)
