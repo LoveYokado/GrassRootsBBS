@@ -193,6 +193,29 @@
             resize: vertical;
         }
 
+        #ansi-controls {
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .control-group {
+            margin-bottom: 5px;
+        }
+
+        .ansi-btn {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-bottom: 2px solid #aaa;
+            padding: 4px 8px;
+            margin: 2px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 0.9em;
+            font-family: sans-serif;
+            /* ボタンのフォントは読みやすく */
+        }
+
+
         #terminal {
             /* サイズはxterm.jsが管理するため、CSSでの指定は不要 */
         }
@@ -238,6 +261,25 @@
         </div>
         <div class="popup-content">
             <textarea id="multiline-editor-input" cols="80"></textarea>
+            <div id="ansi-controls">
+                <div class="control-group">
+                    <button class="ansi-btn" data-sequence="[1m">Bold</button>
+                    <button class="ansi-btn" data-sequence="[5m">Blink</button>
+                    <button class="ansi-btn" data-sequence="[4m">Underline</button>
+                    <button class="ansi-btn" data-sequence="[7m">Reverse</button>
+                    <button class="ansi-btn" data-sequence="[0m">Reset</button>
+                </div>
+                <div class="control-group">
+                    <button class="ansi-btn" data-sequence="[30m" style="color: black;">Black</button>
+                    <button class="ansi-btn" data-sequence="[31m" style="color: red;">Red</button>
+                    <button class="ansi-btn" data-sequence="[32m" style="color: green;">Green</button>
+                    <button class="ansi-btn" data-sequence="[33m" style="color: #b58900;">Yellow</button>
+                    <button class="ansi-btn" data-sequence="[34m" style="color: blue;">Blue</button>
+                    <button class="ansi-btn" data-sequence="[35m" style="color: magenta;">Magenta</button>
+                    <button class="ansi-btn" data-sequence="[36m" style="color: cyan;">Cyan</button>
+                    <button class="ansi-btn" data-sequence="[37m" style="color: #666;">White</button>
+                </div>
+            </div>
             <div>
                 <button id="multiline-editor-insert-btn">Insert</button>
                 <button id="multiline-editor-cancel-btn">Cancel</button>
@@ -349,6 +391,27 @@
         const multilineEditorInput = document.getElementById('multiline-editor-input');
         const multilineEditorInsertBtn = document.getElementById('multiline-editor-insert-btn');
         const multilineEditorCancelBtn = document.getElementById('multiline-editor-cancel-btn');
+        const ansiControls = document.getElementById('ansi-controls');
+
+        // ANSIコード挿入処理
+        ansiControls.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' && e.target.dataset.sequence) {
+                const sequenceCode = e.target.dataset.sequence;
+                const sequence = '\x1b' + sequenceCode; // ESC文字とコードを結合
+                const textarea = multilineEditorInput;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+
+                // カーソル位置にシーケンスを挿入
+                textarea.value = text.substring(0, start) + sequence + text.substring(end);
+
+                const newCursorPos = start + sequence.length;
+                textarea.selectionStart = newCursorPos;
+                textarea.selectionEnd = newCursorPos;
+                textarea.focus();
+            }
+        });
 
         function openMultilineEditor() {
             multilineEditorInput.value = ''; // 以前の入力をクリア

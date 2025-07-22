@@ -346,8 +346,10 @@ def handle_client(client, addr, host_keys, is_web_app=True):
             if results:
                 userdata = results[0]
                 user_id = userdata['id']
-                user_level_val = userdata.get('level', 0)
-                initial_user_menu_mode = userdata.get('menu_mode', '1')
+                user_level_val = userdata['level'] if 'level' in userdata.keys(
+                ) else 0
+                initial_user_menu_mode = userdata['menu_mode'] if 'menu_mode' in userdata.keys(
+                ) else '1'
 
                 if user_level_val == 0:
                     logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
