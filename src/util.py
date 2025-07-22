@@ -760,9 +760,9 @@ def telegram_send(chan, dbname, display_name, online_members_ids, current_menu_m
         send_text_by_key(chan, "telegram.no_message", current_menu_mode)
         return
 
-    # メッセージが長すぎる場合の処理
-    if len(message) > telegram_max_len:
-        message = message[:telegram_max_len]
+    original_visible_len = len(strip_ansi(message))
+    message = truncate_ansi_string(message, telegram_max_len)
+    if original_visible_len > telegram_max_len:
         send_text_by_key(
             chan, "telegram.message_truncated", current_menu_mode, max_len=telegram_max_len)
 
@@ -777,6 +777,44 @@ def telegram_send(chan, dbname, display_name, online_members_ids, current_menu_m
         logging.warning(
             f"電報保存エラー (送信者: {display_name}, 宛先: {recipient_name}): {e}")
         send_text_by_key(chan, "telegram.send_error", current_menu_mode)
+
+
+def strip_ansi(text):
+    """文字列からANSIエスケープシーケンスを削除する"""
+    ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
+    return ansi_escape.sub('', text)
+
+
+def truncate_ansi_string(text, max_width):
+    """
+    ANSIエスケープシーケンスを考慮して文字列を指定された表示幅に切り詰める。
+    """
+    ansi_escape_pattern = re.compile(r'(\x1b\[[0-9;]*m)')
+
+    visible_length = 0
+    result_parts = []
+    truncated = False
+
+    for part in ansi_escape_pattern.split(text):
+        if not part:
+            continue
+
+        if ansi_escape_pattern.match(part):
+            result_parts.append(part)
+        else:
+            remaining_width = max_width - visible_length
+            if len(part) > remaining_width:
+                result_parts.append(part[:remaining_width])
+                truncated = True
+                break
+            else:
+                result_parts.append(part)
+                visible_length += len(part)
+
+    final_str = "".join(result_parts)
+    if truncated and not final_str.endswith('\x1b[0m'):
+        final_str += '\x1b[0m'
+    return final_str
 
 
 def telegram_recieve(chan, dbname, username, current_menu_mode):
@@ -842,8 +880,8 @@ def telegram_recieve(chan, dbname, username, current_menu_mode):
 
             # 掲示板のフォーマットに合わせる
             # 投稿者名: 14文字, 本文: 32文字
-            sender_short = shorten_text_by_slicing(sender, width=14)
-            message_short = shorten_text_by_slicing(message, width=32)
+            sender_short = truncate_ansi_string(sender, 14)
+            message_short = truncate_ansi_string(message, 32)
 
             # 掲示板の表示フォーマットと完全に一致させる
             line = f"{num_str}  {r_date_str} {r_time_str} {sender_short:<14}   {message_short}\r\n"

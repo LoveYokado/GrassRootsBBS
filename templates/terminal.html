@@ -206,7 +206,7 @@
             background-color: #f0f0f0;
             border: 1px solid #ccc;
             border-bottom: 2px solid #aaa;
-            padding: 4px 8px;
+            padding: 2px 8px;
             margin: 2px;
             cursor: pointer;
             border-radius: 3px;
@@ -281,14 +281,14 @@
                     <button class="ansi-btn" data-sequence="[0m">Reset</button>
                 </div>
                 <div class="control-group">
-                    <button class="ansi-btn" data-sequence="[30m" style="color: black;">Black</button>
-                    <button class="ansi-btn" data-sequence="[31m" style="color: red;">Red</button>
-                    <button class="ansi-btn" data-sequence="[32m" style="color: green;">Green</button>
-                    <button class="ansi-btn" data-sequence="[33m" style="color: #b58900;">Yellow</button>
-                    <button class="ansi-btn" data-sequence="[34m" style="color: blue;">Blue</button>
-                    <button class="ansi-btn" data-sequence="[35m" style="color: magenta;">Magenta</button>
-                    <button class="ansi-btn" data-sequence="[36m" style="color: cyan;">Cyan</button>
-                    <button class="ansi-btn" data-sequence="[37m" style="color: #666;">White</button>
+                    <button class="ansi-btn" data-sequence="[30m" data-ansi-color-name="black">Black</button>
+                    <button class="ansi-btn" data-sequence="[31m" data-ansi-color-name="red">Red</button>
+                    <button class="ansi-btn" data-sequence="[32m" data-ansi-color-name="green">Green</button>
+                    <button class="ansi-btn" data-sequence="[33m" data-ansi-color-name="yellow">Yellow</button>
+                    <button class="ansi-btn" data-sequence="[34m" data-ansi-color-name="blue">Blue</button>
+                    <button class="ansi-btn" data-sequence="[35m" data-ansi-color-name="magenta">Magenta</button>
+                    <button class="ansi-btn" data-sequence="[36m" data-ansi-color-name="cyan">Cyan</button>
+                    <button class="ansi-btn" data-sequence="[37m" data-ansi-color-name="white">White</button>
                 </div>
             </div>
             <textarea id="multiline-editor-input" cols="80"></textarea>
@@ -338,7 +338,7 @@
                 red: '#FF0000',      // 鮮やかな赤
                 green: '#00FF00',      // 鮮やかな緑
                 yellow: '#FFFF00',      // 鮮やかな黄
-                blue: '#0000FFFF',      // 鮮やかな青
+                blue: '#0000FF',      // 鮮やかな青
                 magenta: '#FF00FF',      // 鮮やかなマゼンタ
                 cyan: '#00FFFF',      // 鮮やかなシアン
                 white: '#FFFFFF',      // 真っ白
@@ -346,7 +346,7 @@
                 brightRed: '#FF0000',
                 brightGreen: '#00FF00',
                 brightYellow: '#FFFF00',
-                brightBlue: '#0000FFFF',
+                brightBlue: '#0000FF',
                 brightMagenta: '#FF00FF',
                 brightCyan: '#00FFFF',
                 brightWhite: '#FFFFFF'
@@ -412,6 +412,14 @@
                 key.style.color = theme.fkey_fg;
             });
 
+            // マルチラインエディタのカラーボタンの色を更新
+            const colorBtns = document.querySelectorAll('.ansi-btn[data-ansi-color-name]');
+            colorBtns.forEach(btn => {
+                const colorName = btn.dataset.ansiColorName;
+                if (theme[colorName]) {
+                    btn.style.color = theme[colorName];
+                }
+            });
             localStorage.setItem('terminalTheme', themeName); // 選択を保存
         }
 
