@@ -1,5 +1,4 @@
 numpy
-paramiko
 toml
 PyYAML
 flask

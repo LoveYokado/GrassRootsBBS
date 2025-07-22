@@ -1,6 +1,5 @@
 import logging
 import toml
-import paramiko
 import os
 import hashlib
 import time
@@ -12,7 +11,7 @@ import secrets
 import string
 import textwrap
 
-from . import sqlite_tools, ssh_input
+from . import sqlite_tools
 # テキストデータのキャッシュ用グローバル変数
 _master_text_data_cache = None
 
@@ -216,7 +215,6 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password, sysop_email):
                 lastlogout INTEGER,
                 comment TEXT,
                 email TEXT,
-                auth_method TEXT DEFAULT 'password_only' NOT NULL CHECK(auth_method IN ('key_only','password_only','webapp_only','both')),
                 menu_mode TEXT DEFAULT '1' NOT NULL CHECK(menu_mode IN ('1','2','3')),
                 telegram_restriction INTEGER DEFAULT 0 NOT NULL CHECK(telegram_restriction IN (0, 1, 2, 3)),
                 blacklist TEXT DEFAULT '',
@@ -235,41 +233,18 @@ def make_sysop_and_database(dbname, sysop_id, sysop_password, sysop_email):
         # シスオペ登録 (saltとハッシュ化パスワード保存)
         logging.info(f"Registering Sysop '{sysopname}'...")
         cur.execute(
-            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email,auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (sysopname, sysop_hashed_pass, sysop_salt, 5, registdate, 0, 0,
-             'Sysop', sysop_email, 'both')
+             'Sysop', sysop_email)
         )
-
-        # --- SysopのSSH鍵を生成し、秘密鍵をファイルに保存 ---
-        try:
-            paths_config = app_config.get('paths', {})
-            key_dir = paths_config.get('host_key_dir')
-            if key_dir:
-                # generate_and_regenerate_ssh_key は公開鍵を authorized_keys に追加し、秘密鍵(PEM文字列)を返す
-                private_key_pem = generate_and_regenerate_ssh_key(sysopname)
-                if private_key_pem:
-                    private_key_path = os.path.join(key_dir, sysopname)
-                    with open(private_key_path, 'w') as f:
-                        f.write(private_key_pem)
-                    os.chmod(private_key_path, 0o600)
-                    logging.info(
-                        f"Sysop's private key has been saved to: {private_key_path}")
-                else:
-                    logging.error("Failed to generate SSH key for Sysop.")
-            else:
-                logging.warning(
-                    "paths.host_key_dir is not configured. Skipping Sysop's private key generation.")
-        except Exception as e:
-            logging.error(
-                f"An error occurred while generating Sysop's SSH key: {e}", exc_info=True)
 
         # ゲスト登録 (saltとハッシュ化パスワード保存)
         guest_salt, guest_hashed_pass = hash_password('GUEST')
         logging.info("Registering 'GUEST' user...")
         cur.execute(
-            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email, auth_method) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ("GUEST", guest_hashed_pass, guest_salt, 1, registdate, 0, 0,
-             'Guest', 'guest@example.com', 'webapp_only')   # 登録日も設定、ゲストはWebAPPのみ
+             'Guest', 'guest@example.com')
         )
 
         # --- server_pref テーブル作成 ---
@@ -367,171 +342,6 @@ def prompt_handler(chan, dbname, login_id, menu_mode='2', mail_notified_flag=Fal
     telegram_recieve(chan, dbname, login_id, menu_mode)
     server_prefs = sqlite_tools.read_server_pref(dbname)
     return server_prefs, updated_mail_notified_flag
-
-
-def generate_and_regenerate_ssh_key(username):
-    """
-    新しいSSHキーペアを生成し、公開鍵をauthorized_keys.pubに追加する。
-    秘密鍵(PEM形式文字列)を返す。
-    """
-    if not app_config:
-        logging.error(
-            "設定が読み込まれていません。SSH鍵ペアを生成できません。(util.generate_and_regenerate_ssh_key)")
-        return None
-    try:
-        paths_config = app_config.get('paths', {})
-        authorized_keys_path = paths_config.get('authorized_keys')
-
-        if not authorized_keys_path:
-            logging.error(
-                "authorized_keys のパスが設定されていません。(util.generate_and_regenerate_ssh_key)")
-            return None
-
-        key_dir_val = os.path.dirname(authorized_keys_path)
-
-        # 秘密鍵を生成 (Ed25519Key.generate() は古いparamikoにないため、より互換性の高いRSAKeyを使用)
-        logging.info("Generating a new RSA 4096-bit key pair...")
-        key = paramiko.RSAKey.generate(4096)
-        from io import StringIO
-        private_key_io = StringIO()
-        key.write_private_key(private_key_io)
-        private_key_str = private_key_io.getvalue()
-        private_key_io.close()
-
-        # 公開鍵を生成してauthorized_keys.pubに追加
-        public_key_line = f"{key.get_name()} {key.get_base64()} {username}"
-
-        if not os.path.exists(key_dir_val):  # ディレクトリがなければ作成
-            os.makedirs(key_dir_val, mode=0o700)
-            logging.info(f"SSHキーディレクトリ '{key_dir_val}' を作成しました。")
-
-        auth_key_path = authorized_keys_path
-        # authorized_keys.pubに追記
-        with open(auth_key_path, 'a', encoding='utf-8') as f:
-            f.write(public_key_line+'\n')
-        logging.info(f"SSH鍵を生成しました。{username} の公開鍵を {auth_key_path} に追加しました。")
-
-        return private_key_str
-    except Exception as e:
-        logging.error(f"SSH鍵生成エラー: {e}")
-        return None
-
-
-def regenerate_user_ssh_key(username):
-    """
-    指定されたユーザの公開鍵をauthorized_keys.pubから削除し、
-    新しいキーペアを生成して公開鍵を追記。
-    """
-    if not app_config:
-        logging.error("設定が読み込めないので鍵が作れません。(util.regenerate_user_ssh_key)")
-        return None
-    try:
-        paths_config = app_config.get('paths', {})
-        authorized_keys_path = paths_config.get('authorized_keys')
-
-        if not authorized_keys_path:
-            logging.error(
-                "authorized_keys のパスが設定されていません。(util.regenerate_user_ssh_key)")
-            return None
-
-        auth_key_path = authorized_keys_path
-        key_dir_val = os.path.dirname(authorized_keys_path)
-
-        # 古い公開鍵を削除
-        if os.path.exists(auth_key_path):
-            temp_auth_key_path = auth_key_path + ".tmp"
-            found_and_removed = False
-            with open(auth_key_path, 'r', encoding='utf-8') as infile, \
-                    open(temp_auth_key_path, 'w', encoding='utf-8') as outfile:
-                for line in infile:
-                    stripped_line = line.strip()
-                    if not stripped_line or stripped_line.startswith('#'):
-                        outfile.write(line)
-                        continue
-
-                    parts = stripped_line.split()
-                    # 公開鍵のコメント部分がユーザー名と一致するか確認
-                    key_comment_user = None
-                    if len(parts) > 2:
-                        key_comment_user = parts[2].split('@')[0]  # @以降は無視
-
-                    if key_comment_user == username:
-                        logging.info(
-                            f"ユーザー '{username}' の古いSSH公開鍵を削除します: {stripped_line}")
-                        found_and_removed = True
-                    else:
-                        outfile.write(line)  # 他のユーザーの鍵は保持
-
-            os.replace(temp_auth_key_path, auth_key_path)  # 一時ファイルを元のファイルに置き換え
-            if not found_and_removed:
-                logging.warning(
-                    f"ユーザー '{username}' のSSH公開鍵は見つかりませんでした。削除処理はスキップされました。")
-        else:
-            logging.warning(f"authorized_keysファイル '{auth_key_path}' が存在しません。")
-
-        # 新しいキーペアを生成し、公開鍵を追記
-        new_private_key_pem = generate_and_regenerate_ssh_key(username)
-        if new_private_key_pem:
-            logging.info(f"ユーザー '{username}' の新しいSSH鍵ペアを生成し、公開鍵を登録しました。")
-            return new_private_key_pem
-        else:
-            logging.error(f"ユーザー '{username}' の新しいSSH鍵ペアの生成に失敗しました。")
-            return None
-
-    except Exception as e:
-        logging.error(f"SSH鍵の再生成中にエラーが発生しました (ユーザー: {username}): {e}")
-        return None
-
-
-def remove_user_public_key(username):
-    """
-    指定されたユーザの公開鍵をファイルから削除する。
-    """
-    if not app_config:
-        logging.error("設定が読み込めないので公開鍵が削除できません。(util.remove_user_public_key)")
-        return None
-    try:
-        paths_config = app_config.get('paths', {})
-        authorized_keys_path = paths_config.get('authorized_keys')
-
-        if not authorized_keys_path:
-            logging.error(
-                "authorized_keys のパスが設定されていません。(util.remove_user_public_key)")
-            return False
-
-        auth_key_path = authorized_keys_path
-        # key_dir_val = os.path.dirname(authorized_keys_path) # Not needed for removal
-
-        if not os.path.exists(auth_key_path):
-            logging.info(f"公開鍵ファイル'{auth_key_path}'が見つかりません。公開鍵の削除はスキップしました。")
-            return False
-
-        temp_auth_key_path = auth_key_path + ".tmp"
-        found_and_removed = False
-        with open(auth_key_path, 'r', encoding='utf-8') as infile, \
-                open(temp_auth_key_path, 'w', encoding='utf-8') as outfile:
-            for line in infile:
-                stripped_line = line.strip()
-                if not stripped_line or stripped_line.startswith('#'):
-                    outfile.write(line)
-                    continue
-
-                parts = stripped_line.split()
-                key_comment_user = None
-                if len(parts) > 2:
-                    key_comment_user = parts[2].split('@')[0]
-
-                if key_comment_user == username:
-                    logging.info(
-                        f"ユーザ'{username}'の公開鍵を削除しましす: {stripped_line}")
-                    found_and_removed = True
-                else:
-                    outfile.write(line)
-        os.replace(temp_auth_key_path, auth_key_path)
-        return found_and_removed  # 削除結果を返す
-    except Exception as e:
-        logging.error(f"公開鍵の削除エラー: {e}")
-        return False
 
 
 def load_yaml_file_for_shortcut(filename: str):
@@ -731,7 +541,7 @@ def telegram_send(chan, dbname, display_name, online_members_ids, current_menu_m
                      current_menu_mode)  # 電報送信メッセージ
     send_text_by_key(chan, "telegram.send_prompt",
                      current_menu_mode, add_newline=False)  # 宛先入力
-    recipient_name = ssh_input.process_input(chan)
+    recipient_name = chan.process_input()
 
     if not recipient_name:
         send_text_by_key(chan, "telegram.no_recipient",
@@ -754,7 +564,7 @@ def telegram_send(chan, dbname, display_name, online_members_ids, current_menu_m
 
     send_text_by_key(chan, "telegram.message_prompt",
                      current_menu_mode, max_len=telegram_max_len, add_newline=False)
-    message = ssh_input.process_input(chan)
+    message = chan.process_input()
 
     if not message:
         send_text_by_key(chan, "telegram.no_message", current_menu_mode)
@@ -932,7 +742,7 @@ def prompt_and_save_exploration_list(chan, menu_mode: str, save_callback: callab
     while True:
         prompt_text = f"{item_number}: "
         chan.send(prompt_text.encode('utf-8'))
-        item_input = ssh_input.process_input(chan)
+        item_input = chan.process_input()
 
         if item_input is None:
             return False  # 切断
@@ -949,7 +759,7 @@ def prompt_and_save_exploration_list(chan, menu_mode: str, save_callback: callab
 
     send_text_by_key(
         chan, "user_pref_menu.register_exploration_list.confirm_yn", menu_mode, add_newline=False)
-    confirm_choice = ssh_input.process_input(chan)
+    confirm_choice = chan.process_input()
 
     if confirm_choice is None or confirm_choice.lower().strip() != 'y':
         return True  # キャンセルまたは切断

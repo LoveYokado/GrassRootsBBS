@@ -5,10 +5,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: GrassRootsBBS Server",
+            "name": "Python: GrassRootsBBS WebApp",
             "type": "python",
             "request": "launch",
-            "module": "src.server",
+            "module": "src.webapp",
             "console": "integratedTerminal"
         }
     ]

@@ -2,7 +2,7 @@ import datetime
 import re
 import logging
 
-from . import ssh_input, util, sqlite_tools
+from . import util, sqlite_tools
 
 
 def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
@@ -20,8 +20,6 @@ def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
         '9': set_telegram_restriction,
         '10': edit_blacklist,
         '11': change_email_address,
-        '12': generate_ssh_key,
-        '13': change_auth_method,
         'e': lambda *args: "back_to_top",  # メニュー終了
         '': lambda *args: "back_to_top",   # 空入力もメニュー終了
         'h': display_help,
@@ -33,7 +31,7 @@ def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
         util.prompt_handler(chan, dbname, login_id, current_menu_mode)
         util.send_text_by_key(chan, "common_messages.select_prompt",
                               current_menu_mode, add_newline=False)  # プロンプト表示
-        input_buffer = ssh_input.process_input(chan)
+        input_buffer = chan.process_input()
         if input_buffer is None:
             return None  # 接続が切れた場合
 
@@ -69,7 +67,7 @@ def change_menu_mode(chan, dbname, login_id, current_menu_mode):
             chan, "user_pref_menu.mode_selection.header", current_menu_mode)
         util.send_text_by_key(
             chan, "common_messages.select_prompt", current_menu_mode, add_newline=False)
-        choice = ssh_input.process_input(chan)
+        choice = chan.process_input()
         if choice is None:
             return None  # 切断
 
@@ -101,7 +99,7 @@ def show_member_list(chan, dbname, login_id, current_menu_mode):
     """会員リストを表示する"""
     util.send_text_by_key(
         chan, "user_pref_menu.member_list.search_prompt", current_menu_mode, add_newline=False)
-    search_word = ssh_input.process_input(chan)
+    search_word = chan.process_input()
     member_list = sqlite_tools.get_memberlist(dbname, search_word)
     if member_list:
         for member in member_list:
@@ -120,7 +118,7 @@ def change_password(chan, dbname, login_id, current_menu_mode):
 
     util.send_text_by_key(chan, "user_pref_menu.change_password.current_password",
                           current_menu_mode, add_newline=False)
-    current_pass = ssh_input.hide_process_input(chan)
+    current_pass = chan.hide_process_input()
     if current_pass is None:
         util.send_text_by_key(
             chan, "common_messages.cancel", current_menu_mode)
@@ -144,7 +142,7 @@ def change_password(chan, dbname, login_id, current_menu_mode):
     while True:
         util.send_text_by_key(chan, "user_pref_menu.change_password.new_password",
                               current_menu_mode, add_newline=False)
-        new_pass1 = ssh_input.hide_process_input(chan)
+        new_pass1 = chan.hide_process_input()
         if new_pass1 is None:
             util.send_text_by_key(
                 chan, "common_messages.cancel", current_menu_mode)
@@ -159,7 +157,7 @@ def change_password(chan, dbname, login_id, current_menu_mode):
 
         util.send_text_by_key(
             chan, "user_pref_menu.change_password.new_password_confirm", current_menu_mode, add_newline=False)
-        new_pass2 = ssh_input.hide_process_input(chan)
+        new_pass2 = chan.hide_process_input()
         if new_pass2 is None:
             util.send_text_by_key(
                 chan, "common_messages.cancel", current_menu_mode)
@@ -195,7 +193,7 @@ def change_profile(chan, dbname, login_id, current_menu_mode):
                           current_menu_mode, comment=current_comment)
     util.send_text_by_key(
         chan, "user_pref_menu.change_profile.new_profile", current_menu_mode, add_newline=False)
-    new_comment = ssh_input.process_input(chan)
+    new_comment = chan.process_input()
 
     if new_comment is None:
         return None
@@ -235,7 +233,7 @@ def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
     while True:
         util.send_text_by_key(
             chan, "user_pref_menu.set_lastlogin.newe_datetime", current_menu_mode, add_newline=False)
-        datetime_str_input = ssh_input.process_input(chan)
+        datetime_str_input = chan.process_input()
 
         if datetime_str_input is None:
             return None
@@ -292,7 +290,7 @@ def set_telegram_restriction(chan, dbname, login_id, current_menu_mode):
     while True:
         util.send_text_by_key(
             chan, "user_pref_menu.telegram_restriction.prompt", current_menu_mode, add_newline=False)
-        choice = ssh_input.process_input(chan)
+        choice = chan.process_input()
         new_restriction_level = -1
         new_restridtion_lebel_text = ""
         if choice == '1':
@@ -362,7 +360,7 @@ def edit_blacklist(chan, dbname, login_id, current_menu_mode):
 
     util.send_text_by_key(chan, "user_pref_menu.blacklist_edit.confirm_change_prompt",
                           current_menu_mode, add_newline=False)
-    Confirm_choice = ssh_input.process_input(chan)
+    Confirm_choice = chan.process_input()
 
     if Confirm_choice is None or Confirm_choice.lower() != "y":
         util.send_text_by_key(
@@ -371,7 +369,7 @@ def edit_blacklist(chan, dbname, login_id, current_menu_mode):
 
     util.send_text_by_key(chan, "user_pref_menu.blacklist_edit.new_list_prompt",
                           current_menu_mode, add_newline=False)
-    new_blacklist_login_ids_input_str = ssh_input.process_input(chan)
+    new_blacklist_login_ids_input_str = chan.process_input()
 
     if new_blacklist_login_ids_input_str is None:
         util.send_text_by_key(
@@ -423,70 +421,6 @@ def edit_blacklist(chan, dbname, login_id, current_menu_mode):
         logging.error(f"ブラックリスト更新時にエラーが発生しました。{login_id}")
         util.send_text_by_key(
             chan, "common_messages.error", current_menu_mode)
-    return None
-
-
-def change_auth_method(chan, dbname, login_id, current_menu_mode):
-    """ユーザー自身の認証方法を変更する"""
-    util.send_text_by_key(
-        chan, "user_pref_menu.change_auth_method.header", current_menu_mode)
-
-    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
-    if not user_data:
-        util.send_text_by_key(
-            chan, "common_messages.user_not_found", current_menu_mode)
-        return None
-
-    user_id_to_change = user_data['id']
-    user_name_to_change = user_data['name']
-    current_auth_method = user_data['auth_method']
-
-    if user_name_to_change.upper() == 'GUEST':
-        util.send_text_by_key(
-            chan, "user_pref_menu.change_auth_method.cannot_change_guest", current_menu_mode)
-        return None
-
-    util.send_text_by_key(chan, "user_pref_menu.change_auth_method.current_method_info", current_menu_mode,
-                          method=current_auth_method)
-
-    valid_methods = ['key_only', 'password_only', 'both', 'webapp_only']
-    new_method = None
-    while new_method is None:
-        util.send_text_by_key(chan, "user_pref_menu.change_auth_method.new_method_prompt", current_menu_mode,
-                              methods=", ".join(valid_methods), add_newline=False)
-        method_input = ssh_input.process_input(chan)
-        if method_input is None:
-            return None
-        method_input_stripped = method_input.strip().lower()
-        if not method_input_stripped:
-            return None
-
-        if method_input_stripped in valid_methods:
-            new_method = method_input_stripped
-        else:
-            util.send_text_by_key(
-                chan, "user_pref_menu.change_auth_method.invalid_method", current_menu_mode)
-
-    if new_method == current_auth_method:
-        util.send_text_by_key(
-            chan, "user_pref_menu.change_auth_method.no_change", current_menu_mode)
-        return None
-
-    util.send_text_by_key(chan, "user_pref_menu.change_auth_method.confirm_yn", current_menu_mode,
-                          old_method=current_auth_method, new_method=new_method, add_newline=False)
-    confirm_input = ssh_input.process_input(chan)
-    if confirm_input is None or confirm_input.lower().strip() != 'y':
-        util.send_text_by_key(
-            chan, "common_messages.cancel", current_menu_mode)
-        return None
-
-    if sqlite_tools.update_user_auth_method(dbname, user_id_to_change, new_method):
-        util.send_text_by_key(
-            chan, "user_pref_menu.change_auth_method.success", current_menu_mode)
-    else:
-        util.send_text_by_key(
-            chan, "common_messages.database_update_error", current_menu_mode)
-
     return None
 
 
@@ -547,7 +481,7 @@ def change_email_address(chan, dbname, login_id, current_menu_mode):
                           current_menu_mode, email=current_email)
     util.send_text_by_key(
         chan, "user_pref_menu.change_email.new_email_prompt", current_menu_mode, add_newline=False)
-    new_email_input = ssh_input.process_input(chan)
+    new_email_input = chan.process_input()
 
     if new_email_input is None:
         return None
@@ -568,36 +502,4 @@ def change_email_address(chan, dbname, login_id, current_menu_mode):
     else:
         util.send_text_by_key(
             chan, "common_messages.db_update_error", current_menu_mode)
-    return None
-
-
-def generate_ssh_key(chan, dbname, login_id, current_menu_mode):
-    """SSH鍵を生成または再生成する"""
-    util.send_text_by_key(
-        chan, "user_pref_menu.generate_ssh_key.header", current_menu_mode)
-    util.send_text_by_key(
-        chan, "user_pref_menu.generate_ssh_key.confirm_yn", current_menu_mode, add_newline=False)
-    choice = ssh_input.process_input(chan)
-    if choice is None or choice.lower().strip() != 'y':
-        util.send_text_by_key(
-            chan, "common_messages.cancel", current_menu_mode)
-        return None
-
-    try:
-        private_key_pem = util.regenerate_user_ssh_key(login_id)
-        if private_key_pem:
-            chan.send(b'\r\n')
-            util.send_text_by_key(
-                chan, "user_pref_menu.generate_ssh_key.new_private_key_info", current_menu_mode)
-            for line in private_key_pem.splitlines():
-                chan.send(line.encode('utf-8') + b'\r\n')
-            chan.send(b'\r\n')
-            util.send_text_by_key(
-                chan, "user_pref_menu.generate_ssh_key.success", current_menu_mode)
-        else:
-            raise Exception("SSHキーの再生成に失敗しました。秘密鍵が取得できませんでした。")
-    except Exception as e:
-        logging.error(f"SSHキー生成または表示中にエラー ({login_id}): {e}")
-        util.send_text_by_key(
-            chan, "common_messages.error", current_menu_mode)
     return None

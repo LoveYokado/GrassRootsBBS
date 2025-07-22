@@ -1,7 +1,7 @@
 import logging
 import yaml
 
-from . import util, ssh_input, sqlite_tools
+from . import util, sqlite_tools
 
 
 class HierarchicalMenu:
@@ -91,7 +91,7 @@ class HierarchicalMenu:
         util.send_text_by_key(self.chan, "prompt.hierarchy", self.menu_mode, add_newline=False,
                               menu_name=self.menu_type.upper(), hierarchy=prompt_hierarchy_display_str)
 
-        user_input = ssh_input.process_input(self.chan)
+        user_input = self.chan.process_input()
         if user_input is None:
             return None
         user_input = user_input.strip()

@@ -499,7 +499,7 @@ def update_user_read_progress(dbname, user_id, read_progress_dict):
 
 
 def register_user(dbname, username, hashed_password, salt, comment, level=0,
-                  auth_method='password_only', menu_mode='1', telegram_restriction=0):
+                  menu_mode='1', telegram_restriction=0):
     """新しいユーザーをデータベースに登録する"""
     registdate = int(time.time())
     # Ensure consistent mail format, can be changed later by user or sysop
@@ -513,14 +513,14 @@ def register_user(dbname, username, hashed_password, salt, comment, level=0,
     sql_insert_user = """
         INSERT INTO users (
             name, password, salt, registdate, level, lastlogin, lastlogout,
-            comment, email, auth_method, menu_mode, telegram_restriction,
-            blacklist, exploration_list
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            comment, email, menu_mode, telegram_restriction, blacklist,
+            exploration_list
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     params = (
         username, hashed_password, salt, registdate, level, lastlogin, lastlogout,
-        comment, email_addr, auth_method, menu_mode, telegram_restriction,
-        blacklist, exploration_list
+        comment, email_addr, menu_mode, telegram_restriction, blacklist,
+        exploration_list
     )
 
     if sqlite_execute_query(dbname, sql_insert_user, params):
@@ -569,23 +569,6 @@ def update_user_level(dbname, user_id, new_level):
         return success
     except Exception as e:
         logging.error(f"レベル更新中にDBエラー (UserID: {user_id}): {e}")
-        return False
-
-
-def update_user_auth_method(dbname, user_id, new_auth_method):
-    """ユーザーの認証方法を更新"""
-    ALLOWED_METHODS = ['key_only', 'password_only', 'both', 'webapp_only']
-    if new_auth_method not in ALLOWED_METHODS:
-        logging.error(f"無効な認証方法が指定されました: {new_auth_method}")
-        return False
-    sql = "UPDATE users SET auth_method=? WHERE id=?"
-    try:
-        success = sqlite_execute_query(dbname, sql, (new_auth_method, user_id))
-        if success:
-            logging.info(f"ユーザーID {user_id} の認証方法を {new_auth_method} に更新しました。")
-        return success
-    except Exception as e:
-        logging.error(f"認証方法更新中にDBエラー (UserID: {user_id}): {e}")
         return False
 
 

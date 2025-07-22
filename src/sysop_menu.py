@@ -3,7 +3,7 @@ import datetime
 import os
 import secrets
 
-from . import ssh_input, util, sqlite_tools
+from . import util, sqlite_tools
 
 
 def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mode):
@@ -21,8 +21,6 @@ def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mo
         'regs': user_register,
         'pasc': change_user_password_by_sysop,
         'chgu': change_user_level,
-        'chga': change_auth_method,
-        'kygn': regenerate_user_ssh_key,
         'vset': view_settings,
         'mnpm': change_top_menu_permission,
         'lgmg': change_login_message,  # ログインメッセージ
@@ -39,7 +37,7 @@ def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mo
         )
         util.send_text_by_key(chan, "common_messages.select_prompt",
                               current_menu_mode, add_newline=False)  # プロンプト表示
-        input_buffer = ssh_input.process_input(chan)
+        input_buffer = chan.process_input()
         if input_buffer is None:
             return None  # 接続が切れた場合
 
@@ -95,14 +93,14 @@ def change_login_message(chan, dbname, _sysop_login_id, current_menu_mode):
     # 新しいログインメッセージの入力を促す
     util.send_text_by_key(
         chan, "sysop_menu.change_login_message.prompt", current_menu_mode, add_newline=False)
-    new_login_message = ssh_input.process_input(chan)
+    new_login_message = chan.process_input()
     if new_login_message is None:
         return None
 
     # 確認
     util.send_text_by_key(chan, "common_messages.confirm_yn",
                           current_menu_mode, add_newline=False)
-    final_confirm = ssh_input.process_input(chan)
+    final_confirm = chan.process_input()
 
     if final_confirm is None or final_confirm.strip().lower() != 'y':
         util.send_text_by_key(
@@ -162,7 +160,7 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
     while True:
         util.send_text_by_key(
             chan, "sysop_menu.user_register.user_id_prompt", current_menu_mode, add_newline=False)
-        user_id_input = ssh_input.process_input(chan)
+        user_id_input = chan.process_input()
         user_id_input = user_id_input.upper() if user_id_input else ''
         if user_id_input is None:
             return None
@@ -173,7 +171,7 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
         chan.send(f"\"{user_id_input}\"\r\n")
         util.send_text_by_key(
             chan, "sysop_menu.user_register.confirm_yn", current_menu_mode, add_newline=False)
-        confirm_id = ssh_input.process_input(chan)
+        confirm_id = chan.process_input()
         if confirm_id is None:
             return None
         if confirm_id.lower().strip() != 'y':
@@ -187,7 +185,7 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
         while True:
             util.send_text_by_key(
                 chan, "sysop_menu.user_register.user_pass_prompt", current_menu_mode, add_newline=False)
-            password_input = ssh_input.hide_process_input(chan)
+            password_input = chan.hide_process_input()
             if password_input is None:
                 return None
             if not password_input:
@@ -195,7 +193,7 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
 
             util.send_text_by_key(
                 chan, "sysop_menu.user_register.user_pass_confirm_prompt", current_menu_mode, add_newline=False)
-            password_confirm_input = ssh_input.hide_process_input(chan)
+            password_confirm_input = chan.hide_process_input()
             if password_confirm_input is None:
                 return None
 
@@ -215,7 +213,7 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
 
         util.send_text_by_key(
             chan, "sysop_menu.user_register.user_prof_prompt", current_menu_mode, add_newline=False)
-        prof_input = ssh_input.process_input(chan)
+        prof_input = chan.process_input()
         if prof_input is None:
             return None
         profile = prof_input.strip()
@@ -223,14 +221,14 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
 
         util.send_text_by_key(
             chan, "sysop_menu.user_register.confirm_yn", current_menu_mode, add_newline=False)
-        confirm_prof = ssh_input.process_input(chan)
+        confirm_prof = chan.process_input()
         if confirm_prof is None:
             return None
         if confirm_prof.lower().strip() != 'y':
             continue
 
         salt_hex, hashed_password = util.hash_password(password_input)
-        if sqlite_tools.register_user(dbname, user_id_input, hashed_password, salt_hex, profile, level=0, auth_method='both'):
+        if sqlite_tools.register_user(dbname, user_id_input, hashed_password, salt_hex, profile, level=0):
             util.send_text_by_key(
                 chan, "sysop_menu.user_register.user_regist_success", current_menu_mode)
         else:
@@ -247,7 +245,7 @@ def user_delete(chan, dbname, sysop_login_id, current_menu_mode):
     while True:
         util.send_text_by_key(
             chan, "sysop_menu.user_delete.user_id_prompt", current_menu_mode, add_newline=False)
-        user_id_delete_input = ssh_input.process_input(chan)
+        user_id_delete_input = chan.process_input()
         if user_id_delete_input is None:
             return None
         if not user_id_delete_input.strip():
@@ -272,7 +270,7 @@ def user_delete(chan, dbname, sysop_login_id, current_menu_mode):
         chan.send(f"\"{actual_user_name_to_delete}\"\r\n")
         util.send_text_by_key(
             chan, "sysop_menu.user_delete.confirm_yn", current_menu_mode, add_newline=False)
-        confirm_choice = ssh_input.process_input(chan)
+        confirm_choice = chan.process_input()
         if confirm_choice is None:
             return None
         if confirm_choice.lower().strip() != 'y':
@@ -281,62 +279,7 @@ def user_delete(chan, dbname, sysop_login_id, current_menu_mode):
         if sqlite_tools.delete_user(dbname, numeric_user_id_to_delete):
             util.send_text_by_key(
                 chan, "sysop_menu.user_delete.user_delete_success", current_menu_mode)
-            if util.remove_user_public_key(actual_user_name_to_delete):
-                logging.info(f"ユーザ {actual_user_name_to_delete}公開鍵を削除しました。")
-            else:
-                logging.info(
-                    f"ユーザ {actual_user_name_to_delete}公開鍵が見当たらないか、公開鍵ファイルがありません。")
         else:
-            util.send_text_by_key(
-                chan, "common_messages.error", current_menu_mode)
-        return None
-
-
-def regenerate_user_ssh_key(chan, dbname, _sysop_login_id, current_menu_mode):
-    """SSH鍵再生成"""
-    util.send_text_by_key(
-        chan, "sysop_menu.regenerate_key.header", current_menu_mode)
-    while True:
-        util.send_text_by_key(
-            chan, "sysop_menu.regenerate_key.user_id_prompt", current_menu_mode, add_newline=False)
-        user_id_input = ssh_input.process_input(chan)
-        if user_id_input is None:
-            return None
-        if not user_id_input.strip():
-            return None
-
-        user_name_to_regenerate = user_id_input.strip().upper()
-        user_data = sqlite_tools.get_user_auth_info(
-            dbname, user_name_to_regenerate)
-        if user_data is None or user_name_to_regenerate == "GUEST":
-            util.send_text_by_key(
-                chan, "sysop_menu.regenerate_key.user_not_found", current_menu_mode)
-            continue
-
-        chan.send(f"\"{user_name_to_regenerate}\"\r\n")
-        util.send_text_by_key(
-            chan, "sysop_menu.regenerate_key.confirm_yn", current_menu_mode, add_newline=False)
-        confirm_choice = ssh_input.process_input(chan)
-        if confirm_choice is None:
-            return None
-        if confirm_choice.lower().strip() != 'y':
-            return None
-
-        try:
-            private_key_pem = util.regenerate_user_ssh_key(
-                user_name_to_regenerate)
-            if private_key_pem:
-                chan.send(b'\r\n')
-                for line in private_key_pem.splitlines():
-                    chan.send(line.encode('utf-8') + b'\r\n')
-                chan.send(b'\r\n')
-                util.send_text_by_key(
-                    chan, "sysop_menu.regenerate_key.success", current_menu_mode)
-            else:
-                util.send_text_by_key(
-                    chan, "sysop_menu.regenerate_key.failed", current_menu_mode)
-        except Exception as e:
-            logging.error(f"SSH鍵再生成エラー({user_name_to_regenerate}): {e}")
             util.send_text_by_key(
                 chan, "common_messages.error", current_menu_mode)
         return None
@@ -380,7 +323,7 @@ def change_top_menu_permission(chan, dbname, _sysop_login_id, current_menu_mode)
     while menu_to_change is None:
         util.send_text_by_key(
             chan, "sysop_menu.set_permissions.prompt", current_menu_mode, add_newline=False)
-        menu_input = ssh_input.process_input(chan)
+        menu_input = chan.process_input()
         if menu_input is None:
             return None
 
@@ -397,7 +340,7 @@ def change_top_menu_permission(chan, dbname, _sysop_login_id, current_menu_mode)
             chan, "sysop_menu.set_permissions.user_level_message", current_menu_mode)
         util.send_text_by_key(
             chan, "sysop_menu.set_permissions.user_level_prompt", current_menu_mode, add_newline=False)
-        level_input = ssh_input.process_input(chan)
+        level_input = chan.process_input()
         if level_input is None:
             return None
 
@@ -435,7 +378,7 @@ def change_user_level(chan, dbname, sysop_login_id, current_menu_mode):
         chan, "sysop_menu.change_user_level.header", current_menu_mode)
     util.send_text_by_key(
         chan, "sysop_menu.change_user_level.user_name_prompt", current_menu_mode, add_newline=False)
-    target_user_input = ssh_input.process_input(chan)
+    target_user_input = chan.process_input()
     if target_user_input is None:
         return None
     target_user = target_user_input.strip()
@@ -462,7 +405,7 @@ def change_user_level(chan, dbname, sysop_login_id, current_menu_mode):
                           name=user_name_to_change, user_id=user_id_to_change, level=current_level)
     util.send_text_by_key(
         chan, "sysop_menu.change_user_level.new_level_prompt", current_menu_mode, add_newline=False)
-    new_level_input = ssh_input.process_input(chan)
+    new_level_input = chan.process_input()
     if new_level_input is None:
         return None
     new_level = new_level_input.strip()
@@ -487,7 +430,7 @@ def change_user_level(chan, dbname, sysop_login_id, current_menu_mode):
 
     util.send_text_by_key(chan, "sysop_menu.change_user_level.confirm_yn", current_menu_mode,
                           name=user_name_to_change, old_level=current_level, new_level=new_level, add_newline=False)
-    confirm_input = ssh_input.process_input(chan)
+    confirm_input = chan.process_input()
     if confirm_input is None:
         return None
     confirm_input = confirm_input.lower().strip()
@@ -507,7 +450,7 @@ def change_user_password_by_sysop(chan, dbname, sysop_login_id, current_menu_mod
     while True:
         util.send_text_by_key(chan, "sysop_menu.change_user_password.user_id_prompt",
                               current_menu_mode, add_newline=False)
-        target_user_input = ssh_input.process_input(chan)
+        target_user_input = chan.process_input()
         if target_user_input is None:
             return None
 
@@ -534,7 +477,7 @@ def change_user_password_by_sysop(chan, dbname, sysop_login_id, current_menu_mod
 
         util.send_text_by_key(chan, "sysop_menu.change_user_password.confirm_yn",
                               current_menu_mode, name=user_name_to_change, new_password=new_password, add_newline=False)
-        confirm_input = ssh_input.process_input(chan)
+        confirm_input = chan.process_input()
         if confirm_input is None:
             return None
 
@@ -557,86 +500,13 @@ def change_user_password_by_sysop(chan, dbname, sysop_login_id, current_menu_mod
     return None
 
 
-def change_auth_method(chan, dbname, sysop_login_id, current_menu_mode):
-    """ユーザーの認証方法を変更する"""
-    util.send_text_by_key(
-        chan, "sysop_menu.change_auth_method.header", current_menu_mode)
-    util.send_text_by_key(
-        chan, "sysop_menu.change_auth_method.user_name_prompt", current_menu_mode, add_newline=False)
-    target_user_input = ssh_input.process_input(chan)
-    if target_user_input is None:
-        return None
-    target_user = target_user_input.strip().upper()
-    if not target_user:
-        return None
-
-    user_data = sqlite_tools.get_user_auth_info(dbname, target_user)
-    if not user_data:
-        util.send_text_by_key(chan, "sysop_menu.change_auth_method.user_not_found",
-                              current_menu_mode, user_id=target_user)
-        return None
-
-    user_id_to_change = user_data['id']
-    user_name_to_change = user_data['name']
-    current_auth_method = user_data['auth_method']
-
-    # GUESTユーザーの認証方法は変更できないようにする
-    if user_name_to_change.upper() == 'GUEST':
-        util.send_text_by_key(
-            chan, "sysop_menu.change_auth_method.cannot_change_guest", current_menu_mode)
-        return None
-
-    util.send_text_by_key(chan, "sysop_menu.change_auth_method.current_method_info", current_menu_mode,
-                          name=user_name_to_change, user_id=user_id_to_change, method=current_auth_method)
-
-    valid_methods = ['key_only', 'password_only', 'both', 'webapp_only']
-    new_method = None
-    while new_method is None:
-        util.send_text_by_key(chan, "sysop_menu.change_auth_method.new_method_prompt", current_menu_mode,
-                              methods=", ".join(valid_methods), add_newline=False)
-        method_input = ssh_input.process_input(chan)
-        if method_input is None:
-            return None
-        method_input_stripped = method_input.strip().lower()
-        if not method_input_stripped:
-            return None
-
-        if method_input_stripped in valid_methods:
-            new_method = method_input_stripped
-        else:
-            util.send_text_by_key(
-                chan, "sysop_menu.change_auth_method.invalid_method", current_menu_mode)
-
-    if new_method == current_auth_method:
-        util.send_text_by_key(
-            chan, "sysop_menu.change_auth_method.no_change", current_menu_mode)
-        return None
-
-    util.send_text_by_key(chan, "sysop_menu.change_auth_method.confirm_yn", current_menu_mode,
-                          name=user_name_to_change, old_method=current_auth_method, new_method=new_method, add_newline=False)
-    confirm_input = ssh_input.process_input(chan)
-    if confirm_input is None or confirm_input.lower().strip() != 'y':
-        util.send_text_by_key(
-            chan, "common_messages.cancel", current_menu_mode)
-        return None
-
-    if sqlite_tools.update_user_auth_method(dbname, user_id_to_change, new_method):
-        util.send_text_by_key(
-            chan, "sysop_menu.change_auth_method.success", current_menu_mode)
-    else:
-        util.send_text_by_key(
-            chan, "common_messages.database_update_error", current_menu_mode)
-
-    return None
-
-
 def system_quit(chan, dbname, _sysop_login_id, current_menu_mode):
     """システム強制終了"""
     util.send_text_by_key(
         chan, "sysop_menu.system_quit.header", current_menu_mode)
     util.send_text_by_key(chan, "common_messages.confirm_yn",
                           current_menu_mode, add_newline=False)
-    continue_choice = ssh_input.process_input(chan)
+    continue_choice = chan.process_input()
     if continue_choice is None:
         return None
 
@@ -655,7 +525,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     while not shortcut_id:
         util.send_text_by_key(
             chan, "sysop_menu.make_board.shortcut_id_prompt", current_menu_mode, add_newline=False)
-        shortcut_id_input = ssh_input.process_input(chan)
+        shortcut_id_input = chan.process_input()
         if shortcut_id_input is None:
             return None
         shortcut_id = shortcut_id_input.strip()
@@ -670,7 +540,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     while not board_name:
         util.send_text_by_key(
             chan, "sysop_menu.make_board.name_prompt", current_menu_mode, add_newline=False)
-        name_input = ssh_input.process_input(chan)
+        name_input = chan.process_input()
         if name_input is None:
             return None
         board_name = name_input.strip()
@@ -680,7 +550,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
 
     util.send_text_by_key(
         chan, "sysop_menu.make_board.description_prompt", current_menu_mode, add_newline=False)
-    desc_input = ssh_input.process_input(chan)
+    desc_input = chan.process_input()
     if desc_input is None:
         return None
     description = desc_input.strip()
@@ -690,7 +560,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     while board_type not in balid_types:
         util.send_text_by_key(chan, "sysop_menu.make_board.board_type_prompt", current_menu_mode,
                               types=", ".join(balid_types), add_newline=False)
-        type_input = ssh_input.process_input(chan)
+        type_input = chan.process_input()
         if type_input is None:
             return None
         board_type = type_input.strip().lower()
@@ -705,7 +575,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     while default_permission not in valid_permissions:
         util.send_text_by_key(chan, "sysop_menu.make_board.default_permission_prompt", current_menu_mode,
                               permissions=", ".join(valid_permissions), add_newline=False)
-        permission_input = ssh_input.process_input(chan)
+        permission_input = chan.process_input()
         if permission_input is None:
             return None
         default_permission = permission_input.strip().lower()
@@ -716,7 +586,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     read_level = 1
     while True:
         chan.send("閲覧レベル (1-5, デフォルト:1): ".encode('utf-8'))
-        level_input = ssh_input.process_input(chan)
+        level_input = chan.process_input()
         if level_input is None:
             return None
         if not level_input.strip():
@@ -732,7 +602,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     write_level = 1
     while True:
         chan.send("書込レベル (1-5, デフォルト:1): ".encode('utf-8'))
-        level_input = ssh_input.process_input(chan)
+        level_input = chan.process_input()
         if level_input is None:
             return None
         if not level_input.strip():
@@ -752,7 +622,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     util.send_text_by_key(chan, "sysop_menu.make_board.confirm_create_yn", current_menu_mode,
                           shortcut_id=shortcut_id, board_name=board_name, permission=default_permission,
                           operator=sysop_login_id, add_newline=False)
-    confirm_create = ssh_input.process_input(chan)
+    confirm_create = chan.process_input()
     if confirm_create is None or confirm_create.lower().strip() != 'y':
         util.send_text_by_key(
             chan, "common_messages.cancel", current_menu_mode)
@@ -776,7 +646,7 @@ def delete_board(chan, dbname, _sysop_login_id, current_menu_mode):
     while True:
         util.send_text_by_key(
             chan, "sysop_menu.delete_board.delete_board_prompt", current_menu_mode, add_newline=False)
-        board_id_input = ssh_input.process_input(chan)
+        board_id_input = chan.process_input()
         if board_id_input is None:
             return None
         if not board_id_input.strip():
@@ -796,7 +666,7 @@ def delete_board(chan, dbname, _sysop_login_id, current_menu_mode):
             f"\"{board_name_to_display}\" (ID: {shortcut_id_to_delete})\r\n")
         util.send_text_by_key(chan, "sysop_menu.delete_board.confirm_yn", current_menu_mode,
                               board_name=board_name_to_display, add_newline=False)
-        confirm_choice = ssh_input.process_input(chan)
+        confirm_choice = chan.process_input()
         if confirm_choice is None:
             return None
 
@@ -868,7 +738,7 @@ def change_board_settings(chan, dbname, _sysop_login_id, current_menu_mode):
     # 掲示板IDの入力
     util.send_text_by_key(
         chan, "sysop_menu.change_board.shortcut_id_prompt", current_menu_mode, add_newline=False)
-    shortcut_id_input = ssh_input.process_input(chan)
+    shortcut_id_input = chan.process_input()
     if not shortcut_id_input or not shortcut_id_input.strip():
         return None
     shortcut_id = shortcut_id_input.strip()
@@ -896,7 +766,7 @@ def change_board_settings(chan, dbname, _sysop_login_id, current_menu_mode):
     new_read_level = current_read_level
     chan.send(
         f"新しい閲覧レベル (1-5, 現在:{current_read_level}, 空入力で変更なし): ".encode('utf-8'))
-    level_input = ssh_input.process_input(chan)
+    level_input = chan.process_input()
     if level_input is None:
         return None
     if level_input.strip():
@@ -917,7 +787,7 @@ def change_board_settings(chan, dbname, _sysop_login_id, current_menu_mode):
     new_write_level = current_write_level
     chan.send(
         f"新しい書込レベル (1-5, 現在:{current_write_level}, 空入力で変更なし): ".encode('utf-8'))
-    level_input = ssh_input.process_input(chan)
+    level_input = chan.process_input()
     if level_input is None:
         return None
     if level_input.strip():
@@ -945,7 +815,7 @@ def change_board_settings(chan, dbname, _sysop_login_id, current_menu_mode):
                           old_read=current_read_level, new_read=new_read_level,
                           old_write=current_write_level, new_write=new_write_level,
                           add_newline=False)
-    confirm = ssh_input.process_input(chan)
+    confirm = chan.process_input()
     if confirm is None or confirm.strip().lower() != 'y':
         util.send_text_by_key(
             chan, "common_messages.cancel", current_menu_mode)
