@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+1m:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet">
     <style>
         body,
         html {
@@ -61,7 +62,10 @@
 
         #function-keys-container {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
+            /* 中央揃えに変更 */
+            gap: 8px;
+            /* グループ間の隙間を追加 */
             padding: 5px 0;
             /* ターミナルとの間隔を調整 */
             background-color: #000;
@@ -83,6 +87,12 @@
             cursor: pointer;
             user-select: none;
             border-radius: 2px;
+            width: 90px;
+            /* ボタンの幅を固定 */
+            text-align: center;
+            /* テキストを中央揃え */
+            box-sizing: border-box;
+            /* paddingとborderを幅に含める */
         }
 
         /* --- ポップアップ --- */
@@ -312,6 +322,11 @@
                 <button data-theme="green">Green</button>
                 <button data-theme="amber">Amber</button>
             </div>
+            <div id="font-selector">
+                <h3>Font</h3>
+                <button data-font="M+ 1m">M+ 1m</button>
+                <button data-font="IBM Plex Mono">IBM Plex Mono</button>
+            </div>
             <div id="speed-selector">
                 <h3>Speed</h3>
                 <button data-speed="full">Full</button>
@@ -320,6 +335,7 @@
                 <button data-speed="2400">2400bps</button>
                 <button data-speed="300">300bps</button>
             </div>
+
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
@@ -421,6 +437,12 @@
                 }
             });
             localStorage.setItem('terminalTheme', themeName); // 選択を保存
+        }
+
+        function applyFont(fontName) {
+            const fontFamily = `"${fontName}", "Courier New", monospace`;
+            term.options.fontFamily = fontFamily;
+            localStorage.setItem('terminalFont', fontFamily); // 選択を保存
         }
 
         function applySpeed(speedName) {
@@ -598,7 +620,7 @@
             const definition = fkeyDefinitions[fkeyId];
 
             if (definition) {
-                key.textContent = `[F${i} ${definition.label}]`;
+                key.textContent = `${definition.label}`;
                 if (definition.action === 'open_popup') {
                     key.addEventListener('click', openPopup);
                 } else if (definition.action === 'send_command') {
@@ -621,7 +643,7 @@
                     });
                 }
             } else {
-                key.textContent = `[F${i} NONAME]`;
+                key.textContent = `NoFunction`;
             }
 
             if (i <= 4) {
@@ -644,6 +666,9 @@
         // 初期テーマの適用
         const savedTheme = localStorage.getItem('terminalTheme') || 'default';
 
+        // 初期フォントの適用
+        const savedFont = localStorage.getItem('terminalFont') || '"M+ 1m", "Courier New", monospace';
+
         // 初期速度の適用
         const savedSpeed = localStorage.getItem('terminalSpeed') || 'full';
 
@@ -651,6 +676,14 @@
         document.getElementById('theme-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 applyTheme(e.target.dataset.theme);
+                closePopup(); // 設定を選んだら閉じる
+            }
+        });
+
+        document.getElementById('font-selector').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const fontName = e.target.dataset.font;
+                applyFont(fontName);
                 closePopup(); // 設定を選んだら閉じる
             }
         });
@@ -674,14 +707,14 @@
         socket.on('logging_started', () => {
             const f2LogBtn = document.getElementById('f2-log-btn');
             if (f2LogBtn) {
-                f2LogBtn.textContent = '[F2 LOGGING...]';
+                f2LogBtn.textContent = 'LOGGING...';
             }
         });
 
         socket.on('log_saved', (data) => {
             const f2LogBtn = document.getElementById('f2-log-btn');
             if (f2LogBtn) {
-                f2LogBtn.textContent = '[F2 LOGGING]';
+                f2LogBtn.textContent = 'LOGGING';
             }
 
             // ダウンロードをトリガーするための隠しリンクを作成してクリック
@@ -709,6 +742,7 @@
         socket.on('connect', () => {
             // 接続が確立したら、保存されている設定をサーバに送信
             applyTheme(savedTheme);
+            applyFont(savedFont.split(',')[0].replace(/"/g, '')); // 保存されたフォント名を適用
             applySpeed(savedSpeed);
         });
     </script>
