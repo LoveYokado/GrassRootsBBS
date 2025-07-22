@@ -2,9 +2,7 @@ import logging
 import collections
 import threading
 
-import ssh_input
-import util
-import bbsmenu
+from . import ssh_input, util, bbsmenu
 
 # チャットルームごとのメッセージ履歴
 # {room_id:collections.deque()}

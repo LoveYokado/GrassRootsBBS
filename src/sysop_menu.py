@@ -1,10 +1,9 @@
-import ssh_input
-import util
-import secrets
-import sqlite_tools
 import logging
 import datetime
 import os
+import secrets
+
+from . import ssh_input, util, sqlite_tools
 
 
 def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mode):

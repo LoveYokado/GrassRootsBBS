@@ -2,4 +2,7 @@ numpy
 paramiko
 toml
 PyYAML
+flask
 flask-session
+gunicorn
+gevent-websocket

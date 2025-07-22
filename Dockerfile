@@ -6,7 +6,7 @@ WORKDIR /app
 # 依存関係ファイルをコピーし、インストール
 # これにより、依存関係が変更されない限り、このレイヤーはキャッシュされる
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && pip install --no-cache-dir flask-session
+RUN python -m pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # アプリケーションのコードと必要なディレクトリをコピー
 # Dockerfileがプロジェクトのルートディレクトリにあることを想定

@@ -8,7 +8,7 @@
             "name": "Python: GrassRootsBBS Server",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/src/server.py",
+            "module": "src.server",
             "console": "integratedTerminal"
         }
     ]

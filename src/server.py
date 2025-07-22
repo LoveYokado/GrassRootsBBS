@@ -1,9 +1,6 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado) <hogehoge@gmail.com>
 # SPDX-License-Identifier: MIT
 
-import sqlite_tools
-import util
-import ssh_input
 import threading
 import paramiko
 import socket
@@ -12,7 +9,7 @@ import time
 import logging
 import datetime
 
-import command_dispatcher
+from . import sqlite_tools, util, ssh_input, command_dispatcher
 
 CONFIG_FILE_PATH = "setting/config.toml"
 
@@ -21,46 +18,32 @@ online_members_lock = threading.Lock()  # ロックオブジェクト作成
 # {login_id: {"addr": (ip, port), "display_name": "...", "menu_mode": "..."}}
 online_members = {}
 
-# 同時接続数とロック周り
-# webapp
-current_webapp_clients = 0
-current_webapp_clients_lock = threading.Lock()
-
 # ssh
 current_normal_ssh_clients = 0
 current_normal_ssh_clients_lock = threading.Lock()
 
 
 class Server(paramiko.ServerInterface):
-    def __init__(self, is_web_app_connection=False):
+    def __init__(self):
         """
         ServerInterface の初期化
-
-        :param is_web_app_connection: bool
-            WEBアプリケーション経由で接続されたSSHクライアントか否か
         """
 
         self.event = threading.Event()
-        self.is_web_app_connection = is_web_app_connection
 
     def check_channel_request(self, kind, chanid):
         if kind == 'session':
             return paramiko.OPEN_SUCCEEDED
         return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
 
-    # WEBアプリのSSHクライアントからの接続用なので、内部のみで完結するため、このままにしておくｗｗｗ
     def check_auth_password(self, username, password):  # パスワード認証
         """
         パスワード認証を処理する。
         通常接続時はDBのユーザー情報と照合。
         """
-        webapp_config = util.app_config.get('webapp', {})
-        server_config = util.app_config.get('server', {})
         security_config = util.app_config.get('security', {})
         paths_config = util.app_config.get('paths', {})
 
-        webapp_user = webapp_config.get('WEBAPP_USER')
-        webapp_password = webapp_config.get('WEBAPP_PASSWORD')
         db_name = paths_config.get('db_name')
         pbkdf2_rounds = security_config.get('PBKDF2_ROUNDS', 100000)
 
@@ -68,26 +51,17 @@ class Server(paramiko.ServerInterface):
             logging.error("DB名が設定されていません")
             return paramiko.AUTH_FAILED
 
-        if self.is_web_app_connection and username == webapp_user and password == webapp_password:
-            logging.info("WEBアプリからの接続を許可")
-            return paramiko.AUTH_SUCCESSFUL
-
-        if not self.is_web_app_connection:
-            user_auth_info = sqlite_tools.get_user_auth_info(db_name, username)
-            if user_auth_info and user_auth_info['auth_method'] in ('password_only', 'both'):
-                stored_hash = user_auth_info['password']
-                salt_hex = user_auth_info['salt']
-                if util.verify_password(stored_hash, salt_hex, password, pbkdf2_rounds):
-                    logging.info(f"パスワード認証成功: ユーザ名'{username}'")
-                    return paramiko.AUTH_SUCCESSFUL
-                logging.warning(f"パスワード認証失敗(不一致): ユーザ名'{username}'")
-            else:
-                logging.warning(
-                    f"WEBアプリからの接続パスワード認証失敗: ユーザ名'{username}'はパスワード認証が許可されていないか、存在しません。")
-            return paramiko.AUTH_FAILED
-
-        logging.warning(
-            f"パスワード認証失敗(フォールスルー): ユーザ名'{username}', is_web_app:{self.is_web_app_connection}")
+        user_auth_info = sqlite_tools.get_user_auth_info(db_name, username)
+        if user_auth_info and user_auth_info['auth_method'] in ('password_only', 'both'):
+            stored_hash = user_auth_info['password']
+            salt_hex = user_auth_info['salt']
+            if util.verify_password(stored_hash, salt_hex, password, pbkdf2_rounds):
+                logging.info(f"パスワード認証成功: ユーザ名'{username}'")
+                return paramiko.AUTH_SUCCESSFUL
+            logging.warning(f"パスワード認証失敗(不一致): ユーザ名'{username}'")
+        else:
+            logging.warning(
+                f"パスワード認証失敗: ユーザ名'{username}'はパスワード認証が許可されていないか、存在しません。")
         return paramiko.AUTH_FAILED
 
     def check_channel_pty_request(self, channel, term, width, height, pixelwidth, pixelheight, modes):
@@ -103,10 +77,6 @@ class Server(paramiko.ServerInterface):
         return True  # シェルリクエストを許可
 
     def check_auth_publickey(self, username, key):
-        if self.is_web_app_connection:
-            # webアプリでは公開鍵認証を許可しない
-            return paramiko.AUTH_FAILED
-
         paths_config = util.app_config.get('paths', {})
         db_name = paths_config.get('db_name')
         if not db_name:
@@ -162,12 +132,6 @@ class Server(paramiko.ServerInterface):
         return paramiko.AUTH_FAILED
 
     def get_allowed_auths(self, username):
-
-        if self.is_web_app_connection:
-            # Webアプリ接続時はパスワード認証のみ
-            return 'password'
-
-        server_config = util.app_config.get('server', {})
         paths_config = util.app_config.get('paths', {})
         db_name = paths_config.get('db_name')
         if not db_name:
@@ -328,142 +292,6 @@ def process_command_loop(chan, dbname, login_id, display_name, user_id, userleve
     return normal_logoff  # ログオフ状態を返す
 
 
-def authenticate_user(chan, addr, dbname, max_password_attempts):
-    """
-    ユーザー認証プロセスを実行する。(パスワードハッシュ対応)
-
-    Args:
-        chan: Paramikoチャンネルオブジェクト
-        addr: クライアントアドレス
-        dbname: データベース名
-        max_password_attempts: 最大パスワード試行回数
-
-    Returns:
-        tuple: 認証成功時は (login_id, user_id, userdata)、失敗時は (None, None, None)
-    """
-    server_config = util.app_config.get('server', {})
-    security_config = util.app_config.get('security', {})
-    paths_config = util.app_config.get('paths', {})
-    db_name_from_config = paths_config.get('db_name')
-    auth_menu_mode = server_config.get('DEFAULT_AUTH_MENU_MODE', '1')
-    if auth_menu_mode not in ('1', '2', '3'):
-        logging.warning("default_auth_menu_mode 設定値不正")
-        auth_menu_mode = '1'
-
-    max_attempts = server_config.get('MAX_PASSWORD_ATTEMPTS', 3)
-    pbkdf2_rounds = security_config.get('PBKDF2_ROUNDS', 100000)
-    if not db_name_from_config:
-        logging.error("DB名が設定ファイルにありません(authenticate_user)")
-        if chan and chan.active:
-            # サーバ設定エラー。シスオペに連絡してください
-            util.send_text_by_key(
-                chan, "common_messages.db_error", menu_mode=auth_menu_mode)
-        return None, None, None
-
-    try:
-        # WebApp接続時のウェルカムメッセージ (AAなど) をID/Pass入力の前に表示
-        util.send_text_by_key(
-            chan, "login.welcome_message_webapp", menu_mode=auth_menu_mode)
-        util.send_text_by_key(chan, "auth.id_prompt", menu_mode=auth_menu_mode,
-                              add_newline=False)  # ID入力プロンプト
-
-        login_id_input = ssh_input.process_input(chan)
-        if login_id_input is None:
-            logging.info(f"ID入力中に切断されました ({addr})")
-            return None, None, None  # 切断された場合のみ None を返す
-
-        results = sqlite_tools.fetchall_idbase(
-            db_name_from_config, 'users', 'name', login_id_input)
-
-        if not results:  # IDが存在しない場合
-            logging.warning(f"認証施行: 存在しないID '{login_id_input}' ({addr})")
-            password_attempts = 0  # ループ外で使うため初期化
-            for i in range(max_attempts):
-                password_attempts = i + 1  # 試行回数を記録
-                util.send_text_by_key(
-                    chan, "auth.password_prompt", menu_mode=auth_menu_mode, add_newline=False)  # パスワード入力プロンプト
-                login_pass_attempt = ssh_input.hide_process_input(chan)
-                if login_pass_attempt is None:  # 切断された場合
-                    logging.info(f"パスワード入力中に切断されました (存在しないID) ({addr})")
-                    return None, None, None
-                # ダミーのハッシュ計算 (時間はかかるが結果は使わない)
-                try:
-                    dummy_salt = os.urandom(16)
-                    hashlib.pbkdf2_hmac('sha256', login_pass_attempt.encode(
-                        'utf-8'), dummy_salt, pbkdf2_rounds)
-                except Exception:
-                    pass  # エラーは無視
-                util.send_text_by_key(
-                    chan, "auth.invalid_credentials", menu_mode=auth_menu_mode)  # 認証失敗メッセージ
-                logging.warning(
-                    f"認証失敗 (存在しないID): '{login_id_input}',試行 {password_attempts}/{max_attempts} ({addr})")
-            # ループが正常に終わった場合（試行回数超過）
-            util.send_text_by_key(
-                chan, "auth.too_many_attempts", menu_mode=auth_menu_mode, max_attempts=max_attempts)
-            return None, None, None  # IDが存在しない場合はここで終了
-
-        # ID が存在する場合の処理 (else は不要、上の if で return するため)
-        userdata = results[0]
-        login_id = userdata['name']
-        user_id = userdata['id']
-        stored_hash = userdata['password']
-        salt_hex = userdata['salt']
-
-        # 認証方法のチェック (Webアプリからの対話認証)
-        auth_method = userdata['auth_method'] if 'auth_method' in userdata.keys(
-        ) else 'password_only'
-        # 'key_only' のユーザーはWebアプリからログインできないようにする
-        if auth_method not in ('password_only', 'both', 'webapp_only'):
-            logging.warning(
-                f"認証失敗: ユーザー '{login_id}' はWebアプリからのパスワード認証が許可されていません (auth_method: {auth_method}) ({addr})")
-            util.send_text_by_key(
-                chan, "auth.method_not_allowed", menu_mode=auth_menu_mode)
-            return None, None, None
-
-        if userdata['level'] == 0:
-            logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
-            util.send_text_by_key(
-                chan, "auth.account_disabled", menu_mode=auth_menu_mode)  # ID停止通知
-            return None, None, None
-
-        password_attempts = 0
-        while password_attempts < max_attempts:
-            util.send_text_by_key(
-                chan, "auth.password_prompt", menu_mode=auth_menu_mode, add_newline=False)  # パスワード入力プロンプト
-            login_pass = ssh_input.hide_process_input(chan)
-            if login_pass is None:
-                logging.info(f"パスワード入力中に切断されました ({login_id}, {addr})")
-                return None, None, None
-
-            if util.verify_password(stored_hash, salt_hex, login_pass, pbkdf2_rounds):
-                # 認証成功
-                logging.info(f"認証成功: '{login_id}' ({addr})")
-                return login_id, user_id, userdata
-            else:
-                # 認証失敗
-                password_attempts += 1
-                logging.warning(
-                    f"認証失敗: ID '{login_id}' のパスワード間違い ({password_attempts}/{max_attempts}) ({addr})")
-                util.send_text_by_key(
-                    chan, "auth.invalid_credentials", menu_mode=auth_menu_mode)
-
-        # パスワード試行回数超過
-        util.send_text_by_key(
-            chan, "auth.too_many_attempts", menu_mode=auth_menu_mode, max_attempts=max_attempts
-        )
-        return None, None, None
-
-    except Exception as e:
-        logging.error(f"認証プロセス中に予期せぬエラーが発生しました ({addr}): {e}")
-        try:
-            if chan and chan.active:
-                util.send_text_by_key(
-                    chan, "auth.auth_error", menu_mode=auth_menu_mode)  # 認証中にエラー
-        except Exception as chan_e:
-            logging.error(f"認証エラー時のメッセージ送信に失敗 ({addr}): {chan_e}")
-        return None, None, None
-
-
 def handle_client(client, addr, host_keys, is_web_app=True):
     login_id = None
     user_id = None
@@ -479,7 +307,7 @@ def handle_client(client, addr, host_keys, is_web_app=True):
         # serverクラスのインスタンスを作成、Webアプリ接続かどうかを判別
         for key in host_keys:
             transport.add_server_key(key)
-        server = Server(is_web_app_connection=is_web_app)
+        server = Server()
         try:
             transport.start_server(server=server)
         except paramiko.SSHException as e:
@@ -495,72 +323,51 @@ def handle_client(client, addr, host_keys, is_web_app=True):
             logging.error(f'*** チャンネルを取得できませんでした。({addr})')
             return
 
-        if is_web_app:
-            # webアプリの場合paramiko認証が成功してればOK
-            # Server.check_auth_password で設定に書かれたID/PASSWORDのSSH認証が行われている前提
+        # 通常接続の場合(鍵認証 or パスワード認証)
+        if transport.is_authenticated():
+            login_id = transport.get_username()
+            logging.info(f"SSH接続認証成功。 ユーザ名: {login_id} ({addr})")
             db_name_from_config = util.app_config.get(
                 'paths', {}).get('db_name')
-            max_attempts_from_config = util.app_config.get(
-                # これはserverセクションでOK
-                'server', {}).get('MAX_PASSWORD_ATTEMPTS', 3)
             if not db_name_from_config:
-                logging.error("DB名が設定されていません(webapp)")
+                logging.error("DB名が設定されていません")
                 return
-            if transport.is_authenticated():
-                # SSH認証は成功。次にBBSアプリケーションレベルの認証を行う。
-                logging.info(f"WEBアプリからのSSH接続認証成功。BBS認証に進みます。 ({addr})")
-                login_id, user_id, userdata = authenticate_user(
-                    chan, addr, db_name_from_config, max_attempts_from_config)
+
+            # 動的ゲストIDに対応するための修正
+            id_to_lookup = login_id
+            if login_id.upper().startswith('GUEST('):
+                id_to_lookup = 'GUEST'
+                logging.info(
+                    f"動的ゲストID '{login_id}' を検出。DB検索用に 'GUEST' を使用します。")
+
+            # SSHユーザ名でDBからユーザ情報を取得
+            results = sqlite_tools.fetchall_idbase(
+                db_name_from_config, 'users', 'name', id_to_lookup)
+            if results:
+                userdata = results[0]
+                user_id = userdata['id']
+                user_level_val = userdata.get('level', 0)
+                initial_user_menu_mode = userdata.get('menu_mode', '1')
+
+                if user_level_val == 0:
+                    logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
+                    if chan.active:
+                        util.send_text_by_key(
+                            chan, "auth.account_disabled", initial_user_menu_mode)
+                    return
+                logging.info(
+                    f"SSH認証ユーザー情報取得成功: {login_id},UserID:{user_id},Level:{user_level_val}")
             else:
-                logging.error(
-                    f"WEBアプリ接続でparamiko認証に失敗しました。(is_authenticated is False ({addr})")
+                logging.warning(
+                    f"SSH鍵認証ユーザ '{login_id}'はDBに登録されていません ({addr})")
+                if chan.active:
+                    # ユーザー情報がないため、メニューモードはデフォルト値'1'を直接使用
+                    util.send_text_by_key(
+                        chan, "auth.account_disabled", "1")
                 return
         else:
-            # 通常接続の場合(鍵認証)
-            if transport.is_authenticated():
-                login_id = transport.get_username()
-                logging.info(f"SSH接続認証成功。 ユーザ名: {login_id} ({addr})")
-                db_name_from_config = util.app_config.get(
-                    'paths', {}).get('db_name')
-                if not db_name_from_config:
-                    logging.error("DB名が設定されていません")
-                    return
-
-                # 動的ゲストIDに対応するための修正
-                id_to_lookup = login_id
-                if login_id.upper().startswith('GUEST('):
-                    id_to_lookup = 'GUEST'
-                    logging.info(
-                        f"動的ゲストID '{login_id}' を検出。DB検索用に 'GUEST' を使用します。")
-
-                # SSHユーザ名でDBからユーザ情報を取得
-                results = sqlite_tools.fetchall_idbase(
-                    db_name_from_config, 'users', 'name', id_to_lookup)
-                if results:
-                    userdata = results[0]
-                    user_id = userdata['id']
-                    user_level_val = userdata.get('level', 0)
-                    initial_user_menu_mode = userdata.get('menu_mode', '1')
-
-                    if user_level_val == 0:
-                        logging.warning(f"認証失敗: レベル0のID '{login_id}' ({addr})")
-                        if chan.active:
-                            util.send_text_by_key(
-                                chan, "auth.account_disabled", initial_user_menu_mode)
-                        return
-                    logging.info(
-                        f"SSH認証ユーザー情報取得成功: {login_id},UserID:{user_id},Level:{user_level_val}")
-                else:
-                    logging.warning(
-                        f"SSH鍵認証ユーザ '{login_id}'はDBに登録されていません ({addr})")
-                    if chan.active:
-                        # ユーザー情報がないため、メニューモードはデフォルト値'1'を直接使用
-                        util.send_text_by_key(
-                            chan, "auth.account_disabled", "1")
-                    return
-            else:
-                logging.warning(f"通常接続でparamiko認証に失敗しました。 ({addr})")
-                return
+            logging.warning(f"通常接続でparamiko認証に失敗しました。 ({addr})")
+            return
 
         # 認証失敗
         if login_id is None:
@@ -622,15 +429,9 @@ def handle_client(client, addr, host_keys, is_web_app=True):
                         f"最終ログイン時刻の変換に失敗しました。 {last_login_time}")
                     last_login_str = "不明な日時"
 
-            # 接続方法に応じたログイン後メッセージを表示
-            if is_web_app:
-                # WebApp経由の場合 (対話認証後)
-                util.send_text_by_key(
-                    chan, "login.login_message_webapp", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
-            else:
-                # 通常のSSH接続の場合 (公開鍵認証など)
-                util.send_text_by_key(
-                    chan, "login.welcome_message_ssh", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
+            # 通常のSSH接続の場合 (公開鍵認証など)
+            util.send_text_by_key(
+                chan, "login.welcome_message_ssh", initial_user_menu_mode, login_id=login_id, last_login_str=last_login_str)
 
             # サーバ設定読み込み
             pref_list = sqlite_tools.read_server_pref(db_name_from_config)
@@ -683,12 +484,8 @@ def handle_client(client, addr, host_keys, is_web_app=True):
             f"接続終了処理開始: {addr} (ログインID:{login_id}, 正常ログオフ:{normal_logoff})")
 
         # 接続数カウンタデクリメント
-        if is_web_app:
-            _decrement_connections(
-                current_webapp_clients_lock, 'current_webapp_clients', 'MAX_CONCURRENT_WEBAPP_CLIENTS', 'Webapp')
-        else:
-            _decrement_connections(
-                current_normal_ssh_clients_lock, 'current_normal_ssh_clients', 'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', '通常SSH')
+        _decrement_connections(
+            current_normal_ssh_clients_lock, 'current_normal_ssh_clients', 'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', '通常SSH')
 
         # 正常ログオフでない場合、かつログイン成功していた場合のみ後処理を試みる
         if logged_in and not normal_logoff and login_id:
@@ -785,7 +582,7 @@ def _decrement_connections(lock, counter_name, max_clients_key, client_type_str,
             log_level, f"{client_type_str}接続カウンタデクリメント: {new_count}/{max_clients}")
 
 
-def wait_for_connections(sock, host_keys, is_web_app_server):
+def wait_for_connections(sock, host_keys):
     """
     指定されたソケットでクライアントからの接続を待ち受け、新しい接続があるたびにhandle_clientを呼び出す。
     """
@@ -794,12 +591,8 @@ def wait_for_connections(sock, host_keys, is_web_app_server):
             client, addr = sock.accept()
 
             # 接続上限チェックとカウンタインクリメント
-            if is_web_app_server:
-                allowed = _check_and_increment_connections(
-                    current_webapp_clients_lock, 'current_webapp_clients', 'MAX_CONCURRENT_WEBAPP_CLIENTS', 'Webapp', addr, log_level=logging.DEBUG)
-            else:
-                allowed = _check_and_increment_connections(
-                    current_normal_ssh_clients_lock, 'current_normal_ssh_clients', 'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', '通常SSH', addr)
+            allowed = _check_and_increment_connections(
+                current_normal_ssh_clients_lock, 'current_normal_ssh_clients', 'MAX_CONCURRENT_NORMAL_SSH_CLIENTS', '通常SSH', addr)
 
             if not allowed:
                 client.close()
@@ -807,15 +600,15 @@ def wait_for_connections(sock, host_keys, is_web_app_server):
 
             # スレッド開始
             client_thread = threading.Thread(
-                target=handle_client, args=(client, addr, host_keys, is_web_app_server), daemon=True)
+                target=handle_client, args=(client, addr, host_keys), daemon=True)
             client_thread.start()
         except socket.timeout:
             logging.info(
-                f"接続待ち受け中にタイムアウトしました(is_web_app_server={is_web_app_server})。")
+                f"接続待ち受け中にタイムアウトしました。")
             continue
         except Exception as e:
             logging.error(
-                f"接続待ち受け中に予期せぬエラーが発生しました(is_web_app_server={is_web_app_server}): {e}", exc_info=True)
+                f"接続待ち受け中に予期せぬエラーが発生しました: {e}", exc_info=True)
             break
 
 
@@ -972,28 +765,6 @@ def main():
 
     listening_sockets = []  # 起動したソケット用リスト
     threads = []  # 起動したスレッド用リスト
-    # WEBアプリ用ソケット準備とスレッド作成
-    if webapp_bind_port_from_config is not None:
-        try:
-            webapp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            webapp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            webapp_sock.bind(
-                (bind_host_from_config, int(webapp_bind_port_from_config)))
-            webapp_sock.listen(5)
-            logging.info(
-                f"WEBアプリ用SSHサーバが{bind_host_from_config}:{webapp_bind_port_from_config}で待機中...")
-            listening_sockets.append(webapp_sock)
-
-            web_app_thread = threading.Thread(
-                target=wait_for_connections, args=(webapp_sock, host_keys, True), daemon=True)
-            web_app_thread.start()
-            threads.append(web_app_thread)
-        except Exception as e:
-            logging.exception(
-                f"WEBアプリ用ポート{bind_host_from_config}:{webapp_bind_port_from_config}での起動に失敗: {e}")
-            # WEBアプリ用がコケたら通常用も起動しないで終了
-    else:
-        logging.info("WEBアプリのポートが設定されていないため、通常用SSHサーバのみを起動します。")
 
     # 通常接続用ソケットの準備とスレッド起動
     if normal_bind_port_from_config is not None:
@@ -1019,7 +790,7 @@ def main():
                         listening_sockets.append(normal_sock_instance)
 
                         normal_thread = threading.Thread(
-                            target=wait_for_connections, args=(normal_sock_instance, host_keys, False), daemon=True)
+                            target=wait_for_connections, args=(normal_sock_instance, host_keys), daemon=True)
                         normal_thread.start()
                         threads.append(normal_thread)
                     except Exception as e:

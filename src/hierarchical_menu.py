@@ -1,9 +1,7 @@
 import logging
 import yaml
 
-import util
-import ssh_input
-import sqlite_tools
+from . import util, ssh_input, sqlite_tools
 
 
 class HierarchicalMenu:

@@ -1,15 +1,11 @@
 # bbs_handler.py (骨格)
 import logging
-import sqlite_tools  # データベース操作用
-import util  # 共通関数 (設定読み込み、テキスト表示など)
-import ssh_input  # ユーザー入力処理
 import socket
 import textwrap
 import datetime
 import json
 
-import hierarchical_menu
-import bbs_manager
+from . import sqlite_tools, util, ssh_input, hierarchical_menu, bbs_manager
 
 # CommandHandler: ユーザー入力に応じたコマンド処理
 
