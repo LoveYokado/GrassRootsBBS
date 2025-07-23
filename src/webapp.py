@@ -1,24 +1,28 @@
-# /home/yuki/python/GrassRootsBBS/src/webapp.py
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado) <hogehoge@gmail.com>
+# SPDX-License-Identifier: MIT
+# # /home/yuki/python/GrassRootsBBS/src/webapp.py
 
 # Gunicorn + gevent で WebSocket を動作させるために必須
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
-from . import bbs_manager, command_dispatcher, ssh_input, sqlite_tools, util
-from flask_socketio import SocketIO, emit, disconnect
-from flask_session import Session
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
-from functools import wraps
-import time
-import threading
-import sys
-import socket
-import secrets
-import os
-import logging
-import datetime
 import collections
+import datetime
+import logging
+import os
+import secrets
+import socket
+import redis
+import sys
+import threading
+import time
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
+from flask_session import Session
+from flask_socketio import SocketIO, emit, disconnect
+from . import bbs_manager, command_dispatcher, sqlite_tools, util
 from gevent import monkey
 monkey.patch_all()
+
 
 # --- 標準ライブラリ ---
 
@@ -39,7 +43,7 @@ app = Flask(__name__, template_folder=os.path.join(
 # セッション管理のために、ランダムな秘密鍵を設定します
 app.secret_key = secrets.token_hex(16)
 # WebSocketのためのSocketIOラッパー
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='gevent')
 
 # --- 初期設定 ---
 # 既存の設定ファイルを読み込みます
@@ -53,10 +57,41 @@ try:
     if not os.path.exists(LOG_DIR):
         os.makedirs(LOG_DIR)
 
-    app.config['SESSION_TYPE'] = 'filesystem'  # ファイルシステムに保存
+    # --- データベース初期化チェック ---
+    if not os.path.isfile(DB_NAME):
+        logging.info(f"データベースファイル '{DB_NAME}' が見つかりません。初期化を実行します。")
+        # 環境変数からシスオペ情報を取得
+        sysop_id_from_env = os.getenv('GRASSROOTSBBS_SYSOP_ID')
+        sysop_password_from_env = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
+        sysop_email_from_env = os.getenv('GRASSROOTSBBS_SYSOP_EMAIL')
+
+        if not (sysop_id_from_env and sysop_password_from_env and sysop_email_from_env):
+            logging.critical(
+                "初回起動には環境変数 GRASSROOTSBBS_SYSOP_ID, GRASSROOTSBBS_SYSOP_PASSWORD, GRASSROOTSBBS_SYSOP_EMAIL が必要です。")
+            # Webアプリの場合、ここで終了するとコンテナが再起動ループに陥る可能性があるためエラーログに留める
+        else:
+            try:
+                util.make_sysop_and_database(
+                    DB_NAME, sysop_id_from_env, sysop_password_from_env, sysop_email_from_env)
+                logging.info(f"データベースとシスオペ '{sysop_id_from_env}' の初期化が完了しました。")
+            except Exception as e:
+                logging.exception(
+                    f"データベースの初期化中にエラーが発生しました: {e}")
+
+    # --- セッション設定 ---
+    redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+    app.config['SESSION_TYPE'] = 'redis'
+    app.config['SESSION_REDIS'] = redis.from_url(redis_url)
     app.config['SESSION_PERMANENT'] = True  # ブラウザを閉じてもセッションを保持
     app.config['SESSION_USE_SIGNER'] = True  # セッションデータの改ざん防止
     app.config['SESSION_KEY_PREFIX'] = 'grbbs_'
+
+    # セキュリティ設定をFlaskのコンフィグに読み込む
+    security_config = util.app_config.get('security', {})
+    app.config['MAX_LOGIN_ATTEMPTS'] = security_config.get(
+        'MAX_PASSWORD_ATTEMPTS', 3)
+    app.config['LOCKOUT_TIME'] = security_config.get(
+        'LOCKOUT_TIME_SECONDS', 300)
 
     sess = Session()
 except Exception as e:
@@ -179,6 +214,82 @@ class WebTerminalHandler:
                 self.active = False
                 self.handler.input_event.set()  # Waiting recv() should be unblocked
 
+            def process_input(self):
+                """
+                クライアントから1行入力を受け取り、文字列として返す。
+                エコーバックとバックスペース処理も行う。ssh_input.process_inputの代替。
+                """
+                line_buffer = []
+                try:
+                    while self.active:
+                        char_byte = self.recv(1)
+                        if not char_byte:  # 接続が切れた場合
+                            return None
+
+                        char_code = ord(char_byte)
+
+                        # Enterキー (CR or LF)
+                        if char_code in (10, 13):
+                            self.send(b'\r\n')
+                            break
+
+                        # Backspace (BS or DEL)
+                        elif char_code in (8, 127):
+                            if line_buffer:
+                                line_buffer.pop()
+                                # カーソルを1つ戻し、空白で上書きし、さらにカーソルを戻す
+                                self.send(b'\x08 \x08')
+
+                        # 通常の文字 (表示可能文字)
+                        elif 32 <= char_code <= 126:
+                            line_buffer.append(
+                                char_byte.decode('utf-8', 'ignore'))
+                            self.send(char_byte)  # エコーバック
+
+                except socket.timeout:
+                    logging.warning(
+                        f"入力待機中にタイムアウトしました (SID: {self.handler.sid})")
+                    return ""  # タイムアウト時は空文字列を返す
+                except Exception as e:
+                    logging.error(
+                        f"process_inputでエラー (SID: {self.handler.sid}): {e}")
+                    return None
+
+                return "".join(line_buffer)
+
+            def hide_process_input(self):
+                """
+                クライアントから1行入力を受け取るが、エコーバックしない。
+                パスワード入力用。ssh_input.hide_process_inputの代替。
+                """
+                line_buffer = []
+                try:
+                    while self.active:
+                        char_byte = self.recv(1)
+                        if not char_byte:
+                            return None
+
+                        char_code = ord(char_byte)
+
+                        if char_code in (10, 13):
+                            self.send(b'\r\n')  # 改行だけはエコーバック
+                            break
+                        elif char_code in (8, 127):
+                            if line_buffer:
+                                line_buffer.pop()
+                        elif 32 <= char_code <= 126:
+                            line_buffer.append(
+                                char_byte.decode('utf-8', 'ignore'))
+                except socket.timeout:
+                    logging.warning(
+                        f"非表示入力待機中にタイムアウトしました (SID: {self.handler.sid})")
+                    return ""
+                except Exception as e:
+                    logging.error(
+                        f"hide_process_inputでエラー (SID: {self.handler.sid}): {e}")
+                    return None
+                return "".join(line_buffer)
+
         self.channel = WebChannel(self)
         socketio.start_background_task(self._sender_worker)
         socketio.start_background_task(self._bbs_main_loop)
@@ -267,7 +378,7 @@ class WebTerminalHandler:
                 util.send_text_by_key(
                     self.channel, "prompt.topmenu", context['menu_mode'], add_newline=False)
 
-                command = ssh_input.process_input(self.channel)
+                command = self.channel.process_input()
 
                 if command is None:  # 切断
                     self.main_thread_active = False
@@ -386,6 +497,8 @@ def login():
             session['user_id'] = user_auth_info['id']
             session['username'] = user_auth_info['name']
             session['userlevel'] = user_auth_info['level']
+            session['menu_mode'] = user_auth_info['menu_mode'] if 'menu_mode' in user_auth_info.keys(
+            ) else '2'
             logging.info(f"WebUI Login Success: {username}")
 
             # DBのログイン時刻を更新
@@ -456,7 +569,7 @@ def handle_connect(auth=None):
         'username': session.get('username'),
         'userlevel': session.get('userlevel'),
         'lastlogin': session.get('lastlogin', 0),
-        'menu_mode': '2'  # WebUIのメニューモードは '2' に固定
+        'menu_mode': session.get('menu_mode', '2')
     }
     handler = WebTerminalHandler(sid, DB_NAME, user_session_data)
     client_states[sid] = handler

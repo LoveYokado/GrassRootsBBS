@@ -4,7 +4,7 @@ import logging
 import socket
 import textwrap
 
-from . import ssh_input, util, sqlite_tools
+from . import util, sqlite_tools
 
 
 def format_mail_header_str(mail_data, dbname, view_mode, mail_id_width=5):  # noqa
@@ -469,7 +469,7 @@ def mail(chan, dbname, login_id, menu_mode):
         # 選択してください([W]送信 [R]受信 [L]一覧形式受信)
         util.send_text_by_key(
             chan, "mail_handler.main_prompt", menu_mode, add_newline=False)
-        choice_input = ssh_input.process_input(chan)
+        choice_input = chan.process_input()
         if choice_input is None:
             return None  # 切断
         choice = choice_input.lower().strip()
@@ -525,7 +525,7 @@ def mail(chan, dbname, login_id, menu_mode):
                 # 読み込み選択(y/n)
                 util.send_text_by_key(
                     chan, "mail_handler.confirm_read_body_yn", menu_mode, add_newline=False)
-                read_choice_input = ssh_input.process_input(chan)
+                read_choice_input = chan.process_input()
                 if read_choice_input is None:
                     return "back_to_top"
                 read_choice = read_choice_input.strip().lower()
@@ -543,7 +543,7 @@ def mail(chan, dbname, login_id, menu_mode):
                     # 削除確認(y/n)
                     util.send_text_by_key(
                         chan, "mail_handler.confirm_delete_after_read_yn", menu_mode, add_newline=False)
-                    delete_choice_input = ssh_input.process_input(chan)
+                    delete_choice_input = chan.process_input()
                     if delete_choice_input is None:
                         return "back_to_top"
                     delete_choice = delete_choice_input.strip().lower()
@@ -629,7 +629,7 @@ def _get_recipients(chan, dbname, menu_mode):
         util.send_text_by_key(
             chan, "mail_handler.enter_recipient", menu_mode, add_newline=False
         )
-        recipient_name_input = ssh_input.process_input(chan)
+        recipient_name_input = chan.process_input()
         if recipient_name_input is None:
             return None  # 切断
 
@@ -657,7 +657,7 @@ def _get_recipients(chan, dbname, menu_mode):
         util.send_text_by_key(
             chan, "mail_handler.recipient_yn", menu_mode, add_newline=False
         )
-        ans = ssh_input.process_input(chan)
+        ans = chan.process_input()
         if ans is None:
             return None
 
@@ -667,7 +667,7 @@ def _get_recipients(chan, dbname, menu_mode):
             util.send_text_by_key(
                 chan, "mail_handler.send_another_yn", menu_mode, add_newline=False
             )
-            add_more_ans = ssh_input.process_input(chan)
+            add_more_ans = chan.process_input()
             if add_more_ans is None:
                 return None
 
@@ -684,7 +684,7 @@ def _get_subject(chan, menu_mode):
     util.send_text_by_key(
         chan, "mail_handler.enter_subject", menu_mode, max_len=mail_subject_max_len, add_newline=False
     )
-    subject = ssh_input.process_input(chan)
+    subject = chan.process_input()
     if subject is None:
         return None
     subject = subject.strip() or "(No subject)"
@@ -703,7 +703,7 @@ def _get_body(chan, menu_mode):
         chan, "mail_handler.enter_body", menu_mode, max_len=mail_body_max_len)
     message_lines = []
     while True:
-        line = ssh_input.process_input(chan)
+        line = chan.process_input()
         if line is None:
             return None
         if line == '^':
@@ -756,7 +756,7 @@ def _confirm_and_send(chan, dbname, login_id, menu_mode, recipient_info_list, su
 
     util.send_text_by_key(
         chan, "mail_handler.confirm_send_yn", menu_mode, add_newline=False)
-    confirm_input_raw = ssh_input.process_input(chan)
+    confirm_input_raw = chan.process_input()
     if confirm_input_raw is None:
         logging.warning(f"メール送信確認中に切断されました({login_id})")
         return

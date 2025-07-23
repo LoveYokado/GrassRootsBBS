@@ -2,27 +2,25 @@ services:
   grassrootsbbs:
     build: .
     ports:
-      - "50000:50000" # WebApp SSH ポート (config.toml の WEBAPP_BIND_PORT)
-      - "50001:50001" # 通常SSHポート (config.toml の NORMAL_BIND_PORT_START)
-      # config.toml の NORMAL_SSH_PORT_COUNT が2以上の場合、必要に応じてポートを追加してください
-      # 例: NORMAL_SSH_PORT_COUNT=2 なら - "50002:50002" も追加
+      - "5000:5000" # WebApp (ホストの5000番ポートをコンテナの5000番ポートにマッピング)
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      - ./.sshkey:/app/.sshkey
+      # .sshkey ボリュームは不要になったため削除
+    environment:
+      # コンテナ内からRedisサービスに接続するためのURL
+      - REDIS_URL=redis://redis:6379/0
     env_file:
       - .env # .env 必ず先に管理者IDとパスワードを設定してください。
+    depends_on:
+      - redis # grassrootsbbs の前に redis を起動
     restart: unless-stopped
 
-  sshwifty:
-    image: niruix/sshwifty:latest
-    ports:
-      - "8182:8182" # SshwiftyのWeb UIポート
-    user: "${UID}:${GID}"
-    volumes:
-      - ./sshwifty.conf.json:/app/sshwifty.conf.json:ro # 設定ファイルを読み取り専用でマウント
-    depends_on:
-      - grassrootsbbs # grassrootsbbsが起動してからsshwiftyを起動する
-    environment:
-      - SSHWIFTY_CONFIG=/app/sshwifty.conf.json # Sshwiftyに設定ファイルの場所を明示的に伝える
+  redis:
+    image: "redis:alpine"
     restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

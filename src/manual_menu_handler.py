@@ -1,7 +1,7 @@
 import yaml
 import logging
 
-from . import ssh_input, util
+from . import util
 
 
 def _load_manual_menu_config(config_path: str):
@@ -95,7 +95,7 @@ def process_manual_menu(chan, dbname: str, login_id: str, menu_mode: str, menu_c
         util.prompt_handler(chan, dbname, login_id, menu_mode)
         util.send_text_by_key(chan, prompt_key,
                               menu_mode, add_newline=False)
-        user_input_raw = ssh_input.process_input(chan)
+        user_input_raw = chan.process_input()
 
         if user_input_raw is None:
             return None  # 切断

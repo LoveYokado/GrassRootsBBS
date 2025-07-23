@@ -3,7 +3,7 @@ import random
 import time
 import logging
 
-from . import ssh_input, util
+from . import util
 
 # 定数
 ROWS = 6
@@ -224,7 +224,7 @@ def run_game_vs_ai(chan, menu_mode):
     while True:
         util.send_text_by_key(
             chan, "hamlet_game.prompt_first_move", menu_mode, add_newline=False)
-        first_choice_input = ssh_input.process_input(chan)
+        first_choice_input = chan.process_input()
         if first_choice_input is None:
             return  # 切断
         first_choice = first_choice_input.strip().upper()
@@ -253,7 +253,7 @@ def run_game_vs_ai(chan, menu_mode):
             while True:  # Loop for getting valid input
                 util.send_text_by_key(chan, "hamlet_game.prompt_your_turn",
                                       menu_mode, symbol=player_prompt_symbol, add_newline=False)
-                input_str = ssh_input.process_input(chan)
+                input_str = chan.process_input()
                 if input_str is None:
                     return  # 切断
 
@@ -262,7 +262,7 @@ def run_game_vs_ai(chan, menu_mode):
                 if choice == 'a':
                     util.send_text_by_key(
                         chan, "hamlet_game.abort_prompt", menu_mode, add_newline=False)
-                    confirm_abort = ssh_input.process_input(chan)
+                    confirm_abort = chan.process_input()
                     if confirm_abort and confirm_abort.strip().lower() == 'y':
                         util.send_text_by_key(
                             chan, "hamlet_game.game_aborted", menu_mode)

@@ -3,19 +3,9 @@ import textwrap
 import logging
 import datetime
 
-from . import ssh_input, util, sqlite_tools
+from . import util, sqlite_tools
 from . import bbs_handler
 from . import bbs_manager
-
-
-def bbs_menu(chan):
-    """BBSメニュー"""
-    rtinput = ''
-    while rtinput != 'e':
-        rtinput = ssh_input.realtime_input(chan)
-        chan.send(rtinput)
-
-    return
 
 
 def who_menu(chan, dbname, online_members_dict, current_menu_mode):
@@ -60,7 +50,7 @@ def handle_online_signup(chan, dbname, menu_mode):
     while True:
         util.send_text_by_key(chan, "online_signup.prompt_id",
                               menu_mode, add_newline=False)
-        id_input = ssh_input.process_input(chan)
+        id_input = chan.process_input()
         if id_input is None:
             return  # 切断
         new_id = id_input.strip().upper()
@@ -88,7 +78,7 @@ def handle_online_signup(chan, dbname, menu_mode):
     while True:
         util.send_text_by_key(chan, "online_signup.prompt_email",
                               menu_mode, add_newline=False)
-        email_input = ssh_input.process_input(chan)
+        email_input = chan.process_input()
         if email_input is None:
             return  # 切断
         new_email = email_input.strip()
@@ -105,13 +95,13 @@ def handle_online_signup(chan, dbname, menu_mode):
 
     util.send_text_by_key(
         chan, "online_signup.prompt_message", menu_mode, add_newline=False)
-    message_to_sysop = ssh_input.process_input(chan)
+    message_to_sysop = chan.process_input()
     if message_to_sysop is None:
         return  # 切断
 
     util.send_text_by_key(chan, "online_signup.confirm_registration_yn",
                           menu_mode, new_id=new_id, new_email=new_email, add_newline=False)
-    confirm = ssh_input.process_input(chan)
+    confirm = chan.process_input()
     if confirm is None or confirm.strip().lower() != "y":
         util.send_text_by_key(chan, "online_signup.cancelled", menu_mode)
         return
@@ -128,8 +118,8 @@ def handle_online_signup(chan, dbname, menu_mode):
     comment = "Online Signup User"  # 仮コメ
 
     # ユーザレベル1、パス認証のみ、メニューモードは2
-    if sqlite_tools.register_user(dbname, new_id, hashed_password, salt_hex,
-                                  comment, level=1, auth_method='password_only', menu_mode='2', telegram_restriction=0):
+    if sqlite_tools.register_user(dbname, new_id, hashed_password, salt_hex, comment, level=1, menu_mode='2',
+                                  telegram_restriction=0):
         util.send_text_by_key(
             chan, "online_signup.info_temp_password", menu_mode, temp_password=temp_password)
         util.send_text_by_key(
@@ -156,16 +146,6 @@ def handle_online_signup(chan, dbname, menu_mode):
         else:
             logging.warning(
                 "シスオペが見つからないため、オンラインサインアップ通知メールを送信できませんでした。")
-
-        # 一応SSH鍵生成
-        try:
-            private_key_pem = util.generate_and_regenerate_ssh_key(new_id)
-            if private_key_pem:
-                logging.info(f"オンラインサインアップユーザ '{new_id}' にSSH鍵を生成しました。")
-            else:
-                logging.error(f"オンラインサインアップユーザ '{new_id}' のSSH鍵の生成に失敗しました。")
-        except Exception as e_key:
-            logging.error(f"オンラインサインアップユーザ '{new_id}' のSSH鍵生成時エラー: {e_key}")
 
     else:
         util.send_text_by_key(

@@ -22,13 +22,80 @@
         }
 
         .monitor-chassis {
-            background: #f7f2c7;
-            /* クリーム色 */
-            border: 2px solid #555;
+            /* 立体感を出すためのグラデーション背景 */
+            background: linear-gradient(145deg, #f0e8c0, #d3cba0);
+            /* 枠線の立体感 */
+            border-top: 2px solid #fdf5d5;
+            border-left: 2px solid #fdf5d5;
+            border-bottom: 2px solid #b0a888;
+            border-right: 2px solid #b0a888;
             border-radius: 15px;
             padding: 25px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            /* 複数の影を重ねて立体感を強調 */
+            box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), inset 3px 3px 5px rgba(255, 255, 255, 0.6), inset -3px -3px 5px rgba(0, 0, 0, 0.2);
             position: relative;
+        }
+
+        /* --- ハンバーガーメニュー --- */
+        #hamburger-btn {
+            display: none;
+            /* デフォルトでは非表示 */
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #dbd4a3;
+            z-index: 10;
+        }
+
+        .sidenav {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1002;
+            top: 0;
+            left: 0;
+            background-color: rgba(30, 30, 30, 0.95);
+            overflow-x: hidden;
+            transition: 0.3s;
+            padding-top: 60px;
+        }
+
+        .sidenav a {
+            padding: 10px 15px 10px 32px;
+            text-decoration: none;
+            font-size: 18px;
+            color: #f1f1f1;
+            display: block;
+            transition: 0.2s;
+        }
+
+        .sidenav a:hover {
+            color: #c0c0c0;
+        }
+
+        .sidenav .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+        }
+
+
+        .monitor-chassis.bezel-off {
+            background: none;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        /* ベゼルオフのときはフッターロゴも非表示にする */
+        .monitor-chassis.bezel-off .monitor-footer {
+            display: none;
         }
 
         .monitor-footer {
@@ -37,21 +104,49 @@
             /* 画面とロゴの間隔 */
             font-size: 1.2em;
             font-weight: bold;
-            /* 背景色より少し暗い色で文字を描画 */
-            color: #dbd4a3;
-            /* 明るいシャドウで凹んだような効果を出す */
-            text-shadow: 1px 1px 1px #fff;
+            /* 筐体の色に合わせた文字色 */
+            color: #706b58;
+            /* 彫り込まれたような文字の効果 */
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
         }
 
         .monitor-screen {
             background-color: #000;
             padding: 10px;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
-            border: 1px solid #444;
+            /* 画面が奥にあるように見せるための影と境界線 */
+            box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.9);
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            /* top, right, bottom, left */
+            border-radius: 8px;
+            /* ブラウン管の丸みを少し強く */
             display: flex;
+            position: relative;
+            /* 擬似要素の基準点 */
+            overflow: hidden;
+            /* はみ出した擬似要素を隠す */
             flex-direction: column;
             height: 100%;
             /* 必要に応じて高さを調整 */
+        }
+
+        /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
+        #terminal.blur-effect {
+            /* このクラスはJSでfilterを適用するために使用します */
+        }
+
+        /* 走査線エフェクト */
+        .monitor-screen.scanline-effect::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 2px);
+            pointer-events: none;
         }
 
         #terminal {
@@ -113,10 +208,15 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: #e0e0e0;
+            /* 筐体のスタイルを適用 */
+            background: linear-gradient(145deg, #f0e8c0, #d3cba0);
+            border-top: 2px solid #fdf5d5;
+            border-left: 2px solid #fdf5d5;
+            border-bottom: 2px solid #b0a888;
+            border-right: 2px solid #b0a888;
+            border-radius: 15px;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), inset 3px 3px 5px rgba(255, 255, 255, 0.6), inset -3px -3px 5px rgba(0, 0, 0, 0.2);
             z-index: 1001;
             min-width: 300px;
         }
@@ -136,27 +236,37 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #ccc;
+            /* 筐体の影の色に合わせる */
+            border-bottom: 1px solid #b0a888;
             padding-bottom: 10px;
             margin-bottom: 15px;
+            cursor: grab;
+            /* ドラッグ可能なことを示すカーソル */
+            user-select: none;
+            /* ドラッグ中のテキスト選択を無効化 */
         }
 
         .popup-header h2 {
             margin: 0;
-            color: #333;
+            /* 彫り込み文字風 */
+            color: #706b58;
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
         }
 
         .popup-close-btn {
             background: none;
             border: none;
             font-size: 1.5rem;
+            color: #706b58;
             cursor: pointer;
         }
 
         .popup-content h3 {
             margin-top: 0;
             margin-bottom: 10px;
-            color: #444;
+            /* 彫り込み文字風 */
+            color: #706b58;
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
         }
 
         .popup-content div {
@@ -164,11 +274,14 @@
         }
 
         .popup-content button {
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            border-bottom: 2px solid #aaa;
+            /* 筐体の色に合わせたボタン */
+            background: linear-gradient(145deg, #e0d8b8, #c8c098);
+            border: 1px solid #b0a888;
+            border-top-color: #fdf5d5;
+            border-left-color: #fdf5d5;
             padding: 8px 12px;
             margin: 2px;
+            color: #504b38;
             cursor: pointer;
             border-radius: 3px;
         }
@@ -178,17 +291,26 @@
         }
 
         .popup-content button:active {
-            border-bottom-width: 1px;
+            background: linear-gradient(145deg, #c8c098, #e0d8b8);
             transform: translateY(1px);
+        }
+
+        .popup-content button.active {
+            background: #b0a888;
+            box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .popup-window input[type="text"] {
             width: 95%;
             padding: 8px;
             margin-bottom: 15px;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            color: #333;
+            /* ターミナル風の入力欄 */
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
             font-family: '"M+ 1m", "Courier New", monospace';
         }
 
@@ -196,9 +318,13 @@
             height: 250px;
             padding: 8px;
             margin-bottom: 15px;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            color: #333;
+            /* ターミナル風の入力欄 */
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
             font-family: '"M+ 1m", "Courier New", monospace';
             resize: vertical;
         }
@@ -213,9 +339,10 @@
         }
 
         .ansi-btn {
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            border-bottom: 2px solid #aaa;
+            background: linear-gradient(145deg, #e0d8b8, #c8c098);
+            border: 1px solid #b0a888;
+            border-top-color: #fdf5d5;
+            border-left-color: #fdf5d5;
             padding: 2px 8px;
             margin: 2px;
             cursor: pointer;
@@ -223,6 +350,7 @@
             font-size: 0.9em;
             font-family: sans-serif;
             /* ボタンのフォントは読みやすく */
+            /* 文字色はJSで動的に設定されるため、ここでは指定しない */
         }
 
         /* xterm.jsの点滅(blink)を有効にするためのCSSアニメーション */
@@ -239,6 +367,32 @@
 
         #terminal {
             /* サイズはxterm.jsが管理するため、CSSでの指定は不要 */
+        }
+
+        /* Xterm.jsが内部で生成するスクロールバーを非表示にする */
+        .xterm-viewport {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        /* --- レスポンシブ対応 --- */
+        @media screen and (max-width: 768px) {
+            #function-keys-container {
+                display: none;
+                /* 狭い画面ではファンクションキーを非表示 */
+            }
+
+            #hamburger-btn {
+                display: block;
+                /* 狭い画面ではハンバーガーメニューを表示 */
+            }
+        }
+
+        .xterm-viewport::-webkit-scrollbar {
+            display: none;
+            /* Safari and Chrome */
         }
     </style>
 </head>
@@ -257,6 +411,10 @@
         </div>
     </div>
 
+    <!-- ハンバーガーメニュー本体 -->
+    <div id="sidenav" class="sidenav">
+        <!-- メニュー項目はJSで動的に生成されます -->
+    </div>
     <!-- １行エディタ用ポップアップ -->
     <div id="line-editor-overlay" class="popup-overlay"></div>
     <div id="line-editor-window" class="popup-window">
@@ -335,11 +493,22 @@
                 <button data-speed="2400">2400bps</button>
                 <button data-speed="300">300bps</button>
             </div>
-
+            <div id="effect-selector">
+                <h3>画面効果</h3>
+                <button class="effect-btn" data-effect="bezel">ベゼル (Bezel)</button>
+                <button class="effect-btn" data-effect="blur">にじみ (Glow)</button>
+                <button class="effect-btn" data-effect="scanline">走査線 (Scanline)</button>
+            </div>
         </div>
     </div>
+    <button id="hamburger-btn">&#9776;</button>
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <!-- にじみ効果の強さを動的に変更するためのスタイルシート -->
+    <style id="dynamic-glow-style">
+        #terminal.blur-effect {}
+    </style>
 
     <script>
         const themes = {
@@ -349,6 +518,7 @@
                 cursor: '#FFFFFF',
                 fkey_bg: '#FFFFFF',
                 fkey_fg: '#000000',
+                filter_glow: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.3))',
                 // パソコン通信時代を彷彿とさせる、より鮮やかなANSIカラーパレット
                 black: '#000000',      // 標準の黒はそのまま
                 red: '#FF0000',      // 鮮やかな赤
@@ -373,6 +543,7 @@
                 cursor: '#00FF00',
                 fkey_bg: '#00FF00',
                 fkey_fg: '#000000',
+                filter_glow: 'drop-shadow(0 0 1px rgba(180, 255, 180, 0.4)) drop-shadow(0 0 3px rgba(100, 255, 100, 0.3))',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#00FF00',
                 red: '#00FF00',
@@ -397,6 +568,7 @@
                 cursor: '#FFB000',
                 fkey_bg: '#FFB000',
                 fkey_fg: '#1a1000',
+                filter_glow: 'drop-shadow(0 0 1px rgba(255, 176, 0, 0.4)) drop-shadow(0 0 3px rgba(255, 176, 0, 0.3))',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#FFB000',
                 red: '#FFB000',
@@ -417,10 +589,17 @@
             }
         };
 
+        // にじみ効果のスタイルを動的に更新する
+        const dynamicGlowStyle = document.getElementById('dynamic-glow-style');
+
         function applyTheme(themeName) {
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
 
+            // 動的スタイルシートを更新して、テーマに合わせたにじみ効果を適用
+            if (dynamicGlowStyle) {
+                dynamicGlowStyle.innerHTML = `#terminal.blur-effect { filter: ${theme.filter_glow || 'none'}; }`;
+            }
             // ファンクションキーのスタイルを更新
             const fkeys = document.querySelectorAll('.f-key');
             fkeys.forEach(key => {
@@ -437,18 +616,120 @@
                 }
             });
             localStorage.setItem('terminalTheme', themeName); // 選択を保存
+            updateThemeButtons(themeName);
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        const BASE_FONT_SIZE = 16;
+        const MIN_FONT_SIZE = 6; // 読みやすさを保つための最小フォントサイズ
+
+        function autoResizeFont() {
+            const chassis = document.querySelector('.monitor-chassis');
+            const availableWidth = window.innerWidth;
+
+            // 基準となるフォントサイズで一度設定して、その時の幅を計測
+            term.options.fontSize = BASE_FONT_SIZE;
+
+            // DOMの更新を待ってから幅を計測するために少し遅延させる
+            setTimeout(() => {
+                const baseWidth = chassis.offsetWidth;
+                if (baseWidth > availableWidth) {
+                    const scale = (availableWidth * 0.98) / baseWidth; // 2%のマージン
+                    const newFontSize = Math.floor(BASE_FONT_SIZE * scale);
+                    term.options.fontSize = Math.max(newFontSize, MIN_FONT_SIZE);
+                }
+            }, 50);
         }
 
         function applyFont(fontName) {
-            const fontFamily = `"${fontName}", "Courier New", monospace`;
+            const fontFamily = `"${fontName}", "Courier New", monospace`; // フォント名を引用符で囲む
             term.options.fontFamily = fontFamily;
             localStorage.setItem('terminalFont', fontFamily); // 選択を保存
+            updateFontButtons(fontName);
         }
 
         function applySpeed(speedName) {
             // サーバに速度設定を通知
             socket.emit('set_speed', speedName);
             localStorage.setItem('terminalSpeed', speedName); // 選択を保存
+            updateSpeedButtons(speedName);
+        }
+
+        // --- 画面効果の管理 ---
+        const effectStates = {
+            bezel: true,
+            blur: false,
+            scanline: false
+        };
+
+        function applyEffect(effectName, isActive) {
+            const monitorChassis = document.querySelector('.monitor-chassis');
+            const monitorScreen = document.querySelector('.monitor-screen');
+            const terminalElement = document.getElementById('terminal');
+
+            switch (effectName) {
+                case 'bezel':
+                    monitorChassis.classList.toggle('bezel-off', !isActive);
+                    // ベゼルの表示/非表示で全体の幅が変わるため、フォントサイズを再調整
+                    autoResizeFont();
+                    break;
+                case 'blur':
+                    terminalElement.classList.toggle('blur-effect', isActive);
+                    break;
+                case 'scanline':
+                    monitorScreen.classList.toggle('scanline-effect', isActive);
+                    break;
+            }
+        }
+
+        function toggleEffect(effectName) {
+            // 状態を反転
+            effectStates[effectName] = !effectStates[effectName];
+            // 画面に適用
+            applyEffect(effectName, effectStates[effectName]);
+            // localStorageに保存
+            localStorage.setItem('effectStates', JSON.stringify(effectStates));
+            // ボタンの見た目を更新
+            updateEffectButtons();
+        }
+
+        function updateEffectButtons() {
+            document.querySelectorAll('.effect-btn').forEach(button => {
+                const effectName = button.dataset.effect;
+                if (effectStates[effectName]) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+
+        function updateThemeButtons(themeName) {
+            document.querySelectorAll('#theme-selector button').forEach(btn => btn.classList.remove('active'));
+            const activeButton = document.querySelector(`#theme-selector button[data-theme="${themeName}"]`);
+            if (activeButton) activeButton.classList.add('active');
+        }
+
+        function updateFontButtons(fontName) {
+            document.querySelectorAll('#font-selector button').forEach(btn => btn.classList.remove('active'));
+            const activeButton = document.querySelector(`#font-selector button[data-font="${fontName}"]`);
+            if (activeButton) activeButton.classList.add('active');
+        }
+
+        function updateSpeedButtons(speedName) {
+            document.querySelectorAll('#speed-selector button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`#speed-selector button[data-speed="${speedName}"]`).classList.add('active');
         }
 
         const term = new Terminal({
@@ -456,6 +737,7 @@
             rows: 25, // 高さを25行に戻す
             cursorBlink: true,
             fontSize: 16, // 固定サイズなので少し見やすく
+            scrollback: 0, // スクロールバックバッファを行数と同じにし、スクロールバーを非表示にする
         });
 
         term.open(document.getElementById('terminal'));
@@ -663,35 +945,29 @@
         multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
 
 
-        // 初期テーマの適用
-        const savedTheme = localStorage.getItem('terminalTheme') || 'default';
-
-        // 初期フォントの適用
-        const savedFont = localStorage.getItem('terminalFont') || '"M+ 1m", "Courier New", monospace';
-
-        // 初期速度の適用
-        const savedSpeed = localStorage.getItem('terminalSpeed') || 'full';
-
         // ボタンにイベントリスナーを設定
         document.getElementById('theme-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
-                applyTheme(e.target.dataset.theme);
-                closePopup(); // 設定を選んだら閉じる
+                applyTheme(e.target.dataset.theme); // ウィンドウは閉じない
             }
         });
 
         document.getElementById('font-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 const fontName = e.target.dataset.font;
-                applyFont(fontName);
-                closePopup(); // 設定を選んだら閉じる
+                applyFont(fontName); // ウィンドウは閉じない
             }
         });
 
         document.getElementById('speed-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
-                applySpeed(e.target.dataset.speed);
-                closePopup(); // 設定を選んだら閉じる
+                applySpeed(e.target.dataset.speed); // ウィンドウは閉じない
+            }
+        });
+
+        document.getElementById('effect-selector').addEventListener('click', (e) => {
+            if (e.target.classList.contains('effect-btn')) {
+                toggleEffect(e.target.dataset.effect);
             }
         });
 
@@ -739,11 +1015,126 @@
             socket.disconnect();
         });
 
+        function loadSettings() {
+            // テーマ
+            const savedTheme = localStorage.getItem('terminalTheme') || 'default';
+            applyTheme(savedTheme);
+
+            // フォント
+            const savedFont = localStorage.getItem('terminalFont') || '"M+ 1m", "Courier New", monospace';
+            applyFont(savedFont.split(',')[0].replace(/"/g, ''));
+
+            // 速度
+            const savedSpeed = localStorage.getItem('terminalSpeed') || 'full';
+            applySpeed(savedSpeed);
+
+            // 画面効果
+            const savedEffects = localStorage.getItem('effectStates');
+            if (savedEffects) {
+                Object.assign(effectStates, JSON.parse(savedEffects));
+            }
+            for (const effectName in effectStates) {
+                applyEffect(effectName, effectStates[effectName]);
+            }
+            updateEffectButtons();
+        }
+        // ページ読み込み時に一度フォントサイズを調整
+        autoResizeFont();
+
         socket.on('connect', () => {
             // 接続が確立したら、保存されている設定をサーバに送信
-            applyTheme(savedTheme);
-            applyFont(savedFont.split(',')[0].replace(/"/g, '')); // 保存されたフォント名を適用
-            applySpeed(savedSpeed);
+            loadSettings();
+        });
+
+
+        // --- ポップアップのドラッグ機能 ---
+        function makePopupDraggable(popup) {
+            const header = popup.querySelector('.popup-header');
+            if (!header) return;
+
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            header.addEventListener('mousedown', (e) => {
+                // クリックされたのがボタン(閉じるボタンなど)でない場合のみドラッグ開始
+                if (e.target.tagName.toLowerCase() === 'button') {
+                    return;
+                }
+                isDragging = true;
+                // ポップアップの左上隅からマウスポインタまでのオフセットを計算
+                offsetX = e.clientX - popup.offsetLeft;
+                offsetY = e.clientY - popup.offsetTop;
+                header.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                // マウスの位置からオフセットを引いて、ポップアップの新しい位置を計算
+                popup.style.left = `${e.clientX - offsetX}px`;
+                popup.style.top = `${e.clientY - offsetY}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    header.style.cursor = 'grab';
+                }
+            });
+        }
+        // すべてのポップアップをドラッグ可能にする
+        document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
+
+        // ページ読み込み時に設定を適用
+        loadSettings();
+
+        // ウィンドウリサイズ時にもフォントサイズを調整（デバウンス付き）
+        window.addEventListener('resize', debounce(autoResizeFont, 100));
+    </script>
+
+    <script>
+        // --- ハンバーガーメニューのロジック ---
+        function openNav() {
+            document.getElementById("sidenav").style.width = "250px";
+        }
+
+        function closeNav() {
+            document.getElementById("sidenav").style.width = "0";
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', openNav);
+            }
+
+            const sidenav = document.getElementById('sidenav');
+            const closeBtn = document.createElement('a');
+            closeBtn.href = 'javascript:void(0)';
+            closeBtn.className = 'closebtn';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.onclick = closeNav;
+            sidenav.appendChild(closeBtn);
+
+            // fkey_definitions を使ってサイドナビゲーションのメニュー項目を動的に生成
+            for (const fkeyId in fkeyDefinitions) {
+                const definition = fkeyDefinitions[fkeyId];
+                const link = document.createElement('a');
+                link.href = '#'; // ページ遷移を防ぐ
+                link.textContent = `${fkeyId.toUpperCase()}: ${definition.label}`;
+
+                link.addEventListener('click', (e) => {
+                    e.preventDefault(); // ページ遷移を防ぐ
+                    // ファンクションキーの定義に基づいてアクションを実行
+                    if (definition.action === 'open_popup') openPopup();
+                    else if (definition.action === 'toggle_logging') socket.emit('toggle_logging');
+                    else if (definition.action === 'open_line_editor') openLineEditor();
+                    else if (definition.action === 'open_multiline_editor') openMultilineEditor();
+                    else if (definition.action === 'redirect') window.location.href = definition.value;
+
+                    closeNav(); // メニュー項目をクリックしたらメニューを閉じる
+                });
+                sidenav.appendChild(link);
+            }
         });
     </script>
 </body>

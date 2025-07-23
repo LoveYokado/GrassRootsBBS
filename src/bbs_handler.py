@@ -5,7 +5,7 @@ import textwrap
 import datetime
 import json
 
-from . import sqlite_tools, util, ssh_input, hierarchical_menu, bbs_manager
+from . import sqlite_tools, util, hierarchical_menu, bbs_manager
 
 # CommandHandler: ユーザー入力に応じたコマンド処理
 
@@ -125,7 +125,7 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "prompt.bbs_wrdate", self.menu_mode, add_newline=False
             )
-            choice = ssh_input.process_input(self.chan)
+            choice = self.chan.process_input()
             if choice is None:
                 return  # 切断
             choice = choice.lower().strip()
@@ -455,7 +455,7 @@ class CommandHandler:
                 self.chan.send(b'"\r\n')  # 入力された " をエコーして改行
                 util.send_text_by_key(
                     self.chan, "bbs.search_title_prompt", self.menu_mode, add_newline=False)
-                search_term_raw = ssh_input.process_input(self.chan)
+                search_term_raw = self.chan.process_input()
 
                 if search_term_raw is None:
                     return  # 切断
@@ -526,7 +526,7 @@ class CommandHandler:
                 self.chan.send(b"'\r\n")  # 入力された ' をエコーして改行
                 util.send_text_by_key(
                     self.chan, "bbs.search_title_prompt", self.menu_mode, add_newline=False)  # タイトル検索と同じプロンプト
-                search_term_raw = ssh_input.process_input(self.chan)
+                search_term_raw = self.chan.process_input()
 
                 if search_term_raw is None:
                     return  # 切断
@@ -1003,7 +1003,7 @@ class CommandHandler:
             self.chan, "bbs.new_kanban_body_prompt", self.menu_mode)
         body_lines = []
         while True:
-            line = ssh_input.process_input(self.chan)
+            line = self.chan.process_input()
             if line is None:
                 return  # 切断
             if line == '^':
@@ -1020,7 +1020,7 @@ class CommandHandler:
                        (b'\r\n' if new_body else b''))
         util.send_text_by_key(
             self.chan, "bbs.confirm_save_kanban_yn", self.menu_mode, add_newline=False)
-        confirm = ssh_input.process_input(self.chan)
+        confirm = self.chan.process_input()
 
         if confirm is None or confirm.strip().lower() != 'y':
             util.send_text_by_key(
@@ -1091,7 +1091,7 @@ class CommandHandler:
 
         util.send_text_by_key(
             self.chan, "bbs.confirm_edit_operators_yn", self.menu_mode, add_newline=False)
-        confirm_edit = ssh_input.process_input(self.chan)
+        confirm_edit = self.chan.process_input()
         if confirm_edit is None or confirm_edit.strip().lower() != 'y':
             util.send_text_by_key(
                 self.chan, "common_messages.cancel", self.menu_mode)
@@ -1101,7 +1101,7 @@ class CommandHandler:
 
         util.send_text_by_key(
             self.chan, "bbs.prompt_new_operators", self.menu_mode, add_newline=False)
-        new_operators_input_str = ssh_input.process_input(self.chan)
+        new_operators_input_str = self.chan.process_input()
         if new_operators_input_str is None:
             return  # 切断
         if not new_operators_input_str.strip():  # からはキャンセル
@@ -1142,7 +1142,7 @@ class CommandHandler:
         self.chan.send(
             f" (New_Operators: {', '.join(new_operator_names_display) if new_operator_names_display else 'なし'}): ".encode('utf-8'))
 
-        final_confirm = ssh_input.process_input(self.chan)
+        final_confirm = self.chan.process_input()
         if final_confirm is None or final_confirm.strip().lower() != 'y':
             util.send_text_by_key(
                 self.chan, "common_messages.cancel", self.menu_mode)
@@ -1241,7 +1241,7 @@ class CommandHandler:
 
         util.send_text_by_key(
             self.chan, "bbs.confirm_edit_userlist_yn", self.menu_mode)
-        confirm_edit = ssh_input.process_input(self.chan)
+        confirm_edit = self.chan.process_input()
         if confirm_edit is None or confirm_edit.strip().lower() != 'y':
             util.send_text_by_key(
                 self.chan, "common_messages.cancel", self.menu_mode)
@@ -1250,7 +1250,7 @@ class CommandHandler:
         # ユーザリストを更新
         util.send_text_by_key(
             self.chan, "bbs.prompt_new_userlist", self.menu_mode, add_newline=False)
-        new_userlist_input_str = ssh_input.process_input(self.chan)
+        new_userlist_input_str = self.chan.process_input()
 
         if new_userlist_input_str is None:
             return  # 切断
@@ -1442,7 +1442,7 @@ class CommandHandler:
         if board_type == 'thread' and is_parent_article and show_back_prompt:
             util.send_text_by_key(
                 self.chan, "bbs.reply_prompt", self.menu_mode, add_newline=False)
-            reply_choice = ssh_input.process_input(self.chan)
+            reply_choice = self.chan.process_input()
             if reply_choice and reply_choice.strip().lower() == 'r':
                 self._reply_to_article(article)
                 # 返信後は記事一覧に戻るため、ここで処理を終了
@@ -1472,7 +1472,7 @@ class CommandHandler:
 
         body_lines = []
         while True:
-            line = ssh_input.process_input(self.chan)
+            line = self.chan.process_input()
             if line is None:
                 return  # 切断
             if line == '^':
@@ -1491,7 +1491,7 @@ class CommandHandler:
 
         util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
                               self.menu_mode, add_newline=False)
-        confirm = ssh_input.process_input(self.chan)
+        confirm = self.chan.process_input()
         if confirm is None or confirm.strip().lower() != 'y':
             util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
             return
@@ -1535,7 +1535,7 @@ class CommandHandler:
 
         util.send_text_by_key(self.chan, "bbs.post_subject", self.menu_mode,
                               max_len=title_max_len, add_newline=False)
-        title = ssh_input.process_input(self.chan)
+        title = self.chan.process_input()
         if title is None:
             return  # 切断
         title = title.strip()
@@ -1557,7 +1557,7 @@ class CommandHandler:
             self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
         body_lines = []
         while True:
-            line = ssh_input.process_input(self.chan)
+            line = self.chan.process_input()
             if line is None:
                 return  # 切断
             if line == '^':
@@ -1580,7 +1580,7 @@ class CommandHandler:
 
         util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
                               self.menu_mode, add_newline=False)
-        confirm = ssh_input.process_input(self.chan)
+        confirm = self.chan.process_input()
         if confirm is None or confirm.strip().lower() != 'y':
             util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
             return  # キャンセル

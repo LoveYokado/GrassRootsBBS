@@ -1,8 +1,9 @@
 numpy
-paramiko
 toml
 PyYAML
 flask
+flask-socketio
 flask-session
 gunicorn
 gevent-websocket
+redis
