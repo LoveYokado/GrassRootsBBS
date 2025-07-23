@@ -31,6 +31,18 @@
             position: relative;
         }
 
+        .monitor-chassis.bezel-off {
+            background: none;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        /* ベゼルオフのときはフッターロゴも非表示にする */
+        .monitor-chassis.bezel-off .monitor-footer {
+            display: none;
+        }
+
         .monitor-footer {
             text-align: center;
             padding-top: 15px;
@@ -58,8 +70,13 @@
             /* 必要に応じて高さを調整 */
         }
 
-        /* CRTの走査線エフェクト */
-        .monitor-screen::after {
+        /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
+        #terminal.blur-effect {
+            /* このクラスはJSでfilterを適用するために使用します */
+        }
+
+        /* 走査線エフェクト */
+        .monitor-screen.scanline-effect::after {
             content: " ";
             display: block;
             position: absolute;
@@ -67,13 +84,8 @@
             left: 0;
             bottom: 0;
             right: 0;
-            background: repeating-linear-gradient(0deg,
-                    rgba(0, 0, 0, 0.15),
-                    rgba(0, 0, 0, 0.15) 1px,
-                    transparent 1px,
-                    transparent 2px);
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 2px);
             pointer-events: none;
-            /* クリックを邪魔しない */
         }
 
         #terminal {
@@ -206,6 +218,11 @@
         .popup-content button:active {
             border-bottom-width: 1px;
             transform: translateY(1px);
+        }
+
+        .popup-content button.active {
+            background-color: #c0c0c0;
+            border-bottom-width: 1px;
         }
 
         .popup-window input[type="text"] {
@@ -374,11 +391,21 @@
                 <button data-speed="2400">2400bps</button>
                 <button data-speed="300">300bps</button>
             </div>
-
+            <div id="effect-selector">
+                <h3>画面効果</h3>
+                <button class="effect-btn" data-effect="bezel">ベゼル (Bezel)</button>
+                <button class="effect-btn" data-effect="blur">にじみ (Glow)</button>
+                <button class="effect-btn" data-effect="scanline">走査線 (Scanline)</button>
+            </div>
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <!-- にじみ効果の強さを動的に変更するためのスタイルシート -->
+    <style id="dynamic-glow-style">
+        #terminal.blur-effect {}
+    </style>
 
     <script>
         const themes = {
@@ -459,14 +486,17 @@
             }
         };
 
+        // にじみ効果のスタイルを動的に更新する
+        const dynamicGlowStyle = document.getElementById('dynamic-glow-style');
+
         function applyTheme(themeName) {
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
 
-            // ターミナル要素に直接filterを適用して、文字のにじみ（グロー）を表現
-            const terminalElement = document.getElementById('terminal');
-            terminalElement.style.filter = theme.filter_glow || 'none';
-
+            // 動的スタイルシートを更新して、テーマに合わせたにじみ効果を適用
+            if (dynamicGlowStyle) {
+                dynamicGlowStyle.innerHTML = `#terminal.blur-effect { filter: ${theme.filter_glow || 'none'}; }`;
+            }
             // ファンクションキーのスタイルを更新
             const fkeys = document.querySelectorAll('.f-key');
             fkeys.forEach(key => {
@@ -483,18 +513,85 @@
                 }
             });
             localStorage.setItem('terminalTheme', themeName); // 選択を保存
+            updateThemeButtons(themeName);
         }
 
         function applyFont(fontName) {
-            const fontFamily = `"${fontName}", "Courier New", monospace`;
+            const fontFamily = `"${fontName}", "Courier New", monospace`; // フォント名を引用符で囲む
             term.options.fontFamily = fontFamily;
             localStorage.setItem('terminalFont', fontFamily); // 選択を保存
+            updateFontButtons(fontName);
         }
 
         function applySpeed(speedName) {
             // サーバに速度設定を通知
             socket.emit('set_speed', speedName);
             localStorage.setItem('terminalSpeed', speedName); // 選択を保存
+            updateSpeedButtons(speedName);
+        }
+
+        // --- 画面効果の管理 ---
+        const effectStates = {
+            bezel: true,
+            blur: false,
+            scanline: false
+        };
+
+        function applyEffect(effectName, isActive) {
+            const monitorChassis = document.querySelector('.monitor-chassis');
+            const monitorScreen = document.querySelector('.monitor-screen');
+            const terminalElement = document.getElementById('terminal');
+
+            switch (effectName) {
+                case 'bezel':
+                    monitorChassis.classList.toggle('bezel-off', !isActive);
+                    break;
+                case 'blur':
+                    terminalElement.classList.toggle('blur-effect', isActive);
+                    break;
+                case 'scanline':
+                    monitorScreen.classList.toggle('scanline-effect', isActive);
+                    break;
+            }
+        }
+
+        function toggleEffect(effectName) {
+            // 状態を反転
+            effectStates[effectName] = !effectStates[effectName];
+            // 画面に適用
+            applyEffect(effectName, effectStates[effectName]);
+            // localStorageに保存
+            localStorage.setItem('effectStates', JSON.stringify(effectStates));
+            // ボタンの見た目を更新
+            updateEffectButtons();
+        }
+
+        function updateEffectButtons() {
+            document.querySelectorAll('.effect-btn').forEach(button => {
+                const effectName = button.dataset.effect;
+                if (effectStates[effectName]) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+
+        function updateThemeButtons(themeName) {
+            document.querySelectorAll('#theme-selector button').forEach(btn => btn.classList.remove('active'));
+            const activeButton = document.querySelector(`#theme-selector button[data-theme="${themeName}"]`);
+            if (activeButton) activeButton.classList.add('active');
+        }
+
+        function updateFontButtons(fontName) {
+            document.querySelectorAll('#font-selector button').forEach(btn => btn.classList.remove('active'));
+            const activeButton = document.querySelector(`#font-selector button[data-font="${fontName}"]`);
+            if (activeButton) activeButton.classList.add('active');
+        }
+
+        function updateSpeedButtons(speedName) {
+            document.querySelectorAll('#speed-selector button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`#speed-selector button[data-speed="${speedName}"]`).classList.add('active');
         }
 
         const term = new Terminal({
@@ -710,35 +807,29 @@
         multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
 
 
-        // 初期テーマの適用
-        const savedTheme = localStorage.getItem('terminalTheme') || 'default';
-
-        // 初期フォントの適用
-        const savedFont = localStorage.getItem('terminalFont') || '"M+ 1m", "Courier New", monospace';
-
-        // 初期速度の適用
-        const savedSpeed = localStorage.getItem('terminalSpeed') || 'full';
-
         // ボタンにイベントリスナーを設定
         document.getElementById('theme-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
-                applyTheme(e.target.dataset.theme);
-                closePopup(); // 設定を選んだら閉じる
+                applyTheme(e.target.dataset.theme); // ウィンドウは閉じない
             }
         });
 
         document.getElementById('font-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 const fontName = e.target.dataset.font;
-                applyFont(fontName);
-                closePopup(); // 設定を選んだら閉じる
+                applyFont(fontName); // ウィンドウは閉じない
             }
         });
 
         document.getElementById('speed-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
-                applySpeed(e.target.dataset.speed);
-                closePopup(); // 設定を選んだら閉じる
+                applySpeed(e.target.dataset.speed); // ウィンドウは閉じない
+            }
+        });
+
+        document.getElementById('effect-selector').addEventListener('click', (e) => {
+            if (e.target.classList.contains('effect-btn')) {
+                toggleEffect(e.target.dataset.effect);
             }
         });
 
@@ -786,12 +877,35 @@
             socket.disconnect();
         });
 
+        function loadSettings() {
+            // テーマ
+            const savedTheme = localStorage.getItem('terminalTheme') || 'default';
+            applyTheme(savedTheme);
+
+            // フォント
+            const savedFont = localStorage.getItem('terminalFont') || '"M+ 1m", "Courier New", monospace';
+            applyFont(savedFont.split(',')[0].replace(/"/g, ''));
+
+            // 速度
+            const savedSpeed = localStorage.getItem('terminalSpeed') || 'full';
+            applySpeed(savedSpeed);
+
+            // 画面効果
+            const savedEffects = localStorage.getItem('effectStates');
+            if (savedEffects) {
+                Object.assign(effectStates, JSON.parse(savedEffects));
+            }
+            for (const effectName in effectStates) {
+                applyEffect(effectName, effectStates[effectName]);
+            }
+            updateEffectButtons();
+        }
+
         socket.on('connect', () => {
             // 接続が確立したら、保存されている設定をサーバに送信
-            applyTheme(savedTheme);
-            applyFont(savedFont.split(',')[0].replace(/"/g, '')); // 保存されたフォント名を適用
-            applySpeed(savedSpeed);
+            loadSettings();
         });
+
 
         // --- ポップアップのドラッグ機能 ---
         function makePopupDraggable(popup) {
@@ -829,6 +943,9 @@
         }
         // すべてのポップアップをドラッグ可能にする
         document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
+
+        // ページ読み込み時に設定を適用
+        loadSettings();
     </script>
 </body>
 
