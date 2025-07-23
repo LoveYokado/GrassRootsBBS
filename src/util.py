@@ -54,7 +54,7 @@ def _validate_config_or_log_warnings():
     """
     設定ファイルの基本的な検証
     """
-    required_sections = {"ssh", "security", "server", "webapp"}
+    required_sections = {"security", "webapp"}
     for section in required_sections:
         if section not in app_config:
             logging.warning(f"設定ファイルに必須セクション '{section}' がありません。")

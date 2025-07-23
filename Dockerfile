@@ -13,9 +13,10 @@ RUN python -m pip install --upgrade pip && pip install --no-cache-dir -r require
 COPY . /app
 
 # アプリケーションがリッスンするポートを公開
-# config.toml の設定 (デフォルト: 50000 for webapp, 50001 for normal SSH)
-EXPOSE 50000
-EXPOSE 50001
+# Gunicornがリッスンするポート
+EXPOSE 5000
 
-# アプリケーションの起動コマンド (srcディレクトリ内のserver.pyを指定)
-CMD ["python", "src/server.py"]
+# Gunicornを使ってWebアプリケーションを起動
+# geventワーカーはFlask-SocketIOと互換性がある
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--worker-class", "geventwebsocket.gunicorn.workers.GeventWebSocketWorker", "src.webapp:app"]

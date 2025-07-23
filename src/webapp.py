@@ -5,22 +5,23 @@
 # Gunicorn + gevent で WebSocket を動作させるために必須
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
-from . import bbs_manager, command_dispatcher, sqlite_tools, util
-from flask_socketio import SocketIO, emit, disconnect
-from flask_session import Session
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
-from functools import wraps
-import time
-import threading
-import sys
-import socket
-import secrets
-import os
-import logging
-import datetime
 import collections
+import datetime
+import logging
+import os
+import secrets
+import socket
+import sys
+import threading
+import time
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
+from flask_session import Session
+from flask_socketio import SocketIO, emit, disconnect
+from . import bbs_manager, command_dispatcher, sqlite_tools, util
 from gevent import monkey
 monkey.patch_all()
+
 
 # --- 標準ライブラリ ---
 
@@ -41,7 +42,7 @@ app = Flask(__name__, template_folder=os.path.join(
 # セッション管理のために、ランダムな秘密鍵を設定します
 app.secret_key = secrets.token_hex(16)
 # WebSocketのためのSocketIOラッパー
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='gevent')
 
 # --- 初期設定 ---
 # 既存の設定ファイルを読み込みます
