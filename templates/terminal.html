@@ -22,12 +22,17 @@
         }
 
         .monitor-chassis {
-            background: #f7f2c7;
-            /* クリーム色 */
-            border: 2px solid #555;
+            /* 立体感を出すためのグラデーション背景 */
+            background: linear-gradient(145deg, #f0e8c0, #d3cba0);
+            /* 枠線の立体感 */
+            border-top: 2px solid #fdf5d5;
+            border-left: 2px solid #fdf5d5;
+            border-bottom: 2px solid #b0a888;
+            border-right: 2px solid #b0a888;
             border-radius: 15px;
             padding: 25px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            /* 複数の影を重ねて立体感を強調 */
+            box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), inset 3px 3px 5px rgba(255, 255, 255, 0.6), inset -3px -3px 5px rgba(0, 0, 0, 0.2);
             position: relative;
         }
 
@@ -99,17 +104,20 @@
             /* 画面とロゴの間隔 */
             font-size: 1.2em;
             font-weight: bold;
-            /* 背景色より少し暗い色で文字を描画 */
-            color: #dbd4a3;
-            /* 明るいシャドウで凹んだような効果を出す */
-            text-shadow: 1px 1px 1px #fff;
+            /* 筐体の色に合わせた文字色 */
+            color: #706b58;
+            /* 彫り込まれたような文字の効果 */
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
         }
 
         .monitor-screen {
             background-color: #000;
             padding: 10px;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
-            border: 1px solid #444;
+            /* 画面の埋め込み感を強調 */
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9);
+            border: 2px solid #333;
+            border-radius: 5px;
+            /* 画面の角を少し丸める */
             display: flex;
             position: relative;
             /* 擬似要素の基準点 */
@@ -584,6 +592,39 @@
             updateThemeButtons(themeName);
         }
 
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        const BASE_FONT_SIZE = 16;
+        const MIN_FONT_SIZE = 6; // 読みやすさを保つための最小フォントサイズ
+
+        function autoResizeFont() {
+            const chassis = document.querySelector('.monitor-chassis');
+            const availableWidth = window.innerWidth;
+
+            // 基準となるフォントサイズで一度設定して、その時の幅を計測
+            term.options.fontSize = BASE_FONT_SIZE;
+
+            // DOMの更新を待ってから幅を計測するために少し遅延させる
+            setTimeout(() => {
+                const baseWidth = chassis.offsetWidth;
+                if (baseWidth > availableWidth) {
+                    const scale = (availableWidth * 0.98) / baseWidth; // 2%のマージン
+                    const newFontSize = Math.floor(BASE_FONT_SIZE * scale);
+                    term.options.fontSize = Math.max(newFontSize, MIN_FONT_SIZE);
+                }
+            }, 50);
+        }
+
         function applyFont(fontName) {
             const fontFamily = `"${fontName}", "Courier New", monospace`; // フォント名を引用符で囲む
             term.options.fontFamily = fontFamily;
@@ -613,6 +654,8 @@
             switch (effectName) {
                 case 'bezel':
                     monitorChassis.classList.toggle('bezel-off', !isActive);
+                    // ベゼルの表示/非表示で全体の幅が変わるため、フォントサイズを再調整
+                    autoResizeFont();
                     break;
                 case 'blur':
                     terminalElement.classList.toggle('blur-effect', isActive);
@@ -968,6 +1011,8 @@
             }
             updateEffectButtons();
         }
+        // ページ読み込み時に一度フォントサイズを調整
+        autoResizeFont();
 
         socket.on('connect', () => {
             // 接続が確立したら、保存されている設定をサーバに送信
@@ -1014,6 +1059,9 @@
 
         // ページ読み込み時に設定を適用
         loadSettings();
+
+        // ウィンドウリサイズ時にもフォントサイズを調整（デバウンス付き）
+        window.addEventListener('resize', debounce(autoResizeFont, 100));
     </script>
 
     <script>
