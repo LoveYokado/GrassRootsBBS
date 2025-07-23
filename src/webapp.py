@@ -18,6 +18,7 @@ import time
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from flask_session import Session
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_socketio import SocketIO, emit, disconnect
 from . import bbs_manager, command_dispatcher, sqlite_tools, util
 from gevent import monkey
@@ -40,6 +41,11 @@ LOG_DIR = os.path.join(PROJECT_ROOT, 'logs', 'webapp_sessions')
 # Flaskにtemplatesフォルダの場所を教えます（プロジェクトルート直下）。
 app = Flask(__name__, template_folder=os.path.join(
     PROJECT_ROOT, 'templates'), static_folder=os.path.join(PROJECT_ROOT, 'static'))
+
+# リバースプロキシ環境下で正しいURLを生成するためにProxyFixミドルウェアを適用
+app.wsgi_app = ProxyFix(
+    app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
+)
 # セッション管理のために、ランダムな秘密鍵を設定します
 app.secret_key = secrets.token_hex(16)
 # WebSocketのためのSocketIOラッパー
