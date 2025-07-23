@@ -11,6 +11,7 @@ import logging
 import os
 import secrets
 import socket
+import redis
 import sys
 import threading
 import time
@@ -77,7 +78,10 @@ try:
                 logging.exception(
                     f"データベースの初期化中にエラーが発生しました: {e}")
 
-    app.config['SESSION_TYPE'] = 'filesystem'  # ファイルシステムに保存
+    # --- セッション設定 ---
+    redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+    app.config['SESSION_TYPE'] = 'redis'
+    app.config['SESSION_REDIS'] = redis.from_url(redis_url)
     app.config['SESSION_PERMANENT'] = True  # ブラウザを閉じてもセッションを保持
     app.config['SESSION_USE_SIGNER'] = True  # セッションデータの改ざん防止
     app.config['SESSION_KEY_PREFIX'] = 'grbbs_'

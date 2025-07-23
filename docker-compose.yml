@@ -7,8 +7,20 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
       # .sshkey ボリュームは不要になったため削除
+    environment:
+      # コンテナ内からRedisサービスに接続するためのURL
+      - REDIS_URL=redis://redis:6379/0
     env_file:
       - .env # .env 必ず先に管理者IDとパスワードを設定してください。
+    depends_on:
+      - redis # grassrootsbbs の前に redis を起動
     restart: unless-stopped
 
-# sshwiftyサービスは不要になったため削除
+  redis:
+    image: "redis:alpine"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

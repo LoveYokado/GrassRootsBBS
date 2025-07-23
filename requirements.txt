@@ -6,3 +6,4 @@ flask-socketio
 flask-session
 gunicorn
 gevent-websocket
+redis
