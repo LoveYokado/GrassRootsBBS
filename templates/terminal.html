@@ -161,6 +161,10 @@
             border-bottom: 1px solid #ccc;
             padding-bottom: 10px;
             margin-bottom: 15px;
+            cursor: grab;
+            /* ドラッグ可能なことを示すカーソル */
+            user-select: none;
+            /* ドラッグ中のテキスト選択を無効化 */
         }
 
         .popup-header h2 {
@@ -788,6 +792,43 @@
             applyFont(savedFont.split(',')[0].replace(/"/g, '')); // 保存されたフォント名を適用
             applySpeed(savedSpeed);
         });
+
+        // --- ポップアップのドラッグ機能 ---
+        function makePopupDraggable(popup) {
+            const header = popup.querySelector('.popup-header');
+            if (!header) return;
+
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            header.addEventListener('mousedown', (e) => {
+                // クリックされたのがボタン(閉じるボタンなど)でない場合のみドラッグ開始
+                if (e.target.tagName.toLowerCase() === 'button') {
+                    return;
+                }
+                isDragging = true;
+                // ポップアップの左上隅からマウスポインタまでのオフセットを計算
+                offsetX = e.clientX - popup.offsetLeft;
+                offsetY = e.clientY - popup.offsetTop;
+                header.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                // マウスの位置からオフセットを引いて、ポップアップの新しい位置を計算
+                popup.style.left = `${e.clientX - offsetX}px`;
+                popup.style.top = `${e.clientY - offsetY}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    header.style.cursor = 'grab';
+                }
+            });
+        }
+        // すべてのポップアップをドラッグ可能にする
+        document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
     </script>
 </body>
 
