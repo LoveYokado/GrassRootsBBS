@@ -113,11 +113,14 @@
         .monitor-screen {
             background-color: #000;
             padding: 10px;
-            /* 画面の埋め込み感を強調 */
-            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.9);
-            border: 2px solid #333;
-            border-radius: 5px;
-            /* 画面の角を少し丸める */
+            /* 画面が奥にあるように見せるための影と境界線 */
+            box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.9);
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            /* top, right, bottom, left */
+            border-radius: 8px;
+            /* ブラウン管の丸みを少し強く */
             display: flex;
             position: relative;
             /* 擬似要素の基準点 */
@@ -205,10 +208,15 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background-color: #e0e0e0;
+            /* 筐体のスタイルを適用 */
+            background: linear-gradient(145deg, #f0e8c0, #d3cba0);
+            border-top: 2px solid #fdf5d5;
+            border-left: 2px solid #fdf5d5;
+            border-bottom: 2px solid #b0a888;
+            border-right: 2px solid #b0a888;
+            border-radius: 15px;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), inset 3px 3px 5px rgba(255, 255, 255, 0.6), inset -3px -3px 5px rgba(0, 0, 0, 0.2);
             z-index: 1001;
             min-width: 300px;
         }
@@ -228,7 +236,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #ccc;
+            /* 筐体の影の色に合わせる */
+            border-bottom: 1px solid #b0a888;
             padding-bottom: 10px;
             margin-bottom: 15px;
             cursor: grab;
@@ -239,20 +248,25 @@
 
         .popup-header h2 {
             margin: 0;
-            color: #333;
+            /* 彫り込み文字風 */
+            color: #706b58;
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
         }
 
         .popup-close-btn {
             background: none;
             border: none;
             font-size: 1.5rem;
+            color: #706b58;
             cursor: pointer;
         }
 
         .popup-content h3 {
             margin-top: 0;
             margin-bottom: 10px;
-            color: #444;
+            /* 彫り込み文字風 */
+            color: #706b58;
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
         }
 
         .popup-content div {
@@ -260,11 +274,14 @@
         }
 
         .popup-content button {
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            border-bottom: 2px solid #aaa;
+            /* 筐体の色に合わせたボタン */
+            background: linear-gradient(145deg, #e0d8b8, #c8c098);
+            border: 1px solid #b0a888;
+            border-top-color: #fdf5d5;
+            border-left-color: #fdf5d5;
             padding: 8px 12px;
             margin: 2px;
+            color: #504b38;
             cursor: pointer;
             border-radius: 3px;
         }
@@ -274,22 +291,26 @@
         }
 
         .popup-content button:active {
-            border-bottom-width: 1px;
+            background: linear-gradient(145deg, #c8c098, #e0d8b8);
             transform: translateY(1px);
         }
 
         .popup-content button.active {
-            background-color: #c0c0c0;
-            border-bottom-width: 1px;
+            background: #b0a888;
+            box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .popup-window input[type="text"] {
             width: 95%;
             padding: 8px;
             margin-bottom: 15px;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            color: #333;
+            /* ターミナル風の入力欄 */
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
             font-family: '"M+ 1m", "Courier New", monospace';
         }
 
@@ -297,9 +318,13 @@
             height: 250px;
             padding: 8px;
             margin-bottom: 15px;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            color: #333;
+            /* ターミナル風の入力欄 */
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
             font-family: '"M+ 1m", "Courier New", monospace';
             resize: vertical;
         }
@@ -314,9 +339,10 @@
         }
 
         .ansi-btn {
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            border-bottom: 2px solid #aaa;
+            background: linear-gradient(145deg, #e0d8b8, #c8c098);
+            border: 1px solid #b0a888;
+            border-top-color: #fdf5d5;
+            border-left-color: #fdf5d5;
             padding: 2px 8px;
             margin: 2px;
             cursor: pointer;
@@ -324,6 +350,7 @@
             font-size: 0.9em;
             font-family: sans-serif;
             /* ボタンのフォントは読みやすく */
+            /* 文字色はJSで動的に設定されるため、ここでは指定しない */
         }
 
         /* xterm.jsの点滅(blink)を有効にするためのCSSアニメーション */
