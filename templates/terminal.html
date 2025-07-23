@@ -31,6 +31,56 @@
             position: relative;
         }
 
+        /* --- ハンバーガーメニュー --- */
+        #hamburger-btn {
+            display: none;
+            /* デフォルトでは非表示 */
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #dbd4a3;
+            z-index: 10;
+        }
+
+        .sidenav {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1002;
+            top: 0;
+            left: 0;
+            background-color: rgba(30, 30, 30, 0.95);
+            overflow-x: hidden;
+            transition: 0.3s;
+            padding-top: 60px;
+        }
+
+        .sidenav a {
+            padding: 10px 15px 10px 32px;
+            text-decoration: none;
+            font-size: 18px;
+            color: #f1f1f1;
+            display: block;
+            transition: 0.2s;
+        }
+
+        .sidenav a:hover {
+            color: #c0c0c0;
+        }
+
+        .sidenav .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+        }
+
+
         .monitor-chassis.bezel-off {
             background: none;
             border: none;
@@ -292,6 +342,19 @@
             /* Firefox */
         }
 
+        /* --- レスポンシブ対応 --- */
+        @media screen and (max-width: 768px) {
+            #function-keys-container {
+                display: none;
+                /* 狭い画面ではファンクションキーを非表示 */
+            }
+
+            #hamburger-btn {
+                display: block;
+                /* 狭い画面ではハンバーガーメニューを表示 */
+            }
+        }
+
         .xterm-viewport::-webkit-scrollbar {
             display: none;
             /* Safari and Chrome */
@@ -313,6 +376,10 @@
         </div>
     </div>
 
+    <!-- ハンバーガーメニュー本体 -->
+    <div id="sidenav" class="sidenav">
+        <!-- メニュー項目はJSで動的に生成されます -->
+    </div>
     <!-- １行エディタ用ポップアップ -->
     <div id="line-editor-overlay" class="popup-overlay"></div>
     <div id="line-editor-window" class="popup-window">
@@ -399,6 +466,7 @@
             </div>
         </div>
     </div>
+    <button id="hamburger-btn">&#9776;</button>
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
@@ -946,6 +1014,53 @@
 
         // ページ読み込み時に設定を適用
         loadSettings();
+    </script>
+
+    <script>
+        // --- ハンバーガーメニューのロジック ---
+        function openNav() {
+            document.getElementById("sidenav").style.width = "250px";
+        }
+
+        function closeNav() {
+            document.getElementById("sidenav").style.width = "0";
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', openNav);
+            }
+
+            const sidenav = document.getElementById('sidenav');
+            const closeBtn = document.createElement('a');
+            closeBtn.href = 'javascript:void(0)';
+            closeBtn.className = 'closebtn';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.onclick = closeNav;
+            sidenav.appendChild(closeBtn);
+
+            // fkey_definitions を使ってサイドナビゲーションのメニュー項目を動的に生成
+            for (const fkeyId in fkeyDefinitions) {
+                const definition = fkeyDefinitions[fkeyId];
+                const link = document.createElement('a');
+                link.href = '#'; // ページ遷移を防ぐ
+                link.textContent = `${fkeyId.toUpperCase()}: ${definition.label}`;
+
+                link.addEventListener('click', (e) => {
+                    e.preventDefault(); // ページ遷移を防ぐ
+                    // ファンクションキーの定義に基づいてアクションを実行
+                    if (definition.action === 'open_popup') openPopup();
+                    else if (definition.action === 'toggle_logging') socket.emit('toggle_logging');
+                    else if (definition.action === 'open_line_editor') openLineEditor();
+                    else if (definition.action === 'open_multiline_editor') openMultilineEditor();
+                    else if (definition.action === 'redirect') window.location.href = definition.value;
+
+                    closeNav(); // メニュー項目をクリックしたらメニューを閉じる
+                });
+                sidenav.appendChild(link);
+            }
+        });
     </script>
 </body>
 
