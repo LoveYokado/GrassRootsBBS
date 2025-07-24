@@ -6,15 +6,16 @@
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
 from . import bbs_manager, command_dispatcher, sqlite_tools, util
-from flask_socketio import SocketIO, emit, disconnect
 from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_socketio import SocketIO, emit, disconnect
 from flask_session import Session
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
+from flask import (Flask, jsonify, redirect, render_template, request,
+                   send_from_directory, session, url_for)
+import redis
 from functools import wraps
 import time
 import threading
 import sys
-import redis
 import socket
 import secrets
 import os
@@ -24,8 +25,9 @@ import collections
 from gevent import monkey
 monkey.patch_all()
 
+# --- 標準ライブラリ ---
 
-# このファイルは 'src' ディレクトリ内にあるため、他の 'src' 内のモジュールは直接インポートできます。
+# --- サードパーティライブラリ ---
 
 # --- プロジェクトルートとパスの設定 ---
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
@@ -44,11 +46,12 @@ app.wsgi_app = ProxyFix(
 )
 # セッション管理のために、ランダムな秘密鍵を設定します
 app.secret_key = secrets.token_hex(16)
-# WebSocketのためのSocketIOラッパー
+# WebSocketのためのSocketIOラッパー。Gunicornのgeventワーカーと連携するためにasync_modeを指定。
 socketio = SocketIO(app, async_mode='gevent')
 
 # --- アプリケーションモジュールのインポート ---
 # app と socketio の初期化後にインポートすることで、循環インポートを避ける
+
 
 # --- 初期設定 ---
 # 既存の設定ファイルを読み込みます
