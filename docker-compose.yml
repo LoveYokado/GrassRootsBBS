@@ -5,6 +5,8 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
+    ports:
+      - "5000:5000" 
     environment:
       # コンテナ内からRedisサービスに接続するためのURL
       - REDIS_URL=redis://redis:6379/0
