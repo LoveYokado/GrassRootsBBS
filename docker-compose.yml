@@ -5,26 +5,28 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-    ports:
-      - "5000:5000" 
     environment:
       # コンテナ内からRedisサービスに接続するためのURL
       - REDIS_URL=redis://redis:6379/0
+    ports:
+      - "8183:5000"
     env_file:
       - .env # .env 必ず先に管理者IDとパスワードを設定してください。
+    environment:
+      - SOCKETIO_ALLOWED_ORIGINS=http://grbbsurl
     depends_on:
       - redis # grassrootsbbs の前に redis を起動
     restart: unless-stopped
 
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80" # ホストの80番ポートをNginxコンテナの80番ポートにマッピング
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - grassrootsbbs
-    restart: unless-stopped
+#  nginx:
+#    image: nginx:alpine
+#    ports:
+#      - "8182:80" # ホストの80番ポートをNginxコンテナの80番ポートにマッピング
+#    volumes:
+#      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+#    depends_on:
+#      - grassrootsbbs
+#    restart: unless-stopped
 
   redis:
     image: "redis:alpine"

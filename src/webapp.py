@@ -47,7 +47,10 @@ app.wsgi_app = ProxyFix(
 # セッション管理のために、ランダムな秘密鍵を設定します
 app.secret_key = secrets.token_hex(16)
 # WebSocketのためのSocketIOラッパー。Gunicornのgeventワーカーと連携するためにasync_modeを指定。
-socketio = SocketIO(app, async_mode='gevent')
+allowed_origins_str = os.getenv('SOCKETIO_ALLOWED_ORIGINS', 'https://localhost')
+allowed_origins = allowed_origins_str.split(',') if allowed_origins_str else []
+
+socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='gevent')
 
 # --- アプリケーションモジュールのインポート ---
 # app と socketio の初期化後にインポートすることで、循環インポートを避ける
