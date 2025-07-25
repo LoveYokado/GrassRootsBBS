@@ -8,12 +8,11 @@ services:
     environment:
       # コンテナ内からRedisサービスに接続するためのURL
       - REDIS_URL=redis://redis:6379/0
+      - SOCKETIO_ALLOWED_ORIGINS=http://localhost:8183
     ports:
       - "8183:5000"
     env_file:
       - .env # .env 必ず先に管理者IDとパスワードを設定してください。
-    environment:
-      - SOCKETIO_ALLOWED_ORIGINS=http://grbbsurl
     depends_on:
       - redis # grassrootsbbs の前に redis を起動
     restart: unless-stopped

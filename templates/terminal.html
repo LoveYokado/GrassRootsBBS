@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>GR-BBS Web Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,10 +16,14 @@
             height: 100%;
             margin: 0;
             background-color: #282c34;
+            font-family: '"M+ 1m", "Courier New", monospace';
+        }
+
+        body {
+            /* デスクトップでは中央寄せ */
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: '"M+ 1m", "Courier New", monospace';
         }
 
         .monitor-chassis {
@@ -34,6 +39,10 @@
             /* 複数の影を重ねて立体感を強調 */
             box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), inset 3px 3px 5px rgba(255, 255, 255, 0.6), inset -3px -3px 5px rgba(0, 0, 0, 0.2);
             position: relative;
+            display: flex;
+            flex-direction: column;
+            max-height: 95vh;
+            /* 画面からはみ出ないように */
         }
 
         /* --- ハンバーガーメニュー --- */
@@ -127,8 +136,9 @@
             overflow: hidden;
             /* はみ出した擬似要素を隠す */
             flex-direction: column;
-            height: 100%;
-            /* 必要に応じて高さを調整 */
+            flex-grow: 1;
+            min-height: 0;
+            /* flexアイテムが縮むように */
         }
 
         /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
@@ -151,8 +161,10 @@
 
         #terminal {
             flex-grow: 1;
-            /* ターミナルが可能な限り伸びる */
-            /* xterm.jsがサイズを管理するため、明示的な高さは不要 */
+            min-height: 0;
+            /* flexアイテムが縮むように */
+            overflow: hidden;
+            /* xterm自体がスクロールバーを持つため */
         }
 
         #function-keys-container {
@@ -379,6 +391,29 @@
 
         /* --- レスポンシブ対応 --- */
         @media screen and (max-width: 768px) {
+            body {
+                /* モバイルでは中央寄せをやめる */
+                display: block;
+            }
+
+            .monitor-chassis {
+                width: 100%;
+                height: 100%;
+                max-height: none;
+                padding: 0;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+                box-sizing: border-box;
+            }
+
+            .monitor-screen {
+                height: 100%;
+                border-radius: 0;
+                padding: 2px;
+                box-sizing: border-box;
+            }
+
             #function-keys-container {
                 display: none;
                 /* 狭い画面ではファンクションキーを非表示 */
@@ -503,6 +538,7 @@
     </div>
     <button id="hamburger-btn">&#9776;</button>
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
     <!-- にじみ効果の強さを動的に変更するためのスタイルシート -->
@@ -619,39 +655,6 @@
             updateThemeButtons(themeName);
         }
 
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        const BASE_FONT_SIZE = 16;
-        const MIN_FONT_SIZE = 6; // 読みやすさを保つための最小フォントサイズ
-
-        function autoResizeFont() {
-            const chassis = document.querySelector('.monitor-chassis');
-            const availableWidth = window.innerWidth;
-
-            // 基準となるフォントサイズで一度設定して、その時の幅を計測
-            term.options.fontSize = BASE_FONT_SIZE;
-
-            // DOMの更新を待ってから幅を計測するために少し遅延させる
-            setTimeout(() => {
-                const baseWidth = chassis.offsetWidth;
-                if (baseWidth > availableWidth) {
-                    const scale = (availableWidth * 0.98) / baseWidth; // 2%のマージン
-                    const newFontSize = Math.floor(BASE_FONT_SIZE * scale);
-                    term.options.fontSize = Math.max(newFontSize, MIN_FONT_SIZE);
-                }
-            }, 50);
-        }
-
         function applyFont(fontName) {
             const fontFamily = `"${fontName}", "Courier New", monospace`; // フォント名を引用符で囲む
             term.options.fontFamily = fontFamily;
@@ -681,8 +684,6 @@
             switch (effectName) {
                 case 'bezel':
                     monitorChassis.classList.toggle('bezel-off', !isActive);
-                    // ベゼルの表示/非表示で全体の幅が変わるため、フォントサイズを再調整
-                    autoResizeFont();
                     break;
                 case 'blur':
                     terminalElement.classList.toggle('blur-effect', isActive);
@@ -733,14 +734,36 @@
         }
 
         const term = new Terminal({
-            cols: 80, // 幅を80文字に固定
-            rows: 25, // 高さを25行に戻す
             cursorBlink: true,
             fontSize: 16, // 固定サイズなので少し見やすく
             scrollback: 0, // スクロールバックバッファを行数と同じにし、スクロールバーを非表示にする
         });
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
 
         term.open(document.getElementById('terminal'));
+
+        // ターミナルをコンテナにフィットさせる関数
+        function fitTerminal() {
+            try {
+                fitAddon.fit();
+            } catch (e) {
+                console.error("fitAddon.fit() failed:", e);
+            }
+        }
+
+        // リサイズイベントを効率化するデバウンス関数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
 
         const socket = io();
 
@@ -1038,8 +1061,6 @@
             }
             updateEffectButtons();
         }
-        // ページ読み込み時に一度フォントサイズを調整
-        autoResizeFont();
 
         socket.on('connect', () => {
             // 接続が確立したら、保存されている設定をサーバに送信
@@ -1085,10 +1106,13 @@
         document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
 
         // ページ読み込み時に設定を適用
-        loadSettings();
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            fitTerminal(); // 初期表示時にフィットさせる
+        });
 
-        // ウィンドウリサイズ時にもフォントサイズを調整（デバウンス付き）
-        window.addEventListener('resize', debounce(autoResizeFont, 100));
+        // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
+        window.addEventListener('resize', debounce(fitTerminal, 100));
     </script>
 
     <script>
