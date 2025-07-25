@@ -22,6 +22,7 @@ import os
 import logging
 import datetime
 import collections
+import codecs
 from gevent import monkey
 monkey.patch_all()
 
@@ -47,10 +48,12 @@ app.wsgi_app = ProxyFix(
 # セッション管理のために、ランダムな秘密鍵を設定します
 app.secret_key = secrets.token_hex(16)
 # WebSocketのためのSocketIOラッパー。Gunicornのgeventワーカーと連携するためにasync_modeを指定。
-allowed_origins_str = os.getenv('SOCKETIO_ALLOWED_ORIGINS', 'https://localhost')
+allowed_origins_str = os.getenv(
+    'SOCKETIO_ALLOWED_ORIGINS', 'https://localhost')
 allowed_origins = allowed_origins_str.split(',') if allowed_origins_str else []
 
-socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode='gevent')
+socketio = SocketIO(
+    app, cors_allowed_origins=allowed_origins, async_mode='gevent')
 
 # --- アプリケーションモジュールのインポート ---
 # app と socketio の初期化後にインポートすることで、循環インポートを避ける
@@ -225,81 +228,76 @@ class WebTerminalHandler:
                 self.active = False
                 self.handler.input_event.set()  # Waiting recv() should be unblocked
 
-            def process_input(self):
+            def _process_input_internal(self, echo=True):
                 """
-                クライアントから1行入力を受け取り、文字列として返す。
-                エコーバックとバックスペース処理も行う。ssh_input.process_inputの代替。
+                クライアントから1行入力を受け取り、文字列として返す内部メソッド。
+                エコーバックとマルチバイト文字に対応。
                 """
-                line_buffer = []
+                line_buffer = []  # 文字列のリストとして保持
+                decoder = codecs.getincrementaldecoder('utf-8')('ignore')
+
                 try:
                     while self.active:
                         char_byte = self.recv(1)
                         if not char_byte:  # 接続が切れた場合
                             return None
 
-                        char_code = ord(char_byte)
-
                         # Enterキー (CR or LF)
-                        if char_code in (10, 13):
-                            self.send(b'\r\n')
+                        if char_byte in (b'\r', b'\n'):
+                            if echo:
+                                self.send(b'\r\n')
                             break
 
                         # Backspace (BS or DEL)
-                        elif char_code in (8, 127):
+                        elif char_byte in (b'\x08', b'\x7f'):
                             if line_buffer:
-                                line_buffer.pop()
-                                # カーソルを1つ戻し、空白で上書きし、さらにカーソルを戻す
-                                self.send(b'\x08 \x08')
-
-                        # 通常の文字 (表示可能文字)
-                        elif 32 <= char_code <= 126:
-                            line_buffer.append(
-                                char_byte.decode('utf-8', 'ignore'))
-                            self.send(char_byte)  # エコーバック
+                                line_buffer.pop()  # 最後の「文字」を削除
+                                if echo:
+                                    # xterm.jsは文字幅を考慮してカーソルを戻してくれる
+                                    self.send(b'\x08 \x08')
+                        else:
+                            # 通常の文字バイトをデコード
+                            try:
+                                # インクリメンタルデコーダを使い、完全な文字がデコードできた場合のみ処理
+                                decoded_char = decoder.decode(char_byte)
+                                if decoded_char:
+                                    line_buffer.append(decoded_char)
+                                    if echo:
+                                        # デコードできた文字をUTF-8で送り返す
+                                        self.send(decoded_char.encode('utf-8'))
+                            except UnicodeDecodeError:
+                                # 'ignore' を指定しているので発生しないはずだが、念のため
+                                decoder.reset()
+                                continue
 
                 except socket.timeout:
                     logging.warning(
                         f"入力待機中にタイムアウトしました (SID: {self.handler.sid})")
-                    return ""  # タイムアウト時は空文字列を返す
                 except Exception as e:
                     logging.error(
                         f"process_inputでエラー (SID: {self.handler.sid}): {e}")
                     return None
 
+                # ループを抜けた後、デコーダに残っているかもしれないバイトをフラッシュ
+                remaining = decoder.decode(b'', final=True)
+                if remaining:
+                    line_buffer.append(remaining)
+
                 return "".join(line_buffer)
+
+            def process_input(self):
+                """
+                クライアントから1行入力を受け取り、文字列として返す。
+                エコーバックとバックスペース処理も行う。ssh_input.process_inputの代替。
+                """
+                return self._process_input_internal(echo=True)
 
             def hide_process_input(self):
                 """
                 クライアントから1行入力を受け取るが、エコーバックしない。
                 パスワード入力用。ssh_input.hide_process_inputの代替。
                 """
-                line_buffer = []
-                try:
-                    while self.active:
-                        char_byte = self.recv(1)
-                        if not char_byte:
-                            return None
-
-                        char_code = ord(char_byte)
-
-                        if char_code in (10, 13):
-                            self.send(b'\r\n')  # 改行だけはエコーバック
-                            break
-                        elif char_code in (8, 127):
-                            if line_buffer:
-                                line_buffer.pop()
-                        elif 32 <= char_code <= 126:
-                            line_buffer.append(
-                                char_byte.decode('utf-8', 'ignore'))
-                except socket.timeout:
-                    logging.warning(
-                        f"非表示入力待機中にタイムアウトしました (SID: {self.handler.sid})")
-                    return ""
-                except Exception as e:
-                    logging.error(
-                        f"hide_process_inputでエラー (SID: {self.handler.sid}): {e}")
-                    return None
-                return "".join(line_buffer)
+                return self._process_input_internal(echo=False)
 
         self.channel = WebChannel(self)
         socketio.start_background_task(self._sender_worker)
