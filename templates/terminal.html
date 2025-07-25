@@ -483,7 +483,7 @@
                     <button class="ansi-btn" data-sequence="[7m">Reverse</button>
                     <button class="ansi-btn" data-sequence="[0m">Reset</button>
                 </div>
-                <div class="control-group">
+                <div class="control-group" id="ansi-color-buttons">
                     <button class="ansi-btn" data-sequence="[30m" data-ansi-color-name="black">Black</button>
                     <button class="ansi-btn" data-sequence="[31m" data-ansi-color-name="red">Red</button>
                     <button class="ansi-btn" data-sequence="[32m" data-ansi-color-name="green">Green</button>
@@ -651,6 +651,16 @@
                     btn.style.color = theme[colorName];
                 }
             });
+
+            // テーマに応じてANSIカラーボタンの表示/非表示を切り替える
+            const ansiColorButtons = document.getElementById('ansi-color-buttons');
+            if (ansiColorButtons) {
+                if (themeName === 'green' || themeName === 'amber') {
+                    ansiColorButtons.style.display = 'none';
+                } else {
+                    ansiColorButtons.style.display = 'block';
+                }
+            }
             localStorage.setItem('terminalTheme', themeName); // 選択を保存
             updateThemeButtons(themeName);
         }
@@ -703,6 +713,10 @@
             localStorage.setItem('effectStates', JSON.stringify(effectStates));
             // ボタンの見た目を更新
             updateEffectButtons();
+
+            // ベゼルの表示/非表示はコンテナサイズに影響するため、少し遅延させてから
+            // ターミナルのレイアウトを再計算します。
+            setTimeout(updateTerminalLayout, 50);
         }
 
         function updateEffectButtons() {
@@ -743,12 +757,55 @@
 
         term.open(document.getElementById('terminal'));
 
-        // ターミナルをコンテナにフィットさせる関数
-        function fitTerminal() {
-            try {
-                fitAddon.fit();
-            } catch (e) {
-                console.error("fitAddon.fit() failed:", e);
+        // ターミナルのレイアウトを更新する関数
+        function updateTerminalLayout() {
+            const chassis = document.querySelector('.monitor-chassis');
+            const screenContainer = document.querySelector('.monitor-screen');
+            const terminalContainer = document.getElementById('terminal');
+            const isMobile = window.innerWidth <= 768;
+            const isFullscreen = chassis.classList.contains('fullscreen');
+
+            // フルスクリーンでない場合は、コンテナの幅をリセットして通常表示に戻す
+            if (!isFullscreen) {
+                screenContainer.style.width = '';
+            }
+
+            if (isMobile) {
+                // モバイル端末では、コンテナの幅に合わせてターミナルの桁数を自動調整します。
+                try {
+                    fitAddon.fit();
+                } catch (e) {
+                    console.error("fitAddon.fit() failed:", e);
+                }
+            } else if (isFullscreen) {
+                // デスクトップのフルスクリーンモード
+                if (term.renderer && term.renderer.dimensions && term.renderer.dimensions.actualCellHeight > 0) {
+                    const cellHeight = term.renderer.dimensions.actualCellHeight;
+                    const cellWidth = term.renderer.dimensions.actualCellWidth;
+
+                    // 1. ターミナルの高さを計算
+                    const fkeys = document.getElementById('function-keys-container');
+                    const fkeysHeight = fkeys.offsetHeight;
+                    const fkeysMargin = parseFloat(window.getComputedStyle(fkeys).marginTop);
+                    const screenStyle = window.getComputedStyle(screenContainer);
+                    const screenPaddingVertical = parseFloat(screenStyle.paddingTop) + parseFloat(screenStyle.paddingBottom);
+                    const availableHeightForTerm = window.innerHeight - fkeysHeight - fkeysMargin - screenPaddingVertical;
+                    const newRows = Math.floor(availableHeightForTerm / cellHeight);
+
+                    // 2. ターミナルの幅を計算してコンテナに設定
+                    const termWidth = 80 * cellWidth;
+                    const screenPaddingHorizontal = parseFloat(screenStyle.paddingLeft) + parseFloat(screenStyle.paddingRight);
+                    screenContainer.style.width = `${termWidth + screenPaddingHorizontal}px`;
+
+                    // 3. xtermをリサイズ
+                    term.resize(80, newRows);
+                } else {
+                    // レンダラが準備できていない場合、少し待ってから再試行
+                    setTimeout(updateTerminalLayout, 50);
+                }
+            } else {
+                // デスクトップの通常表示では、伝統的な80x25のサイズに固定します。
+                term.resize(80, 25);
             }
         }
 
@@ -1108,11 +1165,12 @@
         // ページ読み込み時に設定を適用
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
-            fitTerminal(); // 初期表示時にフィットさせる
+            updateTerminalLayout(); // 初期レイアウトを適用
         });
 
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
-        window.addEventListener('resize', debounce(fitTerminal, 100));
+        window.addEventListener('resize', debounce(updateTerminalLayout, 100));
+
     </script>
 
     <script>

@@ -449,6 +449,8 @@ def index():
     fkey_definitions = {
         "f1": {"label": "SETTING", "action": "open_popup"},
         "f2": {"label": "LOGGING", "action": "toggle_logging"},
+        "f3": {"label": "NoFunction", "action": "none"},  # フルスクリーン機能は設定メニューに移動
+        "f4": {"label": "NoFunction", "action": "none"},  # 予約
         "f5": {"label": "Line Edit", "action": "open_line_editor"},
         "f6": {"label": "M-Line Edit", "action": "open_multiline_editor"},
         "f8": {"label": "ReConnect", "action": "redirect", "value": url_for('login')},
