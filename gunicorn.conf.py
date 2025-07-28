@@ -8,7 +8,8 @@ workers = 1
 worker_class = "geventwebsocket.gunicorn.workers.GeventWebSocketWorker"
 
 # ロギング
-# Dockerで実行する場合、ログは標準出力/エラー出力に出すのが一般的
+# Gunicornのログは標準出力/エラー出力に出すのがシンプルで一般的です。
+# アプリケーションのログは webapp.py 側で設定します。
 accesslog = "-"
 errorlog = "-"
 loglevel = "info"

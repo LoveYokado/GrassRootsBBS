@@ -21,6 +21,7 @@ import secrets
 import os
 import logging
 import datetime
+from logging.handlers import RotatingFileHandler
 import collections
 import codecs
 from gevent import monkey
@@ -34,7 +35,8 @@ monkey.patch_all()
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
-LOG_DIR = os.path.join(PROJECT_ROOT, 'logs', 'webapp_sessions')
+APP_LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
+SESSION_LOG_DIR = os.path.join(APP_LOG_DIR, 'webapp_sessions')
 
 # --- Flaskアプリケーションのセットアップ ---
 # Flaskにtemplatesフォルダの場所を教えます（プロジェクトルート直下）。
@@ -68,8 +70,31 @@ try:
     if not db_path_relative:
         raise ValueError("データベース名が設定ファイルに見つかりません。")
     DB_NAME = os.path.join(PROJECT_ROOT, db_path_relative)
-    if not os.path.exists(LOG_DIR):
-        os.makedirs(LOG_DIR)
+    if not os.path.exists(APP_LOG_DIR):
+        os.makedirs(APP_LOG_DIR)
+    if not os.path.exists(SESSION_LOG_DIR):
+        os.makedirs(SESSION_LOG_DIR)
+
+    # --- ロギング設定 ---
+    # 1. アクセスロガーの設定 (grbbs.access)
+    access_logger = logging.getLogger('grbbs.access')
+    access_logger.setLevel(logging.INFO)
+    access_handler = RotatingFileHandler(
+        os.path.join(APP_LOG_DIR, 'grbbs.access.log'),
+        maxBytes=1024 * 1024 * 5, backupCount=3, encoding='utf-8'
+    )
+    access_handler.setFormatter(logging.Formatter('[%(asctime)s] %(message)s'))
+    access_logger.addHandler(access_handler)
+    access_logger.propagate = False  # ルートロガー（エラーログ）に伝播させない
+
+    # 2. エラーロガー（ルートロガー）の設定
+    error_handler = RotatingFileHandler(
+        os.path.join(APP_LOG_DIR, 'grbbs.error.log'),
+        maxBytes=1024 * 1024 * 5, backupCount=3, encoding='utf-8'
+    )
+    error_handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
+    logging.getLogger().addHandler(error_handler)
+    logging.getLogger().setLevel(logging.INFO)
 
     # --- データベース初期化チェック ---
     if not os.path.isfile(DB_NAME):
@@ -573,6 +598,10 @@ def handle_connect(auth=None):
             return False  # 接続を拒否
         current_webapp_clients += 1
 
+    username = session.get('username', 'Unknown')
+    ip_addr = request.remote_addr or 'N/A'
+    logging.getLogger('grbbs.access').info(f"CONNECT - User: {username}, IP: {ip_addr}, SID: {request.sid}")
+
     sid = request.sid
     # ユーザーセッション情報を辞書としてハンドラに渡す
     user_session_data = {
@@ -610,6 +639,9 @@ def handle_disconnect():
         current_webapp_clients = max(0, current_webapp_clients - 1)
 
     sid = request.sid
+    username = session.get('username', 'Unknown')
+    logging.getLogger('grbbs.access').info(f"DISCONNECT - User: {username}, SID: {sid}")
+
     if sid in client_states:
         client_states[sid].stop_worker()  # これで両方のスレッドが停止する
         del client_states[sid]
@@ -652,8 +684,8 @@ def handle_toggle_logging():
         # ファイル名生成
         bbs_name = util.app_config.get('server', {}).get('BBS_NAME', 'GR-BBS')
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{bbs_name}_{timestamp}.log"
-        filepath = os.path.join(LOG_DIR, filename)
+        filename = f"{bbs_name}_{handler.user_session.get('username')}_{timestamp}.log"
+        filepath = os.path.join(SESSION_LOG_DIR, filename)
 
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
@@ -682,8 +714,8 @@ def handle_toggle_logging():
 @login_required
 def download_log(filename):
     """保存されたログファイルをダウンロードさせる"""
-    # セキュリティのため、LOG_DIRからのみファイルを送信する
-    return send_from_directory(LOG_DIR, filename, as_attachment=True)
+    # セキュリティのため、SESSION_LOG_DIRからのみファイルを送信する
+    return send_from_directory(SESSION_LOG_DIR, filename, as_attachment=True)
 
 
 # --- Webサーバーの起動 ---
