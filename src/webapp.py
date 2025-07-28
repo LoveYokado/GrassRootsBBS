@@ -164,9 +164,9 @@ def get_webapp_online_members():
         if user_session:
             login_id = user_session.get('username')
             if login_id:
-                # server.pyのonline_membersと同じ形式の辞書を作成
                 members[login_id] = {
-                    "display_name": user_session.get('username'),
+                    # GUESTの場合はハッシュ付きの表示名、それ以外はログインID
+                    "display_name": user_session.get('display_name', login_id),
                     "addr": handler.channel.getpeername(),  # ダミーIPを返す
                     "menu_mode": user_session.get('menu_mode', '?')
                 }
@@ -176,10 +176,11 @@ def get_webapp_online_members():
 class WebTerminalHandler:
     """Webターミナルセッションの状態とロジックを管理するクラス"""
 
-    def __init__(self, sid, db_name, user_session):
+    def __init__(self, sid, db_name, user_session, ip_address):
         self.sid = sid
         self.db_name = db_name
         self.user_session = user_session
+        self.ip_address = ip_address
         self.speed = 'full'
         self.bps_delay = 0
         self.output_queue = collections.deque()
@@ -193,8 +194,9 @@ class WebTerminalHandler:
 
         # SSHの `paramiko.Channel` のように振る舞うアダプタクラス
         class WebChannel:
-            def __init__(self, handler_instance):
+            def __init__(self, handler_instance, ip_addr):
                 self.handler = handler_instance
+                self.ip_address = ip_addr
                 self.recv_buffer = b''
                 self.active = True
                 self._timeout = None
@@ -246,8 +248,8 @@ class WebTerminalHandler:
                 return ret
 
             def getpeername(self):
-                # sessionからIPを取得するのは難しいのでダミーを返す
-                return ('127.0.0.1', 12345)
+                # WebTerminalHandlerから渡されたIPアドレスを返す
+                return (self.ip_address, 12345)
 
             def close(self):
                 self.active = False
@@ -324,7 +326,7 @@ class WebTerminalHandler:
                 """
                 return self._process_input_internal(echo=False)
 
-        self.channel = WebChannel(self)
+        self.channel = WebChannel(self, self.ip_address)
         socketio.start_background_task(self._sender_worker)
         socketio.start_background_task(self._bbs_main_loop)
 
@@ -400,7 +402,7 @@ class WebTerminalHandler:
                     'chan': self.channel,
                     'dbname': self.db_name,
                     'login_id': self.user_session.get('username'),
-                    'display_name': util.get_display_name(self.user_session.get('username'), self.channel.getpeername()[0]),
+                    'display_name': self.user_session.get('display_name'),
                     'user_id': self.user_session.get('user_id'),
                     'userlevel': self.user_session.get('userlevel'),
                     'server_pref_dict': server_pref_dict,
@@ -600,18 +602,21 @@ def handle_connect(auth=None):
 
     username = session.get('username', 'Unknown')
     ip_addr = request.remote_addr or 'N/A'
-    logging.getLogger('grbbs.access').info(f"CONNECT - User: {username}, IP: {ip_addr}, SID: {request.sid}")
+    # GUESTの場合はハッシュ付きの表示名を生成
+    display_name = util.get_display_name(username, ip_addr)
+    logging.getLogger('grbbs.access').info(f"CONNECT - User: {username}, DisplayName: {display_name}, IP: {ip_addr}, SID: {request.sid}")
 
     sid = request.sid
     # ユーザーセッション情報を辞書としてハンドラに渡す
     user_session_data = {
         'user_id': session.get('user_id'),
+        'display_name': display_name,  # 表示名を追加
         'username': session.get('username'),
         'userlevel': session.get('userlevel'),
         'lastlogin': session.get('lastlogin', 0),
         'menu_mode': session.get('menu_mode', '2')
     }
-    handler = WebTerminalHandler(sid, DB_NAME, user_session_data)
+    handler = WebTerminalHandler(sid, DB_NAME, user_session_data, ip_addr)
     client_states[sid] = handler
 
     logging.info(
@@ -640,7 +645,11 @@ def handle_disconnect():
 
     sid = request.sid
     username = session.get('username', 'Unknown')
-    logging.getLogger('grbbs.access').info(f"DISCONNECT - User: {username}, SID: {sid}")
+    # 切断時には client_states から表示名を取得
+    display_name = "Unknown"
+    if sid in client_states:
+        display_name = client_states[sid].user_session.get('display_name', username)
+    logging.getLogger('grbbs.access').info(f"DISCONNECT - User: {username}, DisplayName: {display_name}, SID: {sid}")
 
     if sid in client_states:
         client_states[sid].stop_worker()  # これで両方のスレッドが停止する
@@ -684,7 +693,10 @@ def handle_toggle_logging():
         # ファイル名生成
         bbs_name = util.app_config.get('server', {}).get('BBS_NAME', 'GR-BBS')
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{bbs_name}_{handler.user_session.get('username')}_{timestamp}.log"
+        display_name_for_log = handler.user_session.get('display_name', handler.user_session.get('username'))
+        # ファイル名として安全な文字列に変換
+        safe_display_name = display_name_for_log.replace('(', '_').replace(')', '')
+        filename = f"{bbs_name}_{safe_display_name}_{timestamp}.log"
         filepath = os.path.join(SESSION_LOG_DIR, filename)
 
         try:
