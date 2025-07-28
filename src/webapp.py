@@ -92,7 +92,8 @@ try:
         os.path.join(APP_LOG_DIR, 'grbbs.error.log'),
         maxBytes=1024 * 1024 * 5, backupCount=3, encoding='utf-8'
     )
-    error_handler.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
+    error_handler.setFormatter(logging.Formatter(
+        '[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
     logging.getLogger().addHandler(error_handler)
     logging.getLogger().setLevel(logging.INFO)
 
@@ -506,7 +507,12 @@ def login():
             if session.get('lockout_expiration', 0) > time.time():
                 remaining_time = session.get(
                     'lockout_expiration', 0) - time.time()
-                error = f"アカウントは一時的にロックされています。{remaining_time:.0f}秒後に再試行してください。"
+                # textdata.yamlからメッセージを取得
+                error = util.get_text_by_key(
+                    "auth.account_locked_temporary",
+                    session.get('menu_mode', '2'),
+                    default_value="Account is temporarily locked. Please try again in {remaining_time:.0f} seconds."
+                ).format(remaining_time=remaining_time)
                 logging.warning(
                     f"ログイン試行失敗: アカウントロック中 {username} (残り{remaining_time:.0f}秒)")
                 return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message)
@@ -554,7 +560,12 @@ def login():
                 if session['login_attempts'] >= app.config['MAX_LOGIN_ATTEMPTS']:
                     session['lockout_expiration'] = time.time() + \
                         app.config['LOCKOUT_TIME']
-                    error = f"アカウントはロックされました。{app.config['LOCKOUT_TIME']/60:.0f}分後に再試行してください。"
+                    lockout_minutes = app.config['LOCKOUT_TIME'] / 60
+                    error = util.get_text_by_key(
+                        "auth.account_locked_permanent",
+                        session.get('menu_mode', '2'),
+                        default_value="Account has been locked. Please try again in {lockout_minutes:.0f} minutes."
+                    ).format(lockout_minutes=lockout_minutes)
                     logging.warning(
                         f"アカウントをロックしました: {username} (試行回数超過)")
                 else:
@@ -595,12 +606,15 @@ def handle_connect(auth=None):
         # client_states を直接チェックして、同じユーザー名が既に存在しないか確認
         for sid, handler in client_states.copy().items():
             if handler.user_session.get('username') == username_to_connect:
-                logging.warning(f"WebUIでのマルチログインが試みられました: {username_to_connect} from {request.remote_addr}")
+                logging.warning(
+                    f"WebUIでのマルチログインが試みられました: {username_to_connect} from {request.remote_addr}")
                 # クライアントに通知して切断させる
-                logoff_message_text = util.get_text_by_key("auth.already_logged_in", session.get('menu_mode', '2'))
-                processed_text = logoff_message_text.replace('\r\n', '\n').replace('\n', '\r\n')
+                logoff_message_text = util.get_text_by_key(
+                    "auth.already_logged_in", session.get('menu_mode', '2'))
+                processed_text = logoff_message_text.replace(
+                    '\r\n', '\n').replace('\n', '\r\n')
                 emit('force_disconnect', {'message': processed_text})
-                return False # 接続を拒否
+                return False  # 接続を拒否
 
     # --- 接続数チェック ---
     global current_webapp_clients
@@ -617,7 +631,8 @@ def handle_connect(auth=None):
     ip_addr = request.remote_addr or 'N/A'
     # GUESTの場合はハッシュ付きの表示名を生成
     display_name = util.get_display_name(username, ip_addr)
-    logging.getLogger('grbbs.access').info(f"CONNECT - User: {username}, DisplayName: {display_name}, IP: {ip_addr}, SID: {request.sid}")
+    logging.getLogger('grbbs.access').info(
+        f"CONNECT - User: {username}, DisplayName: {display_name}, IP: {ip_addr}, SID: {request.sid}")
 
     sid = request.sid
     # ユーザーセッション情報を辞書としてハンドラに渡す
@@ -661,8 +676,10 @@ def handle_disconnect():
     # 切断時には client_states から表示名を取得
     display_name = "Unknown"
     if sid in client_states:
-        display_name = client_states[sid].user_session.get('display_name', username)
-    logging.getLogger('grbbs.access').info(f"DISCONNECT - User: {username}, DisplayName: {display_name}, SID: {sid}")
+        display_name = client_states[sid].user_session.get(
+            'display_name', username)
+    logging.getLogger('grbbs.access').info(
+        f"DISCONNECT - User: {username}, DisplayName: {display_name}, SID: {sid}")
 
     if sid in client_states:
         client_states[sid].stop_worker()  # これで両方のスレッドが停止する
@@ -706,9 +723,11 @@ def handle_toggle_logging():
         # ファイル名生成
         bbs_name = util.app_config.get('server', {}).get('BBS_NAME', 'GR-BBS')
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        display_name_for_log = handler.user_session.get('display_name', handler.user_session.get('username'))
+        display_name_for_log = handler.user_session.get(
+            'display_name', handler.user_session.get('username'))
         # ファイル名として安全な文字列に変換
-        safe_display_name = display_name_for_log.replace('(', '_').replace(')', '')
+        safe_display_name = display_name_for_log.replace(
+            '(', '_').replace(')', '')
         filename = f"{bbs_name}_{safe_display_name}_{timestamp}.log"
         filepath = os.path.join(SESSION_LOG_DIR, filename)
 

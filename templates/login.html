@@ -122,15 +122,44 @@
         /* --- レスポンシブ対応 --- */
         @media screen and (max-width: 768px) {
             body {
-                align-items: flex-start;
-                /* 上寄せにする */
-                padding-top: 5vh;
+                display: block;
+                /* flexboxによる中央寄せを解除 */
+                padding: 2rem 1rem;
+                /* 上下に余白を持たせる */
+                box-sizing: border-box;
+                height: auto;
+                /* 高さを自動に */
             }
 
             .login-container {
                 width: 90%;
+                max-width: 400px;
+                /* 最大幅は維持 */
                 padding: 20px;
                 box-shadow: none;
+                margin: 0 auto;
+                /* 水平中央寄せ */
+            }
+
+            /* ロゴとタイトルのマージンを調整してコンパクトに */
+            .logo {
+                max-width: 60%;
+                margin-bottom: 15px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+
+            .message,
+            .error {
+                margin-bottom: 15px;
+            }
+
+            input[type="text"],
+            input[type="password"] {
+                margin-bottom: 12px;
             }
         }
     </style>

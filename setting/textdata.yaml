@@ -1940,6 +1940,15 @@ auth:
     mode_1: "このIDは既に使用されています。切断します。\r\n"
     mode_2: "このIDは既に使用されています。切断します。\r\n"
     mode_3: "This ID is already in use. Disconnecting.\r\n"
+  account_locked_temporary:
+    mode_1: "アカウントは一時的にロックされています。{remaining_time:.0f}秒後に再試行してください。"
+    mode_2: "アカウントは一時的にロックされています。{remaining_time:.0f}秒後に再試行してください。"
+    mode_3: "Account is temporarily locked. Please try again in {remaining_time:.0f} seconds."
+  account_locked_permanent:
+    mode_1: "アカウントはロックされました。{lockout_minutes:.0f}分後に再試行してください。"
+    mode_2: "アカウントはロックされました。{lockout_minutes:.0f}分後に再試行してください。"
+    mode_3: "Account has been locked. Please try again in {lockout_minutes:.0f} minutes."
+
 
 # --- ログイン後処理関連 ---
 login:
