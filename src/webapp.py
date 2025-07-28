@@ -589,6 +589,19 @@ def handle_connect(auth=None):
     if 'user_id' not in session:
         return False  # 未認証ユーザーは接続を拒否
 
+    # --- マルチログインチェック ---
+    username_to_connect = session.get('username', 'Unknown')
+    if username_to_connect.upper() != 'GUEST':
+        # client_states を直接チェックして、同じユーザー名が既に存在しないか確認
+        for sid, handler in client_states.copy().items():
+            if handler.user_session.get('username') == username_to_connect:
+                logging.warning(f"WebUIでのマルチログインが試みられました: {username_to_connect} from {request.remote_addr}")
+                # クライアントに通知して切断させる
+                logoff_message_text = util.get_text_by_key("auth.already_logged_in", session.get('menu_mode', '2'))
+                processed_text = logoff_message_text.replace('\r\n', '\n').replace('\n', '\r\n')
+                emit('force_disconnect', {'message': processed_text})
+                return False # 接続を拒否
+
     # --- 接続数チェック ---
     global current_webapp_clients
     with current_webapp_clients_lock:
