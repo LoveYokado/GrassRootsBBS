@@ -22,6 +22,7 @@ import os
 import logging
 import datetime
 from logging.handlers import RotatingFileHandler
+import glob
 import collections
 import codecs
 from gevent import monkey
@@ -477,7 +478,7 @@ def index():
     fkey_definitions = {
         "f1": {"label": "SETTING", "action": "open_popup"},
         "f2": {"label": "LOGGING", "action": "toggle_logging"},
-        "f3": {"label": "NoFunction", "action": "none"},  # フルスクリーン機能は設定メニューに移動
+        "f3": {"label": "LOG VIEW", "action": "open_log_viewer"},
         "f4": {"label": "NoFunction", "action": "none"},  # 予約
         "f5": {"label": "Line Edit", "action": "open_line_editor"},
         "f6": {"label": "M-Line Edit", "action": "open_multiline_editor"},
@@ -760,6 +761,105 @@ def download_log(filename):
     """保存されたログファイルをダウンロードさせる"""
     # セキュリティのため、SESSION_LOG_DIRからのみファイルを送信する
     return send_from_directory(SESSION_LOG_DIR, filename, as_attachment=True)
+
+
+@socketio.on('get_log_files')
+def handle_get_log_files():
+    """クライアントに保存済みログファイルの一覧を送信する"""
+    if 'user_id' not in session:
+        return
+
+    sid = request.sid
+    if sid not in client_states:
+        return
+
+    handler = client_states[sid]
+    # ユーザー自身のログファイルのみを対象とする
+    display_name_for_log = handler.user_session.get(
+        'display_name', handler.user_session.get('username'))
+    safe_display_name = display_name_for_log.replace('(', '_').replace(')', '')
+
+    # ユーザー名でファイルを絞り込むためのパターン
+    search_pattern = f"*_{safe_display_name}_*.log"
+
+    log_files = []
+    try:
+        file_paths = glob.glob(os.path.join(SESSION_LOG_DIR, search_pattern))
+        for file_path in file_paths:
+            try:
+                stat = os.stat(file_path)
+                log_files.append({
+                    'filename': os.path.basename(file_path),
+                    'size': stat.st_size,
+                    'mtime': stat.st_mtime  # 変更日時 (タイムスタンプ)
+                })
+            except OSError:
+                continue
+
+        log_files.sort(key=lambda x: x['mtime'], reverse=True)
+        emit('log_files_list', {'files': log_files}, to=sid)
+        logging.info(
+            f"Sent log file list to {session.get('username')} (sid: {sid})")
+
+    except Exception as e:
+        logging.error(
+            f"Error getting log files for {session.get('username')}: {e}")
+        emit('error_message', {'message': 'ログファイルの取得に失敗しました。'}, to=sid)
+
+
+@socketio.on('get_log_content')
+def handle_get_log_content(data):
+    """指定されたログファイルの内容をクライアントに送信する"""
+    if 'user_id' not in session:
+        return
+
+    sid = request.sid
+    if sid not in client_states:
+        return
+
+    filename = data.get('filename')
+    if not filename:
+        return
+
+    safe_path = os.path.abspath(os.path.join(SESSION_LOG_DIR, filename))
+    if not safe_path.startswith(os.path.abspath(SESSION_LOG_DIR)):
+        logging.warning(
+            f"Potential directory traversal attempt: {filename} from {session.get('username')}")
+        return
+
+    try:
+        with open(safe_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        # ターミナル表示用に改行コードを正規化
+        content_for_terminal = content.replace(
+            '\r\n', '\n').replace('\n', '\r\n')
+        emit('log_content', {'filename': filename,
+             'content': content_for_terminal}, to=sid)
+    except Exception as e:
+        logging.error(f"Error reading log file {filename}: {e}")
+        emit('error_message', {'message': 'ログファイルの読み込みに失敗しました。'}, to=sid)
+
+
+@socketio.on('get_current_log_buffer')
+def handle_get_current_log_buffer():
+    """クライアントに現在記録中のログバッファ内容を送信する"""
+    sid = request.sid
+    if sid in client_states:
+        handler = client_states[sid]
+        if handler.is_logging:
+            content = "".join(handler.log_buffer)
+            # ターミナル表示用に改行コードを正規化
+            content_for_terminal = content.replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            # 既存の'log_content'イベントを再利用して送信
+            emit('log_content', {'filename': '(ロギング中)',
+                 'content': content_for_terminal}, to=sid)
+            logging.info(
+                f"Sent current log buffer to {session.get('username')} (sid: {sid})")
+        else:
+            # ロギング中でない場合は、空の内容を返すか、エラーメッセージを返す
+            emit('log_content', {'filename': '(ロギング中)',
+                 'content': 'ロギングが開始されていません。'}, to=sid)
 
 
 # --- Webサーバーの起動 ---

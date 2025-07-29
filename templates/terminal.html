@@ -202,6 +202,103 @@
             /* paddingとborderを幅に含める */
         }
 
+        /* --- ログビューワーのスタイル調整 --- */
+        #log-viewer-window {
+            width: 80vw;
+            height: 70vh;
+            max-width: 1200px;
+            max-height: 800px;
+        }
+
+        .log-viewer-container {
+            display: flex;
+            height: calc(100% - 50px);
+            /* ヘッダーの高さを引く */
+            gap: 15px;
+        }
+
+        .file-list-pane {
+            flex: 0 0 300px;
+            /* 幅を固定 */
+            overflow-y: auto;
+            border-right: 1px solid #b0a888;
+            padding-right: 15px;
+        }
+
+        .content-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #log-content-display {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- ログビューワーのスタイル調整 --- */
+        #log-viewer-window {
+            width: 80vw;
+            height: 70vh;
+            max-width: 1200px;
+            max-height: 800px;
+        }
+
+        .log-viewer-container {
+            display: flex;
+            height: calc(100% - 50px);
+            /* ヘッダーの高さを引く */
+            gap: 15px;
+        }
+
+        .file-list-pane {
+            flex: 0 0 300px;
+            /* 幅を固定 */
+            overflow-y: auto;
+            border-right: 1px solid #b0a888;
+            padding-right: 15px;
+        }
+
+        .content-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #log-content-display {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- ログビューワーのスタイル調整 --- */
+        #log-viewer-window {
+            width: 80vw;
+            height: 70vh;
+            max-width: 1200px;
+            max-height: 800px;
+        }
+
+        .log-viewer-container {
+            display: flex;
+            height: calc(100% - 50px);
+            /* ヘッダーの高さを引く */
+            gap: 15px;
+        }
+
+        .file-list-pane {
+            flex: 0 0 300px;
+            /* 幅を固定 */
+            overflow-y: auto;
+            border-right: 1px solid #b0a888;
+
+            padding-right: 1;
+        }
+
+        .popup-content button:hover {
+            background-color: #e9e9e9;
+        }
+
+
         /* --- ポップアップ --- */
         .popup-overlay {
             display: none;
@@ -298,6 +395,30 @@
             border-radius: 3px;
         }
 
+        /* --- ログビューワーのスタイル調整 --- */
+        #log-viewer-window {
+            width: 80vw;
+            height: 70vh;
+            max-width: 1200px;
+            max-height: 800px;
+        }
+
+        .log-viewer-container {
+            display: flex;
+            height: calc(100% - 50px);
+            /* ヘッダーの高さを引く */
+            gap: 15px;
+        }
+
+        .file-list-pane {
+            flex: 0 0 300px;
+            /* 幅を固定 */
+            overflow-y: auto;
+            border-right: 1px solid #b0a888;
+
+            padding-right: 1;
+        }
+
         .popup-content button:hover {
             background-color: #e9e9e9;
         }
@@ -324,6 +445,23 @@
             border-color: #222 #555 #555 #222;
             border-radius: 4px;
             font-family: '"M+ 1m", "Courier New", monospace';
+        }
+
+
+
+        .popup-window-textarea {
+            width: 100%;
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
+            font-family: '"M+ 1m", "Courier New", monospace';
+            resize: none;
+            /* リサイズ不可 */
+            padding: 8px;
+            box-sizing: border-box;
         }
 
         .popup-window textarea {
@@ -498,6 +636,24 @@
             <div>
                 <button id="multiline-editor-insert-btn">Insert</button>
                 <button id="multiline-editor-cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ログビューワー用ポップアップ -->
+    <div id="log-viewer-overlay" class="popup-overlay"></div>
+    <div id="log-viewer-window" class="popup-window">
+        <div class="popup-header">
+            <h2>ログビューワー</h2>
+            <button id="log-viewer-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content log-viewer-container">
+            <div class="file-list-pane">
+                <h3>ログファイル一覧</h3>
+                <ul id="log-files-list" style="list-style-type: none; padding: 0;"></ul>
+            </div>
+            <div class="content-pane">
+                <textarea id="log-content-display" class="popup-window-textarea" readonly></textarea>
             </div>
         </div>
     </div>
@@ -848,6 +1004,14 @@
         const multilineEditorCancelBtn = document.getElementById('multiline-editor-cancel-btn');
         const ansiControls = document.getElementById('ansi-controls');
 
+        // ログビューワー用ポップアップの要素を取得
+        const logViewerOverlay = document.getElementById('log-viewer-overlay');
+        const logViewerWindow = document.getElementById('log-viewer-window');
+        const logViewerCloseBtn = document.getElementById('log-viewer-close-btn');
+        const logContentDisplay = document.getElementById('log-content-display');
+        const logFilesList = document.getElementById('log-files-list');
+
+
         // ANSIコード挿入処理
         ansiControls.addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON' && e.target.dataset.sequence) {
@@ -970,6 +1134,20 @@
             popupWindow.classList.remove('visible');
         }
 
+        function openLogViewer() {
+            logFilesList.innerHTML = ''; // リストをクリア
+            logContentDisplay.value = ''; // 内容をクリア
+            // サーバーにログファイル一覧を要求
+            socket.emit('get_log_files');
+            logViewerOverlay.classList.add('visible');
+            logViewerWindow.classList.add('visible');
+        }
+
+        function closeLogViewer() {
+            logViewerOverlay.classList.remove('visible');
+            logViewerWindow.classList.remove('visible');
+        }
+
         // --- ファンクションキー生成 ---
         const fkeysLeftContainer = document.getElementById('f-keys-left');
         const fkeysRightContainer = document.getElementById('f-keys-right');
@@ -999,6 +1177,9 @@
                     key.addEventListener('click', () => {
                         socket.emit('toggle_logging');
                     });
+                } else if (definition.action === 'open_log_viewer') {
+                    key.addEventListener('click', openLogViewer);
+
                 } else if (definition.action === 'redirect') {
                     key.addEventListener('click', () => {
                         window.location.href = definition.value;
@@ -1023,6 +1204,8 @@
         multilineEditorCloseBtn.addEventListener('click', closeMultilineEditor);
         multilineEditorCancelBtn.addEventListener('click', closeMultilineEditor);
         multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
+        logViewerCloseBtn.addEventListener('click', closeLogViewer);
+        logViewerOverlay.addEventListener('click', closeLogViewer);
 
 
         // ボタンにイベントリスナーを設定
@@ -1059,15 +1242,75 @@
             term.write(data);
         });
 
+        // サーバーからログファイル一覧を受け取ったときの処理
+        socket.on('log_files_list', (data) => {
+            logFilesList.innerHTML = ''; // 既存のリストをクリア
+
+            // ロギング中であれば、特別な項目をリストの先頭に追加
+            if (isLogging) {
+                const li = document.createElement('li');
+                const button = document.createElement('button');
+                button.textContent = '🔴 (記録中のログ)';
+                button.style.color = '#ff4444';
+                button.style.fontWeight = 'bold';
+                button.style.width = '100%';
+                button.style.textAlign = 'left';
+                button.style.marginBottom = '5px';
+                button.addEventListener('click', () => {
+                    logContentDisplay.value = '記録中のログを読み込んでいます...';
+                    socket.emit('get_current_log_buffer');
+                });
+                li.appendChild(button);
+                logFilesList.appendChild(li);
+            }
+
+            if (data.files && data.files.length > 0) {
+                data.files.forEach(file => {
+                    const li = document.createElement('li');
+                    const button = document.createElement('button');
+                    const date = new Date(file.mtime * 1000).toLocaleString('ja-JP');
+                    button.textContent = `${file.filename}`;
+                    button.title = `サイズ: ${(file.size / 1024).toFixed(1)} KB, 更新日時: ${date}`;
+                    button.style.width = '100%';
+                    button.style.textAlign = 'left';
+                    button.style.marginBottom = '5px';
+                    button.addEventListener('click', () => {
+                        logContentDisplay.value = `ログファイル「${file.filename}」を読み込んでいます...`;
+                        socket.emit('get_log_content', { filename: file.filename });
+                    });
+                    li.appendChild(button);
+                    logFilesList.appendChild(li);
+                });
+            } else if (!isLogging) {
+                const li = document.createElement('li');
+                li.textContent = '保存されているログファイルはありません。';
+                logFilesList.appendChild(li);
+            }
+        });
+
+        // サーバーからログの内容を受け取ったときの処理
+        socket.on('log_content', (data) => {
+            logContentDisplay.value = data.content;
+        });
+
+        socket.on('error_message', (data) => {
+            term.writeln(`\r\n\x1b[31m[Error] ${data.message}\x1b[0m`);
+            socket.emit('client_input', '\r');
+        });
+
+        let isLogging = false;
+
         // --- ログ記録関連のイベントリスナー ---
         socket.on('logging_started', () => {
             const f2LogBtn = document.getElementById('f2-log-btn');
+            isLogging = true;
             if (f2LogBtn) {
                 f2LogBtn.textContent = 'LOGGING...';
             }
         });
 
         socket.on('log_saved', (data) => {
+            isLogging = false;
             const f2LogBtn = document.getElementById('f2-log-btn');
             if (f2LogBtn) {
                 f2LogBtn.textContent = 'LOGGING';
@@ -1083,6 +1326,7 @@
         });
 
         socket.on('logging_stopped', (data) => {
+            isLogging = false;
             const f2LogBtn = document.getElementById('f2-log-btn');
             // ログが空だった場合などのメッセージはターミナルに表示しない
         });
@@ -1161,6 +1405,7 @@
         }
         // すべてのポップアップをドラッグ可能にする
         document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
+        makePopupDraggable(logViewerWindow);
 
         // ページ読み込み時に設定を適用
         document.addEventListener('DOMContentLoaded', () => {
