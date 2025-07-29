@@ -5,7 +5,7 @@
 # Gunicorn + gevent で WebSocket を動作させるために必須
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
-from . import bbs_manager, command_dispatcher, sqlite_tools, util
+from . import bbs_manager, command_dispatcher, database, util
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_socketio import SocketIO, emit, disconnect
 from flask_session import Session
@@ -67,10 +67,6 @@ socketio = SocketIO(
 try:
     config_path = os.path.join(PROJECT_ROOT, 'setting', 'config.toml')
     util.load_app_config_from_path(config_path)
-    db_path_relative = util.app_config.get('paths', {}).get('db_name')
-    if not db_path_relative:
-        raise ValueError("データベース名が設定ファイルに見つかりません。")
-    DB_NAME = os.path.join(PROJECT_ROOT, db_path_relative)
     if not os.path.exists(APP_LOG_DIR):
         os.makedirs(APP_LOG_DIR)
     if not os.path.exists(SESSION_LOG_DIR):
@@ -98,23 +94,40 @@ try:
     logging.getLogger().addHandler(error_handler)
     logging.getLogger().setLevel(logging.INFO)
 
-    # --- データベース初期化チェック ---
-    if not os.path.isfile(DB_NAME):
-        logging.info(f"データベースファイル '{DB_NAME}' が見つかりません。初期化を実行します。")
-        # 環境変数からシスオペ情報を取得
-        sysop_id_from_env = os.getenv('GRASSROOTSBBS_SYSOP_ID')
-        sysop_password_from_env = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
-        sysop_email_from_env = os.getenv('GRASSROOTSBBS_SYSOP_EMAIL')
+    # --- MariaDB 接続設定 ---
+    db_config = {
+        'host': os.getenv('DB_HOST', 'localhost'),
+        'user': os.getenv('DB_USER', 'grbbs_user'),
+        'password': os.getenv('DB_PASSWORD', 'password'),
+        'database': os.getenv('DB_NAME', 'grbbs'),
+        'charset': 'utf8mb4',
+        'collation': 'utf8mb4_general_ci',
+        'autocommit': False  # 明示的にcommit/rollbackを管理
+    }
+    # コネクションプールを初期化
+    database.init_connection_pool(
+        pool_name="grbbs_pool",
+        pool_size=5,
+        db_config=db_config
+    )
 
-        if not (sysop_id_from_env and sysop_password_from_env and sysop_email_from_env):
+    # --- データベース初期化チェック ---
+    # アプリケーション起動時にテーブルの存在を確認し、なければ作成する
+    if not util.check_database_initialized():
+        logging.info("データベースが初期化されていません。初期セットアップを実行します。")
+        sysop_id = os.getenv('GRASSROOTSBBS_SYSOP_ID')
+        sysop_password = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
+        sysop_email = os.getenv('GRASSROOTSBBS_SYSOP_EMAIL')
+
+        if not (sysop_id and sysop_password and sysop_email):
             logging.critical(
                 "初回起動には環境変数 GRASSROOTSBBS_SYSOP_ID, GRASSROOTSBBS_SYSOP_PASSWORD, GRASSROOTSBBS_SYSOP_EMAIL が必要です。")
-            # Webアプリの場合、ここで終了するとコンテナが再起動ループに陥る可能性があるためエラーログに留める
         else:
             try:
-                util.make_sysop_and_database(
-                    DB_NAME, sysop_id_from_env, sysop_password_from_env, sysop_email_from_env)
-                logging.info(f"データベースとシスオペ '{sysop_id_from_env}' の初期化が完了しました。")
+                util.initialize_database_and_sysop(
+                    sysop_id, sysop_password, sysop_email
+                )
+                logging.info(f"データベースとシスオペ '{sysop_id}' の初期化が完了しました。")
             except Exception as e:
                 logging.exception(
                     f"データベースの初期化中にエラーが発生しました: {e}")
@@ -178,9 +191,8 @@ def get_webapp_online_members():
 class WebTerminalHandler:
     """Webターミナルセッションの状態とロジックを管理するクラス"""
 
-    def __init__(self, sid, db_name, user_session, ip_address):
+    def __init__(self, sid, user_session, ip_address):
         self.sid = sid
-        self.db_name = db_name
         self.user_session = user_session
         self.ip_address = ip_address
         self.speed = 'full'
@@ -359,7 +371,7 @@ class WebTerminalHandler:
         server_pref_dict = {}
         try:
             # サーバ設定読み込み
-            pref_list = sqlite_tools.read_server_pref(self.db_name)
+            pref_list = database.read_server_pref()
             pref_names = ['bbs', 'chat', 'mail', 'telegram',
                           'userpref', 'who', 'default_exploration_list', 'hamlet', 'login_message']
             if pref_list and len(pref_list) >= len(pref_names):
@@ -393,16 +405,14 @@ class WebTerminalHandler:
 
             while self.main_thread_active:
                 # プロンプト前の定型処理 (メール/電報通知)
-                _, self.mail_notified_this_session = util.prompt_handler(
-                    self.channel, self.db_name, self.user_session.get(
-                        'username'),
+                _, self.mail_notified_this_session = util.prompt_handler(self.channel, self.user_session.get(
+                    'username'),
                     self.user_session.get(
                         'menu_mode', '2'), self.mail_notified_this_session
                 )
 
                 context = {
                     'chan': self.channel,
-                    'dbname': self.db_name,
                     'login_id': self.user_session.get('username'),
                     'display_name': self.user_session.get('display_name'),
                     'user_id': self.user_session.get('user_id'),
@@ -516,10 +526,10 @@ def login():
                 ).format(remaining_time=remaining_time)
                 logging.warning(
                     f"ログイン試行失敗: アカウントロック中 {username} (残り{remaining_time:.0f}秒)")
-                return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message)
+                return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
 
         # 既存の認証ロジックを再利用
-        user_auth_info = sqlite_tools.get_user_auth_info(DB_NAME, username)
+        user_auth_info = database.get_user_auth_info(username)
 
         auth_success = False
         if user_auth_info:
@@ -547,8 +557,8 @@ def login():
             logging.info(f"WebUI Login Success: {username}")
 
             # DBのログイン時刻を更新
-            sqlite_tools.update_idbase(DB_NAME, 'users', [
-                                       'lastlogin'], user_auth_info['id'], 'lastlogin', int(time.time()))
+            database.update_idbase('users', ['lastlogin'], user_auth_info['id'],
+                                   'id', [int(time.time())])
 
             return redirect(url_for('index'))
         else:
@@ -645,7 +655,7 @@ def handle_connect(auth=None):
         'lastlogin': session.get('lastlogin', 0),
         'menu_mode': session.get('menu_mode', '2')
     }
-    handler = WebTerminalHandler(sid, DB_NAME, user_session_data, ip_addr)
+    handler = WebTerminalHandler(sid, user_session_data, ip_addr)
     client_states[sid] = handler
 
     logging.info(

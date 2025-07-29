@@ -7,3 +7,4 @@ flask-session
 gunicorn
 gevent-websocket
 redis
+mysql-connector-python
