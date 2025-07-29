@@ -9,9 +9,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+1m:wght@400&display=swap" rel="stylesheet">
     <style>
-        body,
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            /* レイアウト計算を容易にするため、全要素に適用 */
+        }
+
         html {
             height: 100%;
+        }
+
+        body {
+            min-height: 100%;
+            /* コンテンツが少なくても画面の高さいっぱいに広がるように */
             margin: 0;
             background-color: #282c34;
             font-family: '"M+ 1m", "Courier New", monospace';
@@ -28,10 +39,8 @@
             border: 2px solid #008800;
             /* 中間的な緑の枠線 */
             border-radius: 10px;
-            padding: 30px;
             width: 350px;
             text-align: center;
-            box-sizing: border-box;
             /* 静的なグローと内側のライン */
             box-shadow: inset 0 0 0 1px rgba(0, 255, 0, 0.5),
                 /* 内側の緑のライン */
@@ -39,6 +48,7 @@
                 /* 内側の黒い影 */
                 0 0 25px rgba(0, 255, 0, 0.5);
             /* 外側の緑のグロー */
+            padding: 30px;
         }
 
         .logo {
@@ -126,9 +136,6 @@
                 /* flexboxによる中央寄せを解除 */
                 padding: 2rem 1rem;
                 /* 上下に余白を持たせる */
-                box-sizing: border-box;
-                height: auto;
-                /* 高さを自動に */
             }
 
             .login-container {
