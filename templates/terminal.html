@@ -143,7 +143,7 @@
 
         /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
         #terminal.blur-effect {
-            /* このクラスはJSでfilterを適用するために使用します */
+            /* このクラスはJSでfilterを適用するために使用 */
         }
 
         /* 走査線エフェクト */
@@ -170,15 +170,10 @@
         #function-keys-container {
             display: flex;
             justify-content: center;
-            /* 中央揃えに変更 */
             gap: 8px;
-            /* グループ間の隙間を追加 */
             padding: 5px 0;
-            /* ターミナルとの間隔を調整 */
             background-color: #000;
-            /* ターミナル画面に合わせる */
             margin-top: 15px;
-            /* 視覚的な区切り */
         }
 
         .f-key-group {
@@ -394,7 +389,6 @@
             border-radius: 4px;
             font-family: '"M+ 1m", "Courier New", monospace';
             resize: none;
-            /* リサイズ不可 */
             padding: 8px;
             box-sizing: border-box;
         }
@@ -434,7 +428,6 @@
             border-radius: 3px;
             font-size: 0.9em;
             font-family: sans-serif;
-            /* ボタンのフォントは読みやすく */
             /* 文字色はJSで動的に設定されるため、ここでは指定しない */
         }
 
@@ -552,7 +545,7 @@
 
     <!-- ハンバーガーメニュー本体 -->
     <div id="sidenav" class="sidenav">
-        <!-- メニュー項目はJSで動的に生成されます -->
+        <!-- メニュー項目はJSで動的に生成 -->
     </div>
     <!-- １行エディタ用ポップアップ -->
     <div id="line-editor-overlay" class="popup-overlay"></div>
@@ -678,8 +671,7 @@
                 fkey_bg: '#FFFFFF',
                 fkey_fg: '#000000',
                 filter_glow: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.3))',
-                // パソコン通信時代を彷彿とさせる、より鮮やかなANSIカラーパレット
-                black: '#000000',      // 標準の黒はそのまま
+                black: '#000000',      // 標準の黒
                 red: '#FF0000',      // 鮮やかな赤
                 green: '#00FF00',      // 鮮やかな緑
                 yellow: '#FFFF00',      // 鮮やかな黄
