@@ -236,69 +236,6 @@
             height: 100%;
         }
 
-        /* --- ログビューワーのスタイル調整 --- */
-        #log-viewer-window {
-            width: 80vw;
-            height: 70vh;
-            max-width: 1200px;
-            max-height: 800px;
-        }
-
-        .log-viewer-container {
-            display: flex;
-            height: calc(100% - 50px);
-            /* ヘッダーの高さを引く */
-            gap: 15px;
-        }
-
-        .file-list-pane {
-            flex: 0 0 300px;
-            /* 幅を固定 */
-            overflow-y: auto;
-            border-right: 1px solid #b0a888;
-            padding-right: 15px;
-        }
-
-        .content-pane {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #log-content-display {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* --- ログビューワーのスタイル調整 --- */
-        #log-viewer-window {
-            width: 80vw;
-            height: 70vh;
-            max-width: 1200px;
-            max-height: 800px;
-        }
-
-        .log-viewer-container {
-            display: flex;
-            height: calc(100% - 50px);
-            /* ヘッダーの高さを引く */
-            gap: 15px;
-        }
-
-        .file-list-pane {
-            flex: 0 0 300px;
-            /* 幅を固定 */
-            overflow-y: auto;
-            border-right: 1px solid #b0a888;
-
-            padding-right: 1;
-        }
-
-        .popup-content button:hover {
-            background-color: #e9e9e9;
-        }
-
-
         /* --- ポップアップ --- */
         .popup-overlay {
             display: none;
@@ -447,8 +384,6 @@
             font-family: '"M+ 1m", "Courier New", monospace';
         }
 
-
-
         .popup-window-textarea {
             width: 100%;
             background-color: #000;
@@ -561,6 +496,37 @@
                 display: block;
                 /* 狭い画面ではハンバーガーメニューを表示 */
             }
+
+            #multiline-editor-window,
+            #log-viewer-window {
+                width: 95vw;
+                height: 85vh;
+            }
+
+            #multiline-editor-window .popup-content {
+                display: flex;
+                flex-direction: column;
+                height: calc(100% - 60px);
+                /* ヘッダーとボタンの高さを考慮 */
+            }
+
+            #multiline-editor-input {
+                flex-grow: 1;
+                min-height: 100px;
+            }
+
+            .log-viewer-container {
+                flex-direction: column;
+            }
+
+            .file-list-pane {
+                flex: 0 1 40%;
+                /* 高さを40%に */
+                border-right: none;
+                border-bottom: 1px solid #b0a888;
+                padding-right: 0;
+                padding-bottom: 10px;
+            }
         }
 
         .xterm-viewport::-webkit-scrollbar {
@@ -622,7 +588,8 @@
                     <button class="ansi-btn" data-sequence="[0m">Reset</button>
                 </div>
                 <div class="control-group" id="ansi-color-buttons">
-                    <button class="ansi-btn" data-sequence="[30m" data-ansi-color-name="black">Black</button>
+                    <button class="ansi-btn" data-sequence="[30m" data-ansi-color-name="black"
+                        style="color: #000000;">Black</button>
                     <button class="ansi-btn" data-sequence="[31m" data-ansi-color-name="red">Red</button>
                     <button class="ansi-btn" data-sequence="[32m" data-ansi-color-name="green">Green</button>
                     <button class="ansi-btn" data-sequence="[33m" data-ansi-color-name="yellow">Yellow</button>
@@ -632,7 +599,7 @@
                     <button class="ansi-btn" data-sequence="[37m" data-ansi-color-name="white">White</button>
                 </div>
             </div>
-            <textarea id="multiline-editor-input" cols="80"></textarea>
+            <textarea id="multiline-editor-input" class="popup-window-textarea" cols="80"></textarea>
             <div>
                 <button id="multiline-editor-insert-btn">Insert</button>
                 <button id="multiline-editor-cancel-btn">Cancel</button>
@@ -1303,17 +1270,25 @@
         // --- ログ記録関連のイベントリスナー ---
         socket.on('logging_started', () => {
             const f2LogBtn = document.getElementById('f2-log-btn');
+            const sidenavLogBtn = document.getElementById('sidenav-log-btn');
             isLogging = true;
             if (f2LogBtn) {
                 f2LogBtn.textContent = 'LOGGING...';
+            }
+            if (sidenavLogBtn) {
+                sidenavLogBtn.textContent = 'F2: LOGGING...';
             }
         });
 
         socket.on('log_saved', (data) => {
             isLogging = false;
             const f2LogBtn = document.getElementById('f2-log-btn');
+            const sidenavLogBtn = document.getElementById('sidenav-log-btn');
             if (f2LogBtn) {
                 f2LogBtn.textContent = 'LOGGING';
+            }
+            if (sidenavLogBtn) {
+                sidenavLogBtn.textContent = 'F2: LOGGING';
             }
 
             // ダウンロードをトリガーするための隠しリンクを作成してクリック
@@ -1328,6 +1303,13 @@
         socket.on('logging_stopped', (data) => {
             isLogging = false;
             const f2LogBtn = document.getElementById('f2-log-btn');
+            const sidenavLogBtn = document.getElementById('sidenav-log-btn');
+            if (f2LogBtn) {
+                f2LogBtn.textContent = 'LOGGING';
+            }
+            if (sidenavLogBtn) {
+                sidenavLogBtn.textContent = 'F2: LOGGING';
+            }
             // ログが空だった場合などのメッセージはターミナルに表示しない
         });
 
@@ -1449,14 +1431,20 @@
                 link.href = '#'; // ページ遷移を防ぐ
                 link.textContent = `${fkeyId.toUpperCase()}: ${definition.label}`;
 
+                // アクションに応じてIDを付与
+                if (definition.action === 'toggle_logging') {
+                    link.id = 'sidenav-log-btn';
+                }
+
                 link.addEventListener('click', (e) => {
                     e.preventDefault(); // ページ遷移を防ぐ
                     // ファンクションキーの定義に基づいてアクションを実行
-                    if (definition.action === 'open_popup') openPopup();
-                    else if (definition.action === 'toggle_logging') socket.emit('toggle_logging');
-                    else if (definition.action === 'open_line_editor') openLineEditor();
-                    else if (definition.action === 'open_multiline_editor') openMultilineEditor();
-                    else if (definition.action === 'redirect') window.location.href = definition.value;
+                    if (definition.action === 'open_popup') { openPopup(); }
+                    else if (definition.action === 'toggle_logging') { socket.emit('toggle_logging'); }
+                    else if (definition.action === 'open_line_editor') { openLineEditor(); }
+                    else if (definition.action === 'open_multiline_editor') { openMultilineEditor(); }
+                    else if (definition.action === 'open_log_viewer') { openLogViewer(); }
+                    else if (definition.action === 'redirect') { window.location.href = definition.value; }
 
                     closeNav(); // メニュー項目をクリックしたらメニューを閉じる
                 });
