@@ -5,7 +5,7 @@ import textwrap
 import datetime
 import json
 
-from . import sqlite_tools, util, hierarchical_menu, bbs_manager, database
+from . import util, hierarchical_menu, bbs_manager, database
 
 # CommandHandler: ユーザー入力に応じたコマンド処理
 
@@ -13,9 +13,8 @@ from . import sqlite_tools, util, hierarchical_menu, bbs_manager, database
 class CommandHandler:
     """ユーザー入力に応じたコマンド処理を行うクラス"""
 
-    def __init__(self, chan, dbname, login_id, display_name, menu_mode, ip_address):
+    def __init__(self, chan, login_id, display_name, menu_mode, ip_address):
         self.chan = chan
-        self.dbname = dbname
         self.login_id = login_id
         self.display_name = display_name
         self.menu_mode = menu_mode
@@ -1191,22 +1190,28 @@ class CommandHandler:
             self.chan, header_info_key, self.menu_mode, board_permission_type=board_default_permission)
 
         # 現在のユーザリストを表示
-        current_permissions_db = sqlite_tools.get_board_permissions(  # "allow"だけでなく"deny"も取得するように変更
-            self.dbname, board_id_pk)
+        current_permissions_db = database.get_board_permissions(board_id_pk)
 
         registered_permissions = []
         if current_permissions_db:
+            # ユーザーIDのリストを作成し、一度のクエリでユーザー名を取得
+            user_ids_in_list = [perm['user_id']
+                                for perm in current_permissions_db]
+            id_to_name_map = database.get_user_names_from_user_ids(
+                user_ids_in_list)
+
             for perm_entry in current_permissions_db:
-                user_name = sqlite_tools.get_user_name_from_user_id(
-                    self.dbname, perm_entry['user_id'])
-                access_level = perm_entry['access_level'] if 'access_level' in perm_entry.keys(
-                ) else "unknown"
-                if user_name and user_name != "(不明)":  # 比較文字列を修正
+                user_id_str = perm_entry.get('user_id')
+                user_id_int = int(user_id_str) if user_id_str else -1
+                user_name = id_to_name_map.get(user_id_int)
+                access_level = perm_entry.get('access_level', "unknown")
+
+                if user_name:
                     registered_permissions.append(
                         (user_name, access_level))
-                elif user_name == "(不明)":  # ユーザー名が実際に "(不明)" の場合に警告
+                else:
                     logging.warning(
-                        f"掲示板 {board_id_pk} のパーミッションリストに不明なユーザID {perm_entry['user_id']} (access_level: {access_level}) が含まれています。")
+                        f"掲示板 {board_id_pk} のパーミッションリストに不明なユーザID {user_id_str} (access_level: {access_level}) が含まれています。")
 
         if registered_permissions:
             util.send_text_by_key(
@@ -1254,7 +1259,7 @@ class CommandHandler:
                 access_level_to_set = ""
                 if board_default_permission == "open":
                     access_level_to_set = "deny"
-                elif board_default_permission == "closed":
+                elif board_default_permission == "close":
                     access_level_to_set = "allow"
                 elif board_default_permission == "readonly":
                     access_level_to_set = "allow"
@@ -1262,9 +1267,8 @@ class CommandHandler:
                     access_level_to_set = "allow"
                     logging.info(
                         f"掲示板タイプ {board_default_permission} に対応するアクセスレベルを決定できませんでした。ユーザ {user_name_input} のアクセスレベルは'allow'に設定されました。")
-
-                target_user_id_pk_int = sqlite_tools.get_user_id_from_user_name(
-                    self.dbname, user_name_input)
+                target_user_id_pk_int = database.get_user_id_from_user_name(
+                    user_name_input)
                 if target_user_id_pk_int is None:
                     util.send_text_by_key(
                         self.chan, "bbs.user_not_found_in_list", self.menu_mode, username=user_name_input)
@@ -1277,7 +1281,7 @@ class CommandHandler:
                 return
 
         # DB更新
-        if not sqlite_tools.delete_board_permissions_by_board_id(self.dbname, board_id_pk):
+        if not database.delete_board_permissions_by_board_id(board_id_pk):
             util.send_text_by_key(
                 self.chan, "common_messages.db_update_error", self.menu_mode)
             logging.error(f"掲示板ID {board_id_pk} のユーザリストを削除できませんでした。")
@@ -1288,7 +1292,7 @@ class CommandHandler:
             unique_sorted_permissions = sorted(
                 list(set(parsed_permissions_to_add)), key=lambda x: x[0])
             for user_id_to_add_str, access_level_to_add in unique_sorted_permissions:
-                if not sqlite_tools.add_board_permission(self.dbname, board_id_pk, user_id_to_add_str, access_level_to_add):
+                if not database.add_board_permission(board_id_pk, user_id_to_add_str, access_level_to_add):
                     util.send_text_by_key(
                         self.chan, "common_messages.db_update_error", self.menu_mode)
                     logging.error(
@@ -1377,8 +1381,8 @@ class CommandHandler:
                     reply_sender_name = ""
                     try:
                         user_id_int = int(reply['user_id'])
-                        user_name = sqlite_tools.get_user_name_from_user_id(
-                            self.dbname, user_id_int)
+                        user_name = database.get_user_name_from_user_id(
+                            user_id_int)
                         reply_sender_name = user_name if user_name else "(Unknown)"
                     except (ValueError, TypeError):
                         reply_sender_name = str(reply['user_id'])

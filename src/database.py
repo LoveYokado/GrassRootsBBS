@@ -127,7 +127,7 @@ def update_record(table, set_data, where_data):
     query = f"UPDATE `{table}` SET {set_clause} WHERE {where_clause}"
 
     params = tuple(set_data.values()) + tuple(where_data.values())
-    execute_query(query, params)
+    return execute_query(query, params) is not None
 
 
 def read_server_pref():
@@ -568,3 +568,103 @@ def get_articles_by_board_id(board_id_pk, order_by="created_at ASC, article_numb
 
     query = f"SELECT id, article_number, user_id, parent_article_id, title, body, created_at, is_deleted, ip_address FROM articles WHERE {' AND '.join(where_clauses)} ORDER BY {order_by}"
     return execute_query(query, tuple(params), fetch='all')
+
+
+def get_article_by_board_and_number(board_id, article_number, include_deleted=False):
+    """指定された掲示板IDと記事番号の記事を取得する"""
+    where_clauses = ["board_id = %s", "article_number = %s"]
+    params = [board_id, article_number]
+
+    if not include_deleted:
+        where_clauses.append("is_deleted = 0")
+
+    # `parent_article_id` も取得するよう修正
+    query = f"SELECT id, article_number, user_id, parent_article_id, title, body, created_at, is_deleted, ip_address FROM articles WHERE {' AND '.join(where_clauses)}"
+
+    return execute_query(query, tuple(params), fetch='one')
+
+
+def toggle_article_deleted_status(article_id):
+    """記事の is_deleted フラグをトグルする"""
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. 現在の状態を取得
+        query_select = "SELECT is_deleted FROM articles WHERE id = %s"
+        cursor.execute(query_select, (article_id,))
+        result = cursor.fetchone()
+
+        if result is None:
+            logging.warning(
+                f"記事削除フラグのトグル失敗: 記事ID '{article_id}' が見つかりません。")
+            return False
+
+        current_status = result['is_deleted']
+        new_status = 1 - current_status  # 0 -> 1, 1 -> 0
+
+        # 2. 更新
+        query_update = "UPDATE articles SET is_deleted = %s WHERE id = %s"
+        cursor.execute(query_update, (new_status, article_id))
+        conn.commit()
+
+        logging.info(
+            f"記事ID {article_id} の is_deleted を {new_status} に変更しました。")
+        return True
+
+    except mysql.connector.Error as err:
+        logging.error(
+            f"記事削除フラグのトグル中にDBエラー (記事ID: {article_id}): {err}")
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+def toggle_article_deleted_status(article_id):
+    """記事の is_deleted フラグをトグルする"""
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. 現在の状態を取得
+        query_select = "SELECT is_deleted FROM articles WHERE id = %s"
+        cursor.execute(query_select, (article_id,))
+        result = cursor.fetchone()
+
+        if result is None:
+            logging.warning(
+                f"記事削除フラグのトグル失敗: 記事ID '{article_id}' が見つかりません。")
+            return False
+
+        current_status = result['is_deleted']
+        new_status = 1 - current_status  # 0 -> 1, 1 -> 0
+
+        # 2. 更新
+        query_update = "UPDATE articles SET is_deleted = %s WHERE id = %s"
+        cursor.execute(query_update, (new_status, article_id))
+        conn.commit()
+
+        logging.info(
+            f"記事ID {article_id} の is_deleted を {new_status} に変更しました。")
+        return True
+
+    except mysql.connector.Error as err:
+        logging.error(
+            f"記事削除フラグのトグル中にDBエラー (記事ID: {article_id}): {err}")
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()

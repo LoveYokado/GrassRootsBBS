@@ -40,7 +40,8 @@ def handle_help_q(context):
 def handle_explore_new_articles(context):
     """'n' 新アーティクル探索コマンドを処理する"""
     bbsmenu._handle_explore_new_articles(
-        context['chan'], context['dbname'], context['login_id'], context['user_id'], context['userlevel'], context['menu_mode']
+        context['chan'], context['login_id'], context['display_name'], context['user_id'],
+        context['userlevel'], context['menu_mode'], context['addr'][0]
     )
     util.send_text_by_key(
         context['chan'], "top_menu.menu", context['menu_mode'])
@@ -52,8 +53,8 @@ def handle_full_sig_exploration(context):
     default_exploration_list = context['server_pref_dict'].get(
         "default_exploration_list", "")
     bbsmenu._handle_full_sig_exploration(
-        context['chan'], context['dbname'], context['login_id'], context[
-            'user_id'], context['userlevel'], context['menu_mode'], default_exploration_list
+        context['chan'], context['login_id'], context['display_name'], context['user_id'],
+        context['userlevel'], context['menu_mode'], context['addr'][0], default_exploration_list
     )
     util.send_text_by_key(
         context['chan'], "top_menu.menu", context['menu_mode'])
@@ -63,7 +64,7 @@ def handle_full_sig_exploration(context):
 def handle_new_article_headlines(context):
     """'o' 新アーティクル見出しコマンドを処理する"""
     bbsmenu.handle_new_article_headlines(
-        context['chan'], context['dbname'], context['login_id'], context['user_id'], context['userlevel'], context['menu_mode']
+        context['chan'], context['login_id'], context['user_id'], context['userlevel'], context['menu_mode']
     )
     util.send_text_by_key(
         context['chan'], "top_menu.menu", context['menu_mode'])
@@ -73,7 +74,7 @@ def handle_new_article_headlines(context):
 def handle_auto_download(context):
     """'a' 自動ダウンロードコマンドを処理する"""
     bbsmenu.handle_auto_download(
-        context['chan'], context['dbname'], context['login_id'], context['user_id'], context['userlevel'], context['menu_mode']
+        context['chan'], context['login_id'], context['user_id'], context['userlevel'], context['menu_mode']
     )
     util.send_text_by_key(
         context['chan'], "top_menu.menu", context['menu_mode'])
@@ -98,8 +99,8 @@ def handle_bbs(context):
             paths_config = util.app_config.get('paths', {})
             bbs_config_path = paths_config.get('bbs_mode3_yaml')
             selected_item = hierarchical_menu.handle_hierarchical_menu(
-                context['chan'], bbs_config_path, context['menu_mode'], menu_type="BBS",
-                dbname=context['dbname'], enrich_boards=True)
+                context['chan'], bbs_config_path, context['menu_mode'],
+                menu_type="BBS", enrich_boards=True)
 
             if selected_item and selected_item.get("type") == "board":
                 item_id = selected_item.get("id")
@@ -162,8 +163,8 @@ def handle_chat(context):
 def handle_who_menu(context):
     """'w' オンラインメンバー一覧コマンドを処理する"""
     online_members_dict = _get_online_members_list(context)
-    bbsmenu.who_menu(context['chan'], context['dbname'],
-                     online_members_dict, context['menu_mode'])
+    bbsmenu.who_menu(context['chan'], online_members_dict,
+                     context['menu_mode'])
     util.send_text_by_key(
         context['chan'], "top_menu.menu", context['menu_mode'])
     return {'status': 'continue'}
@@ -210,8 +211,7 @@ def handle_mail(context):
 
 def handle_online_signup(context):
     """'l' オンラインサインアップコマンドを処理する"""
-    bbsmenu.handle_online_signup(
-        context['chan'], context['dbname'], context['menu_mode'])
+    bbsmenu.handle_online_signup(context['chan'], context['menu_mode'])
     util.send_text_by_key(
         context['chan'], "top_menu.menu", context['menu_mode'])
     return {'status': 'continue'}

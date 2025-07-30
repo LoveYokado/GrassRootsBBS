@@ -2,13 +2,13 @@ import datetime
 import re
 import logging
 
-from . import util, sqlite_tools
+from . import util, sqlite_tools, database
 
 
 def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
     """ユーザー設定メニュー"""
     # 最初にユーザー情報を一括で取得
-    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+    user_data = database.get_user_auth_info(login_id)
     if not user_data:
         util.send_text_by_key(
             chan, "common_messages.user_not_found", current_menu_mode)
@@ -91,13 +91,13 @@ def change_menu_mode(chan, dbname, login_id, current_menu_mode, user_data):
             continue
 
         if new_menu_mode:
-            if sqlite_tools.update_user_menu_mode(dbname, user_id, new_menu_mode):
+            if database.update_record('users', {'menu_mode': new_menu_mode}, {'id': user_id}):
                 util.send_text_by_key(chan, "user_pref_menu.mode_selection.confirm_changed",
                                       current_menu_mode, mode=new_menu_mode)
                 return new_menu_mode
             else:
                 util.send_text_by_key(
-                    chan, "user_pref_menu.mode_selection.confirm_failed", current_menu_mode)
+                    chan, "common_messages.db_update_error", current_menu_mode)
             return "back_to_top"
 
 

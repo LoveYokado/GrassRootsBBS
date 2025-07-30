@@ -1,14 +1,13 @@
-import json
 import textwrap
 import logging
 import datetime
 
-from . import util, sqlite_tools
+from . import util, database
 from . import bbs_handler
 from . import bbs_manager
 
 
-def who_menu(chan, dbname, online_members_dict, current_menu_mode):
+def who_menu(chan, online_members_dict, current_menu_mode):
     """
     オンラインメンバー一覧を表示する
     """
@@ -28,7 +27,7 @@ def who_menu(chan, dbname, online_members_dict, current_menu_mode):
 
         menu_mode = member_data.get("menu_mode", "?")
         # コメントはDBから取得する必要がある
-        user_db_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+        user_db_data = database.get_user_auth_info(login_id)
         comment = user_db_data['comment'] if user_db_data and user_db_data['comment'] is not None else ''
 
         # ヘッダーのCOMMENT列(17桁目開始)と合わせるため、14桁にパディング後、スペースを2つ追加
@@ -37,7 +36,7 @@ def who_menu(chan, dbname, online_members_dict, current_menu_mode):
     util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)
 
 
-def handle_online_signup(chan, dbname, menu_mode):
+def handle_online_signup(chan, menu_mode):
     """オンラインサインアップ処理"""
     util.send_text_by_key(
         chan, "online_signup.guidance", menu_mode
@@ -65,7 +64,7 @@ def handle_online_signup(chan, dbname, menu_mode):
             continue
 
         # ID重複チェック
-        if sqlite_tools.get_user_auth_info(dbname, new_id):
+        if database.get_user_auth_info(new_id):
             util.send_text_by_key(chan, "online_signup.id_exists", menu_mode)
             new_id = ""
             continue
@@ -118,15 +117,15 @@ def handle_online_signup(chan, dbname, menu_mode):
     comment = "Online Signup User"  # 仮コメ
 
     # ユーザレベル1、パス認証のみ、メニューモードは2
-    if sqlite_tools.register_user(dbname, new_id, hashed_password, salt_hex, comment, level=1, menu_mode='2',
-                                  telegram_restriction=0):
+    if database.register_user(new_id, hashed_password, salt_hex, comment, level=1, menu_mode='2',
+                              telegram_restriction=0, email=new_email):
         util.send_text_by_key(
             chan, "online_signup.info_temp_password", menu_mode, temp_password=temp_password)
         util.send_text_by_key(
             chan, "online_signup.registration_success", menu_mode)
 
         # シスオペにメールで通知
-        sysop_user_id = sqlite_tools.get_sysop_user_id(dbname)
+        sysop_user_id = database.get_sysop_user_id()
         if sysop_user_id:
             mail_subject_template = util.get_text_by_key(
                 "online_signup.mail_subject", menu_mode, default_value="[System] New User Signup: {new_id}")
@@ -140,7 +139,7 @@ def handle_online_signup(chan, dbname, menu_mode):
                 message_to_sysop=message_to_sysop.strip() if message_to_sysop else "(No message)"
             )
 
-            if not sqlite_tools.send_system_mail(dbname, sysop_user_id, mail_subject, mail_body):
+            if not database.send_system_mail(sysop_user_id, mail_subject, mail_body):
                 logging.error(
                     f"オンラインサインアップ通知メールの送信に失敗しました (To SysOp ID: {sysop_user_id})")
         else:
@@ -152,19 +151,18 @@ def handle_online_signup(chan, dbname, menu_mode):
             chan, "online_signup.registration_failed", menu_mode)
 
 
-def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
+def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str):
     """新アーティクル探索"""
     util.send_text_by_key(
         chan, "explore_new_articles.start_message", menu_mode
     )
 
     # 探索リスト取得
-    exploration_list_str = sqlite_tools.get_user_exploration_list(
-        dbname, user_id_pk)
+    exploration_list_str = database.get_user_exploration_list(user_id_pk)
     if not exploration_list_str:
-        server_prefs = sqlite_tools.read_server_pref(dbname)
+        server_prefs = database.read_server_pref()
         if server_prefs and len(server_prefs) > 6:
-            exploration_list_str = server_prefs[6]
+            exploration_list_str = server_prefs[6]  # default_exploration_list
 
     if not exploration_list_str:
         util.send_text_by_key(
@@ -179,22 +177,21 @@ def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: i
         return
 
     # 最終ログイン時刻取得
-    user_data_for_n = sqlite_tools.get_user_auth_info(dbname, login_id)
+    user_data_for_n = database.get_user_auth_info(login_id)
     last_login_timestamp_for_n = 0
     if user_data_for_n and 'lastlogin' in user_data_for_n.keys() and user_data_for_n['lastlogin']:
         last_login_timestamp_for_n = user_data_for_n['lastlogin']
 
     for i, shortcut_id in enumerate(board_shortcut_ids):
-        board_info_db = sqlite_tools.get_board_by_shortcut_id(
-            dbname, shortcut_id)
+        board_info_db = database.get_board_by_shortcut_id(shortcut_id)
 
         if not board_info_db:
             util.send_text_by_key(
                 chan, "auto_download.error_board_not_found", menu_mode, shortcut_id=shortcut_id)
             continue
 
-        potential_new_articles = sqlite_tools.get_new_articles_for_board(
-            dbname, board_info_db['id'], last_login_timestamp_for_n)
+        potential_new_articles = database.get_new_articles_for_board(
+            board_info_db['id'], last_login_timestamp_for_n)
         if not potential_new_articles:
             continue
 
@@ -202,7 +199,8 @@ def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: i
                               shortcut_id=shortcut_id, current_num=i+1, total_num=len(board_shortcut_ids))
 
         # commandhandlerを直接使用して記事一覧表示
-        handler = bbs_handler.CommandHandler(chan, dbname, login_id, menu_mode)
+        handler = bbs_handler.CommandHandler(
+            chan, login_id, display_name, menu_mode, ip_address)
         handler.current_board = board_info_db
 
         # 記事一覧の共通ヘッダーを表示
@@ -228,7 +226,7 @@ def _handle_explore_new_articles(chan, dbname: str, login_id: str, user_id_pk: i
         chan, "explore_new_articles.complete_message", menu_mode)
 
 
-def _handle_full_sig_exploration(chan, dbname: str, login_id: str, user_id_pk: int, user_level: int, menu_mode: str, default_exploration_list_str: str):
+def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str, default_exploration_list_str: str):
     """全シグ探索 (共通探索リストを使用)"""
     util.send_text_by_key(
         chan, "full_sig_exploration.start_message", menu_mode
@@ -250,14 +248,13 @@ def _handle_full_sig_exploration(chan, dbname: str, login_id: str, user_id_pk: i
         return
 
     # 最終ログイン時刻取得 (N機能と同じ)
-    user_data_for_x = sqlite_tools.get_user_auth_info(dbname, login_id)
+    user_data_for_x = database.get_user_auth_info(login_id)
     last_login_timestamp_for_x = 0
     if user_data_for_x and 'lastlogin' in user_data_for_x.keys() and user_data_for_x['lastlogin']:
         last_login_timestamp_for_x = user_data_for_x['lastlogin']
 
     for i, shortcut_id in enumerate(board_shortcut_ids):
-        board_info_db = sqlite_tools.get_board_by_shortcut_id(
-            dbname, shortcut_id)
+        board_info_db = database.get_board_by_shortcut_id(shortcut_id)
 
         if not board_info_db:
             util.send_text_by_key(
@@ -265,15 +262,16 @@ def _handle_full_sig_exploration(chan, dbname: str, login_id: str, user_id_pk: i
             continue
 
         # 未読記事があるか事前にチェック (N機能と同じ)
-        potential_new_articles = sqlite_tools.get_new_articles_for_board(
-            dbname, board_info_db['id'], last_login_timestamp_for_x)
+        potential_new_articles = database.get_new_articles_for_board(
+            board_info_db['id'], last_login_timestamp_for_x)
         if not potential_new_articles:
             continue
 
         util.send_text_by_key(
             chan, "full_sig_exploration.entering_board", menu_mode, shortcut_id=shortcut_id, current_num=i+1, total_num=len(board_shortcut_ids))
 
-        handler = bbs_handler.CommandHandler(chan, dbname, login_id, menu_mode)
+        handler = bbs_handler.CommandHandler(
+            chan, login_id, display_name, menu_mode, ip_address)
         handler.current_board = board_info_db
 
         util.send_text_by_key(chan, "bbs.article_list_header", menu_mode)
@@ -294,16 +292,15 @@ def _handle_full_sig_exploration(chan, dbname: str, login_id: str, user_id_pk: i
         chan, "full_sig_exploration.complete_message", menu_mode)
 
 
-def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
+def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
     """新アーティクル見出し表示"""
     util.send_text_by_key(
         chan, "new_article_headlines.start_message", menu_mode)
 
     # 探索リスト取得(TODO:これ、後で関数化出来そうだな)
-    exploration_list_str = sqlite_tools.get_user_exploration_list(
-        dbname, user_id_pk)
+    exploration_list_str = database.get_user_exploration_list(user_id_pk)
     if not exploration_list_str:
-        server_prefs = sqlite_tools.read_server_pref(dbname)
+        server_prefs = database.read_server_pref()
         # server_prefs[6] が default_exploration_list
         if server_prefs and len(server_prefs) > 6 and server_prefs[6]:
             exploration_list_str = server_prefs[6]
@@ -325,15 +322,14 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
         return
 
     # 最終ログイン時刻取得（TODO:これも関数化できるなぁ）
-    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+    user_data = database.get_user_auth_info(login_id)
     last_login_timestamp = 0
     if user_data and 'lastlogin' in user_data.keys() and user_data['lastlogin']:
         last_login_timestamp = user_data['lastlogin']
 
     # enumerate を使ってインデックスを取得
     for i, shortcut_id in enumerate(board_shortcut_ids):
-        board_info_db = sqlite_tools.get_board_by_shortcut_id(
-            dbname, shortcut_id)
+        board_info_db = database.get_board_by_shortcut_id(shortcut_id)
         if not board_info_db:
             # 掲示板が見つからないときはスキップ
             logging.debug(f"新アーティクル見出し: 掲示板 {shortcut_id} は見つかりません。")
@@ -341,7 +337,7 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
 
         board_id_pk = board_info_db['id']
         # 権限チェック
-        permission_manager = bbs_manager.PermissionManager(dbname)
+        permission_manager = bbs_manager.PermissionManager()
         if not permission_manager.can_view_board(board_info_db, user_id_pk, user_level):
             # 権限がないときはスキップ
             logging.debug(
@@ -349,8 +345,8 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
             continue
 
         # 未読を取得
-        new_articles = sqlite_tools.get_new_articles_for_board(
-            dbname, board_id_pk, last_login_timestamp)
+        new_articles = database.get_new_articles_for_board(
+            board_id_pk, last_login_timestamp)
         if not new_articles:
             continue  # 未読がなければスキップ
 
@@ -368,8 +364,7 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
             display_sender_name = ""
             try:
                 user_id_int = int(user_id_from_article)
-                user_name = sqlite_tools.get_user_name_from_user_id(
-                    dbname, user_id_int)
+                user_name = database.get_user_name_from_user_id(user_id_int)
                 display_sender_name = user_name if user_name else "(Unknown)"
             except (ValueError, TypeError):
                 display_sender_name = str(user_id_from_article)
@@ -409,16 +404,15 @@ def handle_new_article_headlines(chan, dbname: str, login_id: str, user_id_pk: i
         chan, "new_article_headlines.end_message", menu_mode)
 
 
-def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
+def handle_auto_download(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
     """新アーティクル自動ダウンロード"""
     util.send_text_by_key(
         chan, "auto_download.start_message", menu_mode)
 
     # 探索リスト取得
-    exploration_list_str = sqlite_tools.get_user_exploration_list(
-        dbname, user_id_pk)
+    exploration_list_str = database.get_user_exploration_list(user_id_pk)
     if not exploration_list_str:
-        server_prefs = sqlite_tools.read_server_pref(dbname)
+        server_prefs = database.read_server_pref()
         if server_prefs and len(server_prefs) > 6 and server_prefs[6]:
             exploration_list_str = server_prefs[6]
 
@@ -439,30 +433,29 @@ def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user
         return
 
     # 最終ログイン時刻取得
-    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+    user_data = database.get_user_auth_info(login_id)
     last_login_timestamp = 0
     if user_data and 'lastlogin' in user_data.keys() and user_data['lastlogin']:
         last_login_timestamp = user_data['lastlogin']
 
     # 掲示板巡回
     for i, shortcut_id in enumerate(board_shortcut_ids):
-        board_info_db = sqlite_tools.get_board_by_shortcut_id(
-            dbname, shortcut_id)
+        board_info_db = database.get_board_by_shortcut_id(shortcut_id)
         if not board_info_db:
             logging.debug(f"自動ダウンロード: 掲示板 {shortcut_id} は見つかりません。")
             continue
 
         board_id_pk = board_info_db['id']
         # 権限チェック
-        permission_manager = bbs_manager.PermissionManager(dbname)
+        permission_manager = bbs_manager.PermissionManager()
         if not permission_manager.can_view_board(board_info_db, user_id_pk, user_level):
             logging.debug(
                 f"自動ダウンロード: ユーザー {login_id} は掲示板 {shortcut_id} を閲覧する権限がありません。")
             continue
 
         # 未読を取得
-        new_articles = sqlite_tools.get_new_articles_for_board(
-            dbname, board_id_pk, last_login_timestamp)
+        new_articles = database.get_new_articles_for_board(
+            board_id_pk, last_login_timestamp)
         if not new_articles:
             continue  # 未読がなければスキップ
 
@@ -480,8 +473,7 @@ def handle_auto_download(chan, dbname: str, login_id: str, user_id_pk: int, user
             display_sender_name = ""
             try:
                 user_id_int = int(user_id_from_article)
-                user_name = sqlite_tools.get_user_name_from_user_id(
-                    dbname, user_id_int)
+                user_name = database.get_user_name_from_user_id(user_id_int)
                 display_sender_name = user_name if user_name else "(Unknown)"
             except (ValueError, TypeError):
                 display_sender_name = str(user_id_from_article)
