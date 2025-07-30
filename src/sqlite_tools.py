@@ -3,50 +3,39 @@ import logging
 import time
 import json
 
+from . import database
+
 
 def get_user_id_from_user_name(dbname, username):
     """ユーザ名からユーザIDを取得する"""
     try:
-        results = fetchall_idbase(
-            dbname, 'users', 'name', username)
-        if results:
-            return results[0]['id']
-        else:
-            logging.warning(f"ユーザID取得失敗: ユーザ名 '{username}' が見つかりません。")
-            return None
+        # 呼び出し先をMariaDB用の関数に変更
+        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
+        return database.get_user_id_from_user_name(username)
     except Exception as e:
-        logging.error(f"ユーザID取得中にDBエラー ({username}): {e}")
+        logging.error(f"ユーザID取得中に予期せぬエラー ({username}): {e}")
         return None
 
 
 def get_user_name_from_user_id(dbname, user_id):
     """ユーザIDからユーザ名を取得する"""
     try:
-        results = fetchall_idbase(
-            dbname, 'users', 'id', user_id)
-        if results:
-            return results[0]['name']
-        else:
-            # 送信者が削除された場合など
-            return "(不明)"  # 短く変更
+        # 呼び出し先をMariaDB用の関数に変更
+        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
+        return database.get_user_name_from_user_id(user_id)
     except Exception as e:
-        logging.error(f"ユーザ名取得中にDBエラー (ID: {user_id}): {e}")
-        return "(エラー)"
+        logging.error(f"ユーザ名取得中に予期せぬエラー (ID: {user_id}): {e}")
+        return "(不明)"
 
 
 def get_user_level_from_user_id(dbname, user_id):
     """ユーザIDからユーザレベルを取得する"""
     try:
-        results = fetchall_idbase(  # fetchall_idbase はリストを返すので results[0] を使う
-            dbname, 'users', 'id', user_id)
-        if results:
-            return results[0]['level']
-        else:
-            logging.warning(f"ユーザレベル取得失敗: ユーザID '{user_id}'が見つかりません。")
-            # 送信者が削除された場合など
-            return 0
+        # 呼び出し先をMariaDB用の関数に変更
+        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
+        return database.get_user_level_from_user_id(user_id)
     except Exception as e:
-        logging.error(f"ユーザレベル取得中にDBエラー (ID: {user_id}): {e}")
+        logging.error(f"ユーザレベル取得中に予期せぬエラー (ID: {user_id}): {e}")
         return 0
 
 
@@ -56,82 +45,22 @@ def get_user_auth_info(dbname, username):
     見つからない場合はNoneを返す。
     """
     try:
-        # logging.debug(f"get_user_auth_info: Attempting to fetch user '{username}' from db '{dbname}'")
-        results = fetchall_idbase(dbname, 'users', 'name', username)
-        # logging.debug(f"get_user_auth_info: fetchall_idbase returned for '{username}': {results}")
-        return results[0] if results else None
+        # 呼び出し先をMariaDB用の関数に変更
+        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
+        return database.get_user_auth_info(username)
     except Exception as e:
-        logging.error(f"認証情報取得中にエラー ({username}): {e}")
+        # databaseモジュール内でエラーログは出力される想定だが、念のためここでもログを残す
+        logging.error(f"認証情報取得中に予期せぬエラー ({username}): {e}")
         return None
 
 
 def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode_param):
-    """
-    メールの削除フラグをトグルする汎用関数。
-
-    Args:
-        dbname (str): データベース名
-        mail_id (int): メールID
-        user_id (int): ユーザーID
-        mode_param (str): 'sender' または 'recipient'
-
-    Returns:
-        tuple: (成功/失敗(bool), 新しいステータス(int))
-        失敗時は (False, 0) を返す。
-    """
-
-    conn = None
-    mode = str(mode_param).strip()
-
+    """メールの削除フラグをトグルする汎用関数。"""
     try:
-        conn = sqlite3.connect(dbname)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-
-        # modeによってSQLを構築
-        if mode == 'sender':
-            sql_select = "SELECT sender_deleted FROM mails WHERE id=? AND sender_id=?"
-            sql_update = "UPDATE mails SET sender_deleted=? WHERE id=? AND sender_id=?"
-            current_status_colmn = 'sender_deleted'
-        elif mode == 'recipient':
-            sql_select = "SELECT recipient_deleted FROM mails WHERE id=? AND recipient_id=?"
-            sql_update = "UPDATE mails SET recipient_deleted=? WHERE id=? AND recipient_id=?"
-            current_status_colmn = 'recipient_deleted'
-        else:
-            logging.error(
-                f"無効なモードが指定されました: original='{mode_param}',stripped='{mode}' ")
-            return False, 0
-
-        # 現在の状態を取得
-        cur.execute(sql_select, (mail_id, user_id))
-        result = cur.fetchone()
-
-        if result is None:
-            logging.warning(
-                f"メール削除トグルに失敗({mode})しました。メールなしか権限なしです)(MailID: {mail_id}, UserID: {user_id})")
-            return False, 0
-
-        current_status = result[current_status_colmn]
-        new_status = 1-current_status  # ステータス反転
-
-        cur.execute(sql_update, (new_status, mail_id, user_id))
-        conn.commit()
-
-        logging.info(
-            f"メール(ID:{mail_id})の{current_status_colmn}を{new_status}に変更しました(User:{user_id},Mode:{mode})")
-        return True, new_status
-    except sqlite3.Error as e:
-        logging.error(
-            f"メール削除トグル処理{mode}中にDBエラー (MailID: {mail_id}, UserID: {user_id}): {e}")
-        if conn:
-            conn.rollback()  # DBエラーの場合ロールバック
+        return database.toggle_mail_delete_status_generic(mail_id, user_id, mode_param)
     except Exception as e:
-        logging.error(
-            f"メール削除トグル処理{mode}中に予期せぬエラー (MailID: {mail_id}, UserID: {user_id}): {e}")
-    finally:
-        if conn:
-            conn.close()
-    return False, 0
+        logging.error(f"メール削除トグル処理中に予期せぬエラー: {e}")
+        return False, 0
 
 
 def sqlite_execute_query(dbname, sql, params=None, fetch=False, conn=None):
@@ -243,56 +172,32 @@ def create_bbs_tables_if_not_exist(cur):
 
 def read_server_pref(dbname):
     """サーバー設定を読み込む"""
-    sql = 'SELECT bbs, chat, mail, telegram, userpref, who, default_exploration_list, hamlet, login_message FROM server_pref'
-    # server_pref は通常1行しかないので fetchone() でも良いかも
-    results = sqlite_execute_query(dbname, sql, fetch=True)
-    if results:
-        # results はリストのリスト [(val1, val2, ...)] なので results[0] を返す
-        return list(results[0])
-    else:
-        # テーブルが存在しないか空の場合(念の為)
-        logging.warning("警告: server_pref テーブルが見つからないか、空です。")
-        # デフォルト値を返す
-        return [2, 2, 2, 2, 2, 2, "", 2, ""]  # login_messageのデフォルト値を追加
+    try:
+        # 呼び出し先をMariaDB用の関数に変更
+        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
+        return database.read_server_pref()
+    except Exception as e:
+        logging.error(f"サーバー設定の読み込み中に予期せぬエラー: {e}")
+        # フォールバックとしてデフォルト値を返す
+        return [2, 2, 2, 2, 2, 2, "", 2, ""]
 
 
 def save_telegram(dbname, sender_name, recipient_name, message, current_timestamp):
     """電報をデータベースに保存 (sqlite_execute_query を使用)"""
-    sql = "INSERT INTO telegram(sender_name, recipient_name, message, timestamp) VALUES(?,?,?,?)"
-    sqlite_execute_query(
-        dbname, sql, (sender_name, recipient_name, message, current_timestamp))
+    try:
+        database.save_telegram(
+            sender_name, recipient_name, message, current_timestamp)
+    except Exception as e:
+        logging.error(f"電報の保存中に予期せぬエラー: {e}")
 
 
 def load_and_delete_telegrams(dbname, recipient_name):
-    """
-    指定された受信者の電報を取得し、取得した電報を削除する。
-    電報がなければ None を返す。
-    """
-    # 1. 受信者宛の電報を取得 (id も含める)
-    # カラム順: id, sender_name, recipient_name, message, timestamp
-    sql_select = "SELECT id, sender_name, recipient_name, message, timestamp FROM telegram WHERE recipient_name=? ORDER BY timestamp ASC"
-    results = sqlite_execute_query(
-        dbname, sql_select, (recipient_name,), fetch=True)
-
-    if not results:
-        return None  # 電報がない場合は None を返す
-
-    # 2. 取得した電報の ID リストを作成
-    telegram_ids = [row[0] for row in results]
-
-    # 3. 取得した電報を ID で削除
-    if telegram_ids:  # IDリストが空でないことを確認
-        # プレースホルダーを ID の数だけ作成: (?, ?, ...)
-        placeholders = ', '.join('?' * len(telegram_ids))
-        sql_delete = f"DELETE FROM telegram WHERE id IN ({placeholders})"
-        # params は ID のタプル
-        sqlite_execute_query(dbname, sql_delete, tuple(telegram_ids))
-    else:
-        # 通常ここには来ないはずだが、念のためログ
-        logging.warning(f"警告: 電報データは取得できましたが、IDリストが空です。受信者: {recipient_name}")
-
-    # 取得した電報データを返す (id を含んだまま)
-    return results
+    """指定された受信者の電報を取得し、取得した電報を削除する。"""
+    try:
+        return database.load_and_delete_telegrams(recipient_name)
+    except Exception as e:
+        logging.error(f"電報の読み込み/削除中に予期せぬエラー: {e}")
+        return None
 
 
 def get_memberlist(dbname, search_word=None):
@@ -335,69 +240,57 @@ def update_user_menu_mode(dbname, user_id, new_mode):
 def update_user_password_and_salt(dbname, login_id, new_hashed_password, new_salt_hex):
     """ユーザのパスハッシュとソルトの更新"""
     try:
-        user_id = get_user_id_from_user_name(dbname, login_id)
+        # MariaDB用の関数を呼び出す
+        user_id = database.get_user_id_from_user_name(login_id)
         if user_id is None:
             logging.error(f"パスワード更新失敗、ユーザが見つかりません: {login_id}")
             return False
-        # usersテーブルの更新
-        sql = "UPDATE users SET password = ?, salt = ? WHERE id = ?"
-        sqlite_execute_query(
-            dbname, sql, (new_hashed_password, new_salt_hex, user_id))
+        database.update_record(
+            'users',
+            {'password': new_hashed_password, 'salt': new_salt_hex},
+            {'id': user_id}
+        )
         logging.info(f"ユーザ '{login_id}' (ID: {user_id}) のパスワードとソルトを更新しました。")
         return True
     except Exception as e:
-        logging.error(f"パスワードとソルトの更新中にDBエラー (ユーザ: {login_id}): {e}")
+        logging.error(f"パスワードとソルトの更新中に予期せぬエラー (ユーザ: {login_id}): {e}")
         return False
 
 
 def update_user_password(dbname, user_id, new_hashed_password, new_salt_hex):
     """ユーザIDを使ってパスワードとソルトを更新する"""
     try:
-        sql = "UPDATE users SET password = ?, salt = ? WHERE id = ?"
-        sqlite_execute_query(
-            dbname, sql, (new_hashed_password, new_salt_hex, user_id))
+        database.update_record(
+            'users', {'password': new_hashed_password, 'salt': new_salt_hex}, {'id': user_id})
         logging.info(f"ユーザID '{user_id}' のパスワードとソルトを更新しました。")
         return True
     except Exception as e:
         logging.error(
-            f"パスワードとソルトの更新中にDBエラー (UserID: {user_id}): {e}")
+            f"パスワードとソルトの更新中に予期せぬエラー (UserID: {user_id}): {e}")
         return False
 
 
 def update_user_profile_comment(dbname, user_id, new_comment):
     """ユーザーのプロフィールコメントを更新"""
-    try:
-        # usersテーブルの更新
-        sql = "UPDATE users SET comment = ? WHERE id = ?"
-        sqlite_execute_query(dbname, sql, (new_comment, user_id))
-        logging.info(f"ユーザID {user_id} のプロフィールコメントを更新しました。")
-        return True
-    except Exception as e:
-        logging.error(f"プロフィールコメント更新中にDBエラー (UserID: {user_id}): {e}")
-        return False
+    return update_user_field(dbname, user_id, 'comment', new_comment)
 
 
 def update_user_telegram_restriction(dbname, user_id, restriction_level):
     """ユーザの電報受信制限を更新"""
-    try:
-        sql = "UPDATE users SET telegram_restriction=? WHERE id=?"
-        sqlite_execute_query(dbname, sql, (restriction_level, user_id))
-        logging.info(f"ユーザID {user_id} の電報受信制限を{restriction_level}に変更しました。")
-        return True
-    except Exception as e:
-        logging.error(f"電報受信制限更新中にDBエラー (UserID: {user_id}): {e}")
-        return False
+    return update_user_field(dbname, user_id, 'telegram_restriction', restriction_level)
 
 
 def update_user_blacklist(dbname, user_id, blacklist_str):
     """ユーザのブラックリストを更新"""
     try:
-        sql = "UPDATE users SET blacklist=? WHERE id=?"
-        sqlite_execute_query(dbname, sql, (blacklist_str, user_id))
+        # 呼び出し先をMariaDB用の汎用更新関数に変更
+        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
+        database.update_record(
+            'users', {'blacklist': blacklist_str}, {'id': user_id})
         logging.info(f"ユーザID {user_id} のブラックリストを更新しました。")
         return True
     except Exception as e:
-        logging.error(f"ブラックリスト更新中にDBエラー (UserID: {user_id}): {e}")
+        logging.error(f"ブラックリスト更新中に予期せぬエラー (UserID: {user_id}): {e}")
         return False
 
 
@@ -457,12 +350,16 @@ def set_user_exploration_list(dbname, user_id, exploration_list_str):
 def update_server_default_exploration_list(dbname, exploration_list_str):
     """サーバーのデフォルト探索リストを更新"""
     try:
-        sql = "UPDATE server_pref SET default_exploration_list=?"
-        sqlite_execute_query(dbname, sql, (exploration_list_str,))
+        # MariaDB用の関数を呼び出す。server_prefテーブルは1行しかなく、id=1と仮定
+        database.update_record(
+            'server_pref',
+            {'default_exploration_list': exploration_list_str},
+            {'id': 1}
+        )
         logging.info(f"サーバーのデフォルト探索リストを更新しました: {exploration_list_str[:50]}...")
         return True
     except Exception as e:
-        logging.error(f"サーバーのデフォルト探索リスト更新中にDBエラー: {e}")
+        logging.error(f"サーバーのデフォルト探索リスト更新中に予期せぬエラー: {e}")
         return False
 
 
@@ -501,35 +398,20 @@ def update_user_read_progress(dbname, user_id, read_progress_dict):
 def register_user(dbname, username, hashed_password, salt, comment, level=0,
                   menu_mode='1', telegram_restriction=0):
     """新しいユーザーをデータベースに登録する"""
-    registdate = int(time.time())
-    # Ensure consistent mail format, can be changed later by user or sysop
-    email_addr = f'{username.lower()}@example.com'
-    # Default values for other fields
-    lastlogin = 0
-    lastlogout = 0
-    blacklist = ''
-    exploration_list = ''
-
-    sql_insert_user = """
-        INSERT INTO users (
-            name, password, salt, registdate, level, lastlogin, lastlogout,
-            comment, email, menu_mode, telegram_restriction, blacklist,
-            exploration_list
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """
-    params = (
-        username, hashed_password, salt, registdate, level, lastlogin, lastlogout,
-        comment, email_addr, menu_mode, telegram_restriction, blacklist,
-        exploration_list
-    )
-
-    if sqlite_execute_query(dbname, sql_insert_user, params):
-        logging.info(f"新規ユーザー '{username}' を登録しました。")
-        return True
-    else:
-        # The error is already logged by sqlite_execute_query.
-        logging.error(
-            f"ユーザー登録失敗: SQL実行エラーが発生しました (ユーザー: {username})。詳細は先行ログを確認してください。")
+    try:
+        email_addr = f'{username.lower()}@example.com'
+        return database.register_user(
+            username=username,
+            hashed_password=hashed_password,
+            salt=salt,
+            comment=comment,
+            level=level,
+            menu_mode=menu_mode,
+            telegram_restriction=telegram_restriction,
+            email=email_addr
+        )
+    except Exception as e:
+        logging.error(f"ユーザー登録中に予期せぬエラー: {e}")
         return False
 
 
@@ -563,12 +445,12 @@ def update_user_email(dbname, user_id, new_email):
 
 def update_user_level(dbname, user_id, new_level):
     """ユーザーのレベルを更新"""
-    sql = "UPDATE users SET level=? WHERE id=?"
     try:
-        success = sqlite_execute_query(dbname, sql, (new_level, user_id))
-        return success
+        database.update_record('users', {'level': new_level}, {'id': user_id})
+        logging.info(f"ユーザーID {user_id} のレベルを {new_level} に更新しました。")
+        return True
     except Exception as e:
-        logging.error(f"レベル更新中にDBエラー (UserID: {user_id}): {e}")
+        logging.error(f"レベル更新中に予期せぬエラー (UserID: {user_id}): {e}")
         return False
 
 
@@ -598,11 +480,6 @@ def delete_board_entry(dbname, shortcut_id):
     #       ひとまず、boards テーブルからの削除のみとします。
     sql = "DELETE FROM boards WHERE shortcut_id=?"
     return sqlite_execute_query(dbname, sql, (shortcut_id,))
-
-
-def get_all_boards(dbname):
-    sql = "SELECT id, shortcut_id, operators, default_permission, category_id, display_order FROM boards"
-    return sqlite_execute_query(dbname, sql, fetch=True)
 
 
 def get_next_article_number(dbname, board_id_pk, conn=None):
@@ -802,62 +679,76 @@ def get_user_permission_for_board(dbname, board_id_pk, user_id_pk_str):
 
 def get_total_unread_mail_count(dbname, user_id_pk):
     """指定されたユーザの未読かつ未削除の受信メール総数を取得"""
-    sql = "SELECT COUNT(*) FROM mails WHERE recipient_id=? AND is_read=0 AND recipient_deleted=0"
-    results = sqlite_execute_query(dbname, sql, (user_id_pk,), fetch=True)
-    return results[0][0] if results and results[0] else 0
+    try:
+        return database.get_total_unread_mail_count(user_id_pk)
+    except Exception as e:
+        logging.error(f"未読メール数取得中に予期せぬエラー: {e}")
+        return 0
 
 
 def get_total_mail_count(dbname, user_id_pk):
     """指定されたユーザの未削除の受信メール総数を取得"""
-    sql = "SELECT COUNT(*) FROM mails WHERE recipient_id=? AND recipient_deleted=0"
-    results = sqlite_execute_query(dbname, sql, (user_id_pk,), fetch=True)
-    return results[0][0] if results and results[0] else 0
+    try:
+        return database.get_total_mail_count(user_id_pk)
+    except Exception as e:
+        logging.error(f"総メール数取得中に予期せぬエラー: {e}")
+        return 0
 
 
 def mark_mail_as_read(dbname, mail_id, recipient_user_id_pk):
     """指定されたメールを指定された受信者に対して既読にする"""
-    sql = "UPDATE mails SET is_read = 1 WHERE id = ? AND recipient_id = ?"
-    conn = None
     try:
-        conn = sqlite3.connect(dbname)
-        conn.row_factory = sqlite3.Row  # 他の関数と一貫性を持たせる
-        cur = conn.cursor()
-        cur.execute(sql, (mail_id, recipient_user_id_pk))
-        updated_rows = cur.rowcount  # 更新された行数を取得
-        conn.commit()
-
-        if updated_rows > 0:
-            logging.info(
-                f"メールID {mail_id} をユーザID {recipient_user_id_pk} に対して既読にマークしました ({updated_rows}行更新)。")
-            return True
-        else:
-            # 対象のメールが見つからない、または既に既読の場合
-            logging.debug(  # ログレベルをdebugに変更
-                f"メールID {mail_id} (ユーザID: {recipient_user_id_pk}) は既に既読、または存在しません。既読化処理はスキップされました。")
-            return False
-    except sqlite3.Error as e:  # より具体的な例外をキャッチ
-        logging.error(
-            f"メール既読化中にDBエラー (MailID: {mail_id}, UserID: {recipient_user_id_pk}): {e}")
-        if conn:
-            conn.rollback()  # エラー時はロールバック
+        return database.mark_mail_as_read(mail_id, recipient_user_id_pk)
+    except Exception as e:
+        logging.error(f"メール既読化処理中に予期せぬエラー: {e}")
         return False
-    finally:
-        if conn:
-            conn.close()
 
 
 def get_oldest_unread_mail(dbname, recipient_user_id_pk):
     """指定されたユーザの一番古い未読、かつ未削除の受信メールを1件取得"""
     sql = """
-        SELECT id, sender_id,subject,body,is_read,sent_at,recipient_deleted
-        FROM mails
-        WHERE recipient_id=? AND is_read=0 AND recipient_deleted=0
+        SELECT
+            m.id, m.sender_id, m.subject, m.body, m.is_read, m.sent_at, m.recipient_deleted, m.sender_ip_address,
+            u.name AS sender_name
+        FROM mails AS m
+        LEFT JOIN users AS u ON m.sender_id = u.id
+        WHERE m.recipient_id=? AND m.is_read=0 AND m.recipient_deleted=0
         ORDER BY sent_at ASC
         LIMIT 1
     """
     results = sqlite_execute_query(
         dbname, sql, (recipient_user_id_pk,), fetch=True)
     return results[0] if results else None
+
+
+def get_mails_for_view(dbname, user_id_pk, view_mode):
+    """
+    指定されたユーザーのメール一覧を、表示に必要な情報をJOINして取得する。
+    view_mode: 'inbox' または 'outbox'
+    """
+    if view_mode == 'inbox':
+        # 受信箱: 送信者の名前をJOINで取得
+        sql = """
+            SELECT
+                m.id, m.sender_id, m.subject, m.is_read, m.sent_at, m.recipient_deleted, m.sender_ip_address,
+                u.name AS sender_name
+            FROM mails AS m
+            LEFT JOIN users AS u ON m.sender_id = u.id
+            WHERE m.recipient_id = ?
+            ORDER BY m.sent_at ASC
+        """
+    else:  # outbox
+        # 送信箱: 宛先の名前をJOINで取得
+        sql = """
+            SELECT
+                m.id, m.recipient_id, m.subject, m.is_read, m.sent_at, m.sender_deleted,
+                u.name AS recipient_name
+            FROM mails AS m
+            LEFT JOIN users AS u ON m.recipient_id = u.id
+            WHERE m.sender_id = ?
+            ORDER BY m.sent_at ASC
+        """
+    return sqlite_execute_query(dbname, sql, (user_id_pk,), fetch=True)
 
 
 def get_new_articles_for_board(dbname, board_id_pk, last_login_timestamp):
@@ -880,16 +771,12 @@ def get_new_articles_for_board(dbname, board_id_pk, last_login_timestamp):
 
 
 def get_all_boards(dbname):
-    sql = """
-        SELECT 
-            id, 
-            shortcut_id, 
-            operators, 
-            default_permission, 
-            board_type 
-        FROM boards
-    """
-    return sqlite_execute_query(dbname, sql, fetch=True)
+    """DBに登録されている掲示板の基本情報をすべて取得する"""
+    try:
+        return database.get_all_boards()
+    except Exception as e:
+        logging.error(f"全掲示板情報取得中に予期せぬエラー: {e}")
+        return []
 
 
 def update_board_levels(dbname, board_id_pk, read_level, write_level):

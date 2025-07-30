@@ -3,7 +3,7 @@ import datetime
 import os
 import secrets
 
-from . import util, sqlite_tools
+from . import util, sqlite_tools, database
 
 
 def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mode):
@@ -109,8 +109,9 @@ def change_login_message(chan, dbname, _sysop_login_id, current_menu_mode):
 
     # DBを更新
     try:
-        sql = "UPDATE server_pref SET login_message=?"
-        sqlite_tools.sqlite_execute_query(dbname, sql, (new_login_message,))
+        # MariaDB用の関数を呼び出す。server_prefテーブルは1行しかなく、id=1と仮定
+        database.update_record(
+            'server_pref', {'login_message': new_login_message}, {'id': 1})
         util.send_text_by_key(
             chan, "sysop_menu.change_login_message.success", current_menu_mode)
         logging.info(f"ログインメッセージを更新しました: {new_login_message[:50]}...")
@@ -118,7 +119,7 @@ def change_login_message(chan, dbname, _sysop_login_id, current_menu_mode):
     except Exception as e:
         util.send_text_by_key(
             chan, "common_messages.database_update_error", current_menu_mode)
-        logging.error(f"ログインメッセージ更新中にDBエラー: {e}")
+        logging.error(f"ログインメッセージ更新中に予期せぬエラー: {e}")
 
     return None
 
@@ -126,8 +127,7 @@ def change_login_message(chan, dbname, _sysop_login_id, current_menu_mode):
 def user_list(chan, dbname, _sysop_login_id, current_menu_mode):
     """ユーザ一覧表示"""
     try:
-        sql = "SELECT id, name, level, registdate, lastlogin, comment, email FROM users ORDER BY id ASC"
-        users = sqlite_tools.sqlite_execute_query(dbname, sql, fetch=True)
+        users = database.get_all_users()
         if users:
             util.send_text_by_key(
                 chan, "sysop_menu.user_list.header", current_menu_mode)
@@ -238,51 +238,63 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
         return None
 
 
+def _get_target_user(chan, dbname, prompt_key, current_menu_mode):
+    """
+    ユーザー名の入力を促し、検証済みのユーザー情報を返すヘルパー関数。
+    見つからない場合やキャンセルの場合は None を返す。
+    """
+    util.send_text_by_key(
+        chan, prompt_key, current_menu_mode, add_newline=False)
+    user_input = chan.process_input()
+    if user_input is None or not user_input.strip():
+        return None  # 切断またはキャンセル
+
+    target_user_name = user_input.strip().upper()
+    user_data = sqlite_tools.get_user_auth_info(dbname, target_user_name)
+
+    if not user_data:
+        util.send_text_by_key(
+            chan, "sysop_menu.change_user_level.user_not_found",  # 既存のキーを流用
+            current_menu_mode,
+            user_id=target_user_name
+        )
+        return None
+    return user_data
+
+
 def user_delete(chan, dbname, sysop_login_id, current_menu_mode):
     """ユーザ削除"""
     util.send_text_by_key(
         chan, "sysop_menu.user_delete.header", current_menu_mode)
-    while True:
+
+    user_data = _get_target_user(
+        chan, dbname, "sysop_menu.user_delete.user_id_prompt", current_menu_mode)
+    if not user_data:
+        return None  # ユーザーが見つからないかキャンセル
+
+    user_name_to_delete = user_data['name']
+    user_id_to_delete = user_data['id']
+
+    if user_name_to_delete.upper() == sysop_login_id.upper():
         util.send_text_by_key(
-            chan, "sysop_menu.user_delete.user_id_prompt", current_menu_mode, add_newline=False)
-        user_id_delete_input = chan.process_input()
-        if user_id_delete_input is None:
-            return None
-        if not user_id_delete_input.strip():
-            return None
-
-        user_id_delete_input_normalized = user_id_delete_input.strip().upper()
-        user_data = sqlite_tools.get_user_auth_info(
-            dbname, user_id_delete_input_normalized)
-        if user_data is None:
-            util.send_text_by_key(
-                chan, "sysop_menu.user_delete.user_id_exists", current_menu_mode)
-            continue
-
-        actual_user_name_to_delete = user_data['name']
-        numeric_user_id_to_delete = user_data['id']
-
-        if actual_user_name_to_delete == sysop_login_id:
-            util.send_text_by_key(
-                chan, "sysop_menu.user_delete.cannot_delete_sysop", current_menu_mode)
-            continue
-
-        chan.send(f"\"{actual_user_name_to_delete}\"\r\n")
-        util.send_text_by_key(
-            chan, "sysop_menu.user_delete.confirm_yn", current_menu_mode, add_newline=False)
-        confirm_choice = chan.process_input()
-        if confirm_choice is None:
-            return None
-        if confirm_choice.lower().strip() != 'y':
-            continue
-
-        if sqlite_tools.delete_user(dbname, numeric_user_id_to_delete):
-            util.send_text_by_key(
-                chan, "sysop_menu.user_delete.user_delete_success", current_menu_mode)
-        else:
-            util.send_text_by_key(
-                chan, "common_messages.error", current_menu_mode)
+            chan, "sysop_menu.user_delete.cannot_delete_sysop", current_menu_mode)
         return None
+
+    util.send_text_by_key(chan, "sysop_menu.user_delete.confirm_yn", current_menu_mode,
+                          add_newline=False, user_name=user_name_to_delete)
+    confirm_choice = chan.process_input()
+    if confirm_choice is None or confirm_choice.lower().strip() != 'y':
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
+        return None
+
+    if sqlite_tools.delete_user(dbname, user_id_to_delete):
+        util.send_text_by_key(
+            chan, "sysop_menu.user_delete.user_delete_success", current_menu_mode, user_name=user_name_to_delete)
+    else:
+        util.send_text_by_key(
+            chan, "common_messages.error", current_menu_mode)
+    return None
 
 
 def view_settings(chan, dbname, _sysop_login_id, current_menu_mode):
@@ -360,15 +372,16 @@ def change_top_menu_permission(chan, dbname, _sysop_login_id, current_menu_mode)
             util.send_text_by_key(
                 chan, "sysop_menu.set_permissions.user_level_0-5_message", current_menu_mode)
 
-    sql = f"UPDATE server_pref SET {menu_to_change}=?"
     try:
-        sqlite_tools.sqlite_execute_query(dbname, sql, (user_level,))
+        # MariaDB用の関数を呼び出す。server_prefテーブルは1行しかなく、id=1と仮定
+        database.update_record(
+            'server_pref', {menu_to_change: user_level}, {'id': 1})
         util.send_text_by_key(chan, "sysop_menu.set_permissions.user_level_changed", current_menu_mode,
                               menu_to_change=menu_to_change, user_level=user_level)
     except Exception as e:
         util.send_text_by_key(
             chan, "common_messages.database_update_error", current_menu_mode)
-        logging.error(f"データベース更新エラー: {e}")
+        logging.error(f"トップメニュー権限のデータベース更新エラー: {e}")
     return None
 
 
@@ -376,20 +389,11 @@ def change_user_level(chan, dbname, sysop_login_id, current_menu_mode):
     """ユーザレベルの変更"""
     util.send_text_by_key(
         chan, "sysop_menu.change_user_level.header", current_menu_mode)
-    util.send_text_by_key(
-        chan, "sysop_menu.change_user_level.user_name_prompt", current_menu_mode, add_newline=False)
-    target_user_input = chan.process_input()
-    if target_user_input is None:
-        return None
-    target_user = target_user_input.strip()
-    if not target_user:
-        return None
 
-    user_data = sqlite_tools.get_user_auth_info(dbname, target_user_input)
+    user_data = _get_target_user(
+        chan, dbname, "sysop_menu.change_user_level.user_name_prompt", current_menu_mode)
     if not user_data:
-        util.send_text_by_key(chan, "sysop_menu.change_user_level.user_not_found",
-                              current_menu_mode, user_id=target_user_input)
-        return None
+        return None  # ユーザーが見つからないかキャンセル
 
     user_id_to_change = user_data['id']
     user_name_to_change = user_data['name']
@@ -447,30 +451,18 @@ def change_user_password_by_sysop(chan, dbname, sysop_login_id, current_menu_mod
     util.send_text_by_key(
         chan, "sysop_menu.change_user_password.header", current_menu_mode)
 
-    while True:
-        util.send_text_by_key(chan, "sysop_menu.change_user_password.user_id_prompt",
-                              current_menu_mode, add_newline=False)
-        target_user_input = chan.process_input()
-        if target_user_input is None:
-            return None
+    user_data = _get_target_user(
+        chan, dbname, "sysop_menu.change_user_password.user_id_prompt", current_menu_mode)
+    if not user_data:
+        return None  # ユーザーが見つからないかキャンセル
 
-        target_user = target_user_input.strip().upper()
-        if not target_user:
-            return None
+    user_id_to_change = user_data['id']
+    user_name_to_change = user_data['name']
 
-        if target_user == sysop_login_id.upper():
-            util.send_text_by_key(chan, "sysop_menu.change_user_password.cannot_change_sysop",
-                                  current_menu_mode)
-            return None
-
-        user_data = sqlite_tools.get_user_auth_info(dbname, target_user)
-        if not user_data:
-            util.send_text_by_key(chan, "sysop_menu.change_user_password.user_not_found",
-                                  current_menu_mode, user_id=target_user)
-            return None
-
-        user_id_to_change = user_data['id']
-        user_name_to_change = user_data['name']
+    if user_name_to_change.upper() == sysop_login_id.upper():
+        util.send_text_by_key(chan, "sysop_menu.change_user_password.cannot_change_sysop",
+                              current_menu_mode)
+        return None
 
         # ランダムな12文字のパスワードを生成
         new_password = secrets.token_urlsafe(9)  # 12文字のランダムな文字列（URLセーフ）
@@ -495,8 +487,6 @@ def change_user_password_by_sysop(chan, dbname, sysop_login_id, current_menu_mod
         else:
             util.send_text_by_key(
                 chan, "common_messages.cancel", current_menu_mode)
-        return None
-
     return None
 
 

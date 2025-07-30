@@ -3,17 +3,16 @@ import time
 import sqlite3
 import json
 
-from . import util, sqlite_tools
+from . import util, sqlite_tools, database
 
 
 class BoardManager:
     """掲示板のメタ情報を管理するクラス"""
 
-    def __init__(self, dbname):
-        self.dbname = dbname
-        # self.load_boards_from_config() # SysOpメニューから実行する形に変更したため、初期化時は呼び出さない
+    def __init__(self):
+        # dbname は不要になったため削除
 
-    # This function is currently not called from anywhere.
+        # This function is currently not called from anywhere.
     def load_boards_from_config(self):
         paths_config = util.app_config.get('paths', {})
         bbs_config_path = paths_config.get('bbs_sync_config')
@@ -63,27 +62,25 @@ class BoardManager:
 
     def get_board_info(self, shortcut_id):
         """指定されたショートカットIDの掲示板情報をDBから取得する"""
-        board_info = sqlite_tools.get_board_by_shortcut_id(
-            self.dbname, shortcut_id)
-        # sqlite3.Row を dict に変換
-        return dict(board_info) if board_info else None
+        # database.py は直接辞書を返すため、dict()変換は不要
+        return database.get_board_by_shortcut_id(shortcut_id)
 
 
 class ArticleManager:
     """記事のCRUD操作と表示を行うクラス"""
 
-    def __init__(self, dbname):
-        self.dbname = dbname
+    def __init__(self):
+        # dbname は不要になったため削除
 
     def get_articles_by_board(self, board_id, include_deleted=False):
         """指定された掲示板の投稿一覧を取得する"""
         # board_idはboardsテーブルの主キー(id)
         # 投稿順（古いものが先）で取得
-        return sqlite_tools.get_articles_by_board_id(self.dbname, board_id, order_by="created_at ASC, article_number ASC", include_deleted=include_deleted)
+        return database.get_articles_by_board_id(board_id, order_by="created_at ASC, article_number ASC", include_deleted=include_deleted)
 
     def get_new_articles(self, board_id, last_login_timestamp):
         """指定された掲示板の、指定時刻以降の未削除記事を取得する。"""
-        return sqlite_tools.get_new_articles_for_board(self.dbname, board_id, last_login_timestamp)
+        return database.get_new_articles_for_board(board_id, last_login_timestamp)
 
     def get_article_by_number(self, board_id, article_number, include_deleted=False):
         """指定された記事番号の記事を取得する"""
@@ -172,8 +169,8 @@ class ArticleManager:
 class PermissionManager:
     """権限管理を行うクラス"""
 
-    def __init__(self, dbname):
-        self.dbname = dbname
+    def __init__(self):
+        # dbname は不要になったため削除
 
     def check_permission(self, board_id, user_id, action):
         """
@@ -191,8 +188,8 @@ class PermissionManager:
         board_id_pk = board_info.get("id")
         read_level = board_info.get('read_level', 1)  # デフォルトはレベル1
 
-        user_specific_perm = sqlite_tools.get_user_permission_for_board(
-            self.dbname, board_id_pk, str(user_id_pk))
+        user_specific_perm = database.get_user_permission_for_board(
+            board_id_pk, str(user_id_pk))
 
         # 優先順位: 1. deny, 2. allow, 3. level check
         if user_specific_perm == "deny":
@@ -210,8 +207,8 @@ class PermissionManager:
         board_id_pk = board_info.get("id")
         write_level = board_info.get('write_level', 1)  # デフォルトはレベル1
 
-        user_specific_perm = sqlite_tools.get_user_permission_for_board(
-            self.dbname, board_id_pk, str(user_id_pk))
+        user_specific_perm = database.get_user_permission_for_board(
+            board_id_pk, str(user_id_pk))
 
         # シグオペかをチェック
         try:
@@ -230,6 +227,46 @@ class PermissionManager:
             return True
 
         return user_level >= write_level
+
+    def can_delete_article(self, article_data, user_id_pk, user_level):
+        """指定された記事の削除/復元権限があるかチェックする"""
+        if not article_data:
+            return False
+
+        # シスオペ (レベル5以上) は常に権限あり
+        if user_level >= 5:
+            return True
+
+        # 記事の投稿者本人かチェック
+        try:
+            # article_data['user_id'] は TEXT 型の可能性があるため int に変換
+            # user_id_pk は users.id (INTEGER)
+            article_owner_id = int(article_data['user_id'])
+            if article_owner_id == user_id_pk:
+                return True
+        except (ValueError, TypeError, KeyError):
+            # GUEST(hash) のような文字列や、キーが存在しない場合は本人ではない
+            pass
+
+        return False
+
+    def can_view_deleted_article_content(self, article_data, user_id_pk, user_level):
+        """削除された記事の内容（タイトルや本文）を閲覧する権限があるかチェックする"""
+        if not article_data or article_data.get('is_deleted') != 1:
+            # 削除されていない記事、またはデータがない場合は権限チェックの対象外
+            return True
+
+        # シスオペ (レベル5以上) は常に権限あり
+        if user_level >= 5:
+            return True
+
+        # 記事の投稿者本人かチェック
+        try:
+            article_owner_id = int(article_data['user_id'])
+            return article_owner_id == user_id_pk
+        except (ValueError, TypeError, KeyError):
+            # GUEST(hash) やIDがない場合は本人ではない
+            return False
 
     def get_permission_list(self, board_id):
         """指定された掲示板のパーミッションリストを取得する"""

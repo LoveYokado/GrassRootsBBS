@@ -172,8 +172,8 @@ def handle_who_menu(context):
 def handle_telegram(context):
     """'#' or '!' 電報コマンドを処理する"""
     online_members_dict = _get_online_members_list(context)
-    util.telegram_send(context['chan'], context['dbname'], context['display_name'],
-                       list(online_members_dict.keys()), context['menu_mode'])
+    util.telegram_send(context['chan'], context['display_name'], list(
+        online_members_dict.keys()), context['menu_mode'])
     util.send_text_by_key(
         context['chan'], "top_menu.menu", context['menu_mode'])
     return {'status': 'continue'}

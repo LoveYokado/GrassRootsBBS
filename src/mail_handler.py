@@ -55,17 +55,17 @@ def format_mail_header_str(mail_data, dbname, view_mode, mail_id_width=5):  # no
     # --- Determine sender/recipient name ---
     display_name = ""
     if view_mode == 'inbox':
-        sender_name_raw = sqlite_tools.get_user_name_from_user_id(
-            dbname, mail_data['sender_id'])
-        if sender_name_raw and sender_name_raw.upper() == 'GUEST' and 'sender_ip_address' in mail_data.keys() and mail_data['sender_ip_address']:
+        # JOINで事前に取得した sender_name を利用する
+        sender_name_raw = mail_data.get('sender_name')
+        if sender_name_raw and sender_name_raw.upper() == 'GUEST' and mail_data.get('sender_ip_address'):
             display_name = util.get_display_name(
                 'GUEST', mail_data['sender_ip_address'])
         else:
-            display_name = sender_name_raw if sender_name_raw else "(Unknown)"
+            display_name = sender_name_raw if sender_name_raw else "(不明)"
     else:  # outbox
-        recipient_name = sqlite_tools.get_user_name_from_user_id(
-            dbname, mail_data['recipient_id'])
-        display_name = recipient_name if recipient_name else "(Unknown)"
+        # JOINで事前に取得した recipient_name を利用する
+        recipient_name = mail_data.get('recipient_name')
+        display_name = recipient_name if recipient_name else "(不明)"
 
     # Shorten the name to fit the column width
     display_name_final = util.shorten_text_by_slicing(
@@ -141,13 +141,8 @@ class MailViewer:
             current_mail_id = self.mails[self.current_index]['id']
 
         try:
-            if self.view_mode == 'inbox':
-                sql = "SELECT id, sender_id, subject, is_read, sent_at, recipient_deleted, sender_ip_address FROM mails WHERE recipient_id = ? ORDER BY sent_at ASC"
-            else:  # outbox
-                sql = "SELECT id, recipient_id, subject, is_read, sent_at, sender_deleted FROM mails WHERE sender_id = ? ORDER BY sent_at ASC"
-
-            fetched_mails = sqlite_tools.sqlite_execute_query(
-                self.dbname, sql, (self.user_id,), fetch=True)
+            fetched_mails = sqlite_tools.get_mails_for_view(
+                self.dbname, self.user_id, self.view_mode)
             self.mails = fetched_mails if fetched_mails else []
 
             new_index = 0

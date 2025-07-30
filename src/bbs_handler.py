@@ -5,7 +5,7 @@ import textwrap
 import datetime
 import json
 
-from . import sqlite_tools, util, hierarchical_menu, bbs_manager
+from . import sqlite_tools, util, hierarchical_menu, bbs_manager, database
 
 # CommandHandler: ユーザー入力に応じたコマンド処理
 
@@ -20,40 +20,39 @@ class CommandHandler:
         self.display_name = display_name
         self.menu_mode = menu_mode
         self.ip_address = ip_address
-        self.board_manager = bbs_manager.BoardManager(dbname)
-        self.article_manager = bbs_manager.ArticleManager(dbname)
-        self.permission_manager = bbs_manager.PermissionManager(dbname)
+        self.board_manager = bbs_manager.BoardManager()
+        self.article_manager = bbs_manager.ArticleManager()
+        self.permission_manager = bbs_manager.PermissionManager()
         self.current_board = None  # 現在の掲示板
         self.just_displayed_header_from_tail_h = False  # 読み戻り時の状態フラグ
-        self.user_id_pk = sqlite_tools.get_user_id_from_user_name(
-            dbname, login_id)
-        self.userlevel = sqlite_tools.get_user_level_from_user_id(
-            dbname, self.user_id_pk)
-        # ユーザーの最終ログイン時刻を初期化時に取得
-        user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
+
+        # ユーザー情報をDBから一括で取得
+        user_data = database.get_user_auth_info(login_id)
+        if not user_data:
+            # ユーザーが見つからない場合は、処理を続行できないためエラーログを出して初期化を中断
+            logging.error(
+                f"CommandHandler初期化失敗: ユーザー '{login_id}' が見つかりません。")
+            # 属性をNoneやデフォルト値で初期化してクラッシュを防ぐ
+            self.user_id_pk = None
+            self.userlevel = 0
+            self.last_login_timestamp = 0
+            self.user_read_progress_map = {}
+            # この後、呼び出し元でNoneチェックなどが必要になるかもしれないが、まずはここまで
+            return
+
+        self.user_id_pk = user_data.get('id')
+        self.userlevel = user_data.get('level', 0)
         self.last_login_timestamp = 0
-
-        if user_data:
-            if 'lastlogin' in user_data.keys():  # キーの存在確認を .keys() に対して行う
-                if user_data['lastlogin'] is not None:  # None でないことを確認
-                    try:
-                        # lastlogin は INTEGER 型のはずなので、そのまま代入
-                        self.last_login_timestamp = int(user_data['lastlogin'])
-                    except (ValueError, TypeError):
-                        logging.warning(
-                            f"CommandHandler.__init__: lastlogin field for user {login_id} is not a valid integer: {user_data['lastlogin']}. Defaulting to 0.")
-                        self.last_login_timestamp = 0  # 変換失敗時は0
-                # else: user_data['lastlogin'] が None の場合は self.last_login_timestamp はデフォルトの 0 のまま
-            else:
+        if user_data.get('lastlogin') is not None:
+            try:
+                self.last_login_timestamp = int(user_data['lastlogin'])
+            except (ValueError, TypeError):
                 logging.warning(
-                    f"CommandHandler.__init__: 'lastlogin' key NOT FOUND in user_data.keys() for {login_id}. Available keys: {user_data.keys() if user_data else 'user_data is None'}")
-        else:
-            logging.warning(
-                f"CommandHandler.__init__: user_data is None for {login_id}.")
+                    f"CommandHandler.__init__: lastlogin field for user {login_id} is not a valid integer: {user_data['lastlogin']}. Defaulting to 0.")
 
-        self.user_read_progress_map = sqlite_tools.get_user_read_progress(
-            self.dbname, self.user_id_pk)
-        # logging.debug(f"既読記事番号の読み込み LoginID:{login_id}, {self.user_read_progress_map}")
+        # 既読情報は専用の関数で取得（JSONパースのため）
+        self.user_read_progress_map = database.get_user_read_progress(
+            self.user_id_pk)
 
     def _display_kanban(self):
         """看板を表示する"""
@@ -85,8 +84,9 @@ class CommandHandler:
             str(board_id_pk), 0)
         if article_number > current_read_article_number:
             self.user_read_progress_map[str(board_id_pk)] = article_number
-            sqlite_tools.update_user_read_progress(
-                self.dbname, self.user_id_pk, self.user_read_progress_map)
+            # dbnameは不要になった
+            database.update_user_read_progress(
+                self.user_id_pk, self.user_read_progress_map)
 
     def display_board_entry_sequence(self):
         """掲示板に入った際の初期表示(ヘッダと看板)"""
@@ -259,8 +259,9 @@ class CommandHandler:
                 try:
                     # user_idが数値に変換できるか試す (登録ユーザー)
                     user_id_int = int(user_id_from_article)
-                    user_name = sqlite_tools.get_user_name_from_user_id(
-                        self.dbname, user_id_int)
+                    # dbnameは不要になった
+                    user_name = database.get_user_name_from_user_id(
+                        user_id_int)
                     display_sender_name = user_name if user_name else "(Unknown)"
                 except (ValueError, TypeError):
                     # 数値に変換できない場合 (GUEST(hash)など)、そのまま表示名として使用
@@ -281,20 +282,12 @@ class CommandHandler:
 
                 # タイトル表示の調整
                 if article['is_deleted'] == 1:
-                    can_see_deleted_title = False
-                    if self.userlevel >= 5:  # シスオペ
-                        can_see_deleted_title = True
-                    else:
-                        try:
-                            if int(article['user_id']) == self.user_id_pk:  # 投稿者本人
-                                can_see_deleted_title = True
-                        except ValueError:
-                            pass  # ID変換失敗時は見せない
-                    if can_see_deleted_title:
+                    # 権限チェックを PermissionManager に移譲
+                    if self.permission_manager.can_view_deleted_article_content(article, self.user_id_pk, self.userlevel):
                         title_short = util.shorten_text_by_slicing(
                             title, width=28)  # "* " を考慮して少し短く
                     else:
-                        title_short = ""  # 一般ユーザーには表示しない
+                        title_short = ""  # 権限がない場合は表示しない
                 else:
                     to_marker = "(T/O)" if article['body'] == '(T/O)' else ""
                     if board_type == 'thread':
@@ -727,20 +720,8 @@ class CommandHandler:
                 article_to_delete = articles[current_index]
                 article_id_pk = article_to_delete['id']
                 article_number = article_to_delete['article_number']
-                # DBのarticles.user_id (TEXT型)
-                article_user_id_from_db = article_to_delete['user_id']
 
-                # 権限チェック:シスオペ(LV5)または記事の投稿者
-                is_owner = False
-                try:
-                    # articles.user_id は TEXT 型だが、数値のIDが格納されている想定なのでintに変換して比較
-                    # self.user_id_pk は users.id (INTEGER)
-                    is_owner = (int(article_user_id_from_db)
-                                == self.user_id_pk)
-                except ValueError:
-                    # GUEST(hash) のような文字列はintに変換できないので、投稿者本人ではないと判断
-                    is_owner = False
-                if self.userlevel >= 5 or is_owner:
+                if self.permission_manager.can_delete_article(article_to_delete, self.user_id_pk, self.userlevel):
                     if self.article_manager.toggle_delete_article(article_id_pk):
                         # トグル前の状態
                         was_deleted = article_to_delete['is_deleted'] == 1
@@ -758,8 +739,7 @@ class CommandHandler:
                         util.send_text_by_key(
                             self.chan, "common_messages.error", self.menu_mode)
                         logging.warning(
-                            f"記事の削除/復旧が失敗しました。:(記事id {article_id_pk},記事番号 {article_number},投稿者ID {article_user_id_from_db}"
-                        )
+                            f"記事の削除/復旧が失敗しました。:(記事id {article_id_pk},記事番号 {article_number},投稿者ID {article_to_delete.get('user_id')})")
                         display_current_article_header()  # 失敗したら現在の行を再表示
                 else:
                     # 権限なし
@@ -805,8 +785,8 @@ class CommandHandler:
                     continue
 
                 # ユーザーの現在の探索リストを取得
-                current_list_str = sqlite_tools.get_user_exploration_list(
-                    self.dbname, self.user_id_pk)
+                current_list_str = database.get_user_exploration_list(
+                    self.user_id_pk)
                 current_list = [item.strip()
                                 for item in current_list_str.split(',') if item.strip()]
 
@@ -819,7 +799,7 @@ class CommandHandler:
                     message_key = "bbs.toggle_exploration_list_added"
 
                 new_list_str = ",".join(current_list)
-                if sqlite_tools.set_user_exploration_list(self.dbname, self.user_id_pk, new_list_str):
+                if database.set_user_exploration_list(self.user_id_pk, new_list_str):
                     util.send_text_by_key(
                         self.chan, message_key, self.menu_mode, shortcut_id=target_shortcut_id)
                 else:
@@ -886,8 +866,9 @@ class CommandHandler:
                     display_sender_name = ""
                     try:
                         user_id_int = int(user_id_from_article)
-                        user_name = sqlite_tools.get_user_name_from_user_id(
-                            self.dbname, user_id_int)
+                        # dbnameは不要になった
+                        user_name = database.get_user_name_from_user_id(
+                            user_id_int)
                         display_sender_name = user_name if user_name else "(Unknown)"
                     except (ValueError, TypeError):
                         display_sender_name = str(user_id_from_article)
@@ -1027,7 +1008,7 @@ class CommandHandler:
                 self.chan, "common_messages.cancel", self.menu_mode)
             return
 
-        if sqlite_tools.update_board_kanban(self.dbname, board_id_pk, new_body):
+        if database.update_board_kanban(board_id_pk, new_body):
             util.send_text_by_key(
                 self.chan, "bbs.kanban_save_success", self.menu_mode)
             updated_board_info = self.board_manager.get_board_info(
@@ -1081,8 +1062,8 @@ class CommandHandler:
             self.chan, "bbs.edit_operators_header", self.menu_mode)
 
         if current_operator_ids:
-            operator_names = [sqlite_tools.get_user_name_from_user_id(
-                self.dbname, uid) or f"(ID:{uid})" for uid in current_operator_ids]
+            operator_names = [database.get_user_name_from_user_id(
+                uid) or f"(ID:{uid})" for uid in current_operator_ids]
             util.send_text_by_key(
                 self.chan, "bbs.current_operators_list", self.menu_mode, operators_list_str=", ".join(operator_names))
         else:
@@ -1116,8 +1097,7 @@ class CommandHandler:
         new_operator_ids = []
         valid_input = True
         for name in new_operator_names:
-            user_id = sqlite_tools.get_user_id_from_user_name(
-                self.dbname, name)
+            user_id = database.get_user_id_from_user_name(name)
             if user_id is None:
                 util.send_text_by_key(
                     self.chan, "bbs.operator_user_not_found", self.menu_mode, username=name)
@@ -1134,8 +1114,8 @@ class CommandHandler:
         new_operator_ids_unique = sorted(
             list(set(new_operator_ids)), key=new_operator_ids.index)
 
-        new_operator_names_display = [sqlite_tools.get_user_name_from_user_id(
-            self.dbname, uid) or f"(ID:{uid})" for uid in new_operator_ids_unique]
+        new_operator_names_display = [database.get_user_name_from_user_id(
+            uid) or f"(ID:{uid})" for uid in new_operator_ids_unique]
 
         util.send_text_by_key(
             self.chan, "common_messages.confirm_yn", self.menu_mode, add_newline=False)  # 確認
@@ -1151,7 +1131,7 @@ class CommandHandler:
             return
 
         new_operators_json = json.dumps(new_operator_ids_unique)
-        if sqlite_tools.update_board_operators(self.dbname, board_id_pk, new_operators_json):
+        if database.update_board_operators(board_id_pk, new_operators_json):
             util.send_text_by_key(
                 self.chan, "bbs.operators_updated_success", self.menu_mode)
             util.send_text_by_key(
@@ -1361,27 +1341,12 @@ class CommandHandler:
             self.chan.send(b'\r\n')
 
         # 削除済み記事の本文表示に関する権限チェック
-        if article['is_deleted']:
-            can_read_deleted_body = False
-            if self.userlevel >= 5:  # シスオペは読める
-                can_read_deleted_body = True
-            else:
-                try:
-                    # 記事の投稿者ID (DBからはTEXT型で取得される可能性がある)
-                    # self.user_id_pk は users.id (INTEGER)
-                    article_owner_id = int(article['user_id'])
-                    if article_owner_id == self.user_id_pk:  # 投稿者本人は読める
-                        can_read_deleted_body = True
-                except ValueError:
-                    # GUEST(hash) のような文字列はintに変換できないので、投稿者本人ではないと判断
-                    can_read_deleted_body = False
-
-            if not can_read_deleted_body:
-                # 権限がない場合はメッセージを表示して本文表示をスキップ
-                util.send_text_by_key(
-                    self.chan, "bbs.article_deleted_body", self.menu_mode)
-                # show_back_prompt が True の場合でも、この後のプロンプトループは実行されない
-                return
+        if not self.permission_manager.can_view_deleted_article_content(article, self.user_id_pk, self.userlevel):
+            # 権限がない場合はメッセージを表示して本文表示をスキップ
+            util.send_text_by_key(
+                self.chan, "bbs.article_deleted_body", self.menu_mode)
+            # show_back_prompt が True の場合でも、この後のプロンプトループは実行されない
+            return
 
         # (T/O) の場合は本文を表示しない
         if article['body'] != '(T/O)':

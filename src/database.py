@@ -400,6 +400,20 @@ def get_user_exploration_list(user_id):
     return result['exploration_list'] if result and result['exploration_list'] else ""
 
 
+def set_user_exploration_list(user_id, exploration_list_str):
+    """ユーザ探索リストを更新"""
+    try:
+        update_record(
+            'users', {'exploration_list': exploration_list_str}, {'id': user_id})
+        logging.info(f"ユーザID {user_id} の探索リストを更新しました。")
+        return True
+    except Exception as e:
+        # ログにリストの先頭部分を含める
+        logging.error(
+            f"探索リスト更新中にDBエラー (UserID: {user_id}, List: {exploration_list_str[:50]}...): {e}")
+        return False
+
+
 def update_user_read_progress(user_id, read_progress_dict):
     """ユーザの掲示板読み込み進捗を更新"""
     read_progress_json = json.dumps(read_progress_dict)
@@ -431,16 +445,54 @@ def update_board_last_posted_at(board_id_pk, timestamp=None):
 
 def toggle_mail_delete_status_generic(mail_id, user_id, mode_param):
     """メールの削除フラグをトグルする汎用関数"""
-    # This function is complex due to needing a SELECT then UPDATE.
-    # It's better to handle this with a transaction in the function itself
-    # rather than relying on the generic execute_query for both steps.
-    # The implementation from the previous turn is a good example.
-    # For now, this is a placeholder as it requires a more complex transaction logic
-    # that is not yet implemented in the new `execute_query`.
-    # A proper implementation would require passing a connection object.
-    logging.warning(
-        "toggle_mail_delete_status_generic is not fully implemented for MariaDB yet.")
-    return False, 0
+    conn = None
+    cursor = None
+    mode = str(mode_param).strip()
+
+    if mode not in ['sender', 'recipient']:
+        logging.error(f"無効なモードが指定されました: {mode}")
+        return False, 0
+
+    id_column = 'sender_id' if mode == 'sender' else 'recipient_id'
+    deleted_column = 'sender_deleted' if mode == 'sender' else 'recipient_deleted'
+
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. 現在の状態を取得
+        query_select = f"SELECT {deleted_column} FROM mails WHERE id = %s AND {id_column} = %s"
+        cursor.execute(query_select, (mail_id, user_id))
+        result = cursor.fetchone()
+
+        if result is None:
+            logging.warning(
+                f"メール削除トグルに失敗({mode})。メールなしか権限なし (MailID: {mail_id}, UserID: {user_id})")
+            return False, 0
+
+        current_status = result[deleted_column]
+        new_status = 1 - current_status  # 0 -> 1, 1 -> 0
+
+        # 2. 更新
+        query_update = f"UPDATE mails SET {deleted_column} = %s WHERE id = %s AND {id_column} = %s"
+        cursor.execute(query_update, (new_status, mail_id, user_id))
+        conn.commit()
+
+        logging.info(
+            f"メール(ID:{mail_id})の{deleted_column}を{new_status}に変更しました(User:{user_id},Mode:{mode})")
+        return True, new_status
+
+    except mysql.connector.Error as err:
+        logging.error(
+            f"メール削除トグル処理({mode})中にDBエラー (MailID: {mail_id}, UserID: {user_id}): {err}")
+        if conn:
+            conn.rollback()
+        return False, 0
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 def get_memberlist(search_word=None):
@@ -465,7 +517,7 @@ def register_user(username, hashed_password, salt, comment, level=0, menu_mode='
     import time
     params = (
         username, hashed_password, salt, int(time.time()), level, 0, 0,
-        comment, email, menu_mode, telegram_restriction, '', '{}'
+        comment, email, menu_mode, telegram_restriction, '', '', '{}'
     )
     return execute_query(query, params) is not None
 

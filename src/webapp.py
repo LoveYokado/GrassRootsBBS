@@ -405,10 +405,10 @@ class WebTerminalHandler:
 
             while self.main_thread_active:
                 # プロンプト前の定型処理 (メール/電報通知)
-                _, self.mail_notified_this_session = util.prompt_handler(self.channel, self.user_session.get(
-                    'username'),
-                    self.user_session.get(
-                        'menu_mode', '2'), self.mail_notified_this_session
+                # dbnameは互換性のためにダミーの値を渡す
+                _, self.mail_notified_this_session = util.prompt_handler(self.channel, "dummy_dbname", self.user_session.get('username'),
+                                                                         self.user_session.get(
+                    'menu_mode', '2'), self.mail_notified_this_session
                 )
 
                 context = {
@@ -533,9 +533,7 @@ def login():
 
         auth_success = False
         if user_auth_info:
-            pbkdf2_rounds = util.app_config.get(
-                'security', {}).get('PBKDF2_ROUNDS', 100000)
-            if util.verify_password(user_auth_info['password'], user_auth_info['salt'], password, pbkdf2_rounds):
+            if util.verify_password(user_auth_info['password'], user_auth_info['salt'], password):
                 auth_success = True
 
         if auth_success:
@@ -557,8 +555,8 @@ def login():
             logging.info(f"WebUI Login Success: {username}")
 
             # DBのログイン時刻を更新
-            database.update_idbase('users', ['lastlogin'], user_auth_info['id'],
-                                   'id', [int(time.time())])
+            database.update_record(
+                'users', {'lastlogin': int(time.time())}, {'id': user_auth_info['id']})
 
             return redirect(url_for('index'))
         else:

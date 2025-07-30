@@ -236,7 +236,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_m
                 # 電報をチャット内から送信
                 if ONLINE_MEMBERS_FUNC:
                     online_members_dict = ONLINE_MEMBERS_FUNC()
-                    util.telegram_send(chan, dbname, display_name, list(
+                    util.telegram_send(chan, display_name, list(
                         online_members_dict.keys()), menu_mode)
                 else:
                     util.send_text_by_key(
