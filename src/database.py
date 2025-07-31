@@ -301,6 +301,36 @@ def get_oldest_unread_mail(recipient_user_id_pk):
     return execute_query(query, (recipient_user_id_pk,), fetch='one')
 
 
+def get_mails_for_view(user_id_pk, view_mode):
+    """
+    指定されたユーザーのメール一覧を、表示に必要な情報をJOINして取得する。
+    view_mode: 'inbox' または 'outbox'
+    """
+    if view_mode == 'inbox':
+        # 受信箱: 送信者の名前をJOINで取得
+        query = """
+            SELECT
+                m.id, m.sender_id, m.subject, m.is_read, m.sent_at, m.recipient_deleted, m.sender_ip_address,
+                u.name AS sender_name
+            FROM mails AS m
+            LEFT JOIN users AS u ON m.sender_id = u.id
+            WHERE m.recipient_id = %s
+            ORDER BY m.sent_at ASC
+        """
+    else:  # outbox
+        # 送信箱: 宛先の名前をJOINで取得
+        query = """
+            SELECT
+                m.id, m.recipient_id, m.subject, m.is_read, m.sent_at, m.sender_deleted,
+                u.name AS recipient_name
+            FROM mails AS m
+            LEFT JOIN users AS u ON m.recipient_id = u.id
+            WHERE m.sender_id = %s
+            ORDER BY m.sent_at ASC
+        """
+    return execute_query(query, (user_id_pk,), fetch='all')
+
+
 def get_new_articles_for_board(board_id_pk, last_login_timestamp):
     """
     指定された掲示板の、指定時刻以降の未削除記事を取得する。
@@ -668,3 +698,15 @@ def toggle_article_deleted_status(article_id):
             cursor.close()
         if conn:
             conn.close()
+
+
+def get_all_users():
+    """全ユーザーの情報を取得する"""
+    query = "SELECT id, name, level, registdate, lastlogin, comment, email FROM users ORDER BY id ASC"
+    return execute_query(query, fetch='all')
+
+
+def get_all_boards_for_sysop_list():
+    """シスオペメニューの掲示板一覧表示用に、掲示板の情報を取得する"""
+    query = "SELECT shortcut_id, name, operators, default_permission, status, last_posted_at, read_level, write_level FROM boards ORDER BY shortcut_id ASC"
+    return execute_query(query, fetch='all')

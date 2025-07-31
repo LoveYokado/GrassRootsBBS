@@ -57,7 +57,7 @@ def _display_manual_menu(chan, menu_data, current_menu_mode):
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
 
 
-def process_manual_menu(chan, dbname: str, login_id: str, menu_mode: str, menu_config_path: str, initial_menu_id: str, menu_type: str):
+def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: str, initial_menu_id: str, menu_type: str):
     """
     手書きメニューを処理するメイン関数。
     menu_type: "bbs" または "chat" など、最終的なアクションの種類を示す。
@@ -92,7 +92,7 @@ def process_manual_menu(chan, dbname: str, login_id: str, menu_mode: str, menu_c
         prompt_key = current_menu_data.get(
             "prompt_key", "common_messages.select_prompt")
         # 新着チェックを追加
-        util.prompt_handler(chan, dbname, login_id, menu_mode)
+        util.prompt_handler(chan, login_id, menu_mode)
         util.send_text_by_key(chan, prompt_key,
                               menu_mode, add_newline=False)
         user_input_raw = chan.process_input()

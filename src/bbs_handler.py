@@ -314,8 +314,7 @@ class CommandHandler:
         self.just_displayed_header_from_tail_h = False  # フラグをリセット
 
         while True:
-            util.prompt_handler(
-                self.chan, self.dbname, self.login_id, self.menu_mode)
+            util.prompt_handler(self.chan, self.login_id, self.menu_mode)
             util.send_text_by_key(
                 self.chan, "bbs.article_list_prompt", self.menu_mode, add_newline=False)
             key_input = None
@@ -1571,10 +1570,10 @@ class CommandHandler:
             util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
 
 
-def handle_bbs_menu(chan, dbname, login_id, display_name, menu_mode, shortcut_id, ip_address):
+def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_address):
     """掲示板メニューのエントリーポイント"""
-    handler = CommandHandler(chan, dbname, login_id,
-                             display_name, menu_mode, ip_address)
+    handler = CommandHandler(
+        chan, login_id, display_name, menu_mode, ip_address)
     if shortcut_id:
         # ショートカットIDが指定されていれば、その掲示板に直接移動
         board_data_from_db = handler.board_manager.get_board_info(shortcut_id)

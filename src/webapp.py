@@ -405,10 +405,10 @@ class WebTerminalHandler:
 
             while self.main_thread_active:
                 # プロンプト前の定型処理 (メール/電報通知)
-                # dbnameは互換性のためにダミーの値を渡す
-                _, self.mail_notified_this_session = util.prompt_handler(self.channel, "dummy_dbname", self.user_session.get('username'),
-                                                                         self.user_session.get(
-                    'menu_mode', '2'), self.mail_notified_this_session
+                _, self.mail_notified_this_session = util.prompt_handler(
+                    self.channel, self.user_session.get('username'),
+                    self.user_session.get(
+                        'menu_mode', '2'), self.mail_notified_this_session
                 )
 
                 context = {
@@ -431,6 +431,21 @@ class WebTerminalHandler:
                 if command is None:  # 切断
                     self.main_thread_active = False
                     break
+
+                # ショートカット処理
+                # util.handle_shortcut はショートカットとして処理された場合に True を返す
+                if util.handle_shortcut(
+                    context['chan'],
+                    context['login_id'],
+                    context['display_name'],
+                    context['menu_mode'],
+                    command,  # strip() や lower() をかける前の生コマンドを渡す
+                    context['online_members_func']
+                ):
+                    # ショートカット処理後はトップメニューを再表示してループの先頭へ
+                    util.send_text_by_key(
+                        self.channel, "top_menu.menu", context['menu_mode'])
+                    continue
 
                 command = command.strip().lower()
                 if not command:

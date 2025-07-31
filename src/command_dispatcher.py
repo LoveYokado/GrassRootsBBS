@@ -84,7 +84,7 @@ def handle_auto_download(context):
 def handle_sysop_menu(context):
     """'s' シスオペメニューコマンドを処理する"""
     result = sysop_menu.sysop_menu(
-        context['chan'], context['dbname'], context['login_id'], context['display_name'], context['menu_mode'])
+        context['chan'], context['login_id'], context['display_name'], context['menu_mode'])
     if result == "back_to_top":
         util.send_text_by_key(
             context['chan'], "top_menu.menu", context['menu_mode'])
@@ -105,22 +105,22 @@ def handle_bbs(context):
             if selected_item and selected_item.get("type") == "board":
                 item_id = selected_item.get("id")
                 bbs_handler_result = bbs_handler.handle_bbs_menu(
-                    context['chan'], context['dbname'], context['login_id'], context['display_name'],
-                    context['menu_mode'], item_id, context['addr'][0])
+                    context['chan'], context['login_id'], context['display_name'], context['menu_mode'],
+                    item_id, context['addr'][0])
             else:
                 # 階層メニューを抜けた場合
                 break
         else:  # mode1
             paths_config = util.app_config.get('paths', {})
             selected_board_id = manual_menu_handler.process_manual_menu(
-                context['chan'], context['dbname'], context['login_id'], context['menu_mode'],
+                context['chan'], context['login_id'], context['menu_mode'],
                 menu_config_path=paths_config.get('bbs_mode1_yaml'),
                 initial_menu_id="main_bbs_menu", menu_type="bbs")
 
             if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
                 bbs_handler_result = bbs_handler.handle_bbs_menu(
-                    context['chan'], context['dbname'], context['login_id'], context['display_name'],
-                    context['menu_mode'], selected_board_id, context['addr'][0])
+                    context['chan'], context['login_id'], context['display_name'], context['menu_mode'],
+                    selected_board_id, context['addr'][0])
             else:
                 # 手書きメニューを抜けた場合
                 break
@@ -150,8 +150,8 @@ def handle_chat(context):
             chat_handler.set_online_members_function_for_chat(
                 lambda: _get_online_members_list(context))
             chat_handler.handle_chat_room(
-                context['chan'], context['dbname'], context['login_id'], context['display_name'],
-                context['menu_mode'], item_id, item_name)
+                context['chan'], context['login_id'], context['display_name'], context['menu_mode'],
+                item_id, item_name)
         else:
             break
     # チャットメニューから抜けたときにトップメニューを再表示
@@ -183,7 +183,7 @@ def handle_telegram(context):
 def handle_user_pref_menu(context):
     """'u' ユーザー環境設定コマンドを処理する"""
     result = user_pref_menu.userpref_menu(
-        context['chan'], context['dbname'], context['login_id'], context['display_name'], context['menu_mode'])
+        context['chan'], context['login_id'], context['display_name'], context['menu_mode'])
 
     if result in ('1', '2', '3'):
         # メニューモードが変更された場合、コンテキストを更新してループを継続
@@ -200,7 +200,7 @@ def handle_user_pref_menu(context):
 def handle_mail(context):
     """'m' メールコマンドを処理する"""
     result = mail_handler.mail(
-        context['chan'], context['dbname'], context['login_id'], context['menu_mode'])
+        context['chan'], context['login_id'], context['menu_mode'])
     if result == "back_to_top":
         util.send_text_by_key(
             context['chan'], "top_menu.menu", context['menu_mode'])

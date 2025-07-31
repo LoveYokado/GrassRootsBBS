@@ -6,63 +6,6 @@ import json
 from . import database
 
 
-def get_user_id_from_user_name(dbname, username):
-    """ユーザ名からユーザIDを取得する"""
-    try:
-        # 呼び出し先をMariaDB用の関数に変更
-        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
-        return database.get_user_id_from_user_name(username)
-    except Exception as e:
-        logging.error(f"ユーザID取得中に予期せぬエラー ({username}): {e}")
-        return None
-
-
-def get_user_name_from_user_id(dbname, user_id):
-    """ユーザIDからユーザ名を取得する"""
-    try:
-        # 呼び出し先をMariaDB用の関数に変更
-        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
-        return database.get_user_name_from_user_id(user_id)
-    except Exception as e:
-        logging.error(f"ユーザ名取得中に予期せぬエラー (ID: {user_id}): {e}")
-        return "(不明)"
-
-
-def get_user_level_from_user_id(dbname, user_id):
-    """ユーザIDからユーザレベルを取得する"""
-    try:
-        # 呼び出し先をMariaDB用の関数に変更
-        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
-        return database.get_user_level_from_user_id(user_id)
-    except Exception as e:
-        logging.error(f"ユーザレベル取得中に予期せぬエラー (ID: {user_id}): {e}")
-        return 0
-
-
-def get_user_auth_info(dbname, username):
-    """
-    ユーザ名から認証情報を含むユーザデータ取得。
-    見つからない場合はNoneを返す。
-    """
-    try:
-        # 呼び出し先をMariaDB用の関数に変更
-        # dbnameは使わないが、呼び出し元の互換性のために引数は残す
-        return database.get_user_auth_info(username)
-    except Exception as e:
-        # databaseモジュール内でエラーログは出力される想定だが、念のためここでもログを残す
-        logging.error(f"認証情報取得中に予期せぬエラー ({username}): {e}")
-        return None
-
-
-def toggle_mail_delete_status_generic(dbname, mail_id, user_id, mode_param):
-    """メールの削除フラグをトグルする汎用関数。"""
-    try:
-        return database.toggle_mail_delete_status_generic(mail_id, user_id, mode_param)
-    except Exception as e:
-        logging.error(f"メール削除トグル処理中に予期せぬエラー: {e}")
-        return False, 0
-
-
 def sqlite_execute_query(dbname, sql, params=None, fetch=False, conn=None):
     """汎用的なSQLiteクエリ実行関数。connが渡された場合はその接続を使い、コミットやクローズは行わない。"""
     close_conn_locally = False
@@ -363,22 +306,6 @@ def update_server_default_exploration_list(dbname, exploration_list_str):
         return False
 
 
-def get_user_read_progress(dbname, user_id):
-    """
-    ユーザの掲示板読み込み進捗を取得
-    JSONのパースを辞書として返す
-    """
-    try:
-        sql = "SELECT read_progress FROM users WHERE id=?"
-        results = sqlite_execute_query(dbname, sql, (user_id,), fetch=True)
-        if results and results[0] and results[0]['read_progress'] is not None:
-            return json.loads(results[0]['read_progress'])
-        return {}
-    except Exception as e:
-        logging.error(f"掲示板読み込み進捗取得中にDBエラー (UserID: {user_id}): {e}")
-        return {}
-
-
 def update_user_read_progress(dbname, user_id, read_progress_dict):
     """
     ユーザの掲示板読み込み進捗を更新
@@ -392,26 +319,6 @@ def update_user_read_progress(dbname, user_id, read_progress_dict):
         return True
     except Exception as e:
         logging.error(f"掲示板読み込み進捗更新中にDBエラー (UserID: {user_id}): {e}")
-        return False
-
-
-def register_user(dbname, username, hashed_password, salt, comment, level=0,
-                  menu_mode='1', telegram_restriction=0):
-    """新しいユーザーをデータベースに登録する"""
-    try:
-        email_addr = f'{username.lower()}@example.com'
-        return database.register_user(
-            username=username,
-            hashed_password=hashed_password,
-            salt=salt,
-            comment=comment,
-            level=level,
-            menu_mode=menu_mode,
-            telegram_restriction=telegram_restriction,
-            email=email_addr
-        )
-    except Exception as e:
-        logging.error(f"ユーザー登録中に予期せぬエラー: {e}")
         return False
 
 
@@ -430,19 +337,6 @@ def delete_user(dbname, user_id_to_delete):
         return False
 
 
-def update_user_email(dbname, user_id, new_email):
-    """ユーザーのメールアドレスを更新"""
-    try:
-        sql = "UPDATE users SET email=? WHERE id=?"
-        if sqlite_execute_query(dbname, sql, (new_email, user_id)):
-            logging.info(f"ユーザID {user_id} のメールアドレスを更新しました。")
-            return True
-        return False
-    except Exception as e:
-        logging.error(f"メールアドレス更新中にDBエラー (UserID: {user_id}): {e}")
-        return False
-
-
 def update_user_level(dbname, user_id, new_level):
     """ユーザーのレベルを更新"""
     try:
@@ -452,16 +346,6 @@ def update_user_level(dbname, user_id, new_level):
     except Exception as e:
         logging.error(f"レベル更新中に予期せぬエラー (UserID: {user_id}): {e}")
         return False
-
-
-def get_board_by_shortcut_id(dbname, shortcut_id):
-    """指定されたショートカットIDの掲示板情報をDBから取得"""
-    sql = "SELECT id, shortcut_id, name, description, operators, default_permission, kanban_body, last_posted_at, status, read_level, write_level, board_type FROM boards WHERE shortcut_id = ?"
-    results = sqlite_execute_query(dbname, sql, (shortcut_id,), fetch=True)
-    return results[0] if results else None
-
-
-def create_board_entry(dbname, shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple"):
     """新しい掲示板エントリをboardsテーブルに挿入"""
     sql = """
     INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level,board_type)
@@ -480,58 +364,10 @@ def delete_board_entry(dbname, shortcut_id):
     #       ひとまず、boards テーブルからの削除のみとします。
     sql = "DELETE FROM boards WHERE shortcut_id=?"
     return sqlite_execute_query(dbname, sql, (shortcut_id,))
-
-
-def get_next_article_number(dbname, board_id_pk, conn=None):
-    sql = "SELECT COALESCE(MAX(article_number), 0) + 1 FROM articles WHERE board_id=?"
-    results = sqlite_execute_query(
-        dbname, sql, (board_id_pk,), fetch=True, conn=conn)
-    if results and results[0] is not None:
-        return results[0][0]
-    return 1  # エラー、または記事がないなら1から
-
-
-def update_board_last_posted_at(dbname, board_id_pk, timestamp=None, conn=None):
     # boardsテーブルのlast_posted_atを更新
     if timestamp is None:
         timestamp = int(time.time())
     sql = "UPDATE boards SET last_posted_at=? WHERE id=?"
-    return sqlite_execute_query(dbname, sql, (timestamp, board_id_pk), conn=conn)
-
-
-def insert_article(dbname, board_id_pk, article_number, user_id_pk, title, body, timestamp, ip_address=None, parent_article_id=None, conn=None):
-    """
-    articlesテーブルに新しい記事を挿入し、挿入された記事のIDを返す。
-    失敗した場合はNoneを返す。
-    """
-    # この関数はconnを受け取るが、lastrowidを取得するためにsqlite_execute_queryは使わない
-    sql = """
-        INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """
-    params = (board_id_pk, article_number, user_id_pk, parent_article_id,
-              title, body, timestamp, ip_address)
-
-    close_conn_locally = False
-    if conn is None:
-        conn = sqlite3.connect(dbname)
-        close_conn_locally = True
-
-    try:
-        cur = conn.cursor()
-        cur.execute(sql, params)
-        article_id = cur.lastrowid
-        if close_conn_locally:
-            conn.commit()
-        return article_id
-    except sqlite3.Error as e:
-        logging.error(f"記事挿入中にSQLiteエラー: {e} (SQL: {sql}, Params: {params})")
-        if close_conn_locally and conn:
-            conn.rollback()
-        return None
-    finally:
-        if close_conn_locally and conn:
-            conn.close()
 
 
 def get_articles_by_board_id(dbname, board_id_pk, order_by="article_number ASC", include_deleted=False):
@@ -573,39 +409,6 @@ def get_article_by_id(dbname, article_id_pk, include_deleted=False):
     return results[0] if results else None
 
 
-def toggle_article_deleted_status(dbname, article_id):
-    """記事の is_deleted フラグをトグルする"""
-    conn = None
-    try:
-        conn = sqlite3.connect(dbname)
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
-
-        # 現在の is_deleted の値を取得
-        cur.execute("SELECT is_deleted FROM articles WHERE id = ?",
-                    (article_id,))
-        result = cur.fetchone()
-
-        if result is None:
-            logging.warning(f"記事削除フラグのトグル失敗: 記事ID '{article_id}' が見つかりません。")
-            return False
-
-        new_status = 1 - result['is_deleted']  # 0なら1に、1なら0に
-        cur.execute("UPDATE articles SET is_deleted = ? WHERE id = ?",
-                    (new_status, article_id))
-        conn.commit()
-        logging.info(f"記事ID {article_id} の is_deleted を {new_status} に変更しました。")
-        return True
-    except sqlite3.Error as e:
-        logging.error(f"記事削除フラグのトグル中にDBエラー (記事ID: {article_id}): {e}")
-        if conn:
-            conn.rollback()
-        return False
-    finally:
-        if conn:
-            conn.close()
-
-
 def update_board_operators(dbname, board_id_pk, operator_user_ids_json_string):
     """
     指定された掲示板のオペレーターリストを更新する。
@@ -630,125 +433,16 @@ def update_board_operators(dbname, board_id_pk, operator_user_ids_json_string):
     except Exception as e:
         logging.error(f"掲示板ID {board_id_pk} のオペレーターリスト更新中にDBエラー: {e}")
         return False
-
-
-def update_board_kanban(dbname, board_id_pk, new_kanban_body):
-    """掲示板の看板更新"""
-    sql = "UPDATE boards SET kanban_body=? WHERE id=?"
-    try:
-        success = sqlite_execute_query(
-            dbname, sql, (new_kanban_body, board_id_pk))
-        if success:
-            logging.info(f"掲示板ID {board_id_pk} の看板本文を更新しました")
-            return True
-        else:
-            logging.error(
-                f"掲示板ID {board_id_pk} の看板本文更新中にDBエラー（sqlite_execute_queryがFalseを返しました）")
-        return success
-    except Exception as e:
-        logging.error(f"掲示板ID {board_id_pk} の看板本文更新中に例外が発生: {e}")
-        return False
-
-
-def get_board_permissions(dbname, board_id_pk):
     """指定された掲示板IDのパーミッションリスト（user_idとaccess_level）を全て取得する"""
     sql = "SELECT user_id, access_level FROM board_user_permissions WHERE board_id = ?"
     results = sqlite_execute_query(dbname, sql, (board_id_pk,), fetch=True)
     return results if results else []  # sqlite_execute_query は sqlite3.Row のリストを返す
-
-
-def delete_board_permissions_by_board_id(dbname, board_id_pk):
-    """指定された掲示板IDのパーミッションを全て削除する"""
-    sql = "DELETE FROM board_user_permissions WHERE board_id = ?"
-    return sqlite_execute_query(dbname, sql, (board_id_pk,))
-
-
-def add_board_permission(dbname, board_id_pk, user_id_pk_str, access_level):
     """board_user_permissions テーブルに新しい権限エントリを追加する"""
     sql = "INSERT INTO board_user_permissions (board_id, user_id,access_level) VALUES (?, ?, ?)"
     return sqlite_execute_query(dbname, sql, (board_id_pk, user_id_pk_str, access_level))
 
 
-def get_user_permission_for_board(dbname, board_id_pk, user_id_pk_str):
-    """指定された掲示板とユーザのアクセスレベルを取得"""
-    sql = "SELECT access_level FROM board_user_permissions WHERE board_id=? AND user_id=?"
-    result = sqlite_execute_query(
-        dbname, sql, (board_id_pk, user_id_pk_str), fetch=True)
-    return result[0]['access_level']if result else None
-
-
-def get_total_unread_mail_count(dbname, user_id_pk):
-    """指定されたユーザの未読かつ未削除の受信メール総数を取得"""
-    try:
-        return database.get_total_unread_mail_count(user_id_pk)
-    except Exception as e:
-        logging.error(f"未読メール数取得中に予期せぬエラー: {e}")
-        return 0
-
-
-def get_total_mail_count(dbname, user_id_pk):
-    """指定されたユーザの未削除の受信メール総数を取得"""
-    try:
-        return database.get_total_mail_count(user_id_pk)
-    except Exception as e:
-        logging.error(f"総メール数取得中に予期せぬエラー: {e}")
-        return 0
-
-
-def mark_mail_as_read(dbname, mail_id, recipient_user_id_pk):
-    """指定されたメールを指定された受信者に対して既読にする"""
-    try:
-        return database.mark_mail_as_read(mail_id, recipient_user_id_pk)
-    except Exception as e:
-        logging.error(f"メール既読化処理中に予期せぬエラー: {e}")
-        return False
-
-
-def get_oldest_unread_mail(dbname, recipient_user_id_pk):
-    """指定されたユーザの一番古い未読、かつ未削除の受信メールを1件取得"""
-    sql = """
-        SELECT
-            m.id, m.sender_id, m.subject, m.body, m.is_read, m.sent_at, m.recipient_deleted, m.sender_ip_address,
-            u.name AS sender_name
-        FROM mails AS m
-        LEFT JOIN users AS u ON m.sender_id = u.id
-        WHERE m.recipient_id=? AND m.is_read=0 AND m.recipient_deleted=0
-        ORDER BY sent_at ASC
-        LIMIT 1
-    """
-    results = sqlite_execute_query(
-        dbname, sql, (recipient_user_id_pk,), fetch=True)
-    return results[0] if results else None
-
-
 def get_mails_for_view(dbname, user_id_pk, view_mode):
-    """
-    指定されたユーザーのメール一覧を、表示に必要な情報をJOINして取得する。
-    view_mode: 'inbox' または 'outbox'
-    """
-    if view_mode == 'inbox':
-        # 受信箱: 送信者の名前をJOINで取得
-        sql = """
-            SELECT
-                m.id, m.sender_id, m.subject, m.is_read, m.sent_at, m.recipient_deleted, m.sender_ip_address,
-                u.name AS sender_name
-            FROM mails AS m
-            LEFT JOIN users AS u ON m.sender_id = u.id
-            WHERE m.recipient_id = ?
-            ORDER BY m.sent_at ASC
-        """
-    else:  # outbox
-        # 送信箱: 宛先の名前をJOINで取得
-        sql = """
-            SELECT
-                m.id, m.recipient_id, m.subject, m.is_read, m.sent_at, m.sender_deleted,
-                u.name AS recipient_name
-            FROM mails AS m
-            LEFT JOIN users AS u ON m.recipient_id = u.id
-            WHERE m.sender_id = ?
-            ORDER BY m.sent_at ASC
-        """
-    return sqlite_execute_query(dbname, sql, (user_id_pk,), fetch=True)
 
 
 def get_new_articles_for_board(dbname, board_id_pk, last_login_timestamp):

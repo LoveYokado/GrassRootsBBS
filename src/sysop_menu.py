@@ -6,7 +6,7 @@ import secrets
 from . import util, sqlite_tools, database
 
 
-def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mode):
+def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
     """シスオペメニュー"""
     # コマンドと対応する関数のディスパッチテーブル
     command_dispatch = {
@@ -33,8 +33,7 @@ def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mo
         util.send_text_by_key(chan, "sysop_menu.menu", current_menu_mode)
         # プロンプト前の定型処理。通知フラグを渡して、更新されたフラグを受け取る
         _, mail_notified_flag = util.prompt_handler(
-            chan, dbname, sysop_login_id, current_menu_mode, mail_notified_flag
-        )
+            chan, sysop_login_id, current_menu_mode, mail_notified_flag)
         util.send_text_by_key(chan, "common_messages.select_prompt",
                               current_menu_mode, add_newline=False)  # プロンプト表示
         input_buffer = chan.process_input()
@@ -45,7 +44,7 @@ def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mo
         # ディスパッチテーブルからコマンドに対応する関数を取得
         handler = command_dispatch.get(command)
         if handler:
-            result = handler(chan, dbname, sysop_login_id, current_menu_mode)
+            result = handler(chan, sysop_login_id, current_menu_mode)
             if result == "back_to_top":
                 return "back_to_top"  # メニュー終了
         else:
@@ -53,9 +52,9 @@ def sysop_menu(chan, dbname, sysop_login_id, sysop_display_name, current_menu_mo
                 chan, "common_messages.invalid_command", current_menu_mode)  # 無効なコマンド
 
 
-def read_default_exploration_list(chan, dbname, _sysop_login_id, current_menu_mode):
+def read_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
     """共通探索リストを読む"""
-    server_prefs = sqlite_tools.read_server_pref(dbname)
+    server_prefs = database.read_server_pref()
     if not server_prefs or len(server_prefs) <= 6:
         logging.error("サーバ設定の読み込みに失敗したか、共通探索リストの項目がありません。")
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
@@ -66,21 +65,25 @@ def read_default_exploration_list(chan, dbname, _sysop_login_id, current_menu_mo
     return None
 
 
-def write_default_exploration_list(chan, dbname, _sysop_login_id, current_menu_mode):
+def write_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
     """共通探索リストを書き込む"""
-    def save_func(exploration_list_str): return sqlite_tools.update_server_default_exploration_list(
-        dbname, exploration_list_str)
+    def save_func(exploration_list_str):
+        return database.update_record(
+            'server_pref',
+            {'default_exploration_list': exploration_list_str},
+            {'id': 1}
+        )
     util.prompt_and_save_exploration_list(chan, current_menu_mode, save_func)
     return None
 
 
-def change_login_message(chan, dbname, _sysop_login_id, current_menu_mode):
+def change_login_message(chan, _sysop_login_id, current_menu_mode):
     """ログインメッセージ変更"""
     util.send_text_by_key(
         chan, "sysop_menu.change_login_message.header", current_menu_mode)
 
     # 現在のログインメッセージを表示
-    server_prefs = sqlite_tools.read_server_pref(dbname)
+    server_prefs = database.read_server_pref()
     if server_prefs and len(server_prefs) > 8:
         current_login_message = server_prefs[8]
         util.send_text_by_key(chan, "sysop_menu.change_login_message.current", current_menu_mode,
@@ -124,7 +127,7 @@ def change_login_message(chan, dbname, _sysop_login_id, current_menu_mode):
     return None
 
 
-def user_list(chan, dbname, _sysop_login_id, current_menu_mode):
+def user_list(chan, _sysop_login_id, current_menu_mode):
     """ユーザ一覧表示"""
     try:
         users = database.get_all_users()
@@ -153,7 +156,7 @@ def user_list(chan, dbname, _sysop_login_id, current_menu_mode):
     return None
 
 
-def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
+def user_register(chan, _sysop_login_id, current_menu_mode):
     """ユーザ登録"""
     util.send_text_by_key(
         chan, "sysop_menu.user_register.header", current_menu_mode)
@@ -177,7 +180,7 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
         if confirm_id.lower().strip() != 'y':
             continue
 
-        if sqlite_tools.get_user_auth_info(dbname, user_id_input) is not None:
+        if database.get_user_auth_info(user_id_input) is not None:
             util.send_text_by_key(
                 chan, "sysop_menu.user_register.user_id_exists", current_menu_mode)
             continue
@@ -228,7 +231,7 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
             continue
 
         salt_hex, hashed_password = util.hash_password(password_input)
-        if sqlite_tools.register_user(dbname, user_id_input, hashed_password, salt_hex, profile, level=0):
+        if database.register_user(user_id_input, hashed_password, salt_hex, profile, level=0):
             util.send_text_by_key(
                 chan, "sysop_menu.user_register.user_regist_success", current_menu_mode)
         else:
@@ -238,7 +241,7 @@ def user_register(chan, dbname, _sysop_login_id, current_menu_mode):
         return None
 
 
-def _get_target_user(chan, dbname, prompt_key, current_menu_mode):
+def _get_target_user(chan, prompt_key, current_menu_mode):
     """
     ユーザー名の入力を促し、検証済みのユーザー情報を返すヘルパー関数。
     見つからない場合やキャンセルの場合は None を返す。
@@ -250,7 +253,7 @@ def _get_target_user(chan, dbname, prompt_key, current_menu_mode):
         return None  # 切断またはキャンセル
 
     target_user_name = user_input.strip().upper()
-    user_data = sqlite_tools.get_user_auth_info(dbname, target_user_name)
+    user_data = database.get_user_auth_info(target_user_name)
 
     if not user_data:
         util.send_text_by_key(
@@ -262,13 +265,13 @@ def _get_target_user(chan, dbname, prompt_key, current_menu_mode):
     return user_data
 
 
-def user_delete(chan, dbname, sysop_login_id, current_menu_mode):
+def user_delete(chan, sysop_login_id, current_menu_mode):
     """ユーザ削除"""
     util.send_text_by_key(
         chan, "sysop_menu.user_delete.header", current_menu_mode)
 
     user_data = _get_target_user(
-        chan, dbname, "sysop_menu.user_delete.user_id_prompt", current_menu_mode)
+        chan, "sysop_menu.user_delete.user_id_prompt", current_menu_mode)
     if not user_data:
         return None  # ユーザーが見つからないかキャンセル
 
@@ -288,7 +291,7 @@ def user_delete(chan, dbname, sysop_login_id, current_menu_mode):
             chan, "common_messages.cancel", current_menu_mode)
         return None
 
-    if sqlite_tools.delete_user(dbname, user_id_to_delete):
+    if database.delete_user(user_id_to_delete):
         util.send_text_by_key(
             chan, "sysop_menu.user_delete.user_delete_success", current_menu_mode, user_name=user_name_to_delete)
     else:
@@ -297,9 +300,9 @@ def user_delete(chan, dbname, sysop_login_id, current_menu_mode):
     return None
 
 
-def view_settings(chan, dbname, _sysop_login_id, current_menu_mode):
+def view_settings(chan, _sysop_login_id, current_menu_mode):
     """設定一覧表示"""
-    server_prefs_list = sqlite_tools.read_server_pref(dbname)
+    server_prefs_list = database.read_server_pref()
     if server_prefs_list:
         # sqlite_tools.read_server_pref が返すリストの順序と一致させる必要がある
         all_pref_names = ['bbs', 'chat', 'mail', 'telegram',
@@ -324,7 +327,7 @@ def view_settings(chan, dbname, _sysop_login_id, current_menu_mode):
     return None
 
 
-def change_top_menu_permission(chan, dbname, _sysop_login_id, current_menu_mode):
+def change_top_menu_permission(chan, _sysop_login_id, current_menu_mode):
     """トップメニューのアクセス権限変更"""
     util.send_text_by_key(
         chan, "sysop_menu.set_permissions.header", current_menu_mode)
@@ -385,13 +388,13 @@ def change_top_menu_permission(chan, dbname, _sysop_login_id, current_menu_mode)
     return None
 
 
-def change_user_level(chan, dbname, sysop_login_id, current_menu_mode):
+def change_user_level(chan, sysop_login_id, current_menu_mode):
     """ユーザレベルの変更"""
     util.send_text_by_key(
         chan, "sysop_menu.change_user_level.header", current_menu_mode)
 
     user_data = _get_target_user(
-        chan, dbname, "sysop_menu.change_user_level.user_name_prompt", current_menu_mode)
+        chan, "sysop_menu.change_user_level.user_name_prompt", current_menu_mode)
     if not user_data:
         return None  # ユーザーが見つからないかキャンセル
 
@@ -440,19 +443,19 @@ def change_user_level(chan, dbname, sysop_login_id, current_menu_mode):
     confirm_input = confirm_input.lower().strip()
 
     if confirm_input == 'y':
-        if sqlite_tools.update_user_level(dbname, user_id_to_change, new_level):
+        if database.update_record('users', {'level': new_level}, {'id': user_id_to_change}):
             util.send_text_by_key(
                 chan, "sysop_menu.change_user_level.success", current_menu_mode)
     return None
 
 
-def change_user_password_by_sysop(chan, dbname, sysop_login_id, current_menu_mode):
+def change_user_password_by_sysop(chan, sysop_login_id, current_menu_mode):
     """ シスオペによるユーザーパスワード再発行 """
     util.send_text_by_key(
         chan, "sysop_menu.change_user_password.header", current_menu_mode)
 
     user_data = _get_target_user(
-        chan, dbname, "sysop_menu.change_user_password.user_id_prompt", current_menu_mode)
+        chan, "sysop_menu.change_user_password.user_id_prompt", current_menu_mode)
     if not user_data:
         return None  # ユーザーが見つからないかキャンセル
 
@@ -464,33 +467,33 @@ def change_user_password_by_sysop(chan, dbname, sysop_login_id, current_menu_mod
                               current_menu_mode)
         return None
 
-        # ランダムな12文字のパスワードを生成
-        new_password = secrets.token_urlsafe(9)  # 12文字のランダムな文字列（URLセーフ）
+    # ランダムな12文字のパスワードを生成
+    new_password = secrets.token_urlsafe(9)  # 12文字のランダムな文字列（URLセーフ）
 
-        util.send_text_by_key(chan, "sysop_menu.change_user_password.confirm_yn",
-                              current_menu_mode, name=user_name_to_change, new_password=new_password, add_newline=False)
-        confirm_input = chan.process_input()
-        if confirm_input is None:
-            return None
+    util.send_text_by_key(chan, "sysop_menu.change_user_password.confirm_yn",
+                          current_menu_mode, name=user_name_to_change, new_password=new_password, add_newline=False)
+    confirm_input = chan.process_input()
+    if confirm_input is None:
+        return None
 
-        confirm_input = confirm_input.lower().strip()
-        if confirm_input == 'y':
-            # パスワードをハッシュ化して更新
-            salt_hex, hashed_password = util.hash_password(new_password)
-            if sqlite_tools.update_user_password(dbname, user_id_to_change, hashed_password, salt_hex):
-                util.send_text_by_key(chan, "sysop_menu.change_user_password.success",
-                                      current_menu_mode, name=user_name_to_change, new_password=new_password)
-            else:
-                util.send_text_by_key(
-                    chan, "common_messages.database_update_error", current_menu_mode)
-                logging.error(f"パスワード更新エラー (ユーザー: {user_name_to_change})")
+    confirm_input = confirm_input.lower().strip()
+    if confirm_input == 'y':
+        # パスワードをハッシュ化して更新
+        salt_hex, hashed_password = util.hash_password(new_password)
+        if database.update_record('users', {'password': hashed_password, 'salt': salt_hex}, {'id': user_id_to_change}):
+            util.send_text_by_key(chan, "sysop_menu.change_user_password.success",
+                                  current_menu_mode, name=user_name_to_change, new_password=new_password)
         else:
             util.send_text_by_key(
-                chan, "common_messages.cancel", current_menu_mode)
+                chan, "common_messages.database_update_error", current_menu_mode)
+            logging.error(f"パスワード更新エラー (ユーザー: {user_name_to_change})")
+    else:
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
     return None
 
 
-def system_quit(chan, dbname, _sysop_login_id, current_menu_mode):
+def system_quit(chan, _sysop_login_id, current_menu_mode):
     """システム強制終了"""
     util.send_text_by_key(
         chan, "sysop_menu.system_quit.header", current_menu_mode)
@@ -507,7 +510,7 @@ def system_quit(chan, dbname, _sysop_login_id, current_menu_mode):
     return None
 
 
-def make_board(chan, dbname, sysop_login_id, current_menu_mode):
+def make_board(chan, sysop_login_id, current_menu_mode):
     """掲示板作成"""
     util.send_text_by_key(
         chan, "sysop_menu.make_board.header_direct", current_menu_mode)
@@ -521,7 +524,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
         shortcut_id = shortcut_id_input.strip()
         if not shortcut_id:
             return None
-        if sqlite_tools.get_board_by_shortcut_id(dbname, shortcut_id):
+        if database.get_board_by_shortcut_id(shortcut_id):
             util.send_text_by_key(chan, "sysop_menu.make_board.shortcut_id_exists",
                                   current_menu_mode, shortcut_id=shortcut_id)
             shortcut_id = ""
@@ -618,7 +621,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
             chan, "common_messages.cancel", current_menu_mode)
         return None
 
-    if sqlite_tools.create_board_entry(dbname, shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level, board_type):
+    if database.create_board_entry(shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level, board_type):
         util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
                               current_menu_mode, shortcut_id=shortcut_id)
         util.send_text_by_key(
@@ -629,7 +632,7 @@ def make_board(chan, dbname, sysop_login_id, current_menu_mode):
     return None
 
 
-def delete_board(chan, dbname, _sysop_login_id, current_menu_mode):
+def delete_board(chan, _sysop_login_id, current_menu_mode):
     """掲示板削除"""
     util.send_text_by_key(
         chan, "sysop_menu.delete_board.header", current_menu_mode)
@@ -643,8 +646,8 @@ def delete_board(chan, dbname, _sysop_login_id, current_menu_mode):
             return None
 
         shortcut_id_to_delete = board_id_input.strip()
-        board_db_entry = sqlite_tools.get_board_by_shortcut_id(
-            dbname, shortcut_id_to_delete)
+        board_db_entry = database.get_board_by_shortcut_id(
+            shortcut_id_to_delete)
         if not board_db_entry:
             util.send_text_by_key(
                 chan, "sysop_menu.delete_board.board_not_found", current_menu_mode)
@@ -661,7 +664,7 @@ def delete_board(chan, dbname, _sysop_login_id, current_menu_mode):
             return None
 
         if confirm_choice.lower().strip() == 'y':
-            if sqlite_tools.delete_board_entry(dbname, shortcut_id_to_delete):
+            if database.delete_board_entry(shortcut_id_to_delete):
                 util.send_text_by_key(
                     chan, "sysop_menu.delete_board.advise_bbs_yaml_delete", current_menu_mode)
                 return None
@@ -677,10 +680,9 @@ def delete_board(chan, dbname, _sysop_login_id, current_menu_mode):
             return None
 
 
-def list_boards(chan, dbname, _sysop_login_id, current_menu_mode):
+def list_boards(chan, _sysop_login_id, current_menu_mode):
     """DBに登録されている掲示板一覧を表示"""
-    sql = "SELECT shortcut_id, name, operators, default_permission, status, last_posted_at, read_level, write_level FROM boards ORDER BY shortcut_id"
-    boards = sqlite_tools.sqlite_execute_query(dbname, sql, fetch=True)
+    boards = database.get_all_boards_for_sysop_list()
     if not boards:
         util.send_text_by_key(
             chan, "sysop_menu.list_boards.no_boards", current_menu_mode)
@@ -720,7 +722,7 @@ def list_boards(chan, dbname, _sysop_login_id, current_menu_mode):
     return None
 
 
-def change_board_settings(chan, dbname, _sysop_login_id, current_menu_mode):
+def change_board_settings(chan, _sysop_login_id, current_menu_mode):
     """掲示板の設定（R/Wレベルなど）を変更する"""
     util.send_text_by_key(
         chan, "sysop_menu.change_board.header", current_menu_mode)
@@ -734,7 +736,7 @@ def change_board_settings(chan, dbname, _sysop_login_id, current_menu_mode):
     shortcut_id = shortcut_id_input.strip()
 
     # 掲示板情報の取得
-    board_info = sqlite_tools.get_board_by_shortcut_id(dbname, shortcut_id)
+    board_info = database.get_board_by_shortcut_id(shortcut_id)
     if not board_info:
         util.send_text_by_key(
             chan, "sysop_menu.delete_board.board_not_found", current_menu_mode, shortcut_id=shortcut_id)
@@ -812,7 +814,7 @@ def change_board_settings(chan, dbname, _sysop_login_id, current_menu_mode):
         return None
 
     # DB更新
-    if sqlite_tools.update_board_levels(dbname, board_id_pk, new_read_level, new_write_level):
+    if database.update_record('boards', {'read_level': new_read_level, 'write_level': new_write_level}, {'id': board_id_pk}):
         util.send_text_by_key(
             chan, "sysop_menu.change_board.success", current_menu_mode, shortcut_id=shortcut_id)
     else:

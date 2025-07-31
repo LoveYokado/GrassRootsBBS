@@ -360,7 +360,7 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
         return False
 
 
-def prompt_handler(chan, dbname, login_id, menu_mode='2', mail_notified_flag=False):
+def prompt_handler(chan, login_id, menu_mode='2', mail_notified_flag=False):
     """ 定型実行のまとめ """
     # dbname引数は互換性のために残すが、使用しない
     updated_mail_notified_flag = check_new_mail(
@@ -434,7 +434,7 @@ def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
     return None, None
 
 
-def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mode: str, shortcut_input: str, online_members_func: callable):
+def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, shortcut_input: str, online_members_func: callable):
     """ショートカットを処理する。ショートカットとして処理が完了したらtrueを返す"""
     # ショートカットではない
     if not shortcut_input.startswith(';'):
@@ -475,7 +475,7 @@ def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mo
             send_text_by_key(chan, "shortcut.jumping_to_bbs",
                              menu_mode, board_name=board_info["name"])
             bbs_handler.handle_bbs_menu(
-                chan, dbname, login_id, display_name, menu_mode, shortcut_id_to_search, chan.getpeername()[0])
+                chan, login_id, display_name, menu_mode, shortcut_id_to_search, chan.getpeername()[0])
             return True
         if target_type == "bbs":
             send_text_by_key(chan, "shortcut.not_found", menu_mode,
@@ -497,8 +497,7 @@ def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mo
                 chat_handler.set_online_members_function_for_chat(
                     online_members_func)
                 chat_handler.handle_chat_room(
-                    chan, dbname, login_id, display_name, menu_mode, shortcut_id_to_search, item_name
-                )
+                    chan, login_id, display_name, menu_mode, shortcut_id_to_search, item_name)
                 return True
             if target_type == "chat":
                 send_text_by_key(chan, "shortcut.not_found", menu_mode,
