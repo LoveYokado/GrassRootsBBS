@@ -1309,13 +1309,16 @@
         socket.on('force_disconnect', (data) => {
             const message = (data && data.message) ? data.message : '[Connection closed by server]';
             term.writeln('\r\n\n' + message);
+            term.writeln('\r\nPress any key to return to the login screen...');
             socket.disconnect();
             // ログアウトメッセージを表示後、/logout にリダイレクトしてセッションを完全にクリアする
-            setTimeout(() => {
-                window.location.href = "{{ url_for('logout') }}";
-            }, 1500); // 1.5秒待ってからリダイレクト
+            const redirectToLogout = () => {
+                window.location.href = "{{ url_for('logout') }}"
+            };
+            // キー入力かマウスクリックを一度だけ待ってからリダイレクト
+            document.addEventListener('keydown', redirectToLogout, { once: true });
+            document.addEventListener('mousedown', redirectToLogout, { once: true });
         });
-
         function loadSettings() {
             // テーマ
             const savedTheme = localStorage.getItem('terminalTheme') || 'default';

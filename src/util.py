@@ -562,15 +562,16 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode):
                      current_menu_mode)  # 電報送信メッセージ
     send_text_by_key(chan, "telegram.send_prompt",
                      current_menu_mode, add_newline=False)  # 宛先入力
-    recipient_name = chan.process_input()
+    recipient_name_input = chan.process_input()
 
-    if not recipient_name:
+    if not recipient_name_input:
         send_text_by_key(chan, "telegram.no_recipient",
                          current_menu_mode)  # 宛先がオンラインにない
         return
 
+    recipient_name = recipient_name_input.strip().upper()
     # ここでオンラインチェック
-    if recipient_name not in online_members_ids:
+    if recipient_name not in [uid.upper() for uid in online_members_ids]:
         send_text_by_key(chan, "telegram.recipient_not_online",
                          current_menu_mode, recipient_name=recipient_name)
         return

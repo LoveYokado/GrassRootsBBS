@@ -375,12 +375,13 @@ def edit_blacklist(chan, login_id, current_menu_mode, user_data):
             if target_login_id_str == login_id:
                 continue
 
+            target_login_id_upper = target_login_id_str.upper()
             target_user_id_from_db = database.get_user_id_from_user_name(
-                target_login_id_str)
+                target_login_id_upper)
 
             if target_user_id_from_db is None:
                 util.send_text_by_key(chan, "user_pref_menu.blacklist_edit.user_id_not_found",
-                                      current_menu_mode, user_id=target_login_id_str)
+                                      current_menu_mode, user_id=target_login_id_upper)
                 return None
 
             validated_user_ids_for_db.append(str(target_user_id_from_db))

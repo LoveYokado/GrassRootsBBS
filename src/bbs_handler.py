@@ -1266,11 +1266,12 @@ class CommandHandler:
                     access_level_to_set = "allow"
                     logging.info(
                         f"掲示板タイプ {board_default_permission} に対応するアクセスレベルを決定できませんでした。ユーザ {user_name_input} のアクセスレベルは'allow'に設定されました。")
+                user_name_upper = user_name_input.upper()
                 target_user_id_pk_int = database.get_user_id_from_user_name(
-                    user_name_input)
+                    user_name_upper)
                 if target_user_id_pk_int is None:
                     util.send_text_by_key(
-                        self.chan, "bbs.user_not_found_in_list", self.menu_mode, username=user_name_input)
+                        self.chan, "bbs.user_not_found_in_list", self.menu_mode, username=user_name_upper)
                     valid_input = False
                     break
                 parsed_permissions_to_add.append(

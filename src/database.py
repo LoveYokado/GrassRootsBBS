@@ -548,8 +548,10 @@ def register_user(username, hashed_password, salt, comment, level=0, menu_mode='
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     import time
+
+    username_upper = username.upper()
     params = (
-        username, hashed_password, salt, int(time.time()), level, 0, 0,
+        username_upper, hashed_password, salt, int(time.time()), level, 0, 0,
         comment, email, menu_mode, telegram_restriction, '', '', '{}'
     )
     return execute_query(query, params) is not None

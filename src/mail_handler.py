@@ -625,16 +625,17 @@ def _get_recipients(chan, menu_mode):
         if not recipient_name_input:
             return recipient_info_list if recipient_info_list else []
 
+        recipient_name_upper = recipient_name_input.upper()
         try:
-            userdata = database.get_user_auth_info(recipient_name_input)
+            userdata = database.get_user_auth_info(recipient_name_upper)
         except Exception as e:
-            logging.error(f"宛先ユーザ検索中にDBエラー({recipient_name_input}): {e}")
+            logging.error(f"宛先ユーザ検索中にDBエラー({recipient_name_upper}): {e}")
             util.send_text_by_key(chan, "common_messages.db_error", menu_mode)
             continue
 
         if not userdata:
             util.send_text_by_key(
-                chan, "mail_handler.recipient_not_found", menu_mode, recipient_name=recipient_name_input)
+                chan, "mail_handler.recipient_not_found", menu_mode, recipient_name=recipient_name_upper)
             continue
 
         current_recipient_name = userdata['name']

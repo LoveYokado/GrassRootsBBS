@@ -529,26 +529,13 @@ def login():
     message = webapp_config.get('LOGIN_PAGE_MESSAGE', 'Welcome.')
 
     if request.method == 'POST':
-        username = request.form.get('username')
+        # ユーザーIDは大文字に統一して扱う
+        username = request.form.get('username', '').upper()
         password = request.form.get('password')
         error = None
 
         # GUESTアカウントはロックアウト対象外
-        is_guest = username.upper() == 'GUEST'
-
-        # --- マルチログインチェックを追加 ---
-        if not is_guest:
-            # client_states に同じユーザー名がいないかチェック
-            for sid, handler in client_states.copy().items():
-                if handler.user_session.get('username') == username:
-                    error = util.get_text_by_key(
-                        "auth.already_logged_in",
-                        session.get('menu_mode', '2'),
-                        default_value="This ID is already in use."
-                    ).replace('\r\n', '')  # HTML表示用に改行を削除
-                    logging.warning(f"ログイン試行失敗: マルチログイン {username}")
-                    return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
-        # --- ここまで ---
+        is_guest = username == 'GUEST'
 
         if not is_guest:
             # ロックアウト状態かチェック
@@ -574,7 +561,21 @@ def login():
                 auth_success = True
 
         if auth_success:
-            # 認証成功
+            # --- 認証成功後にマルチログインチェック ---
+            if not is_guest:
+                for sid, handler in client_states.copy().items():
+                    # ユーザー名は既に大文字に統一されている
+                    if handler.user_session.get('username') == username:
+                        error = util.get_text_by_key(
+                            "auth.already_logged_in",
+                            session.get('menu_mode', '2'),
+                            default_value="This ID is already in use."
+                        ).replace('\r\n', '')
+                        logging.warning(
+                            f"ログイン試行成功後のマルチログイン検出: {username}")
+                        return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
+            # --- ここまで ---
+
             if not is_guest:
                 # エラーカウントとロックをリセット
                 session['login_attempts'] = 0
