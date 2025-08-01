@@ -3,7 +3,7 @@ import datetime
 import os
 import secrets
 
-from . import util, sqlite_tools, database
+from . import util, database
 
 
 def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):

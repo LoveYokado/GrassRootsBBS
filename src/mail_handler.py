@@ -4,7 +4,7 @@ import logging
 import socket
 import textwrap
 
-from . import util, sqlite_tools
+from . import util
 from . import database
 
 
