@@ -292,9 +292,12 @@ def mark_mail_as_read(mail_id, recipient_user_id_pk):
 def get_oldest_unread_mail(recipient_user_id_pk):
     """指定されたユーザの一番古い未読、かつ未削除の受信メールを1件取得"""
     query = """
-        SELECT id, sender_id, subject, body, is_read, sent_at, recipient_deleted, sender_ip_address
-        FROM mails
-        WHERE recipient_id = %s AND is_read = 0 AND recipient_deleted = 0
+        SELECT
+            m.id, m.sender_id, m.subject, m.body, m.is_read, m.sent_at, m.recipient_deleted, m.sender_ip_address,
+            u.name AS sender_name
+        FROM mails AS m
+        LEFT JOIN users AS u ON m.sender_id = u.id
+        WHERE m.recipient_id = %s AND m.is_read = 0 AND m.recipient_deleted = 0
         ORDER BY sent_at ASC
         LIMIT 1
     """

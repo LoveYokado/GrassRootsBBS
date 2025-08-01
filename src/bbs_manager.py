@@ -10,9 +10,10 @@ class BoardManager:
 
     def __init__(self):
         # dbname は不要になったため削除
+        pass
 
-        # This function is currently not called from anywhere.
     def load_boards_from_config(self):
+        # This function is currently not called from anywhere.
         paths_config = util.app_config.get('paths', {})
         bbs_config_path = paths_config.get('bbs_sync_config')
         """bbs.yaml から掲示板情報を読み込み、DBと同期する"""
@@ -70,6 +71,7 @@ class ArticleManager:
 
     def __init__(self):
         # dbname は不要になったため削除
+        pass
 
     def get_articles_by_board(self, board_id, include_deleted=False):
         """指定された掲示板の投稿一覧を取得する"""
@@ -181,6 +183,7 @@ class PermissionManager:
 
     def __init__(self):
         # dbname は不要になったため削除
+        pass
 
     def check_permission(self, board_id, user_id, action):
         """
