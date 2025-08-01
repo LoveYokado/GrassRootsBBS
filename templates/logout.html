@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Logged Out - GR-BBS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+1m:wght@400&display=swap" rel="stylesheet">
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            background-color: #000;
+            color: #FFFFFF;
+            font-family: '"M+ 1m", "Courier New", monospace';
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        pre {
+            font-family: inherit;
+            font-size: 16px;
+            white-space: pre-wrap;
+            /* メッセージが折り返されるように */
+        }
+
+        .prompt {
+            margin-top: 2em;
+            color: #00FF00;
+            animation: blinker 1.5s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <pre>ログオフしました。
+またのご利用をお待ちしております。
+<div class="prompt">Press any key to return to the login screen...</div></pre>
+    <script>
+        function redirectToLogin() { window.location.href = "{{ url_for('login') }}"; }
+        document.addEventListener('keydown', redirectToLogin, { once: true });
+        document.addEventListener('mousedown', redirectToLogin, { once: true });
+    </script>
+</body>
+
+</html>

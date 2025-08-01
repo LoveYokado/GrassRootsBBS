@@ -1602,8 +1602,7 @@ def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_add
         logging.info(
             f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
         selected_item = hierarchical_menu.handle_hierarchical_menu(
-            chan, bbs_config_path, menu_mode, menu_type="BBS",  # menu_type を追加
-            dbname=dbname, enrich_boards=True
+            chan, bbs_config_path, menu_mode, menu_type="BBS", enrich_boards=True
         )
         logging.info(
             f"bbs_handler: hierarchical_menu.handle_hierarchical_menu returned: {selected_item}")
@@ -1612,7 +1611,7 @@ def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_add
             shortcut_id_selected = selected_item.get("id")
             # 再度 handle_bbs_menu を呼び出すか、直接 CommandHandler の処理を続ける
             # ショートカット時と同様に、IPアドレスも渡す
-            return handle_bbs_menu(chan, dbname, login_id, display_name, menu_mode, shortcut_id_selected, ip_address)
+            return handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id_selected, ip_address)
         # else: 選択されなかったか、boardタイプではなかった場合。handle_hierarchical_menu内でメッセージ表示済みのはず。
         # hierarchical_menu から戻ってきた場合は、通常トップメニュー表示で問題ない想定
         return "back_to_top"

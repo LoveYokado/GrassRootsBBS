@@ -21,6 +21,7 @@ import secrets
 import os
 import logging
 import datetime
+import unicodedata
 from logging.handlers import RotatingFileHandler
 import glob
 import collections
@@ -291,11 +292,18 @@ class WebTerminalHandler:
 
                         # Backspace (BS or DEL)
                         elif char_byte in (b'\x08', b'\x7f'):
-                            if line_buffer:
-                                line_buffer.pop()  # 最後の「文字」を削除
+                            if line_buffer:  # 最後の「文字」を削除
+                                deleted_char = line_buffer.pop()
                                 if echo:
-                                    # xterm.jsは文字幅を考慮してカーソルを戻してくれる
-                                    self.send(b'\x08 \x08')
+                                    # unicodedata.east_asian_width を使って文字幅を判定
+                                    # 'F' (Fullwidth), 'W' (Wide), 'A' (Ambiguous) は2文字幅とみなす
+                                    width = unicodedata.east_asian_width(
+                                        deleted_char)
+                                    char_width = 2 if width in (
+                                        'F', 'W', 'A') else 1
+                                    backspaces = b'\x08' * char_width
+                                    self.send(
+                                        backspaces + (b' ' * char_width) + backspaces)
                         else:
                             # 通常の文字バイトをデコード
                             try:
@@ -528,6 +536,20 @@ def login():
         # GUESTアカウントはロックアウト対象外
         is_guest = username.upper() == 'GUEST'
 
+        # --- マルチログインチェックを追加 ---
+        if not is_guest:
+            # client_states に同じユーザー名がいないかチェック
+            for sid, handler in client_states.copy().items():
+                if handler.user_session.get('username') == username:
+                    error = util.get_text_by_key(
+                        "auth.already_logged_in",
+                        session.get('menu_mode', '2'),
+                        default_value="This ID is already in use."
+                    ).replace('\r\n', '')  # HTML表示用に改行を削除
+                    logging.warning(f"ログイン試行失敗: マルチログイン {username}")
+                    return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
+        # --- ここまで ---
+
         if not is_guest:
             # ロックアウト状態かチェック
             if session.get('lockout_expiration', 0) > time.time():
@@ -610,10 +632,8 @@ def login():
 @app.route('/logout')
 def logout():
     """ログアウト処理"""
-    session.pop('user_id', None)
-    session.pop('username', None)
-    session.pop('userlevel', None)
-    return redirect(url_for('login'))
+    session.clear()
+    return render_template('logout.html')
 
 
 # --- WebSocketイベントハンドラ ---

@@ -117,7 +117,7 @@ class HierarchicalMenu:
             return None
 
         current_level_items = self.config.get('categories', [])
-        if self.enrich_boards and self.dbname:
+        if self.enrich_boards:
             current_level_items = self._enrich_board_items(current_level_items)
 
         while True:
@@ -139,7 +139,7 @@ class HierarchicalMenu:
                     self.current_path_names.append(
                         selected_item.get('name', 'Unknown'))
                     current_level_items = selected_item["items"]
-                    if self.enrich_boards and self.dbname:
+                    if self.enrich_boards:
                         current_level_items = self._enrich_board_items(
                             current_level_items)
                 else:
