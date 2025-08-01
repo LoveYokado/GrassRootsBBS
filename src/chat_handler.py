@@ -39,7 +39,7 @@ def add_message_to_history(room_id: str, display_name: str, message: str, is_sys
 
 
 # room_name_for_prompt は実際には使われません
-def broadcast_to_room(room_id: str, dbname: str, display_name: str,
+def broadcast_to_room(room_id: str, display_name: str,
                       message_body: str, is_system_message: bool,
                       exclude_login_id: str = None,
                       message_key_for_system: str = None,
@@ -124,15 +124,14 @@ def broadcast_to_room(room_id: str, dbname: str, display_name: str,
                 try:
                     target_chan.send(
                         b"\033[s" +       # カーソル位置保存
-                        b"\r\n" +         # 改行して新しい行へ
-                        b"\r" +           # 念のためカーソルを行頭へ
+                        b"\r\n" +         # 改行して新しい行へ b"\r" +           # 念のためカーソルを行頭へ
                         message_payload.encode('utf-8') +  # メッセージ表示
                         b"\033[u"         # カーソル位置復元
                     )
                     # 他のユーザーからのメッセージ受信後にも電報チェック
                     # util.telegram_recieve は未読がなければ何も表示しない
-                    bbsmenu.telegram_recieve(
-                        target_chan, dbname, target_login_id, target_menu_mode)
+                    util.telegram_recieve(
+                        target_chan, target_login_id, target_menu_mode)
                 except Exception as e:
                     logging.error(
                         f"ルーム{room_id}のユーザー{target_login_id}へのメッセージブロードキャスト中にエラー：{e}")
@@ -143,7 +142,7 @@ def set_online_members_function_for_chat(func):
     ONLINE_MEMBERS_FUNC = func
 
 
-def user_joins_room(room_id: str, dbname: str, login_id: str, display_name: str, chan, room_name: str, menu_mode: str):
+def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_name: str, menu_mode: str):
     """ユーザーがルームに入室したときに呼び出される"""
     with chat_rooms_lock:
         if room_id not in active_chat_rooms:
@@ -157,11 +156,11 @@ def user_joins_room(room_id: str, dbname: str, login_id: str, display_name: str,
     logging.info(
         f"ChatEvent[{room_id}]: User {login_id}({display_name}) joined.")
     # システムメッセージとしてブロードキャスト (画面表示用)
-    broadcast_to_room(room_id, dbname, "System", join_notification,
+    broadcast_to_room(room_id, "System", join_notification,
                       is_system_message=True, exclude_login_id=login_id)
 
 
-def user_leaves_room(room_id: str, dbname: str, login_id: str, display_name: str, room_name: str):
+def user_leaves_room(room_id: str, login_id: str, display_name: str, room_name: str):
     """ユーザーがルームから退室したときに呼び出される"""
     chan_left = None
     user_was_in_room = False
@@ -184,7 +183,7 @@ def user_leaves_room(room_id: str, dbname: str, login_id: str, display_name: str
                 # ロッククリア
                 active_chat_rooms[room_id]["locked_by"] = None
                 broadcast_to_room(
-                    room_id, dbname, "System",
+                    room_id, "System",
                     message_body="",  # ダミー
                     is_system_message=True,
                     message_key_for_system="chat.owner_left_unlock_broadcast",
@@ -195,11 +194,11 @@ def user_leaves_room(room_id: str, dbname: str, login_id: str, display_name: str
         # 履歴には残さず、サーバーログには手動で記録することも可能
         logging.info(
             f"ChatEvent[{room_id}]: User {login_id}({display_name}) left.")
-        broadcast_to_room(room_id, dbname, "System",
+        broadcast_to_room(room_id, "System",
                           leave_notification, is_system_message=True)
 
 
-def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_mode: str, room_id: str, room_name: str):
+def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, room_id: str, room_name: str):
     """
     チャットルーム本体
     """
@@ -213,12 +212,12 @@ def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_m
             util.send_text_by_key(chan, "chat.room_locked", menu_mode,
                                   room_name=room_name, owner=room_data.get("locked_by"))
             return "back_one_level"  # 入室せずに終了
-    user_joins_room(room_id, dbname, login_id, display_name,
+    user_joins_room(room_id, login_id, display_name,
                     chan, room_name, menu_mode)
 
     try:
         while True:
-            user_input = ssh_input.process_input(chan)
+            user_input = chan.process_input()
 
             if user_input is None:
                 logging.info(f"ユーザー{login_id}はチャットルーム{room_id}で切断されました。")
@@ -236,7 +235,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_m
                 # 電報をチャット内から送信
                 if ONLINE_MEMBERS_FUNC:
                     online_members_dict = ONLINE_MEMBERS_FUNC()
-                    util.telegram_send(chan, dbname, display_name, list(
+                    util.telegram_send(chan, display_name, list(
                         online_members_dict.keys()), menu_mode)
                 else:
                     util.send_text_by_key(
@@ -245,8 +244,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_m
                 # WHOをチャット内から参照
                 if ONLINE_MEMBERS_FUNC:
                     online_members_dict = ONLINE_MEMBERS_FUNC()
-                    bbsmenu.who_menu(
-                        chan, dbname, online_members_dict, menu_mode)
+                    bbsmenu.who_menu(chan, online_members_dict, menu_mode)
                 else:
                     util.send_text_by_key(
                         chan, "common_messages.error", menu_mode)
@@ -294,7 +292,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_m
 
                 if lock_successful:
                     broadcast_to_room(
-                        room_id, dbname, "System",
+                        room_id, "System",
                         message_body="",  # ダミー
                         is_system_message=True,
                         message_key_for_system="chat.room_locked_broadcast",
@@ -327,7 +325,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_m
 
                 if unlock_successful:
                     broadcast_to_room(
-                        room_id, dbname, "System",
+                        room_id, "System",
                         message_body="",  # ダミー
                         is_system_message=True,
                         message_key_for_system="chat.room_unlocked_broadcast",
@@ -365,7 +363,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_m
                 add_message_to_history(room_id, display_name, user_input)
 
                 # 他のユーザーにブロードキャスト
-                broadcast_to_room(room_id, dbname, display_name, user_input, is_system_message=False,
+                broadcast_to_room(room_id, display_name, user_input, is_system_message=False,
                                   exclude_login_id=login_id)
 
             # 各コマンド処理またはメッセージ送信後、新着電報をチェック
@@ -373,7 +371,7 @@ def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_m
             # ここでの呼び出しが重複になる可能性を考慮する。
             # ただし、telegram_recieve は未読がなければ何もしないので、実害は少ない。
             if not user_input.lower().startswith("!"):  # 通常メッセージ送信時のみここでチェック（コマンド時はbroadcast内でチェックされる）
-                util.telegram_recieve(chan, dbname, login_id, menu_mode)
+                util.telegram_recieve(chan, login_id, menu_mode)
 
     except ConnectionResetError:
         logging.info(f"ユーザ {login_id} との接続がリセットされました(room_id): {room_id}")
@@ -389,6 +387,6 @@ def handle_chat_room(chan, dbname: str, login_id: str, display_name: str, menu_m
                 f"User {login_id} finished chat in room{room_id}: {e_send}")
 
     finally:
-        user_leaves_room(room_id, dbname, login_id, display_name, room_name)
+        user_leaves_room(room_id, login_id, display_name, room_name)
         logging.info(f"User {login_id} finished chat in room {room_id}.")
         # finallyブロックでは明示的な戻り値を返さない（例外発生時などはNoneが返る）

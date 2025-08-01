@@ -4,10 +4,11 @@ import logging
 import socket
 import textwrap
 
-from . import util, sqlite_tools
+from . import util
+from . import database
 
 
-def format_mail_header_str(mail_data, dbname, view_mode, mail_id_width=5):  # noqa
+def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
     """指定されたメールのヘッダ情報（1行）を文字列として返す"""
     if not mail_data:
         return ""
@@ -55,17 +56,17 @@ def format_mail_header_str(mail_data, dbname, view_mode, mail_id_width=5):  # no
     # --- Determine sender/recipient name ---
     display_name = ""
     if view_mode == 'inbox':
-        sender_name_raw = sqlite_tools.get_user_name_from_user_id(
-            dbname, mail_data['sender_id'])
-        if sender_name_raw and sender_name_raw.upper() == 'GUEST' and 'sender_ip_address' in mail_data.keys() and mail_data['sender_ip_address']:
+        # JOINで事前に取得した sender_name を利用する
+        sender_name_raw = mail_data.get('sender_name')
+        if sender_name_raw and sender_name_raw.upper() == 'GUEST' and mail_data.get('sender_ip_address'):
             display_name = util.get_display_name(
                 'GUEST', mail_data['sender_ip_address'])
         else:
-            display_name = sender_name_raw if sender_name_raw else "(Unknown)"
+            display_name = sender_name_raw if sender_name_raw else "(不明)"
     else:  # outbox
-        recipient_name = sqlite_tools.get_user_name_from_user_id(
-            dbname, mail_data['recipient_id'])
-        display_name = recipient_name if recipient_name else "(Unknown)"
+        # JOINで事前に取得した recipient_name を利用する
+        recipient_name = mail_data.get('recipient_name')
+        display_name = recipient_name if recipient_name else "(不明)"
 
     # Shorten the name to fit the column width
     display_name_final = util.shorten_text_by_slicing(
@@ -81,9 +82,8 @@ class MailViewer:
     メール一覧の表示と操作を担当するクラス。
     """
 
-    def __init__(self, chan, dbname, login_id, menu_mode, user_id):
+    def __init__(self, chan, login_id, menu_mode, user_id):
         self.chan = chan
-        self.dbname = dbname
         self.login_id = login_id
         self.menu_mode = menu_mode
         self.user_id = user_id
@@ -112,7 +112,7 @@ class MailViewer:
     def _display_mail_header_line(self, mail_data):
         """指定されたメールのヘッダ情報（1行）を表示する"""
         header_line = format_mail_header_str(
-            mail_data, self.dbname, self.view_mode, self.mail_count_digits)
+            mail_data, self.view_mode, self.mail_count_digits)
         if header_line:
             self.chan.send(header_line.encode('utf-8') + b"\r\n")
 
@@ -141,13 +141,8 @@ class MailViewer:
             current_mail_id = self.mails[self.current_index]['id']
 
         try:
-            if self.view_mode == 'inbox':
-                sql = "SELECT id, sender_id, subject, is_read, sent_at, recipient_deleted, sender_ip_address FROM mails WHERE recipient_id = ? ORDER BY sent_at ASC"
-            else:  # outbox
-                sql = "SELECT id, recipient_id, subject, is_read, sent_at, sender_deleted FROM mails WHERE sender_id = ? ORDER BY sent_at ASC"
-
-            fetched_mails = sqlite_tools.sqlite_execute_query(
-                self.dbname, sql, (self.user_id,), fetch=True)
+            fetched_mails = database.get_mails_for_view(
+                self.user_id, self.view_mode)
             self.mails = fetched_mails if fetched_mails else []
 
             new_index = 0
@@ -220,10 +215,8 @@ class MailViewer:
 
     def run(self):
         """メールビューアのメインループを開始する。"""
-        total_mail_count = sqlite_tools.get_total_mail_count(
-            self.dbname, self.user_id)
-        unread_mail_count = sqlite_tools.get_total_unread_mail_count(
-            self.dbname, self.user_id)
+        total_mail_count = database.get_total_mail_count(self.user_id)
+        unread_mail_count = database.get_total_unread_mail_count(self.user_id)
         util.send_text_by_key(
             self.chan, "mail_handler.article_list_count", self.menu_mode,
             total_count=total_mail_count, unread_count=unread_mail_count
@@ -304,7 +297,7 @@ class MailViewer:
         else:
             # 本文表示
             success, _ = display_mail_content(
-                self.chan, selected_mail_id, self.dbname, self.user_id, self.view_mode, self.menu_mode)
+                self.chan, selected_mail_id, self.user_id, self.view_mode, self.menu_mode)
             if not success:
                 util.send_text_by_key(
                     self.chan, "common_messages.error", self.menu_mode)
@@ -353,8 +346,8 @@ class MailViewer:
         selected_mail_id = self.mails[self.current_index]['id']
         mode_for_toggle = 'recipient' if self.view_mode == 'inbox' else 'sender'
 
-        toggled, _ = sqlite_tools.toggle_mail_delete_status_generic(
-            self.dbname, selected_mail_id, self.user_id, mode_param=mode_for_toggle)
+        toggled, _ = database.toggle_mail_delete_status_generic(
+            selected_mail_id, self.user_id, mode_param=mode_for_toggle)
 
         if toggled:
             self._reload_mails(keep_index=True)
@@ -380,7 +373,7 @@ class MailViewer:
     def _write_mail(self):
         """メールを作成する。"""
         self.chan.send(b'\r\n')
-        mail_write(self.chan, self.dbname, self.login_id, self.menu_mode)
+        mail_write(self.chan, self.login_id, self.menu_mode)
         self._reload_mails(keep_index=False)
         # ヘッダ表示
         if self.view_mode == 'inbox':
@@ -453,11 +446,11 @@ class MailViewer:
         self._display_current_header()
 
 
-def mail(chan, dbname, login_id, menu_mode):
+def mail(chan, login_id, menu_mode):
     """
     メールメニュー (パソコン通信風)
     """
-    user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
+    user_id = database.get_user_id_from_user_name(login_id)
     if user_id is None:
         util.send_text_by_key(
             chan, "common_messages.user_not_found", menu_mode
@@ -475,21 +468,20 @@ def mail(chan, dbname, login_id, menu_mode):
         choice = choice_input.lower().strip()
 
         if choice == 'l':
-            viewer = MailViewer(chan, dbname, login_id, menu_mode, user_id)
+            viewer = MailViewer(chan, login_id, menu_mode, user_id)
             result = viewer.run()
             if result == "back_to_top":
                 continue
             else:
                 return result  # 切断など
         elif choice == 'w':
-            mail_write(chan, dbname, login_id, menu_mode)
+            mail_write(chan, login_id, menu_mode)
             continue
         elif choice == 'r':
             # 1.初回に新着メールの総数未読数表示
-            unread_count_initial = sqlite_tools.get_total_unread_mail_count(
-                dbname, user_id)
-            total_mail_count_initial = sqlite_tools.get_total_mail_count(
-                dbname, user_id)
+            unread_count_initial = database.get_total_unread_mail_count(
+                user_id)
+            total_mail_count_initial = database.get_total_mail_count(user_id)
 
             if unread_count_initial > 0:
                 notification_format = util.get_text_by_key(
@@ -504,8 +496,7 @@ def mail(chan, dbname, login_id, menu_mode):
                 return "back_to_top"
 
             while True:  # 未読処理ループ
-                oldest_unread_mail = sqlite_tools.get_oldest_unread_mail(
-                    dbname, user_id)
+                oldest_unread_mail = database.get_oldest_unread_mail(user_id)
 
                 if not oldest_unread_mail:
                     util.send_text_by_key(
@@ -520,7 +511,7 @@ def mail(chan, dbname, login_id, menu_mode):
                 util.send_text_by_key(
                     chan, "mail_handler.sender_header", menu_mode)
                 display_mail_header(chan, oldest_unread_mail,
-                                    dbname, 'inbox', mail_id_width_for_reader)
+                                    'inbox', mail_id_width_for_reader)
 
                 # 読み込み選択(y/n)
                 util.send_text_by_key(
@@ -533,7 +524,7 @@ def mail(chan, dbname, login_id, menu_mode):
                 if read_choice == 'y':
                     # 本文表示と既読化
                     success, _ = display_mail_content(
-                        chan, oldest_unread_mail['id'], dbname, user_id, 'inbox', menu_mode)
+                        chan, oldest_unread_mail['id'], user_id, 'inbox', menu_mode)
                     if not success:
                         util.send_text_by_key(
                             chan, "common_messages.error", menu_mode)
@@ -549,8 +540,8 @@ def mail(chan, dbname, login_id, menu_mode):
                     delete_choice = delete_choice_input.strip().lower()
 
                     if delete_choice == 'y':
-                        toggled, new_status = sqlite_tools.toggle_mail_delete_status_generic(
-                            dbname, oldest_unread_mail['id'], user_id, 'recipient')
+                        toggled, new_status = database.toggle_mail_delete_status_generic(
+                            oldest_unread_mail['id'], user_id, 'recipient')
                         if toggled and new_status == 1:  # 削除された場合
                             util.send_text_by_key(
                                 chan, "mail_handler.mail_deleted_after_read_success", menu_mode)
@@ -558,8 +549,8 @@ def mail(chan, dbname, login_id, menu_mode):
                             util.send_text_by_key(
                                 chan, "mail_handler.toggle_delete_status_failed", menu_mode)
                 elif read_choice == 'n':
-                    sqlite_tools.mark_mail_as_read(
-                        dbname, oldest_unread_mail['id'], user_id)
+                    database.mark_mail_as_read(
+                        oldest_unread_mail['id'], user_id)
                 else:
                     break
             continue  # メインのメールメニュープロンプトに戻る
@@ -570,26 +561,24 @@ def mail(chan, dbname, login_id, menu_mode):
                 chan, "common_messages.invalid_command", menu_mode)
 
 
-def display_mail_header(chan, mail_data, dbname, view_mode='inbox', mail_id_width=5):
+def display_mail_header(chan, mail_data, view_mode='inbox', mail_id_width=5):
     """指定されたメールのヘッダ情報（1行）を表示する"""
-    header_line = format_mail_header_str(
-        mail_data, dbname, view_mode, mail_id_width)
+    header_line = format_mail_header_str(mail_data, view_mode, mail_id_width)
     if header_line:
         chan.send(header_line + "\r\n")
 
 
-def display_mail_content(chan, mail_id, dbname, recipient_user_id_pk, view_mode='inbox', menu_mode='2'):
+def display_mail_content(chan, mail_id, recipient_user_id_pk, view_mode='inbox', menu_mode='2'):
     """メールの内容を表示し、既読にする。成功/失敗(bool)と既読変更(bool)を返す"""
     try:
-        mail_results = sqlite_tools.fetchall_idbase(
-            dbname, 'mails', 'id', mail_id)
-        if not mail_results:
+        # mail_results はリストではなく辞書(1件)を期待
+        mail_data = database.execute_query(
+            "SELECT * FROM mails WHERE id = %s", (mail_id,), fetch='one')
+        if not mail_data:
             util.send_text_by_key(
                 chan, "mail_handler.no_mails", menu_mode
             )  # メールが見つかりません
             return False, False
-
-        mail_data = mail_results[0]
 
         body = mail_data['body'] if mail_data['body'] else "(本文なし)"
 
@@ -612,7 +601,7 @@ def display_mail_content(chan, mail_id, dbname, recipient_user_id_pk, view_mode=
         if view_mode == 'inbox':  # recipient_deleted == 0 のメールのみがここに到達する想定
             # is_read == 0 の条件は mark_mail_as_read 側では不要 (UPDATE文が対象を見つけられないだけ)
             # ここで条件分岐すると、何らかの理由で is_read が予期せぬ値だった場合にスキップされる可能性がある
-            if sqlite_tools.mark_mail_as_read(dbname, mail_id, recipient_user_id_pk):
+            if database.mark_mail_as_read(mail_id, recipient_user_id_pk):
                 marked_as_read = True
             # mark_mail_as_read 内でエラーログは出力される
         return True, marked_as_read
@@ -622,7 +611,7 @@ def display_mail_content(chan, mail_id, dbname, recipient_user_id_pk, view_mode=
         return False, False
 
 
-def _get_recipients(chan, dbname, menu_mode):
+def _get_recipients(chan, menu_mode):
     """宛先をユーザーから取得し、検証してリストで返す。"""
     recipient_info_list = []  # 複数宛先に対応
     while True:
@@ -636,19 +625,19 @@ def _get_recipients(chan, dbname, menu_mode):
         if not recipient_name_input:
             return recipient_info_list if recipient_info_list else []
 
+        recipient_name_upper = recipient_name_input.upper()
         try:
-            results = sqlite_tools.fetchall_idbase(
-                dbname, 'users', 'name', recipient_name_input)
+            userdata = database.get_user_auth_info(recipient_name_upper)
         except Exception as e:
-            logging.error(f"宛先ユーザ検索中にDBエラー({recipient_name_input}): {e}")
+            logging.error(f"宛先ユーザ検索中にDBエラー({recipient_name_upper}): {e}")
             util.send_text_by_key(chan, "common_messages.db_error", menu_mode)
             continue
 
-        if not results:
-            chan.send("** 送り先が存在しません **\r\n")
+        if not userdata:
+            util.send_text_by_key(
+                chan, "mail_handler.recipient_not_found", menu_mode, recipient_name=recipient_name_upper)
             continue
 
-        userdata = results[0]
         current_recipient_name = userdata['name']
         current_recipient_comment = userdata[
             'comment'] if userdata['comment'] else "(No comment)"
@@ -717,28 +706,27 @@ def _get_body(chan, menu_mode):
     return message
 
 
-def _save_mails_to_db(dbname, sender_id, recipient_info_list, subject, body, ip_address=None):
+def _save_mails_to_db(sender_id, recipient_info_list, subject, body, ip_address=None):
     """メールをデータベースに保存する。"""
     try:
         sent_at = int(time.time())
         for rec_name, _ in recipient_info_list:
-            recipient_results = sqlite_tools.fetchall_idbase(
-                dbname, 'users', 'name', rec_name)
-            if not recipient_results:
+            recipient_data = database.get_user_auth_info(rec_name)
+            if not recipient_data:
                 logging.error(f"送信に失敗、{rec_name}がDBに存在しません。")
                 continue
-            recipient_id = recipient_results[0]['id']
-            sql = "INSERT INTO mails (sender_id, recipient_id, subject, body, sent_at, sender_ip_address) VALUES (?, ?, ?, ?, ?, ?)"
+            recipient_id = recipient_data['id']
+            query = "INSERT INTO mails (sender_id, recipient_id, subject, body, sent_at, sender_ip_address) VALUES (%s, %s, %s, %s, %s, %s)"
             params = (sender_id, recipient_id, subject,
                       body, sent_at, ip_address)
-            sqlite_tools.sqlite_execute_query(dbname, sql, params)
+            database.execute_query(query, params)
         return True
     except Exception as e:
         logging.error(f"メールDB保存中にエラー: {e}")
         return False
 
 
-def _confirm_and_send(chan, dbname, login_id, menu_mode, recipient_info_list, subject, body, ip_address=None):
+def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, body, ip_address=None):
     """送信内容を確認し、ユーザーの同意を得てからDBに保存する。"""
     util.send_text_by_key(
         chan, "mail_handler.confirm_send", menu_mode)
@@ -766,21 +754,21 @@ def _confirm_and_send(chan, dbname, login_id, menu_mode, recipient_info_list, su
         util.send_text_by_key(chan, "mail_handler.send_cancelled", menu_mode)
         return
 
-    sender_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
+    sender_id = database.get_user_id_from_user_name(login_id)
     if sender_id is None:
         util.send_text_by_key(chan, "common_messages.error", menu_mode)
         logging.error(f"メール送信時に送信者IDが取得できませんでした: {login_id}")
         return
 
-    if _save_mails_to_db(dbname, sender_id, recipient_info_list, subject, body, ip_address=ip_address):
+    if _save_mails_to_db(sender_id, recipient_info_list, subject, body, ip_address=ip_address):
         util.send_text_by_key(chan, "mail_handler.send_success", menu_mode)
     else:
         util.send_text_by_key(chan, "common_messages.db_error", menu_mode)
 
 
-def mail_write(chan, dbname, login_id, menu_mode='2'):
+def mail_write(chan, login_id, menu_mode='2'):
     """メール作成のメインハンドラ"""
-    recipient_info_list = _get_recipients(chan, dbname, menu_mode)
+    recipient_info_list = _get_recipients(chan, menu_mode)
     if not recipient_info_list:  # キャンセルまたは切断
         return
 
@@ -801,5 +789,5 @@ def mail_write(chan, dbname, login_id, menu_mode='2'):
     except Exception:
         pass  # getpeernameが失敗するケースも考慮
 
-    _confirm_and_send(chan, dbname, login_id, menu_mode,
+    _confirm_and_send(chan, login_id, menu_mode,
                       recipient_info_list, subject, body, ip_address=ip_address)

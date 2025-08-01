@@ -670,7 +670,7 @@
                 cursor: '#FFFFFF',
                 fkey_bg: '#FFFFFF',
                 fkey_fg: '#000000',
-                filter_glow: 'drop-shadow(0 0 1px rgba(255, 255, 255, 0.3))',
+                text_shadow_glow: '-1px 0 1px rgba(255,0,0,0.3), 1px 0 1px rgba(0,255,0,0.3), 0 0 3px rgba(255,255,255,0.4)',
                 black: '#000000',      // 標準の黒
                 red: '#FF0000',      // 鮮やかな赤
                 green: '#00FF00',      // 鮮やかな緑
@@ -694,7 +694,7 @@
                 cursor: '#00FF00',
                 fkey_bg: '#00FF00',
                 fkey_fg: '#000000',
-                filter_glow: 'drop-shadow(0 0 1px rgba(180, 255, 180, 0.4)) drop-shadow(0 0 3px rgba(100, 255, 100, 0.3))',
+                text_shadow_glow: '-1px 0 1px rgba(255,0,0,0.2), 1px 0 1px rgba(100,255,100,0.3), 0 0 5px rgba(0,255,0,0.5)',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#00FF00',
                 red: '#00FF00',
@@ -719,7 +719,7 @@
                 cursor: '#FFB000',
                 fkey_bg: '#FFB000',
                 fkey_fg: '#1a1000',
-                filter_glow: 'drop-shadow(0 0 1px rgba(255, 176, 0, 0.4)) drop-shadow(0 0 3px rgba(255, 176, 0, 0.3))',
+                text_shadow_glow: '-1px 0 1px rgba(255,50,50,0.3), 1px 0 1px rgba(50,255,50,0.3), 0 0 5px rgba(255,176,0,0.4)',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#FFB000',
                 red: '#FFB000',
@@ -749,7 +749,7 @@
 
             // 動的スタイルシートを更新して、テーマに合わせたにじみ効果を適用
             if (dynamicGlowStyle) {
-                dynamicGlowStyle.innerHTML = `#terminal.blur-effect { filter: ${theme.filter_glow || 'none'}; }`;
+                dynamicGlowStyle.innerHTML = `#terminal.blur-effect { text-shadow: ${theme.text_shadow_glow || 'none'}; }`;
             }
             // ファンクションキーのスタイルを更新
             const fkeys = document.querySelectorAll('.f-key');
@@ -1307,12 +1307,18 @@
 
         // サーバーからの切断要求を処理
         socket.on('force_disconnect', (data) => {
-            // サーバーから送られてきたメッセージを表示する
             const message = (data && data.message) ? data.message : '[Connection closed by server]';
             term.writeln('\r\n\n' + message);
+            term.writeln('\r\nPress any key to return to the login screen...');
             socket.disconnect();
+            // ログアウトメッセージを表示後、/logout にリダイレクトしてセッションを完全にクリアする
+            const redirectToLogout = () => {
+                window.location.href = "{{ url_for('logout') }}"
+            };
+            // キー入力かマウスクリックを一度だけ待ってからリダイレクト
+            document.addEventListener('keydown', redirectToLogout, { once: true });
+            document.addEventListener('mousedown', redirectToLogout, { once: true });
         });
-
         function loadSettings() {
             // テーマ
             const savedTheme = localStorage.getItem('terminalTheme') || 'default';

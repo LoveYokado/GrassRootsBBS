@@ -3,7 +3,6 @@ import toml
 import os
 import hashlib
 import time
-import sqlite3
 import yaml
 import datetime
 import re
@@ -11,7 +10,7 @@ import secrets
 import string
 import textwrap
 
-from . import sqlite_tools
+from . import database
 # テキストデータのキャッシュ用グローバル変数
 _master_text_data_cache = None
 
@@ -34,12 +33,15 @@ def load_app_config_from_path(config_file_path):
         raise
 
 
-def verify_password(stored_password_hash, salt_hex, provided_password, pbkdf2_rounds):
+def verify_password(stored_password_hash, salt_hex, provided_password):
     """
     パスワードと保存されたハッシュの検証
     """
     try:
         salt = bytes.fromhex(salt_hex)
+        # 設定ファイルから PBKDF2 のラウンド数を取得
+        security_config = app_config.get('security', {})
+        pbkdf2_rounds = security_config.get('PBKDF2_ROUNDS', 100000)
         provided_hash = hashlib.pbkdf2_hmac('sha256', provided_password.encode('utf-8'),
                                             salt, pbkdf2_rounds).hex()
         is_match = (stored_password_hash == provided_hash)
@@ -192,155 +194,179 @@ def hash_password(password):
     return salt.hex(), hashed_password.hex()
 
 
-def make_sysop_and_database(dbname, sysop_id, sysop_password, sysop_email):
-    """データベースと初期テーブル、Sysop/Guestユーザーを作成する"""
-    conn = None  # finally で確実に close するため
-    cur = None  # finally で確実に close するため
+def check_database_initialized():
+    """
+    MariaDBのテーブルが存在するか確認する。
+    'users'テーブルの存在をチェックすることで判断する。
+    """
     try:
-        conn = sqlite3.connect(dbname)
-        cur = conn.cursor()
+        # 'users'テーブルの存在を確認するクエリ
+        query = "SHOW TABLES LIKE 'users'"
+        result = database.execute_query(query, fetch='one')
+        return result is not None
+    except Exception as e:
+        logging.error(f"データベース初期化チェック中にエラー: {e}")
+        return False
 
-        # --- users テーブル作成 ---
-        # id,name,password,registdate,level,lastlogin,lastlogout,comment,mail
-        logging.info("Creating 'users' table...")
-        cur.execute(
-            '''CREATE TABLE users(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT UNIQUE NOT NULL COLLATE NOCASE,
+
+def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
+    """MariaDBのテーブルを作成し、初期ユーザーを登録する"""
+    try:
+        # テーブル作成クエリ
+        create_queries = [
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                name VARCHAR(255) UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 salt TEXT NOT NULL,
-                registdate INTEGER,
-                level INTEGER DEFAULT 1,
-                lastlogin INTEGER,
-                lastlogout INTEGER,
+                registdate INT,
+                level INT DEFAULT 1,
+                lastlogin INT,
+                lastlogout INT,
                 comment TEXT,
-                email TEXT,
-                menu_mode TEXT DEFAULT '1' NOT NULL CHECK(menu_mode IN ('1','2','3')),
-                telegram_restriction INTEGER DEFAULT 0 NOT NULL CHECK(telegram_restriction IN (0, 1, 2, 3)),
-                blacklist TEXT DEFAULT '',
-                exploration_list TEXT DEFAULT '',
-                read_progress TEXT DEFAULT '{}'
-            )'''
-        )
-
-        # Sysop 情報入力
-        sysopname = sysop_id
-        sysoppass = sysop_password
-        registdate = int(time.time())
-
-        sysop_salt, sysop_hashed_pass = hash_password(sysoppass)
-
-        # シスオペ登録 (saltとハッシュ化パスワード保存)
-        logging.info(f"Registering Sysop '{sysopname}'...")
-        cur.execute(
-            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (sysopname, sysop_hashed_pass, sysop_salt, 5, registdate, 0, 0,
-             'Sysop', sysop_email)
-        )
-
-        # ゲスト登録 (saltとハッシュ化パスワード保存)
-        guest_salt, guest_hashed_pass = hash_password('GUEST')
-        logging.info("Registering 'GUEST' user...")
-        cur.execute(
-            "INSERT INTO users(name, password, salt, level, registdate, lastlogin, lastlogout, comment, email) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            ("GUEST", guest_hashed_pass, guest_salt, 1, registdate, 0, 0,
-             'Guest', 'guest@example.com')
-        )
-
-        # --- server_pref テーブル作成 ---
-        logging.info("Creating 'server_pref' table...")
-        cur.execute(
-            '''CREATE TABLE server_pref(
-                bbs INTEGER DEFAULT 0,
-                chat INTEGER DEFAULT 1,
-                mail INTEGER DEFAULT 1,
-                telegram INTEGER DEFAULT 1,
-                userpref INTEGER DEFAULT 1,
-                who INTEGER DEFAULT 1,
-                default_exploration_list TEXT DEFAULT '',
-                hamlet INTEGER DEFAULT 1,
-                login_message TEXT DEFAULT ''
-            )'''
-        )
-        # 初期設定を挿入 (プレースホルダーを使用)
-        cur.execute(
-            "INSERT INTO server_pref(bbs, chat, mail, telegram, userpref, who, default_exploration_list, hamlet, login_message) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (2, 2, 2, 2, 2, 2, "", 2, 'GR-BBSへようこそ！')
-        )
-
-        # メールボックステーブル作成
-
-        logging.info("Creating 'mails' table...")
-        cur.execute(
-            '''CREATE TABLE mails(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender_id INTEGER NOT NULL,
+                email VARCHAR(255),
+                menu_mode VARCHAR(1) DEFAULT '1' NOT NULL,
+                telegram_restriction INT DEFAULT 0 NOT NULL,
+                blacklist TEXT,
+                exploration_list TEXT,
+                read_progress JSON
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS server_pref (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                bbs INT DEFAULT 2,
+                chat INT DEFAULT 2,
+                mail INT DEFAULT 2,
+                telegram INT DEFAULT 2,
+                userpref INT DEFAULT 2,
+                who INT DEFAULT 2,
+                default_exploration_list TEXT,
+                hamlet INT DEFAULT 2,
+                login_message TEXT
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS mails (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                sender_id INT NOT NULL,
                 sender_display_name TEXT,
-                sender_ip_address TEXT,
-                recipient_id INTEGER NOT NULL,
+                sender_ip_address VARCHAR(45),
+                recipient_id INT NOT NULL,
                 subject TEXT NOT NULL,
                 body TEXT NOT NULL,
-                is_read INTEGER DEFAULT 0,
-                sent_at INTEGER NOT NULL,
-                sender_deleted INTEGER DEFAULT 0,
-                recipient_deleted INTEGER DEFAULT 0
-            )'''
-        )
-
-        # --- telegram テーブル作成 (id カラムあり) ---
-        logging.info("Creating 'telegram' table...")
-        cur.execute(
-            '''CREATE TABLE telegram(
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                is_read BOOLEAN DEFAULT 0,
+                sent_at INT NOT NULL,
+                sender_deleted BOOLEAN DEFAULT 0,
+                recipient_deleted BOOLEAN DEFAULT 0
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS telegram (
+                id INT PRIMARY KEY AUTO_INCREMENT,
                 sender_name TEXT NOT NULL,
                 recipient_name TEXT NOT NULL,
                 message TEXT NOT NULL,
-                timestamp INTEGER NOT NULL
-            )'''
-        )
+                timestamp INT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS boards (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                shortcut_id VARCHAR(255) UNIQUE NOT NULL,
+                operators JSON,
+                default_permission VARCHAR(10) NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT,
+                kanban_body TEXT,
+                last_posted_at INT DEFAULT 0,
+                board_type VARCHAR(10) NOT NULL DEFAULT 'simple',
+                status VARCHAR(10) NOT NULL DEFAULT 'active',
+                read_level INT NOT NULL DEFAULT 1,
+                write_level INT NOT NULL DEFAULT 1
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS articles (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                board_id INT NOT NULL,
+                article_number INT,
+                parent_article_id INT,
+                user_id TEXT NOT NULL,
+                title TEXT,
+                body TEXT NOT NULL,
+                ip_address VARCHAR(45),
+                is_deleted BOOLEAN DEFAULT 0,
+                created_at INT,
+                FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
+                UNIQUE (board_id, article_number)
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS board_user_permissions (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                board_id INT NOT NULL,
+                user_id VARCHAR(255) NOT NULL,
+                access_level VARCHAR(10) NOT NULL,
+                FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
+                UNIQUE (board_id, user_id)
+            )
+            """
+        ]
+        for query in create_queries:
+            database.execute_query(query)
 
-        # --- BBS関連テーブル作成 ---
-        logging.info("Creating BBS related tables...")
-        sqlite_tools.create_bbs_tables_if_not_exist(cur)
+        logging.info("All tables created or already exist.")
 
-        # データベースへコミット
-        conn.commit()
-        logging.info("Database and initial tables created successfully.")
+        # 初期データ挿入
+        # server_pref
+        if not database.execute_query("SELECT * FROM server_pref", fetch='one'):
+            database.execute_query(
+                "INSERT INTO server_pref (id, login_message) VALUES (%s, %s)",
+                (1, 'GR-BBSへようこそ！')
+            )
+            logging.info("Initialized server_pref with default values.")
 
-        # 作成されたテーブルの内容を表示 (確認用)
-        logging.debug("\n--- Users Table Contents ---")
-        cur.execute("SELECT * FROM users;")
-        users = cur.fetchall()
-        for user in users:
-            logging.debug(user)
+        # Sysopユーザー
+        if not database.get_user_auth_info(sysop_id):
+            salt, hashed_password = hash_password(sysop_password)
+            database.register_user(
+                username=sysop_id,
+                hashed_password=hashed_password,
+                salt=salt,
+                comment='Sysop',
+                level=5,
+                email=sysop_email
+            )
+            logging.info(f"Sysop user '{sysop_id}' created.")
 
-        logging.debug("\n--- Server Pref Table Contents ---")
-        cur.execute("SELECT * FROM server_pref;")
-        serverprefs = cur.fetchall()
-        for server_pref in serverprefs:
-            logging.debug(server_pref)
+        # Guestユーザー
+        if not database.get_user_auth_info('GUEST'):
+            salt, hashed_password = hash_password('GUEST')
+            database.register_user(
+                username='GUEST',
+                hashed_password=hashed_password,
+                salt=salt,
+                comment='Guest',
+                level=1,
+                email='guest@example.com'
+            )
+            logging.info("Guest user created.")
 
-    except sqlite3.Error as e:
-        logging.critical(f"データベースの初期化に失敗しました: {e}", exc_info=True)
-        if conn:
-            conn.rollback()  # エラー時はロールバック
-
-    finally:
-        # カーソルと接続を確実に閉じる
-        if cur:
-            cur.close()
-        if conn:
-            conn.close()
-        logging.info("Database connection closed after initialization.")
+        return True
+    except Exception as e:
+        logging.critical(f"データベースの初期化中に致命的なエラー: {e}", exc_info=True)
+        return False
 
 
-def prompt_handler(chan, dbname, login_id, menu_mode='2', mail_notified_flag=False):
+def prompt_handler(chan, login_id, menu_mode='2', mail_notified_flag=False):
     """ 定型実行のまとめ """
-    # check_new_mail の戻り値でフラグを更新
+    # dbname引数は互換性のために残すが、使用しない
     updated_mail_notified_flag = check_new_mail(
-        chan, dbname, login_id, menu_mode, mail_notified_flag)
-    telegram_recieve(chan, dbname, login_id, menu_mode)
-    server_prefs = sqlite_tools.read_server_pref(dbname)
+        chan, login_id, menu_mode, mail_notified_flag)
+    telegram_recieve(chan, login_id, menu_mode)
+    server_prefs = database.read_server_pref()
     return server_prefs, updated_mail_notified_flag
 
 
@@ -401,16 +427,14 @@ def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
     if "global" in config_data and isinstance(config_data["global"], list):
         # globalアイテムは直接的な子要素として探索
         for item_global_data in config_data["global"]:
-            if isinstance(item_global_data, dict) and\
-                    item_global_data.get("id") == target_id and\
-                    item_global_data.get("type") == expected_type:
+            if isinstance(item_global_data, dict) and item_global_data.get("id") == target_id and item_global_data.get("type") == expected_type:
                 item_name = item_global_data.get(
                     "name", item_global_data.get("id"))
                 return item_global_data, item_name
     return None, None
 
 
-def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mode: str, shortcut_input: str, online_members_func: callable):
+def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, shortcut_input: str, online_members_func: callable):
     """ショートカットを処理する。ショートカットとして処理が完了したらtrueを返す"""
     # ショートカットではない
     if not shortcut_input.startswith(';'):
@@ -445,14 +469,13 @@ def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mo
 
     # BBS検索
     if target_type == "bbs" or target_type is None:
-        board_info = sqlite_tools.get_board_by_shortcut_id(
-            dbname, shortcut_id_to_search)
+        board_info = database.get_board_by_shortcut_id(shortcut_id_to_search)
         if board_info:
             import bbs_handler
             send_text_by_key(chan, "shortcut.jumping_to_bbs",
                              menu_mode, board_name=board_info["name"])
             bbs_handler.handle_bbs_menu(
-                chan, dbname, login_id, display_name, menu_mode, shortcut_id_to_search, chan.getpeername()[0])
+                chan, login_id, display_name, menu_mode, shortcut_id_to_search, chan.getpeername()[0])
             return True
         if target_type == "bbs":
             send_text_by_key(chan, "shortcut.not_found", menu_mode,
@@ -474,8 +497,7 @@ def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mo
                 chat_handler.set_online_members_function_for_chat(
                     online_members_func)
                 chat_handler.handle_chat_room(
-                    chan, dbname, login_id, display_name, menu_mode, shortcut_id_to_search, item_name
-                )
+                    chan, login_id, display_name, menu_mode, shortcut_id_to_search, item_name)
                 return True
             if target_type == "chat":
                 send_text_by_key(chan, "shortcut.not_found", menu_mode,
@@ -491,15 +513,14 @@ def handle_shortcut(chan, dbname: str, login_id: str, display_name: str, menu_mo
     return True
 
 
-def check_new_mail(chan, dbname, username, current_menu_mode, notified_in_session):
-    """新着メールがないか確認し、あれば通知する。通知はセッション中に一度だけ。ただし未読が0になるとリセットされる。"""
-    user_id = sqlite_tools.get_user_id_from_user_name(dbname, username)
+def check_new_mail(chan, username, current_menu_mode, notified_in_session):
+    """新着メールがないか確認し、あれば通知する。"""
+    user_id = database.get_user_id_from_user_name(username)
     if user_id is None:
         return notified_in_session  # ユーザーが見つからない場合は元の状態を返す
 
     try:
-        unread_count = sqlite_tools.get_total_unread_mail_count(
-            dbname, user_id)
+        unread_count = database.get_total_unread_mail_count(user_id)
 
         # 未読メールが0件なら、通知フラグをリセット(False)して終了
         if unread_count == 0:
@@ -512,7 +533,7 @@ def check_new_mail(chan, dbname, username, current_menu_mode, notified_in_sessio
             return True
 
         # まだ通知していない場合、通知処理を行う
-        total_mail_count = sqlite_tools.get_total_mail_count(dbname, user_id)
+        total_mail_count = database.get_total_mail_count(user_id)
         notification_message_format = get_text_by_key(
             "mail_handler.new_mail_notification", current_menu_mode
         )
@@ -533,7 +554,7 @@ def check_new_mail(chan, dbname, username, current_menu_mode, notified_in_sessio
     return notified_in_session
 
 
-def telegram_send(chan, dbname, display_name, online_members_ids, current_menu_mode):
+def telegram_send(chan, display_name, online_members_ids, current_menu_mode):
     """
     オンラインのメンバーにのみ電報を送信し、データベースに保存する。
     """
@@ -541,15 +562,16 @@ def telegram_send(chan, dbname, display_name, online_members_ids, current_menu_m
                      current_menu_mode)  # 電報送信メッセージ
     send_text_by_key(chan, "telegram.send_prompt",
                      current_menu_mode, add_newline=False)  # 宛先入力
-    recipient_name = chan.process_input()
+    recipient_name_input = chan.process_input()
 
-    if not recipient_name:
+    if not recipient_name_input:
         send_text_by_key(chan, "telegram.no_recipient",
                          current_menu_mode)  # 宛先がオンラインにない
         return
 
+    recipient_name = recipient_name_input.strip().upper()
     # ここでオンラインチェック
-    if recipient_name not in online_members_ids:
+    if recipient_name not in [uid.upper() for uid in online_members_ids]:
         send_text_by_key(chan, "telegram.recipient_not_online",
                          current_menu_mode, recipient_name=recipient_name)
         return
@@ -578,10 +600,9 @@ def telegram_send(chan, dbname, display_name, online_members_ids, current_menu_m
 
     try:
         current_timestamp = int(time.time())
-        # sqlite_tools に save_telegram(dbname, sender, recipient, message, timestamp) 関数を実装する想定
         # 送信者名は表示名(display_name)を保存
-        sqlite_tools.save_telegram(
-            dbname, display_name, recipient_name, message, current_timestamp)
+        database.save_telegram(
+            display_name, recipient_name, message, current_timestamp)
         send_text_by_key(chan, "telegram.send_success", current_menu_mode)
     except Exception as e:
         logging.warning(
@@ -627,10 +648,10 @@ def truncate_ansi_string(text, max_width):
     return final_str
 
 
-def telegram_recieve(chan, dbname, username, current_menu_mode):
+def telegram_recieve(chan, username, current_menu_mode):
     """受信している電報を表示すして、表示後に削除する"""
     # 電報受信設定を取得
-    user_settings = sqlite_tools.get_user_auth_info(dbname, username)
+    user_settings = database.get_user_auth_info(username)
     user_restriction = user_settings['telegram_restriction']
     blacklist_str = user_settings['blacklist']
     user_blacklist_ids = set()
@@ -643,7 +664,7 @@ def telegram_recieve(chan, dbname, username, current_menu_mode):
                 f"ユーザ{username}のブラックリスト形式エラー:{blacklist_str}")
             user_blacklist_ids = set()
 
-    results = sqlite_tools.load_and_delete_telegrams(dbname, username)
+    results = database.load_and_delete_telegrams(username)
     if not results:
         return
 
@@ -651,8 +672,7 @@ def telegram_recieve(chan, dbname, username, current_menu_mode):
     for teregram in results:
         sender_name = teregram['sender_name']
         # SenderユーザIDを取得
-        sender_id = sqlite_tools.get_user_id_from_user_name(
-            dbname, sender_name)
+        sender_id = database.get_user_id_from_user_name(sender_name)
 
         should_display = True
 

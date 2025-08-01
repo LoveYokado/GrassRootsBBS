@@ -4,28 +4,41 @@ services:
     # Nginx経由でアクセスするため、直接ポートを公開する必要はなくなります
     volumes:
       - ./data:/app/data
-      - ./logs:/app/logs
-    environment:
-      # コンテナ内からRedisサービスに接続するためのURL
-      - REDIS_URL=redis://redis:6379/0
-      - SOCKETIO_ALLOWED_ORIGINS=http://localhost:8183
+      - ./logs:/app/logs # アプリケーションログを永続化
+      - ./src:/home/yuki/python/GrassRootsBBS/src # 開発用にソースコードをマウント
     ports:
       - "8183:5000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SOCKETIO_ALLOWED_ORIGINS=http://localhost:8183
+      - DB_HOST=mariadb # コンテナ名を指定
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
     env_file:
       - .env # .env 必ず先に管理者IDとパスワードを設定してください。
-    depends_on:
-      - redis # grassrootsbbs の前に redis を起動
+    depends_on: # depends_onを詳細設定に変更
+      mariadb:
+        condition: service_healthy # mariadbのhealthcheckが成功するまで待機
+      redis:
+        condition: service_started # redisは起動するだけでOK
     restart: unless-stopped
 
-#  nginx:
-#    image: nginx:alpine
-#    ports:
-#      - "8182:80" # ホストの80番ポートをNginxコンテナの80番ポートにマッピング
-#    volumes:
-#      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-#    depends_on:
-#      - grassrootsbbs
-#    restart: unless-stopped
+  mariadb:
+    image: mariadb:10.6 # 特定のバージョンを指定することを推奨
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+        # ユーザーとパスワードを指定して接続をテスト
+        test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u${DB_USER}", "-p${DB_PASSWORD}"]
+        interval: 10s # 10秒ごとにチェック
+        timeout: 5s   # 5秒でタイムアウト
+        retries: 5    # 5回リトライ
 
   redis:
     image: "redis:alpine"
@@ -35,3 +48,4 @@ services:
 
 volumes:
   redis_data:
+  mariadb_data:

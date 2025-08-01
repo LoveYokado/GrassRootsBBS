@@ -2,11 +2,19 @@ import datetime
 import re
 import logging
 
-from . import util, sqlite_tools
+from . import util, database
 
 
-def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
+def userpref_menu(chan, login_id, display_name, current_menu_mode):
     """ユーザー設定メニュー"""
+    # 最初にユーザー情報を一括で取得
+    user_data = database.get_user_auth_info(login_id)
+    if not user_data:
+        util.send_text_by_key(
+            chan, "common_messages.user_not_found", current_menu_mode)
+        logging.error(f"ユーザー設定メニュー表示時にユーザーが見つかりません: {login_id}")
+        return None
+
     # コマンドと対応する関数のディスパッチテーブル
     command_dispatch = {
         '1': change_menu_mode,
@@ -20,15 +28,15 @@ def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
         '9': set_telegram_restriction,
         '10': edit_blacklist,
         '11': change_email_address,
-        'e': lambda *args: "back_to_top",  # メニュー終了
-        '': lambda *args: "back_to_top",   # 空入力もメニュー終了
+        'e': lambda *args, **kwargs: "back_to_top",  # メニュー終了
+        '': lambda *args, **kwargs: "back_to_top",   # 空入力もメニュー終了
         'h': display_help,
         '?': display_help,
     }
 
     while True:
         util.send_text_by_key(chan, "user_pref_menu.header", current_menu_mode)
-        util.prompt_handler(chan, dbname, login_id, current_menu_mode)
+        util.prompt_handler(chan, login_id, current_menu_mode)
         util.send_text_by_key(chan, "common_messages.select_prompt",
                               current_menu_mode, add_newline=False)  # プロンプト表示
         input_buffer = chan.process_input()
@@ -39,7 +47,9 @@ def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
         # ディスパッチテーブルからコマンドに対応する関数を取得
         handler = command_dispatch.get(command)
         if handler:
-            result = handler(chan, dbname, login_id, current_menu_mode)
+            # 各ハンドラに user_data を渡す
+            result = handler(chan, login_id,
+                             current_menu_mode, user_data)
             # メニューモード変更や終了の場合、結果を返す
             if result in ('1', '2', '3', 'back_to_top', None):
                 return result
@@ -48,20 +58,16 @@ def userpref_menu(chan, dbname, login_id, display_name, current_menu_mode):
                 chan, "common_messages.invalid_command", current_menu_mode)  # 無効なコマンド
 
 
-def display_help(chan, dbname, login_id, current_menu_mode):
+def display_help(chan, login_id, current_menu_mode, user_data):
     """ヘルプメッセージを表示"""
     util.send_text_by_key(chan, "user_pref_menu.help", current_menu_mode)
     return None
 
 
 # 以下の関数は変更なし（必要に応じてリファクタリング可能）
-def change_menu_mode(chan, dbname, login_id, current_menu_mode):
+def change_menu_mode(chan, login_id, current_menu_mode, user_data):
     """メニューモード変更"""
-    user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
-    if user_id is None:
-        util.send_text_by_key(
-            chan, "common_messages.user_not_found", current_menu_mode)
-        return None
+    user_id = user_data['id']
     while True:
         util.send_text_by_key(
             chan, "user_pref_menu.mode_selection.header", current_menu_mode)
@@ -85,54 +91,45 @@ def change_menu_mode(chan, dbname, login_id, current_menu_mode):
             continue
 
         if new_menu_mode:
-            if sqlite_tools.update_user_menu_mode(dbname, user_id, new_menu_mode):
+            if database.update_record('users', {'menu_mode': new_menu_mode}, {'id': user_id}):
                 util.send_text_by_key(chan, "user_pref_menu.mode_selection.confirm_changed",
                                       current_menu_mode, mode=new_menu_mode)
                 return new_menu_mode
             else:
                 util.send_text_by_key(
-                    chan, "user_pref_menu.mode_selection.confirm_failed", current_menu_mode)
+                    chan, "common_messages.db_update_error", current_menu_mode)
             return "back_to_top"
 
 
-def show_member_list(chan, dbname, login_id, current_menu_mode):
+def show_member_list(chan, login_id, current_menu_mode, user_data):
     """会員リストを表示する"""
     util.send_text_by_key(
         chan, "user_pref_menu.member_list.search_prompt", current_menu_mode, add_newline=False)
     search_word = chan.process_input()
-    member_list = sqlite_tools.get_memberlist(dbname, search_word)
+    member_list = database.get_memberlist(search_word)
     if member_list:
         for member in member_list:
             chan.send(
-                f"{member.get('name', 'N/A')} {member.get('comment', 'N/A')}\r\n")
+                f"{member.get('name', 'N/A')} {member.get('comment', 'N/A')}\r\n".encode('utf-8'))
     else:
         util.send_text_by_key(chan, "user_pref_menu.member_list.notfound",
                               current_menu_mode)
     return None
 
 
-def change_password(chan, dbname, login_id, current_menu_mode):
+def change_password(chan, login_id, current_menu_mode, user_data):
     """パスワード変更"""
     security_config = util.app_config.get('security', {})
-    pbkdf2_rounds = security_config.get('PBKDF2_ROUNDS', 100000)
 
     util.send_text_by_key(chan, "user_pref_menu.change_password.current_password",
                           current_menu_mode, add_newline=False)
     current_pass = chan.hide_process_input()
-    if current_pass is None:
+    if current_pass is None or not current_pass:
         util.send_text_by_key(
             chan, "common_messages.cancel", current_menu_mode)
         return None
 
-    user_auth_info = sqlite_tools.get_user_auth_info(dbname, login_id)
-    if not user_auth_info:
-        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
-        logging.error(f"パスワード変更施行中にユーザが見つかりません: {login_id}")
-        util.send_text_by_key(
-            chan, "common_messages.cancel", current_menu_mode)
-        return None
-
-    if not util.verify_password(user_auth_info['password'], user_auth_info['salt'], current_pass, pbkdf2_rounds):
+    if not util.verify_password(user_data['password'], user_data['salt'], current_pass):
         util.send_text_by_key(
             chan, "user_pref_menu.change_password.invalid_password", current_menu_mode)
         util.send_text_by_key(
@@ -170,25 +167,19 @@ def change_password(chan, dbname, login_id, current_menu_mode):
                 chan, "user_pref_menu.change_password.password_mismatch", current_menu_mode)
 
     new_salt_hex, new_hashed_password = util.hash_password(new_pass1)
-    if sqlite_tools.update_user_password_and_salt(dbname, login_id, new_hashed_password, new_salt_hex):
+    if database.update_record('users', {'password': new_hashed_password, 'salt': new_salt_hex}, {'id': user_data['id']}):
         util.send_text_by_key(
             chan, "user_pref_menu.change_password.password_changed", current_menu_mode)
     else:
-        util.send_text_by_key(chan, "common_messages.error",
+        util.send_text_by_key(chan, "common_messages.db_update_error",
                               current_menu_mode)
         logging.error(f"パスワード変更エラー({login_id})")
     return None
 
 
-def change_profile(chan, dbname, login_id, current_menu_mode):
+def change_profile(chan, login_id, current_menu_mode, user_data):
     """プロフィール変更"""
-    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
-    if not user_data:
-        util.send_text_by_key(
-            chan, "common_messages.user_not_found", current_menu_mode)
-        return None
-
-    current_comment = user_data['comment'] if user_data['comment'] is not None else ''
+    current_comment = user_data.get('comment', '')
     util.send_text_by_key(chan, "user_pref_menu.change_profile.current_profile",
                           current_menu_mode, comment=current_comment)
     util.send_text_by_key(
@@ -201,23 +192,20 @@ def change_profile(chan, dbname, login_id, current_menu_mode):
         util.send_text_by_key(
             chan, "user_pref_menu.change_profile.cancelled", current_menu_mode)
         return None
-    try:
-        if sqlite_tools.update_user_profile_comment(dbname, user_data['id'], new_comment):
-            util.send_text_by_key(
-                chan, "user_pref_menu.change_profile.profile_updated", current_menu_mode)
-        else:
-            raise Exception("コメント更新に失敗")
-    except Exception as e:
-        logging.error(f"コメント更新エラー: {e}")
-        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
+
+    if database.update_record('users', {'comment': new_comment}, {'id': user_data['id']}):
+        util.send_text_by_key(
+            chan, "user_pref_menu.change_profile.profile_updated", current_menu_mode)
+    else:
+        logging.error(f"コメント更新エラー: {login_id}")
+        util.send_text_by_key(
+            chan, "common_messages.db_update_error", current_menu_mode)
     return None
 
 
-def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
+def set_lastlogin_datetime(chan, login_id, current_menu_mode, user_data):
     """最終ログイン日時を手動で設定"""
-    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
-
-    user_id = user_data['id']
+    user_id = user_data.get('id')
     current_lastlogin_ts = user_data['lastlogin']
 
     current_lastlogin_str = "None"
@@ -264,28 +252,19 @@ def set_lastlogin_datetime(chan, dbname, login_id, current_menu_mode):
 
         new_timestamp = int(new_datetime_obj.timestamp())
 
-        try:
-            sqlite_tools.update_idbase(
-                dbname, 'users', ['lastlogin'], user_id, 'lastlogin', new_timestamp)
+        if database.update_record('users', {'lastlogin': new_timestamp}, {'id': user_id}):
             util.send_text_by_key(
                 chan, "user_pref_menu.set_lastlogin.updated", current_menu_mode)
-            return None
-        except Exception as e:
-            logging.error(f"最終ログイン日時更新エラー: {e}")
+        else:
+            logging.error(f"最終ログイン日時更新エラー: {login_id}")
             util.send_text_by_key(
-                chan, "common_messages.error", current_menu_mode)
-            return None
-
-
-def set_telegram_restriction(chan, dbname, login_id, current_menu_mode):
-    """電報受信制限設定"""
-    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
-    if not user_data:
-        logging.error(f"電報受信制限設定時にユーザが存在しませんでした。{login_id}")
-        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
+                chan, "common_messages.db_update_error", current_menu_mode)
         return None
 
-    user_id = user_data['id']
+
+def set_telegram_restriction(chan, login_id, current_menu_mode, user_data):
+    """電報受信制限設定"""
+    user_id = user_data.get('id')
 
     while True:
         util.send_text_by_key(
@@ -312,22 +291,20 @@ def set_telegram_restriction(chan, dbname, login_id, current_menu_mode):
         else:
             return None
 
-        if sqlite_tools.update_user_telegram_restriction(dbname, user_id, new_restriction_level):
-            chan.send(new_restridtion_lebel_text + "\r\n")
+        if database.update_record('users', {'telegram_restriction': new_restriction_level}, {'id': user_id}):
+            chan.send((new_restridtion_lebel_text + "\r\n").encode('utf-8'))
             return None
         else:
             logging.error(f"電報受信制限更新時にエラーが発生しました。{login_id}")
             util.send_text_by_key(
-                chan, "common_messages.error", current_menu_mode)
+                chan, "common_messages.db_update_error", current_menu_mode)
             return None
 
 
-def edit_blacklist(chan, dbname, login_id, current_menu_mode):
+def edit_blacklist(chan, login_id, current_menu_mode, user_data):
     """ブラックリスト編集"""
-    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
-
-    user_id = user_data['id']
-    current_blacklist_str = user_data['blacklist']
+    user_id = user_data.get('id')
+    current_blacklist_str = user_data.get('blacklist', '')
 
     util.send_text_by_key(
         chan, "user_pref_menu.blacklist_edit.header", current_menu_mode)
@@ -340,8 +317,9 @@ def edit_blacklist(chan, dbname, login_id, current_menu_mode):
         display_login_ids = []
 
         if current_user_id_strs:
-            id_to_name_map = sqlite_tools.get_user_names_from_user_ids(
-                dbname, current_user_id_strs)
+            # dbnameは不要になった
+            id_to_name_map = database.get_user_names_from_user_ids(
+                current_user_id_strs)
             for uid_str in current_user_id_strs:
                 user_id_int = int(uid_str)
                 login_name = id_to_name_map.get(user_id_int)
@@ -397,12 +375,13 @@ def edit_blacklist(chan, dbname, login_id, current_menu_mode):
             if target_login_id_str == login_id:
                 continue
 
-            target_user_id_from_db = sqlite_tools.get_user_id_from_user_name(
-                dbname, target_login_id_str)
+            target_login_id_upper = target_login_id_str.upper()
+            target_user_id_from_db = database.get_user_id_from_user_name(
+                target_login_id_upper)
 
             if target_user_id_from_db is None:
                 util.send_text_by_key(chan, "user_pref_menu.blacklist_edit.user_id_not_found",
-                                      current_menu_mode, user_id=target_login_id_str)
+                                      current_menu_mode, user_id=target_login_id_upper)
                 return None
 
             validated_user_ids_for_db.append(str(target_user_id_from_db))
@@ -414,47 +393,40 @@ def edit_blacklist(chan, dbname, login_id, current_menu_mode):
     else:
         final_blacklist_db_str = ""
 
-    if sqlite_tools.update_user_blacklist(dbname, user_id, final_blacklist_db_str):
+    if database.update_record('users', {'blacklist': final_blacklist_db_str}, {'id': user_id}):
         util.send_text_by_key(
             chan, "user_pref_menu.blacklist_edit.update_success", current_menu_mode)
     else:
         logging.error(f"ブラックリスト更新時にエラーが発生しました。{login_id}")
         util.send_text_by_key(
-            chan, "common_messages.error", current_menu_mode)
+            chan, "common_messages.db_update_error", current_menu_mode)
     return None
 
 
-def register_exploration_list(chan, dbname, login_id, current_menu_mode):
+def register_exploration_list(chan, login_id, current_menu_mode, user_data):
     """探索リスト登録"""
-    user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
-    if user_id is None:
-        util.send_text_by_key(
-            chan, "common_messages.user_not_found", current_menu_mode)
-        return None
+    user_id = user_data.get('id')
 
     # util.pyの共通関数を呼び出す。保存処理はラムダ式で渡す。
-    def save_func(exploration_list_str): return sqlite_tools.set_user_exploration_list(
-        dbname, user_id, exploration_list_str)
+    def save_func(exploration_list_str): return database.set_user_exploration_list(
+        user_id, exploration_list_str)
     util.prompt_and_save_exploration_list(
         chan, current_menu_mode, save_func)
     return None
 
 
-def read_exploration_list(chan, dbname, login_id, current_menu_mode):
+def read_exploration_list(chan, login_id, current_menu_mode, user_data):
     """探索リスト読み出し"""
-    user_id = sqlite_tools.get_user_id_from_user_name(dbname, login_id)
-    if user_id is None:
-        return None
-
-    exploration_list_str = sqlite_tools.get_user_exploration_list(
-        dbname, user_id)
+    user_id = user_data.get('id')
+    # dbnameは不要になった
+    exploration_list_str = database.get_user_exploration_list(user_id)
     util.display_exploration_list(chan, exploration_list_str)
     return None
 
 
-def read_server_default_exploration_list(chan, dbname, login_id, current_menu_mode):
+def read_server_default_exploration_list(chan, login_id, current_menu_mode, user_data):
     """元探索リスト読み出し"""
-    server_prefs = sqlite_tools.read_server_pref(dbname)
+    server_prefs = database.read_server_pref()
     if not server_prefs or len(server_prefs) <= 6:
         logging.error("サーバ設定の読み込みに失敗したか、共通探索リストの項目がありません。")
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
@@ -465,16 +437,10 @@ def read_server_default_exploration_list(chan, dbname, login_id, current_menu_mo
     return None
 
 
-def change_email_address(chan, dbname, login_id, current_menu_mode):
+def change_email_address(chan, login_id, current_menu_mode, user_data):
     """メールアドレス変更"""
-    user_data = sqlite_tools.get_user_auth_info(dbname, login_id)
-    if not user_data:
-        util.send_text_by_key(
-            chan, "common_messages.user_not_found", current_menu_mode)
-        return None
-
-    user_id = user_data['id']
-    email_from_db = user_data['email']
+    user_id = user_data.get('id')
+    email_from_db = user_data.get('email')
     current_email = email_from_db if email_from_db is not None else ''
 
     util.send_text_by_key(chan, "user_pref_menu.change_email.current_email",
@@ -495,7 +461,7 @@ def change_email_address(chan, dbname, login_id, current_menu_mode):
         util.send_text_by_key(
             chan, "user_pref_menu.change_email.invalid_format", current_menu_mode)
         return None
-    if sqlite_tools.update_user_email(dbname, user_id, new_email):
+    if database.update_record('users', {'email': new_email}, {'id': user_id}):
         util.send_text_by_key(
             chan, "user_pref_menu.change_email.updated", current_menu_mode)
         logging.info(f"ユーザID {user_id} のメールアドレスを {new_email} に更新しました。")

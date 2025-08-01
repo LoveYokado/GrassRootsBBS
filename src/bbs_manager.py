@@ -1,20 +1,19 @@
 import logging
 import time
-import sqlite3
 import json
 
-from . import util, sqlite_tools
+from . import util, database
 
 
 class BoardManager:
     """掲示板のメタ情報を管理するクラス"""
 
-    def __init__(self, dbname):
-        self.dbname = dbname
-        # self.load_boards_from_config() # SysOpメニューから実行する形に変更したため、初期化時は呼び出さない
+    def __init__(self):
+        # dbname は不要になったため削除
+        pass
 
-    # This function is currently not called from anywhere.
     def load_boards_from_config(self):
+        # This function is currently not called from anywhere.
         paths_config = util.app_config.get('paths', {})
         bbs_config_path = paths_config.get('bbs_sync_config')
         """bbs.yaml から掲示板情報を読み込み、DBと同期する"""
@@ -63,36 +62,33 @@ class BoardManager:
 
     def get_board_info(self, shortcut_id):
         """指定されたショートカットIDの掲示板情報をDBから取得する"""
-        board_info = sqlite_tools.get_board_by_shortcut_id(
-            self.dbname, shortcut_id)
-        # sqlite3.Row を dict に変換
-        return dict(board_info) if board_info else None
+        # database.py は直接辞書を返すため、dict()変換は不要
+        return database.get_board_by_shortcut_id(shortcut_id)
 
 
 class ArticleManager:
     """記事のCRUD操作と表示を行うクラス"""
 
-    def __init__(self, dbname):
-        self.dbname = dbname
+    def __init__(self):
+        # dbname は不要になったため削除
+        pass
 
     def get_articles_by_board(self, board_id, include_deleted=False):
         """指定された掲示板の投稿一覧を取得する"""
         # board_idはboardsテーブルの主キー(id)
         # 投稿順（古いものが先）で取得
-        return sqlite_tools.get_articles_by_board_id(self.dbname, board_id, order_by="created_at ASC, article_number ASC", include_deleted=include_deleted)
+        return database.get_articles_by_board_id(board_id, order_by="created_at ASC, article_number ASC", include_deleted=include_deleted)
 
     def get_new_articles(self, board_id, last_login_timestamp):
         """指定された掲示板の、指定時刻以降の未削除記事を取得する。"""
-        return sqlite_tools.get_new_articles_for_board(self.dbname, board_id, last_login_timestamp)
+        return database.get_new_articles_for_board(board_id, last_login_timestamp)
 
     def get_article_by_number(self, board_id, article_number, include_deleted=False):
         """指定された記事番号の記事を取得する"""
         # board_idはboardsテーブルの主キー(id)
-        article_data = sqlite_tools.get_article_by_board_and_number(
-            self.dbname, board_id, article_number, include_deleted=include_deleted)
-        if article_data:
-            return article_data
-        return None
+        # self.dbname は不要になったため、直接 database モジュールを呼び出す
+        return database.get_article_by_board_and_number(
+            board_id, article_number, include_deleted=include_deleted)
 
     def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None):
         """
@@ -101,33 +97,44 @@ class ArticleManager:
         user_identifierはusersテーブルの主キー(int)またはゲストの表示名(str)
         戻り値は作成された記事のID、失敗したらNone
         """
-        conn = None  # for finally block
+        conn = None
+        cursor = None
         try:
-            conn = sqlite3.connect(self.dbname)
-            # conn.execute('BEGIN') # sqlite3モジュールはDMLで暗黙的にトランザクションを開始します
+            conn = database.get_connection()
+            cursor = conn.cursor()
 
             # 返信の場合は記事番号を採番せず、スレッド作成の場合のみ採番する
             if parent_article_id is not None:
                 next_article_number = None  # 返信には記事番号を割り当てない
             else:
                 # 次の記事番号取得 (トランザクション内で実行)
-                next_article_number = sqlite_tools.get_next_article_number(
-                    self.dbname, board_id_pk, conn=conn)
+                query_next_num = "SELECT COALESCE(MAX(article_number), 0) + 1 FROM articles WHERE board_id = %s"
+                cursor.execute(query_next_num, (board_id_pk,))
+                result = cursor.fetchone()
+                next_article_number = result[0] if result and result[0] is not None else 1
+
                 if next_article_number is None:
                     raise Exception("次の記事番号の取得に失敗")
 
             # 記事を挿入 (トランザクション内で実行)
             current_timestamp = int(time.time())
-            article_id = sqlite_tools.insert_article(
-                self.dbname, board_id_pk, next_article_number, user_identifier, title, body, current_timestamp, ip_address, parent_article_id, conn=conn
-            )
+            query_insert = """
+                INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            params_insert = (board_id_pk, next_article_number, str(user_identifier),
+                             parent_article_id, title, body, current_timestamp, ip_address)
+            cursor.execute(query_insert, params_insert)
+            article_id = cursor.lastrowid
             if article_id is None:
                 raise Exception("記事の挿入に失敗")
 
             # 掲示板の最終投稿日時を更新 (トランザクション内で実行)
-            if not sqlite_tools.update_board_last_posted_at(
-                    self.dbname, board_id_pk, current_timestamp, conn=conn):
-                raise Exception("掲示板の最終投稿日時更新に失敗")
+            query_update_board = "UPDATE boards SET last_posted_at = %s WHERE id = %s"
+            cursor.execute(query_update_board,
+                           (current_timestamp, board_id_pk))
+            if cursor.rowcount == 0:
+                raise Exception(f"掲示板(ID: {board_id_pk})の最終投稿日時更新に失敗（対象行なし）")
 
             # 全ての処理が成功したらコミット
             conn.commit()
@@ -137,21 +144,23 @@ class ArticleManager:
 
         except Exception as e:
             logging.error(
-                f"記事の作成に失敗しました(BoardID:{board_id_pk}, User:{user_identifier}): {e}")
+                f"記事の作成に失敗しました(BoardID:{board_id_pk}, User:{user_identifier}): {e}", exc_info=True)
             if conn:
                 conn.rollback()  # エラー発生時はロールバック
             return None
         finally:
+            if cursor:
+                cursor.close()
             if conn:
                 conn.close()
 
     def get_threads(self, board_id, include_deleted=False):
         """指定された掲示板のスレッド一覧(親記事と返信数)を取得"""
-        return sqlite_tools.get_thread_root_articles_with_reply_count(self.dbname, board_id, include_deleted)
+        return database.get_thread_root_articles_with_reply_count(board_id, include_deleted)
 
     def get_replies(self, parent_article_id, include_deleted=False):
         """指定された親記事の返信をすべて取得"""
-        return sqlite_tools.get_replies_for_article(self.dbname, parent_article_id, include_deleted)
+        return database.get_replies_for_article(parent_article_id, include_deleted)
 
     def update_article(self, article_id, title, body):
         """記事を更新する（主に看板用）"""
@@ -160,7 +169,7 @@ class ArticleManager:
 
     def toggle_delete_article(self, article_id):
         """記事の削除フラグをトグルする(論理削除)"""
-        return sqlite_tools.toggle_article_deleted_status(self.dbname, article_id)
+        return database.toggle_article_deleted_status(article_id)
 
     def search_articles(self, board_id, keyword, search_body=False):
         # TODO: 検索機能の実装時に include_deleted を考慮する
@@ -172,8 +181,9 @@ class ArticleManager:
 class PermissionManager:
     """権限管理を行うクラス"""
 
-    def __init__(self, dbname):
-        self.dbname = dbname
+    def __init__(self):
+        # dbname は不要になったため削除
+        pass
 
     def check_permission(self, board_id, user_id, action):
         """
@@ -191,8 +201,8 @@ class PermissionManager:
         board_id_pk = board_info.get("id")
         read_level = board_info.get('read_level', 1)  # デフォルトはレベル1
 
-        user_specific_perm = sqlite_tools.get_user_permission_for_board(
-            self.dbname, board_id_pk, str(user_id_pk))
+        user_specific_perm = database.get_user_permission_for_board(
+            board_id_pk, str(user_id_pk))
 
         # 優先順位: 1. deny, 2. allow, 3. level check
         if user_specific_perm == "deny":
@@ -210,8 +220,8 @@ class PermissionManager:
         board_id_pk = board_info.get("id")
         write_level = board_info.get('write_level', 1)  # デフォルトはレベル1
 
-        user_specific_perm = sqlite_tools.get_user_permission_for_board(
-            self.dbname, board_id_pk, str(user_id_pk))
+        user_specific_perm = database.get_user_permission_for_board(
+            board_id_pk, str(user_id_pk))
 
         # シグオペかをチェック
         try:
@@ -230,6 +240,46 @@ class PermissionManager:
             return True
 
         return user_level >= write_level
+
+    def can_delete_article(self, article_data, user_id_pk, user_level):
+        """指定された記事の削除/復元権限があるかチェックする"""
+        if not article_data:
+            return False
+
+        # シスオペ (レベル5以上) は常に権限あり
+        if user_level >= 5:
+            return True
+
+        # 記事の投稿者本人かチェック
+        try:
+            # article_data['user_id'] は TEXT 型の可能性があるため int に変換
+            # user_id_pk は users.id (INTEGER)
+            article_owner_id = int(article_data['user_id'])
+            if article_owner_id == user_id_pk:
+                return True
+        except (ValueError, TypeError, KeyError):
+            # GUEST(hash) のような文字列や、キーが存在しない場合は本人ではない
+            pass
+
+        return False
+
+    def can_view_deleted_article_content(self, article_data, user_id_pk, user_level):
+        """削除された記事の内容（タイトルや本文）を閲覧する権限があるかチェックする"""
+        if not article_data or article_data.get('is_deleted') != 1:
+            # 削除されていない記事、またはデータがない場合は権限チェックの対象外
+            return True
+
+        # シスオペ (レベル5以上) は常に権限あり
+        if user_level >= 5:
+            return True
+
+        # 記事の投稿者本人かチェック
+        try:
+            article_owner_id = int(article_data['user_id'])
+            return article_owner_id == user_id_pk
+        except (ValueError, TypeError, KeyError):
+            # GUEST(hash) やIDがない場合は本人ではない
+            return False
 
     def get_permission_list(self, board_id):
         """指定された掲示板のパーミッションリストを取得する"""

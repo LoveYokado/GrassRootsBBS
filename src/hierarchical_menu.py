@@ -1,16 +1,15 @@
 import logging
 import yaml
 
-from . import util, sqlite_tools
+from . import util, database
 
 
 class HierarchicalMenu:
-    def __init__(self, chan, config_path, menu_mode, menu_type, dbname=None, enrich_boards=False):
+    def __init__(self, chan, config_path, menu_mode, menu_type, enrich_boards=False):
         self.chan = chan
         self.config_path = config_path
         self.menu_mode = menu_mode
         self.menu_type = menu_type
-        self.dbname = dbname
         self.enrich_boards = enrich_boards
         self.config = None
         self.path_stack = []
@@ -36,8 +35,8 @@ class HierarchicalMenu:
             if enriched_item.get('type') == 'board':
                 shortcut_id = enriched_item.get('id')
                 if shortcut_id:
-                    board_info_db = sqlite_tools.get_board_by_shortcut_id(
-                        self.dbname, shortcut_id)
+                    board_info_db = database.get_board_by_shortcut_id(
+                        shortcut_id)
                     if board_info_db:
                         # sqlite3.Rowは.get()メソッドを持たないため、辞書ライクなアクセスと存在確認に変更
                         enriched_item['name'] = board_info_db['name'] if 'name' in board_info_db.keys(
@@ -118,7 +117,7 @@ class HierarchicalMenu:
             return None
 
         current_level_items = self.config.get('categories', [])
-        if self.enrich_boards and self.dbname:
+        if self.enrich_boards:
             current_level_items = self._enrich_board_items(current_level_items)
 
         while True:
@@ -140,7 +139,7 @@ class HierarchicalMenu:
                     self.current_path_names.append(
                         selected_item.get('name', 'Unknown'))
                     current_level_items = selected_item["items"]
-                    if self.enrich_boards and self.dbname:
+                    if self.enrich_boards:
                         current_level_items = self._enrich_board_items(
                             current_level_items)
                 else:
@@ -152,8 +151,8 @@ class HierarchicalMenu:
                     f"階層メニュー: 予期せぬ項目型です。selected_item: {selected_item}")
 
 
-def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, menu_type: str, dbname: str = None, enrich_boards: bool = False):
+def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, menu_type: str, enrich_boards: bool = False):
     """階層メニューを処理するためのラッパー関数"""
     menu = HierarchicalMenu(chan, config_path, menu_mode,
-                            menu_type, dbname, enrich_boards)
+                            menu_type, enrich_boards)
     return menu.run()
