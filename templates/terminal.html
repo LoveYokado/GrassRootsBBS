@@ -1195,8 +1195,35 @@
             }
         });
 
+        let isPasswordInputMode = false;
+
+        socket.on('start_password_input', () => {
+            isPasswordInputMode = true;
+        });
+
+        socket.on('end_password_input', () => {
+            isPasswordInputMode = false;
+        });
+
         term.onData(data => {
-            socket.emit('client_input', data);
+            if (isPasswordInputMode) {
+                // パスワード入力モード
+                if (data === '\r') { // Enterキー
+                    // サーバーにはEnterキーを送信。改行表示はサーバーからの応答を待つ。
+                    socket.emit('client_input', data);
+                } else if (data === '\x7f' || data === '\x08') { // Backspaceキー
+                    // サーバーにはBackspaceを送信し、ターミナルから1文字削除
+                    socket.emit('client_input', data);
+                    term.write('\b \b');
+                } else {
+                    // その他の文字はサーバーに送信し、ターミナルには '*' を表示
+                    socket.emit('client_input', data);
+                    term.write('*');
+                }
+            } else {
+                // 通常モードでは、そのままサーバーに送信 (エコーバックはサーバーに任せる)
+                socket.emit('client_input', data);
+            }
         });
 
         socket.on('server_output', data => {

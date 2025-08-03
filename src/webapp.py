@@ -343,10 +343,18 @@ class WebTerminalHandler:
 
             def hide_process_input(self):
                 """
-                クライアントから1行入力を受け取るが、エコーバックしない。
-                パスワード入力用。ssh_input.hide_process_inputの代替。
+                クライアントから1行入力を受け取るが、エコーバックしないパスワード入力用。
+                クライアントにアスタリスク表示を促すイベントを発行する。
                 """
-                return self._process_input_internal(echo=False)
+                # クライアントにパスワード入力モード開始を通知
+                socketio.emit('start_password_input', to=self.handler.sid)
+                try:
+                    # サーバー側ではエコーバックしない入力処理を呼び出す
+                    result = self._process_input_internal(echo=False)
+                    return result
+                finally:
+                    # 処理が完了したら、必ずパスワード入力モード終了を通知
+                    socketio.emit('end_password_input', to=self.handler.sid)
 
         self.channel = WebChannel(self, self.ip_address)
         socketio.start_background_task(self._sender_worker)
