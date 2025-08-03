@@ -124,6 +124,7 @@ def change_password(chan, login_id, current_menu_mode, user_data):
     util.send_text_by_key(chan, "user_pref_menu.change_password.current_password",
                           current_menu_mode, add_newline=False)
     current_pass = chan.hide_process_input()
+    chan.send(b'\r\n')  # 非表示入力の後に改行を送信
     if current_pass is None or not current_pass:
         util.send_text_by_key(
             chan, "common_messages.cancel", current_menu_mode)
@@ -140,6 +141,7 @@ def change_password(chan, login_id, current_menu_mode, user_data):
         util.send_text_by_key(chan, "user_pref_menu.change_password.new_password",
                               current_menu_mode, add_newline=False)
         new_pass1 = chan.hide_process_input()
+        chan.send(b'\r\n')  # 非表示入力の後に改行を送信
         if new_pass1 is None:
             util.send_text_by_key(
                 chan, "common_messages.cancel", current_menu_mode)
@@ -155,6 +157,7 @@ def change_password(chan, login_id, current_menu_mode, user_data):
         util.send_text_by_key(
             chan, "user_pref_menu.change_password.new_password_confirm", current_menu_mode, add_newline=False)
         new_pass2 = chan.hide_process_input()
+        chan.send(b'\r\n')  # 非表示入力の後に改行を送信
         if new_pass2 is None:
             util.send_text_by_key(
                 chan, "common_messages.cancel", current_menu_mode)

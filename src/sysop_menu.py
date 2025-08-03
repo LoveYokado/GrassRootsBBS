@@ -189,6 +189,7 @@ def user_register(chan, _sysop_login_id, current_menu_mode):
             util.send_text_by_key(
                 chan, "sysop_menu.user_register.user_pass_prompt", current_menu_mode, add_newline=False)
             password_input = chan.hide_process_input()
+            chan.send(b'\r\n')  # 非表示入力の後に改行を送信
             if password_input is None:
                 return None
             if not password_input:
@@ -197,6 +198,7 @@ def user_register(chan, _sysop_login_id, current_menu_mode):
             util.send_text_by_key(
                 chan, "sysop_menu.user_register.user_pass_confirm_prompt", current_menu_mode, add_newline=False)
             password_confirm_input = chan.hide_process_input()
+            chan.send(b'\r\n')  # 非表示入力の後に改行を送信
             if password_confirm_input is None:
                 return None
 
