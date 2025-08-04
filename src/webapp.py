@@ -343,18 +343,10 @@ class WebTerminalHandler:
 
             def hide_process_input(self):
                 """
-                クライアントから1行入力を受け取るが、エコーバックしないパスワード入力用。
-                クライアントにアスタリスク表示を促すイベントを発行する。
+                クライアントから1行入力を受け取るが、エコーバックしない。
+                パスワード入力用。ssh_input.hide_process_inputの代替。
                 """
-                # クライアントにパスワード入力モード開始を通知
-                socketio.emit('start_password_input', to=self.handler.sid)
-                try:
-                    # サーバー側ではエコーバックしない入力処理を呼び出す
-                    result = self._process_input_internal(echo=False)
-                    return result
-                finally:
-                    # 処理が完了したら、必ずパスワード入力モード終了を通知
-                    socketio.emit('end_password_input', to=self.handler.sid)
+                return self._process_input_internal(echo=False)
 
         self.channel = WebChannel(self, self.ip_address)
         socketio.start_background_task(self._sender_worker)
@@ -510,6 +502,22 @@ def login_required(f):
 
 
 # --- ルーティング（URLと関数の紐付け） ---
+
+@app.route('/manifest.json')
+def manifest():
+    """PWAのマニフェストファイルを配信する"""
+    return send_from_directory(app.static_folder, 'manifest.json')
+
+
+@app.route('/sw.js')
+def service_worker():
+    """PWAのService Workerファイルを配信する"""
+    response = send_from_directory(app.static_folder, 'sw.js')
+    # Service Workerのスクリプトには特定のヘッダーが必要
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
+
 
 @app.route('/')
 @login_required

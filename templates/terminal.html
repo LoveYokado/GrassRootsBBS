@@ -5,6 +5,14 @@
     <meta charset="UTF-8">
     <title>GR-BBS Web Terminal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- PWA化のための追加 -->
+    <link rel="manifest" href="{{ url_for('manifest') }}">
+    <meta name="theme-color" content="#282c34">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GR-BBS">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -457,7 +465,7 @@
         }
 
         /* --- レスポンシブ対応 --- */
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: 992px) {
             body {
                 /* モバイルでは中央寄せをやめる */
                 display: block;
@@ -665,6 +673,20 @@
     </style>
 
     <script>
+        // --- Service Workerの登録 ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{{ url_for('service_worker') }}")
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+        // --- ここまで ---
+
         const themes = {
             default: {
                 background: '#000000',
@@ -879,7 +901,7 @@
             const chassis = document.querySelector('.monitor-chassis');
             const screenContainer = document.querySelector('.monitor-screen');
             const terminalContainer = document.getElementById('terminal');
-            const isMobile = window.innerWidth <= 768;
+            const isMobile = window.matchMedia("(max-width: 992px)").matches;
             const isFullscreen = chassis.classList.contains('fullscreen');
 
             // フルスクリーンでない場合は、コンテナの幅をリセットして通常表示に戻す
