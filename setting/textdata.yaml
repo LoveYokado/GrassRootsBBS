@@ -1098,6 +1098,30 @@ chat:
     mode_1: "チャットルーム「{room_name}」から退出します。"
     mode_2: "チャットルーム「{room_name}」から退出します。"
     mode_3: "Leaving chat room: {room_name}."
+  room_locked_broadcast:
+    mode_1: "** ルーム「{room_name}」は {owner} によってロックされました **"
+    mode_2: "** ルーム「{room_name}」は {owner} によってロックされました **"
+    mode_3: "** Room '{room_name}' has been locked by {owner} **"
+  room_unlocked_broadcast:
+    mode_1: "** ルーム「{room_name}」は {owner} によってアンロックされました **"
+    mode_2: "** ルーム「{room_name}」は {owner} によってアンロックされました **"
+    mode_3: "** Room '{room_name}' has been unlocked by {owner} **"
+  owner_left_unlock_broadcast:
+    mode_1: "** オーナー({owner})が退室したため、ルーム「{room_name}」はアンロックされました **"
+    mode_2: "** オーナー({owner})が退室したため、ルーム「{room_name}」はアンロックされました **"
+    mode_3: "** Room '{room_name}' has been unlocked because the owner ({owner}) left **"
+  broadcast_chatsystem_message_format:
+    mode_1: "System: {message}"
+    mode_2: "System: {message}"
+    mode_3: "System: {message}"
+  broadcast_user_message_format:
+    mode_1: "{sender}: {message}"
+    mode_2: "{sender}: {message}"
+    mode_3: "{sender}: {message}"
+  my_message_format:
+    mode_1: "{sender}: {message}"
+    mode_2: "{sender}: {message}"
+    mode_3: "{sender}: {message}"
 
 # --- 電報関連 ---
 telegram:

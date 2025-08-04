@@ -144,7 +144,7 @@ class CommandHandler:
         """記事一覧を表示"""
 
         # モバイル用の操作ボタンを表示するエスケープシーケンスを送信
-        self.chan.send(b'\x1b[?2024h')
+        self.chan.send(b'\x1b[?2024h')  # パネル表示
 
         # 掲示板閲覧権限チェック(念の為)
         if not self.permission_manager.can_view_board(self.current_board, self.user_id_pk, self.userlevel):
