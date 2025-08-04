@@ -5,11 +5,20 @@
     <meta charset="UTF-8">
     <title>GR-BBS Web Terminal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- PWA化のための追加 -->
+    <link rel="manifest" href="{{ url_for('manifest') }}">
+    <meta name="theme-color" content="#282c34">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GR-BBS">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+1m:wght@400&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <style>
         body,
@@ -457,7 +466,7 @@
         }
 
         /* --- レスポンシブ対応 --- */
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: 992px) {
             body {
                 /* モバイルでは中央寄せをやめる */
                 display: block;
@@ -527,6 +536,234 @@
             display: none;
             /* Safari and Chrome */
         }
+
+        /* --- モバイルBBSコントロール --- */
+        #mobile-bbs-controls {
+            display: none;
+            /* JSで表示を制御 */
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 400px;
+            /* 横幅が広がりすぎないように */
+            height: 160px;
+            /* 高さを固定 */
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+            z-index: 100;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        #mobile-bbs-controls.visible {
+            display: grid;
+        }
+
+
+        .mobile-btn {
+            background-color: #444;
+            border: 1px solid #666;
+            color: #eee;
+            font-size: 1.2em;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            font-family: '"M+ 1m", "Courier New", monospace';
+            font-weight: bold;
+        }
+
+        .mobile-btn:active {
+            background-color: #666;
+        }
+
+        /* グリッドレイアウトでの位置指定 */
+        #bbs-btn-end-write {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        #bbs-btn-write {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        #bbs-btn-up {
+            grid-column: 3;
+            grid-row: 1;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-delete {
+            grid-column: 5;
+            grid-row: 2;
+        }
+
+        #bbs-btn-left {
+            grid-column: 2;
+            grid-row: 2;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-read {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        #bbs-btn-right {
+            grid-column: 4;
+            grid-row: 2;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-help {
+            grid-column: 1;
+            grid-row: 3;
+        }
+
+        #bbs-btn-down {
+            grid-column: 3;
+            grid-row: 3;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-exit {
+            grid-column: 5;
+            grid-row: 3;
+        }
+
+        /* --- テーマごとのボタンのスタイル --- */
+        /* デフォルトテーマ */
+        #mobile-bbs-controls.theme-default #bbs-btn-read {
+            background-color: #a83232;
+        }
+
+        #mobile-bbs-controls.theme-default #bbs-btn-read:active {
+            background-color: #c85252;
+            /* 少し明るく */
+        }
+
+        /* グリーンテーマ */
+        #mobile-bbs-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-bbs-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-bbs-controls.theme-green #bbs-btn-read {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-bbs-controls.theme-green #bbs-btn-read:active {
+            background-color: #000000;
+            color: #00FF00;
+        }
+
+        /* アンバーテーマ */
+        #mobile-bbs-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-bbs-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        #mobile-bbs-controls.theme-amber #bbs-btn-read {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        #mobile-bbs-controls.theme-amber #bbs-btn-read:active {
+            background-color: #1a1000;
+            color: #FFB000;
+        }
+
+        /* --- モバイルチャットコントロールのテーマ --- */
+        /* グリーンテーマ */
+        #mobile-chat-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-chat-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        /* アンバーテーマ */
+        #mobile-chat-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-chat-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        /* --- モバイルチャットコントロールのテーマ --- */
+        /* グリーンテーマ */
+        #mobile-chat-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-chat-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        /* アンバーテーマ */
+        #mobile-chat-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-chat-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        /* --- モバイルチャットコントロール --- */
+        #mobile-chat-controls {
+            display: none;
+            /* JSで表示を制御 */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        #mobile-chat-controls.visible {
+            display: grid;
+        }
     </style>
 </head>
 
@@ -542,6 +779,30 @@
         <div class="monitor-footer">
             GR-BBS
         </div>
+    </div>
+
+    <!-- モバイルBBSコントロール -->
+    <div id="mobile-bbs-controls">
+        <button class="mobile-btn" id="bbs-btn-end-write">^</button>
+        <button class="mobile-btn" id="bbs-btn-write">W</button>
+        <button class="mobile-btn" id="bbs-btn-up">↑</button>
+        <button class="mobile-btn" id="bbs-btn-delete">*</button>
+        <button class="mobile-btn" id="bbs-btn-left">←</button>
+        <button class="mobile-btn" id="bbs-btn-read">Enter</button>
+        <button class="mobile-btn" id="bbs-btn-right">→</button>
+        <button class="mobile-btn" id="bbs-btn-help">?</button>
+        <button class="mobile-btn" id="bbs-btn-down">↓</button>
+        <button class="mobile-btn" id="bbs-btn-exit">E</button>
+    </div>
+
+    <!-- モバイルチャットコントロール -->
+    <div id="mobile-chat-controls">
+        <button class="mobile-btn" id="chat-btn-exit">Exit</button>
+        <button class="mobile-btn" id="chat-btn-telegram">Telegram</button>
+        <button class="mobile-btn" id="chat-btn-lock">Lock</button>
+        <button class="mobile-btn" id="chat-btn-unlock">Unlock</button>
+        <button class="mobile-btn" id="chat-btn-who">Who</button>
+        <button class="mobile-btn" id="chat-btn-roominfo">RoomInfo</button>
     </div>
 
     <!-- ハンバーガーメニュー本体 -->
@@ -635,6 +896,7 @@
             <div id="font-selector">
                 <h3>Font</h3>
                 <button data-font="M+ 1m">M+ 1m</button>
+                <button data-font="M PLUS 1 Code">M PLUS 1 Code</button>
                 <button data-font="IBM Plex Mono">IBM Plex Mono</button>
                 <button data-font="DotGothic16">DotGothic16</button>
             </div>
@@ -665,6 +927,20 @@
     </style>
 
     <script>
+        // --- Service Workerの登録 ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{{ url_for('service_worker') }}")
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+        // --- ここまで ---
+
         const themes = {
             default: {
                 background: '#000000',
@@ -749,6 +1025,17 @@
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
 
+            // モバイル操作パネルのテーマクラスを更新
+            const mobileControls = document.getElementById('mobile-bbs-controls');
+            const chatControls = document.getElementById('mobile-chat-controls');
+
+            [mobileControls, chatControls].forEach(controls => {
+                if (controls) {
+                    controls.classList.remove('theme-default', 'theme-green', 'theme-amber');
+                    controls.classList.add(`theme-${themeName}`);
+                }
+            });
+
             // 動的スタイルシートを更新して、テーマに合わせたにじみ効果を適用
             if (dynamicGlowStyle) {
                 dynamicGlowStyle.innerHTML = `#terminal.blur-effect { text-shadow: ${theme.text_shadow_glow || 'none'}; }`;
@@ -785,8 +1072,13 @@
         function applyFont(fontName) {
             const fontFamily = `"${fontName}", "Courier New", monospace`; // フォント名を引用符で囲む
             term.options.fontFamily = fontFamily;
-            localStorage.setItem('terminalFont', fontFamily); // 選択を保存
+
+            term.options.fontSize = 16; // フォントサイズを16pxに統一
+            localStorage.setItem('terminalFont', fontName); // フォント名のみを保存
             updateFontButtons(fontName);
+
+            // フォントサイズやファミリーの変更はレイアウトに影響するため、再計算をトリガー
+            setTimeout(() => updateTerminalLayout(), 0);
         }
 
         function applySpeed(speedName) {
@@ -879,7 +1171,7 @@
             const chassis = document.querySelector('.monitor-chassis');
             const screenContainer = document.querySelector('.monitor-screen');
             const terminalContainer = document.getElementById('terminal');
-            const isMobile = window.innerWidth <= 768;
+            const isMobile = window.matchMedia("(max-width: 992px)").matches;
             const isFullscreen = chassis.classList.contains('fullscreen');
 
             // フルスクリーンでない場合は、コンテナの幅をリセットして通常表示に戻す
@@ -1227,6 +1519,47 @@
         });
 
         socket.on('server_output', data => {
+            // チャットコントロール表示/非表示シーケンスをチェック
+            const chatControlPattern = /\x1b\[\?2026(h|l)/;
+            const chatMatch = data.match(chatControlPattern);
+            if (chatMatch) {
+                const mobileControls = document.getElementById('mobile-chat-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (chatMatch[1] === 'h') { // 'h' for show
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                } else { // 'l' for hide
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(chatControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            // BBSコントロール表示/非表示シーケンスをチェック
+            const bbsControlPattern = /\x1b\[\?2024(h|l)/;
+            const match = data.match(bbsControlPattern);
+            if (match) {
+                const mobileControls = document.getElementById('mobile-bbs-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (match[1] === 'h') { // 'h' for show (表示)
+                    mobileControls.classList.add('visible');
+                    // コントロールの高さを計算して、ターミナルコンテナのpadding-bottomに設定
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                } else { // 'l' for hide (非表示)
+                    mobileControls.classList.remove('visible');
+                    // padding-bottomを元に戻す (CSSで定義された値に戻る)
+                    monitorScreen.style.paddingBottom = '';
+                }
+                // シーケンス自体はターミナルに表示しない
+                data = data.replace(bbsControlPattern, '');
+                // レイアウト変更後にターミナルのサイズを再計算
+                updateTerminalLayout();
+            }
             term.write(data);
         });
 
@@ -1354,8 +1687,8 @@
             applyTheme(savedTheme);
 
             // フォント
-            const savedFont = localStorage.getItem('terminalFont') || '"M+ 1m", "Courier New", monospace';
-            applyFont(savedFont.split(',')[0].replace(/"/g, ''));
+            const savedFontName = localStorage.getItem('terminalFont') || 'M+ 1m';
+            applyFont(savedFontName);
 
             // 速度
             const savedSpeed = localStorage.getItem('terminalSpeed') || 'full';
@@ -1420,6 +1753,43 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
             updateTerminalLayout(); // 初期レイアウトを適用
+        });
+
+        // --- モバイルBBSコントロールのイベントリスナー ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const keyMap = {
+                'bbs-btn-end-write': '^\r',
+                'bbs-btn-up': 'k',
+                'bbs-btn-down': 'j',
+                'bbs-btn-left': 'h',
+                'bbs-btn-right': 'l',
+                'bbs-btn-read': '\r', // Enter
+                'bbs-btn-write': 'w',
+                'bbs-btn-delete': '*',
+                'bbs-btn-help': '?',
+                'bbs-btn-exit': 'e'
+            };
+
+            for (const [id, key] of Object.entries(keyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            const chatKeyMap = {
+                'chat-btn-exit': '^\r',
+                'chat-btn-telegram': '!\r',
+                'chat-btn-lock': '!l\r',
+                'chat-btn-unlock': '!u\r',
+                'chat-btn-who': '!w\r',
+                'chat-btn-roominfo': '!r\r'
+            };
+
+            for (const [id, key] of Object.entries(chatKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('click', () => { socket.emit('client_input', key); });
+                }
+            }
         });
 
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）

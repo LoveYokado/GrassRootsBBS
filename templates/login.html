@@ -6,6 +6,14 @@
     <title>{{ page_title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
+
+    <!-- PWA化のための追加 -->
+    <link rel="manifest" href="{{ url_for('manifest') }}">
+    <meta name="theme-color" content="#282c34">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GR-BBS">
+
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+1m:wght@400&display=swap" rel="stylesheet">
     <style>
@@ -130,7 +138,7 @@
         }
 
         /* --- レスポンシブ対応 --- */
-        @media screen and (max-width: 768px) {
+        @media screen and (max-width: 992px) {
             body {
                 display: block;
                 /* flexboxによる中央寄せを解除 */
@@ -190,6 +198,20 @@
             <button type="submit">Login</button>
         </form>
     </div>
+    <script>
+        // --- Service Workerの登録 ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register("{{ url_for('service_worker') }}")
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
 </body>
 
 </html>

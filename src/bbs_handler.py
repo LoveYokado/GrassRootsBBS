@@ -143,6 +143,9 @@ class CommandHandler:
     def show_article_list(self, display_initial_header=True, last_login_timestamp=0):
         """記事一覧を表示"""
 
+        # モバイル用の操作ボタンを表示するエスケープシーケンスを送信
+        self.chan.send(b'\x1b[?2024h')  # パネル表示
+
         # 掲示板閲覧権限チェック(念の為)
         if not self.permission_manager.can_view_board(self.current_board, self.user_id_pk, self.userlevel):
             util.send_text_by_key(
@@ -747,6 +750,10 @@ class CommandHandler:
                     display_current_article_header()  # 権限なしメッセージの後、現在の行を再表示
                 self.just_displayed_header_from_tail_h = False
 
+            elif key_input == "u":  # Update/Refresh
+                reload_articles_display(keep_index=True)
+                self.just_displayed_header_from_tail_h = False
+
             elif key_input == "w":
                 self.write_article()
                 reload_articles_display(keep_index=False)  # 新規投稿後は先頭から再表示
@@ -759,6 +766,8 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
 
             elif key_input == "e" or key_input == '\x1b':  # ESCでも終了
+                # モバイル用の操作ボタンを非表示にするエスケープシーケンスを送信
+                self.chan.send(b'\x1b[?2024l')
                 return  # command_loop に戻る
 
             elif key_input == "?":

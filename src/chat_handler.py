@@ -202,6 +202,9 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, roo
     """
     チャットルーム本体
     """
+    # モバイル用の操作ボタンを表示
+    chan.send(b'\x1b[?2026h')
+
     util.send_text_by_key(chan, "chat.welcome", menu_mode, room_name=room_name)
     util.send_text_by_key(chan, "chat.help", menu_mode)
 
@@ -269,7 +272,9 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, roo
                     util.send_text_by_key(
                         chan, "chat.room_status_footer", menu_mode)
 
-            elif user_input.lower() == "!l":  # 部屋をロック
+            elif user_input.lower() == "!l":
+                # 部屋をロック。途中入室は今のところ未実装。一瞬鍵を開けてから入室することにする。
+                message_for_log_and_broadcast_body = None
                 lock_successful = False
 
                 with chat_rooms_lock:
@@ -295,7 +300,9 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, roo
                         is_system_message=True,
                         message_key_for_system="chat.room_locked_broadcast",
                         format_args_for_system={"room_name": room_name, "owner": login_id})
-            elif user_input.lower() == "!u":  # 部屋をアンロック
+            elif user_input.lower() == "!u":
+                # 部屋をアンロック。
+                message_to_log_and_broadcast_unlock = None
                 unlock_successful = False
 
                 with chat_rooms_lock:
@@ -383,6 +390,9 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, roo
                 f"User {login_id} finished chat in room{room_id}: {e_send}")
 
     finally:
+        # モバイル用の操作ボタンを非表示
+        chan.send(b'\x1b[?2026l')
+
         user_leaves_room(room_id, login_id, display_name, room_name)
         logging.info(f"User {login_id} finished chat in room {room_id}.")
         # finallyブロックでは明示的な戻り値を返さない（例外発生時などはNoneが返る）

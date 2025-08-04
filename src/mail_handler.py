@@ -215,6 +215,9 @@ class MailViewer:
 
     def run(self):
         """メールビューアのメインループを開始する。"""
+        # モバイル用の操作ボタンを表示
+        self.chan.send(b'\x1b[?2024h')
+
         total_mail_count = database.get_total_mail_count(self.user_id)
         unread_mail_count = database.get_total_unread_mail_count(self.user_id)
         util.send_text_by_key(
@@ -223,6 +226,7 @@ class MailViewer:
         )
 
         if not self._reload_mails(keep_index=False):
+            self.chan.send(b'\x1b[?2024l')  # エラー時も非表示にする
             return "back_to_top"
 
         # ヘッダ表示
@@ -234,19 +238,23 @@ class MailViewer:
                 self.chan, "mail_handler.recipient_header", self.menu_mode)
         self._display_current_header()
 
-        while True:
-            key_input = self._get_key_input()
-            if key_input is None:
-                return None  # 切断
+        try:
+            while True:
+                key_input = self._get_key_input()
+                if key_input is None:
+                    return None  # 切断
 
-            if key_input in ('e', 'E', '\x03', '\x1b'):  # Ctrl+C, ESC, e, E
-                break
+                if key_input in ('e', 'E', '\x03', '\x1b'):  # Ctrl+C, ESC, e, E
+                    break
 
-            handler = self.key_dispatch.get(key_input)
-            if handler:
-                handler()
-            else:
-                self.chan.send(b'\a')
+                handler = self.key_dispatch.get(key_input)
+                if handler:
+                    handler()
+                else:
+                    self.chan.send(b'\a')
+        finally:
+            # ループを抜けるときに必ずパネルを非表示にする
+            self.chan.send(b'\x1b[?2024l')
 
         return "back_to_top"
 
