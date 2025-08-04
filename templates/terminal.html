@@ -535,6 +535,109 @@
             display: none;
             /* Safari and Chrome */
         }
+
+        /* --- モバイルBBSコントロール --- */
+        #mobile-bbs-controls {
+            display: none;
+            /* JSで表示を制御 */
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 400px;
+            /* 横幅が広がりすぎないように */
+            height: 160px;
+            /* 高さを固定 */
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+            z-index: 100;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        #mobile-bbs-controls.visible {
+            display: grid;
+        }
+
+
+        .mobile-btn {
+            background-color: #444;
+            border: 1px solid #666;
+            color: #eee;
+            font-size: 1.2em;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            font-family: '"M+ 1m", "Courier New", monospace';
+            font-weight: bold;
+        }
+
+        .mobile-btn:active {
+            background-color: #666;
+        }
+
+        /* グリッドレイアウトでの位置指定 */
+        #bbs-btn-end-write {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        #bbs-btn-write {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        #bbs-btn-up {
+            grid-column: 3;
+            grid-row: 1;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-delete {
+            grid-column: 5;
+            grid-row: 2;
+        }
+
+        #bbs-btn-left {
+            grid-column: 2;
+            grid-row: 2;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-read {
+            grid-column: 3;
+            grid-row: 2;
+            background-color: #a83232;
+        }
+
+        #bbs-btn-right {
+            grid-column: 4;
+            grid-row: 2;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-help {
+            grid-column: 1;
+            grid-row: 3;
+        }
+
+        #bbs-btn-down {
+            grid-column: 3;
+            grid-row: 3;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-exit {
+            grid-column: 5;
+            grid-row: 3;
+        }
     </style>
 </head>
 
@@ -550,6 +653,20 @@
         <div class="monitor-footer">
             GR-BBS
         </div>
+    </div>
+
+    <!-- モバイルBBSコントロール -->
+    <div id="mobile-bbs-controls">
+        <button class="mobile-btn" id="bbs-btn-end-write">^</button>
+        <button class="mobile-btn" id="bbs-btn-write">W</button>
+        <button class="mobile-btn" id="bbs-btn-up">↑</button>
+        <button class="mobile-btn" id="bbs-btn-delete">*</button>
+        <button class="mobile-btn" id="bbs-btn-left">←</button>
+        <button class="mobile-btn" id="bbs-btn-read">Enter</button>
+        <button class="mobile-btn" id="bbs-btn-right">→</button>
+        <button class="mobile-btn" id="bbs-btn-help">?</button>
+        <button class="mobile-btn" id="bbs-btn-down">↓</button>
+        <button class="mobile-btn" id="bbs-btn-exit">E</button>
     </div>
 
     <!-- ハンバーガーメニュー本体 -->
@@ -1249,6 +1366,28 @@
         });
 
         socket.on('server_output', data => {
+            // BBSコントロール表示/非表示シーケンスをチェック
+            const bbsControlPattern = /\x1b\[\?2024(h|l)/;
+            const match = data.match(bbsControlPattern);
+            if (match) {
+                const mobileControls = document.getElementById('mobile-bbs-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (match[1] === 'h') { // 'h' for show (表示)
+                    mobileControls.classList.add('visible');
+                    // コントロールの高さを計算して、ターミナルコンテナのpadding-bottomに設定
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                } else { // 'l' for hide (非表示)
+                    mobileControls.classList.remove('visible');
+                    // padding-bottomを元に戻す (CSSで定義された値に戻る)
+                    monitorScreen.style.paddingBottom = '';
+                }
+                // シーケンス自体はターミナルに表示しない
+                data = data.replace(bbsControlPattern, '');
+                // レイアウト変更後にターミナルのサイズを再計算
+                updateTerminalLayout();
+            }
             term.write(data);
         });
 
@@ -1442,6 +1581,27 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
             updateTerminalLayout(); // 初期レイアウトを適用
+        });
+
+        // --- モバイルBBSコントロールのイベントリスナー ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const keyMap = {
+                'bbs-btn-end-write': '^\r',
+                'bbs-btn-up': 'k',
+                'bbs-btn-down': 'j',
+                'bbs-btn-left': 'h',
+                'bbs-btn-right': 'l',
+                'bbs-btn-read': '\r', // Enter
+                'bbs-btn-write': 'w',
+                'bbs-btn-delete': '*',
+                'bbs-btn-help': '?',
+                'bbs-btn-exit': 'e'
+            };
+
+            for (const [id, key] of Object.entries(keyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
         });
 
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
