@@ -614,7 +614,6 @@
         #bbs-btn-read {
             grid-column: 3;
             grid-row: 2;
-            background-color: #a83232;
         }
 
         #bbs-btn-right {
@@ -637,6 +636,61 @@
         #bbs-btn-exit {
             grid-column: 5;
             grid-row: 3;
+        }
+
+        /* --- テーマごとのボタンのスタイル --- */
+        /* デフォルトテーマ */
+        #mobile-bbs-controls.theme-default #bbs-btn-read {
+            background-color: #a83232;
+        }
+
+        #mobile-bbs-controls.theme-default #bbs-btn-read:active {
+            background-color: #c85252;
+            /* 少し明るく */
+        }
+
+        /* グリーンテーマ */
+        #mobile-bbs-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-bbs-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-bbs-controls.theme-green #bbs-btn-read {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-bbs-controls.theme-green #bbs-btn-read:active {
+            background-color: #000000;
+            color: #00FF00;
+        }
+
+        /* アンバーテーマ */
+        #mobile-bbs-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-bbs-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        #mobile-bbs-controls.theme-amber #bbs-btn-read {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        #mobile-bbs-controls.theme-amber #bbs-btn-read:active {
+            background-color: #1a1000;
+            color: #FFB000;
         }
     </style>
 </head>
@@ -887,6 +941,13 @@
         function applyTheme(themeName) {
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
+
+            // モバイル操作パネルのテーマクラスを更新
+            const mobileControls = document.getElementById('mobile-bbs-controls');
+            if (mobileControls) {
+                mobileControls.classList.remove('theme-default', 'theme-green', 'theme-amber');
+                mobileControls.classList.add(`theme-${themeName}`);
+            }
 
             // 動的スタイルシートを更新して、テーマに合わせたにじみ効果を適用
             if (dynamicGlowStyle) {
