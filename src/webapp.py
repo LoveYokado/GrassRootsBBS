@@ -5,12 +5,12 @@
 # Gunicorn + gevent で WebSocket を動作させるために必須
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
-from . import bbs_manager, command_dispatcher, database, util
+from . import bbs_manager, command_dispatcher, database, util, passkey_handler
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_socketio import SocketIO, emit, disconnect
 from flask_session import Session
 from flask import (Flask, jsonify, redirect, render_template, request,
-                   send_from_directory, session, url_for)
+                   send_from_directory, session, url_for, Response)
 import redis
 from functools import wraps
 import time
@@ -18,6 +18,7 @@ import threading
 import sys
 import socket
 import secrets
+import json
 import os
 import logging
 import datetime
@@ -27,6 +28,7 @@ import glob
 import collections
 import codecs
 from gevent import monkey
+from webauthn.helpers import base64url_to_bytes
 monkey.patch_all()
 
 # --- 標準ライブラリ ---
@@ -653,7 +655,128 @@ def logout():
     return render_template('logout.html')
 
 
+@app.route('/passkey/register-options', methods=['POST'])
+@login_required
+def passkey_register_options():
+    """Passkey登録のためのオプションを生成して返すAPI"""
+    user_id = session.get('user_id')
+    username = session.get('username')
+
+    if not user_id or not username:
+        return jsonify({"error": "User not logged in"}), 401
+
+    try:
+        options_json_str = passkey_handler.generate_registration_options_for_user(
+            user_id, username)
+
+        # 検証のためにチャレンジをセッションに保存
+        options_dict = json.loads(options_json_str)
+        session["passkey_registration_challenge"] = options_dict.get(
+            "challenge")
+
+        return Response(options_json_str, mimetype='application/json')
+    except Exception as e:
+        logging.error(f"Passkey登録オプション生成エラー: {e}", exc_info=True)
+        return jsonify({"error": "Failed to generate registration options"}), 500
+
+
+@app.route('/passkey/verify-registration', methods=['POST'])
+@login_required
+def passkey_verify_registration():
+    """Passkey登録の検証を行い、結果を返すAPI"""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "User not logged in"}), 401
+
+    # セッションからチャレンジを取得し、使用後に削除
+    challenge_str = session.pop("passkey_registration_challenge", None)
+    if not challenge_str:
+        return jsonify({"error": "Challenge not found in session"}), 400
+
+    # Base64URLエンコードされたチャレンジをバイト列に戻す
+    challenge_bytes = base64url_to_bytes(challenge_str)
+
+    # フロントエンドから送信されたデータを取得
+    data = request.get_json()
+    if not data or 'credential' not in data or 'nickname' not in data:
+        return jsonify({"error": "Invalid request body"}), 400
+
+    credential_json = json.dumps(data['credential'])
+    nickname = data['nickname']
+
+    webapp_config = util.app_config.get('webapp', {})
+    expected_origin = webapp_config.get('ORIGIN', 'http://localhost:5000')
+
+    success = passkey_handler.verify_registration_for_user(
+        user_id=user_id, credential=credential_json, expected_challenge=challenge_bytes, expected_origin=expected_origin, nickname=nickname
+    )
+
+    if success:
+        return jsonify({"verified": True})
+    else:
+        return jsonify({"verified": False, "error": "Verification failed on server"}), 400
+
+
+@app.route('/passkey/auth-options', methods=['POST'])
+def passkey_auth_options():
+    """Passkey認証のためのオプションを生成して返すAPI"""
+    data = request.get_json()
+    username = data.get('username', '').upper()
+    if not username:
+        return jsonify({"error": "Username is required"}), 400
+
+    try:
+        options_json_str = passkey_handler.generate_authentication_options_for_user(
+            username)
+        if not options_json_str:
+            return jsonify({"error": "User not found or no passkeys registered"}), 404
+
+        # 検証のためにチャレンジをセッションに保存
+        options_dict = json.loads(options_json_str)
+        session["passkey_authentication_challenge"] = options_dict.get(
+            "challenge")
+
+        return Response(options_json_str, mimetype='application/json')
+    except Exception as e:
+        logging.error(f"Passkey認証オプション生成エラー: {e}", exc_info=True)
+        return jsonify({"error": "Failed to generate authentication options"}), 500
+
+
+@app.route('/passkey/verify-auth', methods=['POST'])
+def passkey_verify_auth():
+    """Passkey認証の検証を行い、成功すればログインさせるAPI"""
+    challenge_str = session.pop("passkey_authentication_challenge", None)
+    if not challenge_str:
+        return jsonify({"error": "Challenge not found in session"}), 400
+
+    challenge_bytes = base64url_to_bytes(challenge_str)
+
+    data = request.get_json()
+    if not data or 'credential' not in data:
+        return jsonify({"error": "Invalid request body"}), 400
+
+    credential_json = json.dumps(data['credential'])
+    webapp_config = util.app_config.get('webapp', {})
+    expected_origin = webapp_config.get('ORIGIN', 'http://localhost:5000')
+
+    user_data = passkey_handler.verify_authentication_for_user(
+        credential=credential_json, expected_challenge=challenge_bytes, expected_origin=expected_origin)
+
+    if user_data:
+        session['lastlogin'] = user_data.get('lastlogin', 0)
+        session['user_id'] = user_data['id']
+        session['username'] = user_data['name']
+        session['userlevel'] = user_data['level']
+        session['menu_mode'] = user_data.get('menu_mode', '2')
+        logging.info(f"WebUI Passkey Login Success: {user_data['name']}")
+        database.update_record(
+            'users', {'lastlogin': int(time.time())}, {'id': user_data['id']})
+        return jsonify({"verified": True})
+    else:
+        logging.warning("WebUI Passkey Login Failed")
+        return jsonify({"verified": False, "error": "Authentication failed"}), 401
 # --- WebSocketイベントハンドラ ---
+
 
 @socketio.on('connect')
 def handle_connect(auth=None):

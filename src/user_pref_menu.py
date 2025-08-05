@@ -28,34 +28,42 @@ def userpref_menu(chan, login_id, display_name, current_menu_mode):
         '9': set_telegram_restriction,
         '10': edit_blacklist,
         '11': change_email_address,
+        '12': manage_passkeys,
         'e': lambda *args, **kwargs: "back_to_top",  # メニュー終了
         '': lambda *args, **kwargs: "back_to_top",   # 空入力もメニュー終了
         'h': display_help,
         '?': display_help,
     }
 
-    while True:
-        util.send_text_by_key(chan, "user_pref_menu.header", current_menu_mode)
-        util.prompt_handler(chan, login_id, current_menu_mode)
-        util.send_text_by_key(chan, "common_messages.select_prompt",
-                              current_menu_mode, add_newline=False)  # プロンプト表示
-        input_buffer = chan.process_input()
-        if input_buffer is None:
-            return None  # 接続が切れた場合
-
-        command = input_buffer.lower().strip()
-        # ディスパッチテーブルからコマンドに対応する関数を取得
-        handler = command_dispatch.get(command)
-        if handler:
-            # 各ハンドラに user_data を渡す
-            result = handler(chan, login_id,
-                             current_menu_mode, user_data)
-            # メニューモード変更や終了の場合、結果を返す
-            if result in ('1', '2', '3', 'back_to_top', None):
-                return result
-        else:
+    # モバイル用の操作ボタンを表示するエスケープシーケンスを送信
+    chan.send(b'\x1b[?2028h')
+    try:
+        while True:
             util.send_text_by_key(
-                chan, "common_messages.invalid_command", current_menu_mode)  # 無効なコマンド
+                chan, "user_pref_menu.header", current_menu_mode)
+            util.prompt_handler(chan, login_id, current_menu_mode)
+            util.send_text_by_key(chan, "common_messages.select_prompt",
+                                  current_menu_mode, add_newline=False)  # プロンプト表示
+            input_buffer = chan.process_input()
+            if input_buffer is None:
+                return None  # 接続が切れた場合
+
+            command = input_buffer.lower().strip()
+            # ディスパッチテーブルからコマンドに対応する関数を取得
+            handler = command_dispatch.get(command)
+            if handler:
+                # 各ハンドラに user_data を渡す
+                result = handler(chan, login_id,
+                                 current_menu_mode, user_data)
+                # メニューモード変更や終了の場合、結果を返す
+                if result in ('1', '2', '3', 'back_to_top', None):
+                    return result
+            else:
+                util.send_text_by_key(
+                    chan, "common_messages.invalid_command", current_menu_mode)  # 無効なコマンド
+    finally:
+        # メニューを抜ける際に必ずボタンを非表示にする
+        chan.send(b'\x1b[?2028l')
 
 
 def display_help(chan, login_id, current_menu_mode, user_data):
@@ -124,7 +132,6 @@ def change_password(chan, login_id, current_menu_mode, user_data):
     util.send_text_by_key(chan, "user_pref_menu.change_password.current_password",
                           current_menu_mode, add_newline=False)
     current_pass = chan.hide_process_input()
-    chan.send(b'\r\n')  # 非表示入力の後に改行を送信
     if current_pass is None or not current_pass:
         util.send_text_by_key(
             chan, "common_messages.cancel", current_menu_mode)
@@ -141,7 +148,6 @@ def change_password(chan, login_id, current_menu_mode, user_data):
         util.send_text_by_key(chan, "user_pref_menu.change_password.new_password",
                               current_menu_mode, add_newline=False)
         new_pass1 = chan.hide_process_input()
-        chan.send(b'\r\n')  # 非表示入力の後に改行を送信
         if new_pass1 is None:
             util.send_text_by_key(
                 chan, "common_messages.cancel", current_menu_mode)
@@ -157,7 +163,6 @@ def change_password(chan, login_id, current_menu_mode, user_data):
         util.send_text_by_key(
             chan, "user_pref_menu.change_password.new_password_confirm", current_menu_mode, add_newline=False)
         new_pass2 = chan.hide_process_input()
-        chan.send(b'\r\n')  # 非表示入力の後に改行を送信
         if new_pass2 is None:
             util.send_text_by_key(
                 chan, "common_messages.cancel", current_menu_mode)
@@ -204,6 +209,123 @@ def change_profile(chan, login_id, current_menu_mode, user_data):
         util.send_text_by_key(
             chan, "common_messages.db_update_error", current_menu_mode)
     return None
+
+
+def list_passkeys(chan, login_id, current_menu_mode, user_data):
+    """登録済みのPasskeyを一覧表示する"""
+    user_id_pk = user_data.get('id')
+    passkeys = database.get_passkeys_by_user(user_id_pk)
+
+    util.send_text_by_key(
+        chan, "user_pref_menu.passkey_management.list_header", current_menu_mode)
+
+    if not passkeys:
+        util.send_text_by_key(
+            chan, "user_pref_menu.passkey_management.no_passkeys", current_menu_mode)
+    else:
+        for key in passkeys:
+            created_at_str = util.format_timestamp(
+                key.get('created_at'), default_str='不明')
+            last_used_at_str = util.format_timestamp(
+                key.get('last_used_at'), default_str='未使用')
+            nickname = key.get('nickname', '(ニックネームなし)')
+
+            util.send_text_by_key(
+                chan, "user_pref_menu.passkey_management.list_item_format", current_menu_mode,
+                nickname=nickname, created_at=created_at_str, last_used_at=last_used_at_str)
+    chan.send(b'\r\n')  # Add a blank line after the list
+    return None  # Stay in the menu
+
+
+def delete_passkey(chan, login_id, current_menu_mode, user_data):
+    """登録済みのPasskeyを削除する"""
+    user_id_pk = user_data.get('id')
+    passkeys = database.get_passkeys_by_user(user_id_pk)
+
+    if not passkeys:
+        util.send_text_by_key(
+            chan, "user_pref_menu.passkey_management.no_passkeys", current_menu_mode)
+        return
+
+    # 削除対象のPasskeyを一覧表示
+    chan.send("--- 削除するPasskeyを選択してください ---\r\n".encode('utf-8'))
+    for i, key in enumerate(passkeys):
+        nickname = key.get('nickname', '(ニックネームなし)')
+        created_at_str = util.format_timestamp(
+            key.get('created_at'), default_str='不明')
+        chan.send(
+            f"[{i+1}] {nickname} (登録日: {created_at_str})\r\n".encode('utf-8'))
+
+    util.send_text_by_key(
+        chan, "user_pref_menu.passkey_management.delete_prompt", current_menu_mode, add_newline=False)
+    choice_input = chan.process_input()
+
+    if choice_input is None or not choice_input.strip():
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
+        return
+
+    try:
+        choice_index = int(choice_input) - 1
+        if not (0 <= choice_index < len(passkeys)):
+            raise ValueError
+
+        key_to_delete = passkeys[choice_index]
+        passkey_id_to_delete = key_to_delete['id']
+        nickname_to_delete = key_to_delete.get('nickname', '(ニックネームなし)')
+
+        util.send_text_by_key(
+            chan, "user_pref_menu.passkey_management.delete_confirm_yn", current_menu_mode, nickname=nickname_to_delete, add_newline=False)
+        confirm = chan.process_input()
+        if confirm is None or confirm.strip().lower() != 'y':
+            util.send_text_by_key(
+                chan, "common_messages.cancel", current_menu_mode)
+            return
+
+        if database.delete_passkey_by_id_and_user_id(passkey_id_to_delete, user_id_pk):
+            util.send_text_by_key(
+                chan, "user_pref_menu.passkey_management.delete_success", current_menu_mode)
+        else:
+            util.send_text_by_key(
+                chan, "common_messages.db_update_error", current_menu_mode)
+
+    except ValueError:
+        util.send_text_by_key(
+            chan, "user_pref_menu.passkey_management.invalid_selection", current_menu_mode)
+
+
+def manage_passkeys(chan, login_id, current_menu_mode, user_data):
+    """Passkey管理メニュー"""
+    while True:
+        util.send_text_by_key(
+            chan, "user_pref_menu.passkey_management.header", current_menu_mode)
+        util.send_text_by_key(
+            chan, "common_messages.select_prompt", current_menu_mode, add_newline=False)
+        choice = chan.process_input()
+        if choice is None:
+            return None  # disconnect
+
+        choice = choice.strip().lower()
+
+        if choice == '1':
+            # フロントエンドにPasskey登録フローを開始するよう指示
+            chan.send(b'\x1b[?2027h')
+            util.send_text_by_key(
+                chan, "user_pref_menu.passkey_management.start_registration_prompt", current_menu_mode)
+            # ユーザーがブラウザでの操作を終えてEnterを押すのを待つ
+            chan.process_input()
+            continue  # メニューを再表示
+        elif choice == '2':
+            delete_passkey(chan, login_id, current_menu_mode, user_data)
+            continue  # メニューを再表示
+        elif choice == '3':
+            list_passkeys(chan, login_id, current_menu_mode, user_data)
+            continue  # メニューを再表示
+        elif choice == 'e' or choice == '':
+            return None  # back to user_pref_menu
+        else:
+            util.send_text_by_key(
+                chan, "common_messages.invalid_command", current_menu_mode)
 
 
 def set_lastlogin_datetime(chan, login_id, current_menu_mode, user_data):

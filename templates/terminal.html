@@ -694,56 +694,6 @@
             color: #FFB000;
         }
 
-        /* --- モバイルチャットコントロールのテーマ --- */
-        /* グリーンテーマ */
-        #mobile-chat-controls.theme-green .mobile-btn {
-            background-color: #000000;
-            border-color: #00FF00;
-            color: #00FF00;
-        }
-
-        #mobile-chat-controls.theme-green .mobile-btn:active {
-            background-color: #00FF00;
-            color: #000000;
-        }
-
-        /* アンバーテーマ */
-        #mobile-chat-controls.theme-amber .mobile-btn {
-            background-color: #1a1000;
-            border-color: #FFB000;
-            color: #FFB000;
-        }
-
-        #mobile-chat-controls.theme-amber .mobile-btn:active {
-            background-color: #FFB000;
-            color: #1a1000;
-        }
-
-        /* --- モバイルチャットコントロールのテーマ --- */
-        /* グリーンテーマ */
-        #mobile-chat-controls.theme-green .mobile-btn {
-            background-color: #000000;
-            border-color: #00FF00;
-            color: #00FF00;
-        }
-
-        #mobile-chat-controls.theme-green .mobile-btn:active {
-            background-color: #00FF00;
-            color: #000000;
-        }
-
-        /* アンバーテーマ */
-        #mobile-chat-controls.theme-amber .mobile-btn {
-            background-color: #1a1000;
-            border-color: #FFB000;
-            color: #FFB000;
-        }
-
-        #mobile-chat-controls.theme-amber .mobile-btn:active {
-            background-color: #FFB000;
-            color: #1a1000;
-        }
-
         /* --- モバイルチャットコントロール --- */
         #mobile-chat-controls {
             display: none;
@@ -763,6 +713,55 @@
 
         #mobile-chat-controls.visible {
             display: grid;
+        }
+
+        /* --- モバイルユーザー設定コントロール --- */
+        #mobile-userpref-controls {
+            display: none;
+            /* JSで表示を制御 */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        #mobile-userpref-controls.visible {
+            display: grid;
+        }
+
+        #userpref-btn-enter {
+            grid-column: 1 / -1;
+            /* Span all columns */
+        }
+
+        /* --- モバイルユーザー設定コントロールのテーマ --- */
+        #mobile-userpref-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-userpref-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-userpref-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-userpref-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
         }
     </style>
 </head>
@@ -803,6 +802,23 @@
         <button class="mobile-btn" id="chat-btn-unlock">Unlock</button>
         <button class="mobile-btn" id="chat-btn-who">Who</button>
         <button class="mobile-btn" id="chat-btn-roominfo">RoomInfo</button>
+    </div>
+
+    <!-- モバイルユーザー設定コントロール -->
+    <div id="mobile-userpref-controls">
+        <button class="mobile-btn" id="userpref-btn-1">1</button>
+        <button class="mobile-btn" id="userpref-btn-2">2</button>
+        <button class="mobile-btn" id="userpref-btn-3">3</button>
+        <button class="mobile-btn" id="userpref-btn-4">4</button>
+        <button class="mobile-btn" id="userpref-btn-5">5</button>
+        <button class="mobile-btn" id="userpref-btn-6">6</button>
+        <button class="mobile-btn" id="userpref-btn-7">7</button>
+        <button class="mobile-btn" id="userpref-btn-8">8</button>
+        <button class="mobile-btn" id="userpref-btn-9">9</button>
+        <button class="mobile-btn" id="userpref-btn-help">?</button>
+        <button class="mobile-btn" id="userpref-btn-0">0</button>
+        <button class="mobile-btn" id="userpref-btn-exit">E</button>
+        <button class="mobile-btn" id="userpref-btn-enter">Enter</button>
     </div>
 
     <!-- ハンバーガーメニュー本体 -->
@@ -1028,8 +1044,9 @@
             // モバイル操作パネルのテーマクラスを更新
             const mobileControls = document.getElementById('mobile-bbs-controls');
             const chatControls = document.getElementById('mobile-chat-controls');
+            const userprefControls = document.getElementById('mobile-userpref-controls');
 
-            [mobileControls, chatControls].forEach(controls => {
+            [mobileControls, chatControls, userprefControls].forEach(controls => {
                 if (controls) {
                     controls.classList.remove('theme-default', 'theme-green', 'theme-amber');
                     controls.classList.add(`theme-${themeName}`);
@@ -1519,6 +1536,33 @@
         });
 
         socket.on('server_output', data => {
+            // Passkey登録フロー開始シーケンスをチェック
+            const passkeyRegisterPattern = /\x1b\[\?2027h/;
+            if (passkeyRegisterPattern.test(data)) {
+                registerNewPasskey(); // 登録フローを開始
+                // シーケンス自体はターミナルに表示しない
+                data = data.replace(passkeyRegisterPattern, '');
+            }
+
+            // UserPrefコントロール表示/非表示シーケンスをチェック
+            const userprefControlPattern = /\x1b\[\?2028(h|l)/;
+            const userprefMatch = data.match(userprefControlPattern);
+            if (userprefMatch) {
+                const mobileControls = document.getElementById('mobile-userpref-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (userprefMatch[1] === 'h') { // 'h' for show
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                } else { // 'l' for hide
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(userprefControlPattern, '');
+                updateTerminalLayout();
+            }
+
             // チャットコントロール表示/非表示シーケンスをチェック
             const chatControlPattern = /\x1b\[\?2026(h|l)/;
             const chatMatch = data.match(chatControlPattern);
@@ -1790,11 +1834,152 @@
                     btn.addEventListener('click', () => { socket.emit('client_input', key); });
                 }
             }
+
+            const userprefKeyMap = {
+                'userpref-btn-1': '1',
+                'userpref-btn-2': '2',
+                'userpref-btn-3': '3',
+                'userpref-btn-4': '4',
+                'userpref-btn-5': '5',
+                'userpref-btn-6': '6',
+                'userpref-btn-7': '7',
+                'userpref-btn-8': '8',
+                'userpref-btn-9': '9',
+                'userpref-btn-0': '0',
+                'userpref-btn-help': '?',
+                'userpref-btn-exit': 'e',
+                'userpref-btn-enter': '\r',
+            };
+
+            for (const [id, key] of Object.entries(userprefKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
         });
 
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
         window.addEventListener('resize', debounce(updateTerminalLayout, 100));
 
+    </script>
+
+    <script>
+        // --- Passkey (WebAuthn) 関連のヘルパー関数 ---
+
+        /**
+         * Base64URL文字列をArrayBufferに変換します。
+         * @param {string} base64urlString
+         * @returns {ArrayBuffer}
+         */
+        function base64urlToBuffer(base64urlString) {
+            const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray.buffer;
+        }
+
+        /**
+         * ArrayBufferをBase64URL文字列に変換します。
+         * @param {ArrayBuffer} buffer
+         * @returns {string}
+         */
+        function bufferToBase64url(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let str = '';
+            for (const charCode of bytes) {
+                str += String.fromCharCode(charCode);
+            }
+            const base64 = window.btoa(str);
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+    </script>
+
+    <script>
+        // --- Passkey (WebAuthn) メインロジック ---
+
+        /**
+         * 新しいPasskeyの登録フローを開始します。
+         */
+        async function registerNewPasskey() {
+            // 1. サーバーから登録オプションを取得
+            let options;
+            try {
+                const resp = await fetch('/passkey/register-options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                options = await resp.json();
+            } catch (e) {
+                alert(`Could not get registration options: ${e}`);
+                return;
+            }
+
+            // 2. サーバーから受け取ったBase64URL文字列をArrayBufferに変換
+            options.challenge = base64urlToBuffer(options.challenge);
+            options.user.id = base64urlToBuffer(options.user.id);
+            if (options.excludeCredentials) {
+                for (let cred of options.excludeCredentials) {
+                    cred.id = base64urlToBuffer(cred.id);
+                }
+            }
+
+            // 3. ブラウザのAPIを呼び出して、生体認証などを要求
+            let credential;
+            try {
+                credential = await navigator.credentials.create({
+                    publicKey: options
+                });
+            } catch (e) {
+                if (e.name === "NotAllowedError") {
+                    alert("Passkeyの登録がキャンセルされたか、許可されませんでした。\n\n" +
+                        "・操作をキャンセルした場合、このメッセージは正常です。\n" +
+                        "・このデバイスに既にこのサイトのPasskeyが登録されている場合、一度削除してから再試行する必要があるかもしれません。");
+                } else {
+                    alert(`Could not create credential: ${e}`);
+                }
+                return;
+            }
+
+            // 4. ユーザーにこのキーのニックネームを尋ねる
+            const nickname = prompt("このPasskeyのニックネームを入力してください (例: 私のiPhone, 仕事用PCなど):", "My Passkey");
+            if (!nickname) {
+                alert("登録をキャンセルしました。");
+                return;
+            }
+
+            // 5. サーバーに送るために、ArrayBufferをBase64URL文字列に戻す
+            const attestationResponse = {
+                id: credential.id,
+                rawId: bufferToBase64url(credential.rawId),
+                response: {
+                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+                    attestationObject: bufferToBase64url(credential.response.attestationObject),
+                },
+                type: credential.type,
+            };
+
+            // 6. サーバーに検証をリクエスト
+            try {
+                const verificationResp = await fetch('/passkey/verify-registration', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        credential: attestationResponse,
+                        nickname: nickname
+                    }),
+                });
+                const verificationJSON = await verificationResp.json();
+                if (verificationJSON && verificationJSON.verified) {
+                    alert("Passkeyの登録に成功しました！");
+                } else {
+                    throw new Error(verificationJSON.error || "Verification failed.");
+                }
+            } catch (e) {
+                alert(`Error during verification: ${e.message}`);
+            }
+        }
     </script>
 
     <script>

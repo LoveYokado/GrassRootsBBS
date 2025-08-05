@@ -137,6 +137,16 @@
             transform: translateY(1px);
         }
 
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .button-container button {
+            flex: 1;
+        }
+
         /* --- レスポンシブ対応 --- */
         @media screen and (max-width: 992px) {
             body {
@@ -193,9 +203,13 @@
         <p class="error">{{ error }}</p>
         {% endif %}
         <form method="post">
-            <input type="text" id="username" name="username" placeholder="Username" required>
-            <input type="password" id="password" name="password" placeholder="Password" required>
-            <button type="submit">Login</button>
+            <input type="text" id="username" name="username" placeholder="Username" required
+                autocomplete="username webauthn">
+            <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password">
+            <div class="button-container">
+                <button type="submit">Login</button>
+                <button type="button" id="passkey-login-btn">Passkey Login</button>
+            </div>
         </form>
     </div>
     <script>
@@ -211,6 +225,106 @@
                     });
             });
         }
+    </script>
+    <script>
+        // --- Passkey (WebAuthn) 関連 ---
+
+        function base64urlToBuffer(base64urlString) {
+            const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray.buffer;
+        }
+
+        function bufferToBase64url(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let str = '';
+            for (const charCode of bytes) {
+                str += String.fromCharCode(charCode);
+            }
+            const base64 = window.btoa(str);
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+
+        async function loginWithPasskey() {
+            const usernameInput = document.getElementById('username');
+            const username = usernameInput.value.toUpperCase();
+            if (!username) {
+                alert('Please enter your username to use a Passkey.');
+                usernameInput.focus();
+                return;
+            }
+
+            // 1. サーバーから認証オプションを取得
+            let options;
+            try {
+                const resp = await fetch('/passkey/auth-options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username }),
+                });
+                if (!resp.ok) {
+                    const err = await resp.json();
+                    throw new Error(err.error || 'Could not get authentication options.');
+                }
+                options = await resp.json();
+            } catch (e) {
+                alert(`Error: ${e.message}`);
+                return;
+            }
+
+            // 2. サーバーから受け取ったデータをブラウザAPI用に変換
+            options.challenge = base64urlToBuffer(options.challenge);
+            if (options.allowCredentials) {
+                for (let cred of options.allowCredentials) {
+                    cred.id = base64urlToBuffer(cred.id);
+                }
+            }
+
+            // 3. ブラウザのAPIを呼び出して認証
+            let credential;
+            try {
+                credential = await navigator.credentials.get({ publicKey: options });
+            } catch (e) {
+                alert(`Authentication failed: ${e.name}`);
+                return;
+            }
+
+            // 4. サーバーに送るためにデータを変換
+            const authenticationResponse = {
+                id: credential.id,
+                rawId: bufferToBase64url(credential.rawId),
+                response: {
+                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+                    authenticatorData: bufferToBase64url(credential.response.authenticatorData),
+                    signature: bufferToBase64url(credential.response.signature),
+                    userHandle: credential.response.userHandle ? bufferToBase64url(credential.response.userHandle) : null,
+                },
+                type: credential.type,
+            };
+
+            // 5. サーバーに検証をリクエスト
+            try {
+                const verificationResp = await fetch('/passkey/verify-auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ credential: authenticationResponse }),
+                });
+                const verificationJSON = await verificationResp.json();
+                if (verificationJSON && verificationJSON.verified) {
+                    window.location.href = "{{ url_for('index') }}";
+                } else {
+                    throw new Error(verificationJSON.error || "Authentication failed on server.");
+                }
+            } catch (e) {
+                alert(`Error during verification: ${e.message}`);
+            }
+        }
+
+        document.getElementById('passkey-login-btn').addEventListener('click', loginWithPasskey);
     </script>
 </body>
 

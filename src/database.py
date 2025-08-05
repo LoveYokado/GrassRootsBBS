@@ -715,3 +715,59 @@ def get_all_boards_for_sysop_list():
     """シスオペメニューの掲示板一覧表示用に、掲示板の情報を取得する"""
     query = "SELECT shortcut_id, name, operators, default_permission, status, last_posted_at, read_level, write_level FROM boards ORDER BY shortcut_id ASC"
     return execute_query(query, fetch='all')
+
+
+def save_passkey(user_id, credential_id, public_key, sign_count, transports, nickname):
+    """新しいPasskeyをデータベースに保存する"""
+    import time
+    query = """
+        INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, transports, created_at, nickname)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """
+    params = (user_id, credential_id, public_key, sign_count, json.dumps(
+        transports), int(time.time()), nickname)
+    return execute_query(query, params) is not None
+
+
+def get_passkeys_by_user(user_id):
+    """指定されたユーザーのすべてのPasskeyを取得する"""
+    query = "SELECT * FROM passkeys WHERE user_id = %s"
+    return execute_query(query, (user_id,), fetch='all')
+
+
+def get_passkey_by_credential_id(credential_id):
+    """Credential IDでPasskeyを取得する"""
+    query = "SELECT * FROM passkeys WHERE credential_id = %s"
+    return execute_query(query, (credential_id,), fetch='one')
+
+
+def update_passkey_sign_count(credential_id, new_sign_count):
+    """Passkeyの署名カウントと最終使用日時を更新する"""
+    import time
+    query = "UPDATE passkeys SET sign_count = %s, last_used_at = %s WHERE credential_id = %s"
+    params = (new_sign_count, int(time.time()), credential_id)
+    return execute_query(query, params) is not None
+
+
+def delete_passkey_by_id_and_user_id(passkey_id: int, user_id: int) -> bool:
+    """指定されたユーザーIDに属する特定のPasskeyをIDで削除する"""
+    query = "DELETE FROM passkeys WHERE id = %s AND user_id = %s"
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, (passkey_id, user_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    except mysql.connector.Error as err:
+        logging.error(
+            f"Passkey削除中にDBエラー (passkey_id: {passkey_id}, user_id: {user_id}): {err}")
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
