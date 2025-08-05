@@ -532,6 +532,19 @@
             }
         }
 
+        /* --- デスクトップでのモバイルUI強制非表示 --- */
+        @media screen and (min-width: 993px) {
+
+            #mobile-bbs-controls,
+            #mobile-chat-controls,
+            #mobile-userpref-controls,
+            #mobile-mail-controls,
+            #mobile-bbs-entry-controls {
+                /* JSで .visible クラスが付与されても、PCでは強制的に非表示にする */
+                display: none !important;
+            }
+        }
+
         .xterm-viewport::-webkit-scrollbar {
             display: none;
             /* Safari and Chrome */
