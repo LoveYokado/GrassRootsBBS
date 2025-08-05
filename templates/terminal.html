@@ -694,56 +694,6 @@
             color: #FFB000;
         }
 
-        /* --- モバイルチャットコントロールのテーマ --- */
-        /* グリーンテーマ */
-        #mobile-chat-controls.theme-green .mobile-btn {
-            background-color: #000000;
-            border-color: #00FF00;
-            color: #00FF00;
-        }
-
-        #mobile-chat-controls.theme-green .mobile-btn:active {
-            background-color: #00FF00;
-            color: #000000;
-        }
-
-        /* アンバーテーマ */
-        #mobile-chat-controls.theme-amber .mobile-btn {
-            background-color: #1a1000;
-            border-color: #FFB000;
-            color: #FFB000;
-        }
-
-        #mobile-chat-controls.theme-amber .mobile-btn:active {
-            background-color: #FFB000;
-            color: #1a1000;
-        }
-
-        /* --- モバイルチャットコントロールのテーマ --- */
-        /* グリーンテーマ */
-        #mobile-chat-controls.theme-green .mobile-btn {
-            background-color: #000000;
-            border-color: #00FF00;
-            color: #00FF00;
-        }
-
-        #mobile-chat-controls.theme-green .mobile-btn:active {
-            background-color: #00FF00;
-            color: #000000;
-        }
-
-        /* アンバーテーマ */
-        #mobile-chat-controls.theme-amber .mobile-btn {
-            background-color: #1a1000;
-            border-color: #FFB000;
-            color: #FFB000;
-        }
-
-        #mobile-chat-controls.theme-amber .mobile-btn:active {
-            background-color: #FFB000;
-            color: #1a1000;
-        }
-
         /* --- モバイルチャットコントロール --- */
         #mobile-chat-controls {
             display: none;
@@ -797,12 +747,12 @@
 
     <!-- モバイルチャットコントロール -->
     <div id="mobile-chat-controls">
-        <button class="mobile-btn" id="chat-btn-exit">Exit</button>
-        <button class="mobile-btn" id="chat-btn-telegram">Telegram</button>
-        <button class="mobile-btn" id="chat-btn-lock">Lock</button>
-        <button class="mobile-btn" id="chat-btn-unlock">Unlock</button>
-        <button class="mobile-btn" id="chat-btn-who">Who</button>
-        <button class="mobile-btn" id="chat-btn-roominfo">RoomInfo</button>
+        <button class="mobile-btn" id="chat-btn-exit">^ Exit</button>
+        <button class="mobile-btn" id="chat-btn-telegram">! Telegram</button>
+        <button class="mobile-btn" id="chat-btn-lock">!L Lock</button>
+        <button class="mobile-btn" id="chat-btn-unlock">!U Unlock</button>
+        <button class="mobile-btn" id="chat-btn-who">!W Who</button>
+        <button class="mobile-btn" id="chat-btn-roominfo">!R RoomInfo</button>
     </div>
 
     <!-- ハンバーガーメニュー本体 -->
@@ -1519,6 +1469,14 @@
         });
 
         socket.on('server_output', data => {
+            // Passkey登録フロー開始シーケンスをチェック
+            const passkeyRegisterPattern = /\x1b\[\?2027h/;
+            if (passkeyRegisterPattern.test(data)) {
+                registerNewPasskey(); // 登録フローを開始
+                // シーケンス自体はターミナルに表示しない
+                data = data.replace(passkeyRegisterPattern, '');
+            }
+
             // チャットコントロール表示/非表示シーケンスをチェック
             const chatControlPattern = /\x1b\[\?2026(h|l)/;
             const chatMatch = data.match(chatControlPattern);
@@ -1795,6 +1753,126 @@
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
         window.addEventListener('resize', debounce(updateTerminalLayout, 100));
 
+    </script>
+
+    <script>
+        // --- Passkey (WebAuthn) 関連のヘルパー関数 ---
+
+        /**
+         * Base64URL文字列をArrayBufferに変換します。
+         * @param {string} base64urlString
+         * @returns {ArrayBuffer}
+         */
+        function base64urlToBuffer(base64urlString) {
+            const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray.buffer;
+        }
+
+        /**
+         * ArrayBufferをBase64URL文字列に変換します。
+         * @param {ArrayBuffer} buffer
+         * @returns {string}
+         */
+        function bufferToBase64url(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let str = '';
+            for (const charCode of bytes) {
+                str += String.fromCharCode(charCode);
+            }
+            const base64 = window.btoa(str);
+            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+        }
+    </script>
+
+    <script>
+        // --- Passkey (WebAuthn) メインロジック ---
+
+        /**
+         * 新しいPasskeyの登録フローを開始します。
+         */
+        async function registerNewPasskey() {
+            // 1. サーバーから登録オプションを取得
+            let options;
+            try {
+                const resp = await fetch('/passkey/register-options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                options = await resp.json();
+            } catch (e) {
+                alert(`Could not get registration options: ${e}`);
+                return;
+            }
+
+            // 2. サーバーから受け取ったBase64URL文字列をArrayBufferに変換
+            options.challenge = base64urlToBuffer(options.challenge);
+            options.user.id = base64urlToBuffer(options.user.id);
+            if (options.excludeCredentials) {
+                for (let cred of options.excludeCredentials) {
+                    cred.id = base64urlToBuffer(cred.id);
+                }
+            }
+
+            // 3. ブラウザのAPIを呼び出して、生体認証などを要求
+            let credential;
+            try {
+                credential = await navigator.credentials.create({
+                    publicKey: options
+                });
+            } catch (e) {
+                if (e.name === "NotAllowedError") {
+                    alert("Passkeyの登録がキャンセルされたか、許可されませんでした。\n\n" +
+                        "・操作をキャンセルした場合、このメッセージは正常です。\n" +
+                        "・このデバイスに既にこのサイトのPasskeyが登録されている場合、一度削除してから再試行する必要があるかもしれません。");
+                } else {
+                    alert(`Could not create credential: ${e}`);
+                }
+                return;
+            }
+
+            // 4. ユーザーにこのキーのニックネームを尋ねる
+            const nickname = prompt("このPasskeyのニックネームを入力してください (例: 私のiPhone, 仕事用PCなど):", "My Passkey");
+            if (!nickname) {
+                alert("登録をキャンセルしました。");
+                return;
+            }
+
+            // 5. サーバーに送るために、ArrayBufferをBase64URL文字列に戻す
+            const attestationResponse = {
+                id: credential.id,
+                rawId: bufferToBase64url(credential.rawId),
+                response: {
+                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+                    attestationObject: bufferToBase64url(credential.response.attestationObject),
+                },
+                type: credential.type,
+            };
+
+            // 6. サーバーに検証をリクエスト
+            try {
+                const verificationResp = await fetch('/passkey/verify-registration', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        credential: attestationResponse,
+                        nickname: nickname
+                    }),
+                });
+                const verificationJSON = await verificationResp.json();
+                if (verificationJSON && verificationJSON.verified) {
+                    alert("Passkeyの登録に成功しました！");
+                } else {
+                    throw new Error(verificationJSON.error || "Verification failed.");
+                }
+            } catch (e) {
+                alert(`Error during verification: ${e.message}`);
+            }
+        }
     </script>
 
     <script>

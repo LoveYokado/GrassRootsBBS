@@ -7,10 +7,10 @@ services:
       - ./logs:/app/logs # アプリケーションログを永続化
       - ./src:/home/yuki/python/GrassRootsBBS/src # 開発用にソースコードをマウント
     ports:
-      - "8183:5000"
+      - "5000:5000"
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - SOCKETIO_ALLOWED_ORIGINS=http://localhost:8183
+      - SOCKETIO_ALLOWED_ORIGINS=http://localhost:5000
       - DB_HOST=mariadb # コンテナ名を指定
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}

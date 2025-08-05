@@ -207,10 +207,10 @@ user_pref_menu:
   header: # メニュー本体の表示
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9] 電報受信制限        ●
+      ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9]  電報受信制限       ●
       ●[2] パスワード変更     [6] 探索リスト登録          [10] ブラックリスト編集 ○
       ○[3] プロフィール変更   [7] 探索リスト読み出し      [11] メールアドレス変更 ●
-      ●[4] 会員リスト         [8] 元探索リスト読み出し                             ○
+      ●[4] 会員リスト         [8] 元探索リスト読み出し    [P]  Passkey管理        ○
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ====================================================
@@ -227,6 +227,7 @@ user_pref_menu:
       [9] 電報受信制限
       [10] ブラックリスト編集
       [11] メールアドレス変更
+      [P] Passkey管理
       [E] 終了
       [H,?]: ヘルプ
       ====================================================
@@ -245,6 +246,7 @@ user_pref_menu:
       | 9       | Telegram Restrictions: Limit incoming messages |
       | 10      | Edit Blacklist: Manage blocked users           |
       | 11      | Change Email: Update mail address              |
+      | P       | Manage Passkeys: Add or remove passkeys        |
       | E       | Exit: Return to main menu                      |
       | H, ?    | Help: Display this help menu                   |
       +---------+------------------------------------------------+
@@ -431,6 +433,51 @@ user_pref_menu:
       mode_1: "メールアドレスを更新しました。\r\n"
       mode_2: "メールアドレスを更新しました。\r\n"
       mode_3: "Email address updated.\r\n"
+# --- Passkey管理サブメニュー ---
+  passkey_management:
+    header:
+      mode_1: |
+        --- Passkey管理 ---
+        [L] 登録済みPasskeyを一覧表示
+        [1] 新しいPasskeyを登録
+        [2] 登録済みPasskeyを削除
+        [E] 戻る
+      mode_2: |
+        --- Passkey管理 ---
+        [L] 登録済みPasskeyを一覧表示
+        [1] 新しいPasskeyを登録
+        [2] 登録済みPasskeyを削除
+        [E] 戻る
+      mode_3: |
+        --- Passkey Management ---
+        [L] List registered Passkeys
+        [1] Register a new Passkey
+        [2] Delete a registered Passkey
+        [E] Back
+    register_success:
+      mode_1: "Passkeyの登録に成功しました。"
+      mode_2: "Passkeyの登録に成功しました。"
+      mode_3: "Passkey registered successfully."
+    register_fail:
+      mode_1: "Passkeyの登録に失敗しました。"
+      mode_2: "Passkeyの登録に失敗しました。"
+      mode_3: "Passkey registration failed."
+    start_registration_prompt:
+      mode_1: "ブラウザの指示に従ってPasskeyを登録してください。\r\n完了後、この画面に戻ってEnterキーを押してください..."
+      mode_2: "ブラウザの指示に従ってPasskeyを登録してください。\r\n完了後、この画面に戻ってEnterキーを押してください..."
+      mode_3: "Please follow the instructions in your browser to register the Passkey.\r\nPress Enter here when you are done..."
+    list_header:
+      mode_1: "--- 登録済みPasskey一覧 ---"
+      mode_2: "--- 登録済みPasskey一覧 ---"
+      mode_3: "--- Registered Passkeys ---"
+    list_item_format:
+      mode_1: "  - {nickname} (登録日: {created_at}, 最終利用: {last_used_at})"
+      mode_2: "  - {nickname} (登録日: {created_at}, 最終利用: {last_used_at})"
+      mode_3: "  - {nickname} (Registered: {created_at}, Last Used: {last_used_at})"
+    no_passkeys:
+      mode_1: "登録されているPasskeyはありません。"
+      mode_2: "登録されているPasskeyはありません。"
+      mode_3: "No Passkeys are registered."
 # --- WHOメニュー関連 ---
 who_menu:
   header:

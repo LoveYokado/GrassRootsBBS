@@ -304,6 +304,20 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
             )
             """,
             """
+            CREATE TABLE IF NOT EXISTS passkeys (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                credential_id VARBINARY(255) UNIQUE NOT NULL,
+                public_key VARBINARY(255) NOT NULL,
+                sign_count INT UNSIGNED NOT NULL DEFAULT 0,
+                transports JSON,
+                created_at INT,
+                last_used_at INT,
+                nickname VARCHAR(255),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS board_user_permissions (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 board_id INT NOT NULL,
