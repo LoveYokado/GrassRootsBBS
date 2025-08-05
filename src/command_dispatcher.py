@@ -93,43 +93,13 @@ def handle_sysop_menu(context):
 
 def handle_bbs(context):
     """'b' 掲示板コマンドを処理する"""
-    while True:  # 掲示板メニュー内をループ
-        bbs_handler_result = None  # ループごとにリセット
-        if context['menu_mode'] in ('2', '3'):
-            paths_config = util.app_config.get('paths', {})
-            bbs_config_path = paths_config.get('bbs_mode3_yaml')
-            selected_item = hierarchical_menu.handle_hierarchical_menu(
-                context['chan'], bbs_config_path, context['menu_mode'],
-                menu_type="BBS", enrich_boards=True)
-
-            if selected_item and selected_item.get("type") == "board":
-                item_id = selected_item.get("id")
-                bbs_handler_result = bbs_handler.handle_bbs_menu(
-                    context['chan'], context['login_id'], context['display_name'], context['menu_mode'],
-                    item_id, context['addr'][0])
-            else:
-                # 階層メニューを抜けた場合
-                break
-        else:  # mode1
-            paths_config = util.app_config.get('paths', {})
-            selected_board_id = manual_menu_handler.process_manual_menu(
-                context['chan'], context['login_id'], context['menu_mode'],
-                menu_config_path=paths_config.get('bbs_mode1_yaml'),
-                initial_menu_id="main_bbs_menu", menu_type="bbs")
-
-            if selected_board_id and selected_board_id not in ("exit_bbs_menu", "back_to_top", None):
-                bbs_handler_result = bbs_handler.handle_bbs_menu(
-                    context['chan'], context['login_id'], context['display_name'], context['menu_mode'],
-                    selected_board_id, context['addr'][0])
-            else:
-                # 手書きメニューを抜けた場合
-                break
-
-        # 掲示板から戻ってきたときの処理
-        if bbs_handler_result == "back_one_level":
-            continue
-        else:
-            break
+    # bbs_handler.handle_bbs_menu に処理を移譲する。
+    # shortcut_id=None で呼び出すと、階層メニューが表示される。
+    # bbs_handler側でモバイルボタンの表示/非表示を制御する。
+    bbs_handler.handle_bbs_menu(
+        context['chan'], context['login_id'], context['display_name'],
+        context['menu_mode'], shortcut_id=None, ip_address=context['addr'][0]
+    )
     # 掲示板メニューから抜けたときにトップメニューを再表示
     util.send_text_by_key(
         context['chan'], "top_menu.menu", context['menu_mode'])
@@ -138,22 +108,11 @@ def handle_bbs(context):
 
 def handle_chat(context):
     """'c' チャットコマンドを処理する"""
-    while True:  # チャットメニュー内をループ
-        paths_config = util.app_config.get('paths', {})
-        chat_config_path = paths_config.get('chatroom_yaml')
-        selected_item = hierarchical_menu.handle_hierarchical_menu(
-            context['chan'], chat_config_path, context['menu_mode'], menu_type="CHAT"
-        )
-        if selected_item and selected_item.get("type") == "room":
-            item_id = selected_item.get("id")
-            item_name = selected_item.get("name", "未定義の項目")
-            chat_handler.set_online_members_function_for_chat(
-                lambda: _get_online_members_list(context))
-            chat_handler.handle_chat_room(
-                context['chan'], context['login_id'], context['display_name'], context['menu_mode'],
-                item_id, item_name)
-        else:
-            break
+    # 新しく作成したチャットメニューハンドラを呼び出す
+    chat_handler.handle_chat_menu(
+        context['chan'], context['login_id'], context['display_name'],
+        context['menu_mode'], lambda: _get_online_members_list(context)
+    )
     # チャットメニューから抜けたときにトップメニューを再表示
     util.send_text_by_key(
         context['chan'], "top_menu.menu", context['menu_mode'])

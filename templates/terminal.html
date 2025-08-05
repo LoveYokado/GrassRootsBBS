@@ -543,13 +543,8 @@
             /* JSで表示を制御 */
             position: fixed;
             bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 0;
             width: 100%;
-            max-width: 400px;
-            /* 横幅が広がりすぎないように */
-            height: 160px;
-            /* 高さを固定 */
             background-color: rgba(20, 20, 20, 0.9);
             padding: 10px;
             box-sizing: border-box;
@@ -557,8 +552,6 @@
             grid-template-rows: repeat(3, 1fr);
             gap: 5px;
             z-index: 100;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
         }
 
         #mobile-bbs-controls.visible {
@@ -578,6 +571,16 @@
             user-select: none;
             font-family: '"M+ 1m", "Courier New", monospace';
             font-weight: bold;
+        }
+
+        #bbs-btn-y {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        #bbs-btn-n {
+            grid-column: 4;
+            grid-row: 1;
         }
 
         .mobile-btn:active {
@@ -694,6 +697,31 @@
             color: #FFB000;
         }
 
+        /* --- モバイルチャットコントロールのテーマ --- */
+        /* グリーンテーマ */
+        #mobile-chat-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-chat-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        /* アンバーテーマ */
+        #mobile-chat-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-chat-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
         /* --- モバイルチャットコントロール --- */
         #mobile-chat-controls {
             display: none;
@@ -763,6 +791,62 @@
             background-color: #FFB000;
             color: #1a1000;
         }
+
+        /* --- モバイルメール＆掲示板入口コントロール --- */
+        #mobile-mail-controls,
+        #mobile-bbs-entry-controls {
+            display: none;
+            /* JSで表示を制御 */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            gap: 8px;
+        }
+
+        #mobile-mail-controls.visible,
+        #mobile-bbs-entry-controls.visible {
+            display: grid;
+        }
+
+        #mobile-mail-controls {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        #mobile-bbs-entry-controls {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        /* --- テーマ適用 --- */
+        #mobile-mail-controls.theme-green .mobile-btn,
+        #mobile-bbs-entry-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-mail-controls.theme-green .mobile-btn:active,
+        #mobile-bbs-entry-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-mail-controls.theme-amber .mobile-btn,
+        #mobile-bbs-entry-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-mail-controls.theme-amber .mobile-btn:active,
+        #mobile-bbs-entry-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
     </style>
 </head>
 
@@ -784,6 +868,8 @@
     <div id="mobile-bbs-controls">
         <button class="mobile-btn" id="bbs-btn-end-write">^</button>
         <button class="mobile-btn" id="bbs-btn-write">W</button>
+        <button class="mobile-btn" id="bbs-btn-y">Y</button>
+        <button class="mobile-btn" id="bbs-btn-n">N</button>
         <button class="mobile-btn" id="bbs-btn-up">↑</button>
         <button class="mobile-btn" id="bbs-btn-delete">*</button>
         <button class="mobile-btn" id="bbs-btn-left">←</button>
@@ -819,6 +905,19 @@
         <button class="mobile-btn" id="userpref-btn-0">0</button>
         <button class="mobile-btn" id="userpref-btn-exit">E</button>
         <button class="mobile-btn" id="userpref-btn-enter">Enter</button>
+    </div>
+
+    <!-- モバイルメールメニューコントロール -->
+    <div id="mobile-mail-controls">
+        <button class="mobile-btn" id="mail-btn-write">Write</button>
+        <button class="mobile-btn" id="mail-btn-read">Read</button>
+        <button class="mobile-btn" id="mail-btn-list">List</button>
+    </div>
+
+    <!-- モバイル掲示板入口コントロール -->
+    <div id="mobile-bbs-entry-controls">
+        <button class="mobile-btn" id="bbs-entry-btn-write">Write</button>
+        <button class="mobile-btn" id="bbs-entry-btn-read">Read</button>
     </div>
 
     <!-- ハンバーガーメニュー本体 -->
@@ -1045,8 +1144,10 @@
             const mobileControls = document.getElementById('mobile-bbs-controls');
             const chatControls = document.getElementById('mobile-chat-controls');
             const userprefControls = document.getElementById('mobile-userpref-controls');
+            const mailControls = document.getElementById('mobile-mail-controls');
+            const bbsEntryControls = document.getElementById('mobile-bbs-entry-controls');
 
-            [mobileControls, chatControls, userprefControls].forEach(controls => {
+            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls].forEach(controls => {
                 if (controls) {
                     controls.classList.remove('theme-default', 'theme-green', 'theme-amber');
                     controls.classList.add(`theme-${themeName}`);
@@ -1582,6 +1683,44 @@
                 updateTerminalLayout();
             }
 
+            // Mailメニューコントロール表示/非表示シーケンスをチェック
+            const mailControlPattern = /\x1b\[\?2029(h|l)/;
+            const mailMatch = data.match(mailControlPattern);
+            if (mailMatch) {
+                const mobileControls = document.getElementById('mobile-mail-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (mailMatch[1] === 'h') { // 'h' for show
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                } else { // 'l' for hide
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(mailControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            // BBS入口コントロール表示/非表示シーケンスをチェック
+            const bbsEntryControlPattern = /\x1b\[\?2030(h|l)/;
+            const bbsEntryMatch = data.match(bbsEntryControlPattern);
+            if (bbsEntryMatch) {
+                const mobileControls = document.getElementById('mobile-bbs-entry-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (bbsEntryMatch[1] === 'h') { // 'h' for show
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                } else { // 'l' for hide
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(bbsEntryControlPattern, '');
+                updateTerminalLayout();
+            }
+
             // BBSコントロール表示/非表示シーケンスをチェック
             const bbsControlPattern = /\x1b\[\?2024(h|l)/;
             const match = data.match(bbsControlPattern);
@@ -1802,7 +1941,7 @@
         // --- モバイルBBSコントロールのイベントリスナー ---
         document.addEventListener('DOMContentLoaded', () => {
             const keyMap = {
-                'bbs-btn-end-write': '^\r',
+                'bbs-btn-end-write': '^',
                 'bbs-btn-up': 'k',
                 'bbs-btn-down': 'j',
                 'bbs-btn-left': 'h',
@@ -1811,7 +1950,9 @@
                 'bbs-btn-write': 'w',
                 'bbs-btn-delete': '*',
                 'bbs-btn-help': '?',
-                'bbs-btn-exit': 'e'
+                'bbs-btn-exit': 'e',
+                'bbs-btn-y': 'y',
+                'bbs-btn-n': 'n'
             };
 
             for (const [id, key] of Object.entries(keyMap)) {
@@ -1852,6 +1993,27 @@
             };
 
             for (const [id, key] of Object.entries(userprefKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            const mailKeyMap = {
+                'mail-btn-write': 'w\r',
+                'mail-btn-read': 'r\r',
+                'mail-btn-list': 'l\r',
+            };
+
+            for (const [id, key] of Object.entries(mailKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            const bbsEntryKeyMap = {
+                'bbs-entry-btn-write': 'w\r',
+                'bbs-entry-btn-read': 'r\r',
+            };
+
+            for (const [id, key] of Object.entries(bbsEntryKeyMap)) {
                 const btn = document.getElementById(id);
                 if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
             }

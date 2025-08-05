@@ -465,108 +465,116 @@ def mail(chan, login_id, menu_mode):
         )  # ユーザー情報が見つかりません。
         return "back_to_top"
 
-    # メールメニュー
-    while True:
-        # 選択してください([W]送信 [R]受信 [L]一覧形式受信)
-        util.send_text_by_key(
-            chan, "mail_handler.main_prompt", menu_mode, add_newline=False)
-        choice_input = chan.process_input()
-        if choice_input is None:
-            return None  # 切断
-        choice = choice_input.lower().strip()
-
-        if choice == 'l':
-            viewer = MailViewer(chan, login_id, menu_mode, user_id)
-            result = viewer.run()
-            if result == "back_to_top":
-                continue
-            else:
-                return result  # 切断など
-        elif choice == 'w':
-            mail_write(chan, login_id, menu_mode)
-            continue
-        elif choice == 'r':
-            # 1.初回に新着メールの総数未読数表示
-            unread_count_initial = database.get_total_unread_mail_count(
-                user_id)
-            total_mail_count_initial = database.get_total_mail_count(user_id)
-
-            if unread_count_initial > 0:
-                notification_format = util.get_text_by_key(
-                    "mail_handler.new_mail_notification", menu_mode)
-                if notification_format:
-                    chan.send(notification_format.format(
-                              total_mail_count=total_mail_count_initial, unread_mail_count=unread_count_initial
-                              ).replace('\n', '\r\n').encode('utf-8')+b'\r\n')
-            else:
-                util.send_text_by_key(
-                    chan, "mail_handler.no_unread_mails_at_start", menu_mode)
-                return "back_to_top"
-
-            while True:  # 未読処理ループ
-                oldest_unread_mail = database.get_oldest_unread_mail(user_id)
-
-                if not oldest_unread_mail:
-                    util.send_text_by_key(
-                        chan, "mail_handler.no_more_unread_mails", menu_mode)
-                    break
-
-                # ヘッダ表示
-                util.send_text_by_key(
-                    chan, "mail_handler.subject_header", menu_mode)
-
-                mail_id_width_for_reader = 5
-                util.send_text_by_key(
-                    chan, "mail_handler.sender_header", menu_mode)
-                display_mail_header(chan, oldest_unread_mail,
-                                    'inbox', mail_id_width_for_reader)
-
-                # 読み込み選択(y/n)
-                util.send_text_by_key(
-                    chan, "mail_handler.confirm_read_body_yn", menu_mode, add_newline=False)
-                read_choice_input = chan.process_input()
-                if read_choice_input is None:
-                    return "back_to_top"
-                read_choice = read_choice_input.strip().lower()
-
-                if read_choice == 'y':
-                    # 本文表示と既読化
-                    success, _ = display_mail_content(
-                        chan, oldest_unread_mail['id'], user_id, 'inbox', menu_mode)
-                    if not success:
-                        util.send_text_by_key(
-                            chan, "common_messages.error", menu_mode)
-                        break
-                    chan.send(b'\r\n')
-
-                    # 削除確認(y/n)
-                    util.send_text_by_key(
-                        chan, "mail_handler.confirm_delete_after_read_yn", menu_mode, add_newline=False)
-                    delete_choice_input = chan.process_input()
-                    if delete_choice_input is None:
-                        return "back_to_top"
-                    delete_choice = delete_choice_input.strip().lower()
-
-                    if delete_choice == 'y':
-                        toggled, new_status = database.toggle_mail_delete_status_generic(
-                            oldest_unread_mail['id'], user_id, 'recipient')
-                        if toggled and new_status == 1:  # 削除された場合
-                            util.send_text_by_key(
-                                chan, "mail_handler.mail_deleted_after_read_success", menu_mode)
-                        elif not toggled:
-                            util.send_text_by_key(
-                                chan, "mail_handler.toggle_delete_status_failed", menu_mode)
-                elif read_choice == 'n':
-                    database.mark_mail_as_read(
-                        oldest_unread_mail['id'], user_id)
-                else:
-                    break
-            continue  # メインのメールメニュープロンプトに戻る
-        elif choice == '' or choice == 'e':
-            return "back_to_top"
-        else:
+    # モバイル用の操作ボタンを表示
+    chan.send(b'\x1b[?2029h')
+    try:
+        # メールメニュー
+        while True:
+            # 選択してください([W]送信 [R]受信 [L]一覧形式受信)
             util.send_text_by_key(
-                chan, "common_messages.invalid_command", menu_mode)
+                chan, "mail_handler.main_prompt", menu_mode, add_newline=False)
+            choice_input = chan.process_input()
+            if choice_input is None:
+                return None  # 切断
+            choice = choice_input.lower().strip()
+
+            if choice == 'l':
+                viewer = MailViewer(chan, login_id, menu_mode, user_id)
+                result = viewer.run()
+                if result == "back_to_top":
+                    continue
+                else:
+                    return result  # 切断など
+            elif choice == 'w':
+                mail_write(chan, login_id, menu_mode)
+                continue
+            elif choice == 'r':
+                # 1.初回に新着メールの総数未読数表示
+                unread_count_initial = database.get_total_unread_mail_count(
+                    user_id)
+                total_mail_count_initial = database.get_total_mail_count(
+                    user_id)
+
+                if unread_count_initial > 0:
+                    notification_format = util.get_text_by_key(
+                        "mail_handler.new_mail_notification", menu_mode)
+                    if notification_format:
+                        chan.send(notification_format.format(
+                                  total_mail_count=total_mail_count_initial, unread_mail_count=unread_count_initial
+                                  ).replace('\n', '\r\n').encode('utf-8')+b'\r\n')
+                else:
+                    util.send_text_by_key(
+                        chan, "mail_handler.no_unread_mails_at_start", menu_mode)
+                    return "back_to_top"
+
+                while True:  # 未読処理ループ
+                    oldest_unread_mail = database.get_oldest_unread_mail(
+                        user_id)
+
+                    if not oldest_unread_mail:
+                        util.send_text_by_key(
+                            chan, "mail_handler.no_more_unread_mails", menu_mode)
+                        break
+
+                    # ヘッダ表示
+                    util.send_text_by_key(
+                        chan, "mail_handler.subject_header", menu_mode)
+
+                    mail_id_width_for_reader = 5
+                    util.send_text_by_key(
+                        chan, "mail_handler.sender_header", menu_mode)
+                    display_mail_header(chan, oldest_unread_mail,
+                                        'inbox', mail_id_width_for_reader)
+
+                    # 読み込み選択(y/n)
+                    util.send_text_by_key(
+                        chan, "mail_handler.confirm_read_body_yn", menu_mode, add_newline=False)
+                    read_choice_input = chan.process_input()
+                    if read_choice_input is None:
+                        return "back_to_top"
+                    read_choice = read_choice_input.strip().lower()
+
+                    if read_choice == 'y':
+                        # 本文表示と既読化
+                        success, _ = display_mail_content(
+                            chan, oldest_unread_mail['id'], user_id, 'inbox', menu_mode)
+                        if not success:
+                            util.send_text_by_key(
+                                chan, "common_messages.error", menu_mode)
+                            break
+                        chan.send(b'\r\n')
+
+                        # 削除確認(y/n)
+                        util.send_text_by_key(
+                            chan, "mail_handler.confirm_delete_after_read_yn", menu_mode, add_newline=False)
+                        delete_choice_input = chan.process_input()
+                        if delete_choice_input is None:
+                            return "back_to_top"
+                        delete_choice = delete_choice_input.strip().lower()
+
+                        if delete_choice == 'y':
+                            toggled, new_status = database.toggle_mail_delete_status_generic(
+                                oldest_unread_mail['id'], user_id, 'recipient')
+                            if toggled and new_status == 1:  # 削除された場合
+                                util.send_text_by_key(
+                                    chan, "mail_handler.mail_deleted_after_read_success", menu_mode)
+                            elif not toggled:
+                                util.send_text_by_key(
+                                    chan, "mail_handler.toggle_delete_status_failed", menu_mode)
+                    elif read_choice == 'n':
+                        database.mark_mail_as_read(
+                            oldest_unread_mail['id'], user_id)
+                    else:
+                        break
+                continue  # メインのメールメニュープロンプトに戻る
+            elif choice == '' or choice == 'e':
+                return "back_to_top"
+            else:
+                util.send_text_by_key(
+                    chan, "common_messages.invalid_command", menu_mode)
+    finally:
+        # メニューを抜けたら必ずボタンを非表示にする
+        chan.send(b'\x1b[?2029l')
 
 
 def display_mail_header(chan, mail_data, view_mode='inbox', mail_id_width=5):

@@ -396,3 +396,32 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, roo
         user_leaves_room(room_id, login_id, display_name, room_name)
         logging.info(f"User {login_id} finished chat in room {room_id}.")
         # finallyブロックでは明示的な戻り値を返さない（例外発生時などはNoneが返る）
+
+
+def handle_chat_menu(chan, login_id, display_name, menu_mode, online_members_func):
+    """チャットの階層メニューを表示し、選択されたルームに入る"""
+    paths_config = util.app_config.get('paths', {})
+    chatroom_config_path = paths_config.get('chatroom_yaml')
+    if not chatroom_config_path:
+        logging.error("chatroom.yaml のパスが設定されていません。")
+        util.send_text_by_key(chan, "common_messages.error", menu_mode)
+        return "back_to_top"
+
+    # モバイル用の操作ボタンを表示
+    chan.send(b'\x1b[?2028h')
+    try:
+        from . import hierarchical_menu
+        selected_item = hierarchical_menu.handle_hierarchical_menu(
+            chan, chatroom_config_path, menu_mode, menu_type="CHAT"
+        )
+    finally:
+        # メニューを抜けたら必ずボタンを非表示にする
+        chan.send(b'\x1b[?2028l')
+
+    if selected_item and selected_item.get("type") == "room":
+        room_id = selected_item.get("id")
+        room_name = selected_item.get("name", room_id)
+        set_online_members_function_for_chat(online_members_func)
+        return handle_chat_room(chan, login_id, display_name, menu_mode, room_id, room_name)
+
+    return "back_to_top"

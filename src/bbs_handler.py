@@ -119,26 +119,32 @@ class CommandHandler:
         )
 
         self._display_kanban()  # 板看板を表示
-        while True:
-            # メニュー表示
-            util.send_text_by_key(
-                self.chan, "prompt.bbs_wrdate", self.menu_mode, add_newline=False
-            )
-            choice = self.chan.process_input()
-            if choice is None:
-                return  # 切断
-            choice = choice.lower().strip()
-
-            if choice == 'w':
-                self.write_article()
-            elif choice == 'r':
-                self.show_article_list(
-                    last_login_timestamp=self.last_login_timestamp)
-            elif choice == 'e' or choice == '':
-                return "empty_exit"
-            else:
+        # モバイル用の操作ボタンを表示
+        self.chan.send(b'\x1b[?2030h')
+        try:
+            while True:
+                # メニュー表示
                 util.send_text_by_key(
-                    self.chan, "common_messages.invalid_command", self.menu_mode)
+                    self.chan, "prompt.bbs_wrdate", self.menu_mode, add_newline=False
+                )
+                choice = self.chan.process_input()
+                if choice is None:
+                    return  # 切断
+                choice = choice.lower().strip()
+
+                if choice == 'w':
+                    self.write_article()
+                elif choice == 'r':
+                    self.show_article_list(
+                        last_login_timestamp=self.last_login_timestamp)
+                elif choice == 'e' or choice == '':
+                    return "empty_exit"
+                else:
+                    util.send_text_by_key(
+                        self.chan, "common_messages.invalid_command", self.menu_mode)
+        finally:
+            # メニューを抜けたら必ずボタンを非表示にする
+            self.chan.send(b'\x1b[?2030l')
 
     def show_article_list(self, display_initial_header=True, last_login_timestamp=0):
         """記事一覧を表示"""
@@ -1611,11 +1617,17 @@ def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_add
         bbs_config_path = paths_config.get('bbs_mode3_yaml')
         logging.info(
             f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
-        selected_item = hierarchical_menu.handle_hierarchical_menu(
-            chan, bbs_config_path, menu_mode, menu_type="BBS", enrich_boards=True
-        )
-        logging.info(
-            f"bbs_handler: hierarchical_menu.handle_hierarchical_menu returned: {selected_item}")
+        # モバイル用の操作ボタンを表示
+        chan.send(b'\x1b[?2028h')
+        try:
+            selected_item = hierarchical_menu.handle_hierarchical_menu(
+                chan, bbs_config_path, menu_mode, menu_type="BBS", enrich_boards=True
+            )
+            logging.info(
+                f"bbs_handler: hierarchical_menu.handle_hierarchical_menu returned: {selected_item}")
+        finally:
+            # メニューを抜けたら必ずボタンを非表示にする
+            chan.send(b'\x1b[?2028l')
 
         if selected_item and selected_item.get("type") == "board":
             shortcut_id_selected = selected_item.get("id")
