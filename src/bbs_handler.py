@@ -133,10 +133,16 @@ class CommandHandler:
                 choice = choice.lower().strip()
 
                 if choice == 'w':
+                    self.chan.send(b'\x1b[?2030l')  # Write/Readボタンを非表示
                     self.write_article()
+                    # 戻ってきたら再度表示
+                    self.chan.send(b'\x1b[?2030h')
                 elif choice == 'r':
+                    self.chan.send(b'\x1b[?2030l')  # Write/Readボタンを非表示
                     self.show_article_list(
                         last_login_timestamp=self.last_login_timestamp)
+                    # 戻ってきたら再度表示
+                    self.chan.send(b'\x1b[?2030h')
                 elif choice == 'e' or choice == '':
                     return "empty_exit"
                 else:

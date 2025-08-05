@@ -828,11 +828,11 @@
         }
 
         #mobile-mail-controls {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
         }
 
         #mobile-bbs-entry-controls {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
         }
 
         /* --- モバイルトップメニューコントロール --- */
@@ -951,12 +951,14 @@
         <button class="mobile-btn" id="mail-btn-write">Write</button>
         <button class="mobile-btn" id="mail-btn-read">Read</button>
         <button class="mobile-btn" id="mail-btn-list">List</button>
+        <button class="mobile-btn" id="mail-btn-exit">Exit</button>
     </div>
 
     <!-- モバイル掲示板入口コントロール -->
     <div id="mobile-bbs-entry-controls">
         <button class="mobile-btn" id="bbs-entry-btn-write">Write</button>
         <button class="mobile-btn" id="bbs-entry-btn-read">Read</button>
+        <button class="mobile-btn" id="bbs-entry-btn-exit">Exit</button>
     </div>
 
     <!-- モバイルトップメニューコントロール -->
@@ -2073,6 +2075,7 @@
                 'mail-btn-write': 'w\r',
                 'mail-btn-read': 'r\r',
                 'mail-btn-list': 'l\r',
+                'mail-btn-exit': 'e\r',
             };
 
             for (const [id, key] of Object.entries(mailKeyMap)) {
@@ -2083,6 +2086,7 @@
             const bbsEntryKeyMap = {
                 'bbs-entry-btn-write': 'w\r',
                 'bbs-entry-btn-read': 'r\r',
+                'bbs-entry-btn-exit': 'e\r',
             };
 
             for (const [id, key] of Object.entries(bbsEntryKeyMap)) {

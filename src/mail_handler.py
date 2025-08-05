@@ -479,14 +479,18 @@ def mail(chan, login_id, menu_mode):
             choice = choice_input.lower().strip()
 
             if choice == 'l':
+                chan.send(b'\x1b[?2029l')  # メインのメールボタンを非表示
                 viewer = MailViewer(chan, login_id, menu_mode, user_id)
                 result = viewer.run()
+                chan.send(b'\x1b[?2029h')  # メインのメールボタンを再表示
                 if result == "back_to_top":
                     continue
                 else:
                     return result  # 切断など
             elif choice == 'w':
+                chan.send(b'\x1b[?2029l')  # メインのメールボタンを非表示
                 mail_write(chan, login_id, menu_mode)
+                chan.send(b'\x1b[?2029h')  # メインのメールボタンを再表示
                 continue
             elif choice == 'r':
                 # 1.初回に新着メールの総数未読数表示
