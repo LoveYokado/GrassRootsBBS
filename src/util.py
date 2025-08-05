@@ -177,6 +177,14 @@ def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=
             f"キー {key_string} (mode{menu_mode}) に対応するテキストデータがないのでスキップします。")
 
 
+def send_top_menu(chan, menu_mode):
+    """トップメニューのUIとテキストを表示する"""
+    # モバイル用のトップメニューボタンを表示
+    chan.send(b'\x1b[?2031h')
+    # トップメニューのテキストを表示
+    send_text_by_key(chan, "top_menu.menu", menu_mode)
+
+
 def hash_password(password):
     """ハッシュ化したパスワードを返す"""
     pbkdf2_rounds_val = app_config.get('security', {}).get('PBKDF2_ROUNDS')

@@ -539,7 +539,8 @@
             #mobile-chat-controls,
             #mobile-userpref-controls,
             #mobile-mail-controls,
-            #mobile-bbs-entry-controls {
+            #mobile-bbs-entry-controls,
+            #mobile-top-menu-controls {
                 /* JSで .visible クラスが付与されても、PCでは強制的に非表示にする */
                 display: none !important;
             }
@@ -834,6 +835,27 @@
             grid-template-columns: repeat(2, 1fr);
         }
 
+        /* --- モバイルトップメニューコントロール --- */
+        #mobile-top-menu-controls {
+            display: none;
+            /* JSで表示を制御 */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        #mobile-top-menu-controls.visible {
+            display: grid;
+        }
+
         /* --- テーマ適用 --- */
         #mobile-mail-controls.theme-green .mobile-btn,
         #mobile-bbs-entry-controls.theme-green .mobile-btn {
@@ -932,6 +954,19 @@
         <button class="mobile-btn" id="bbs-entry-btn-write">Write</button>
         <button class="mobile-btn" id="bbs-entry-btn-read">Read</button>
     </div>
+
+    <!-- モバイルトップメニューコントロール -->
+    <div id="mobile-top-menu-controls">
+        <button class="mobile-btn" id="top-btn-bbs">BBS</button>
+        <button class="mobile-btn" id="top-btn-chat">Chat</button>
+        <button class="mobile-btn" id="top-btn-mail">Mail</button>
+        <button class="mobile-btn" id="top-btn-userpref">UserPref</button>
+        <button class="mobile-btn" id="top-btn-who">Who</button>
+        <button class="mobile-btn" id="top-btn-telegram">Telegram</button>
+        <button class="mobile-btn" id="top-btn-help">Help</button>
+        <button class="mobile-btn" id="top-btn-logoff">Logoff</button>
+    </div>
+
 
     <!-- ハンバーガーメニュー本体 -->
     <div id="sidenav" class="sidenav">
@@ -1734,6 +1769,25 @@
                 updateTerminalLayout();
             }
 
+            // Top Menuコントロール表示/非表示シーケンスをチェック
+            const topMenuControlPattern = /\x1b\[\?2031(h|l)/;
+            const topMenuMatch = data.match(topMenuControlPattern);
+            if (topMenuMatch) {
+                const mobileControls = document.getElementById('mobile-top-menu-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (topMenuMatch[1] === 'h') { // 'h' for show
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                } else { // 'l' for hide
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(topMenuControlPattern, '');
+                updateTerminalLayout();
+            }
+
             // BBSコントロール表示/非表示シーケンスをチェック
             const bbsControlPattern = /\x1b\[\?2024(h|l)/;
             const match = data.match(bbsControlPattern);
@@ -2027,6 +2081,22 @@
             };
 
             for (const [id, key] of Object.entries(bbsEntryKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            const topMenuKeyMap = {
+                'top-btn-bbs': 'b\r',
+                'top-btn-chat': 'c\r',
+                'top-btn-mail': 'm\r',
+                'top-btn-userpref': 'u\r',
+                'top-btn-who': 'w\r',
+                'top-btn-telegram': '#\r',
+                'top-btn-help': '?\r',
+                'top-btn-logoff': 'e\r',
+            };
+
+            for (const [id, key] of Object.entries(topMenuKeyMap)) {
                 const btn = document.getElementById(id);
                 if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
             }

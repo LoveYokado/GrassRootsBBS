@@ -32,8 +32,7 @@ def handle_help_q(context):
     """'?' ヘルプコマンドを処理する"""
     util.send_text_by_key(
         context['chan'], "top_menu.help_q", context['menu_mode'])
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
@@ -43,8 +42,7 @@ def handle_explore_new_articles(context):
         context['chan'], context['login_id'], context['display_name'], context['user_id'],
         context['userlevel'], context['menu_mode'], context['addr'][0]
     )
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
@@ -56,8 +54,7 @@ def handle_full_sig_exploration(context):
         context['chan'], context['login_id'], context['display_name'], context['user_id'],
         context['userlevel'], context['menu_mode'], context['addr'][0], default_exploration_list
     )
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
@@ -66,8 +63,7 @@ def handle_new_article_headlines(context):
     bbsmenu.handle_new_article_headlines(
         context['chan'], context['login_id'], context['user_id'], context['userlevel'], context['menu_mode']
     )
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
@@ -76,23 +72,23 @@ def handle_auto_download(context):
     bbsmenu.handle_auto_download(
         context['chan'], context['login_id'], context['user_id'], context['userlevel'], context['menu_mode']
     )
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
 def handle_sysop_menu(context):
     """'s' シスオペメニューコマンドを処理する"""
+    context['chan'].send(b'\x1b[?2031l')
     result = sysop_menu.sysop_menu(
         context['chan'], context['login_id'], context['display_name'], context['menu_mode'])
     if result == "back_to_top":
-        util.send_text_by_key(
-            context['chan'], "top_menu.menu", context['menu_mode'])
+        util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
 def handle_bbs(context):
     """'b' 掲示板コマンドを処理する"""
+    context['chan'].send(b'\x1b[?2031l')
     # bbs_handler.handle_bbs_menu に処理を移譲する。
     # shortcut_id=None で呼び出すと、階層メニューが表示される。
     # bbs_handler側でモバイルボタンの表示/非表示を制御する。
@@ -101,21 +97,20 @@ def handle_bbs(context):
         context['menu_mode'], shortcut_id=None, ip_address=context['addr'][0]
     )
     # 掲示板メニューから抜けたときにトップメニューを再表示
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
 def handle_chat(context):
     """'c' チャットコマンドを処理する"""
+    context['chan'].send(b'\x1b[?2031l')
     # 新しく作成したチャットメニューハンドラを呼び出す
     chat_handler.handle_chat_menu(
         context['chan'], context['login_id'], context['display_name'],
         context['menu_mode'], lambda: _get_online_members_list(context)
     )
     # チャットメニューから抜けたときにトップメニューを再表示
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
@@ -124,8 +119,7 @@ def handle_who_menu(context):
     online_members_dict = _get_online_members_list(context)
     bbsmenu.who_menu(context['chan'], online_members_dict,
                      context['menu_mode'])
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
@@ -134,13 +128,13 @@ def handle_telegram(context):
     online_members_dict = _get_online_members_list(context)
     util.telegram_send(context['chan'], context['display_name'], list(
         online_members_dict.keys()), context['menu_mode'])
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
 def handle_user_pref_menu(context):
     """'u' ユーザー環境設定コマンドを処理する"""
+    context['chan'].send(b'\x1b[?2031l')
     result = user_pref_menu.userpref_menu(
         context['chan'], context['login_id'], context['display_name'], context['menu_mode'])
 
@@ -149,8 +143,7 @@ def handle_user_pref_menu(context):
         return {'status': 'continue', 'new_menu_mode': result}
     elif result == "back_to_top":
         # トップメニューに戻るだけの場合
-        util.send_text_by_key(
-            context['chan'], "top_menu.menu", context['menu_mode'])
+        util.send_top_menu(context['chan'], context['menu_mode'])
         return {'status': 'continue'}
     else:  # None (切断)
         return {'status': 'break'}
@@ -158,11 +151,11 @@ def handle_user_pref_menu(context):
 
 def handle_mail(context):
     """'m' メールコマンドを処理する"""
+    context['chan'].send(b'\x1b[?2031l')
     result = mail_handler.mail(
         context['chan'], context['login_id'], context['menu_mode'])
     if result == "back_to_top":
-        util.send_text_by_key(
-            context['chan'], "top_menu.menu", context['menu_mode'])
+        util.send_top_menu(context['chan'], context['menu_mode'])
     # mail_handler.mail は内部でループし、終了時に "back_to_top" または None を返す
     # どちらの場合もメインループは継続させる
     return {'status': 'continue'}
@@ -170,9 +163,9 @@ def handle_mail(context):
 
 def handle_online_signup(context):
     """'l' オンラインサインアップコマンドを処理する"""
+    context['chan'].send(b'\x1b[?2031l')
     bbsmenu.handle_online_signup(context['chan'], context['menu_mode'])
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 
@@ -183,9 +176,9 @@ def handle_logoff(context):
 
 def handle_hamlet_game(context):
     """'z' ハムレットゲームコマンドを処理する"""
+    context['chan'].send(b'\x1b[?2031l')
     hamlet_game.run_game_vs_ai(context['chan'], context['menu_mode'])
-    util.send_text_by_key(
-        context['chan'], "top_menu.menu", context['menu_mode'])
+    util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
 # --- Dispatch Table ---
@@ -222,8 +215,7 @@ def dispatch_command(command, context):
         # 不明なコマンドはヘルプを表示
         util.send_text_by_key(
             context['chan'], "top_menu.help_h", context['menu_mode'])
-        util.send_text_by_key(
-            context['chan'], "top_menu.menu", context['menu_mode'])
+        util.send_top_menu(context['chan'], context['menu_mode'])
         return {'status': 'continue'}
 
     user_level = context['userlevel']

@@ -410,8 +410,8 @@ class WebTerminalHandler:
                                   self.user_session.get('menu_mode', '2'),
                                   login_id=self.user_session.get('username'),
                                   last_login_str=last_login_str)
-            util.send_text_by_key(self.channel, "top_menu.menu",
-                                  self.user_session.get('menu_mode', '2'))
+            util.send_top_menu(
+                self.channel, self.user_session.get('menu_mode', '2'))
 
             while self.main_thread_active:
                 # プロンプト前の定型処理 (メール/電報通知)
@@ -453,14 +453,12 @@ class WebTerminalHandler:
                     context['online_members_func']
                 ):
                     # ショートカット処理後はトップメニューを再表示してループの先頭へ
-                    util.send_text_by_key(
-                        self.channel, "top_menu.menu", context['menu_mode'])
+                    util.send_top_menu(self.channel, context['menu_mode'])
                     continue
 
                 command = command.strip().lower()
                 if not command:
-                    util.send_text_by_key(
-                        self.channel, "top_menu.menu", context['menu_mode'])
+                    util.send_top_menu(self.channel, context['menu_mode'])
                     continue
 
                 result = command_dispatcher.dispatch_command(command, context)
@@ -478,8 +476,8 @@ class WebTerminalHandler:
 
                 if 'new_menu_mode' in result:
                     self.user_session['menu_mode'] = result['new_menu_mode']
-                    util.send_text_by_key(
-                        self.channel, "top_menu.menu", self.user_session['menu_mode'])
+                    util.send_top_menu(
+                        self.channel, self.user_session['menu_mode'])
 
         except Exception as e:
             logging.error(
