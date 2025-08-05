@@ -35,28 +35,35 @@ def userpref_menu(chan, login_id, display_name, current_menu_mode):
         '?': display_help,
     }
 
-    while True:
-        util.send_text_by_key(chan, "user_pref_menu.header", current_menu_mode)
-        util.prompt_handler(chan, login_id, current_menu_mode)
-        util.send_text_by_key(chan, "common_messages.select_prompt",
-                              current_menu_mode, add_newline=False)  # プロンプト表示
-        input_buffer = chan.process_input()
-        if input_buffer is None:
-            return None  # 接続が切れた場合
-
-        command = input_buffer.lower().strip()
-        # ディスパッチテーブルからコマンドに対応する関数を取得
-        handler = command_dispatch.get(command)
-        if handler:
-            # 各ハンドラに user_data を渡す
-            result = handler(chan, login_id,
-                             current_menu_mode, user_data)
-            # メニューモード変更や終了の場合、結果を返す
-            if result in ('1', '2', '3', 'back_to_top', None):
-                return result
-        else:
+    # モバイル用の操作ボタンを表示するエスケープシーケンスを送信
+    chan.send(b'\x1b[?2028h')
+    try:
+        while True:
             util.send_text_by_key(
-                chan, "common_messages.invalid_command", current_menu_mode)  # 無効なコマンド
+                chan, "user_pref_menu.header", current_menu_mode)
+            util.prompt_handler(chan, login_id, current_menu_mode)
+            util.send_text_by_key(chan, "common_messages.select_prompt",
+                                  current_menu_mode, add_newline=False)  # プロンプト表示
+            input_buffer = chan.process_input()
+            if input_buffer is None:
+                return None  # 接続が切れた場合
+
+            command = input_buffer.lower().strip()
+            # ディスパッチテーブルからコマンドに対応する関数を取得
+            handler = command_dispatch.get(command)
+            if handler:
+                # 各ハンドラに user_data を渡す
+                result = handler(chan, login_id,
+                                 current_menu_mode, user_data)
+                # メニューモード変更や終了の場合、結果を返す
+                if result in ('1', '2', '3', 'back_to_top', None):
+                    return result
+            else:
+                util.send_text_by_key(
+                    chan, "common_messages.invalid_command", current_menu_mode)  # 無効なコマンド
+    finally:
+        # メニューを抜ける際に必ずボタンを非表示にする
+        chan.send(b'\x1b[?2028l')
 
 
 def display_help(chan, login_id, current_menu_mode, user_data):

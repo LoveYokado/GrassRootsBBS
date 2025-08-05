@@ -714,6 +714,55 @@
         #mobile-chat-controls.visible {
             display: grid;
         }
+
+        /* --- モバイルユーザー設定コントロール --- */
+        #mobile-userpref-controls {
+            display: none;
+            /* JSで表示を制御 */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        #mobile-userpref-controls.visible {
+            display: grid;
+        }
+
+        #userpref-btn-enter {
+            grid-column: 1 / -1;
+            /* Span all columns */
+        }
+
+        /* --- モバイルユーザー設定コントロールのテーマ --- */
+        #mobile-userpref-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-userpref-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-userpref-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-userpref-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
     </style>
 </head>
 
@@ -747,12 +796,29 @@
 
     <!-- モバイルチャットコントロール -->
     <div id="mobile-chat-controls">
-        <button class="mobile-btn" id="chat-btn-exit">^ Exit</button>
-        <button class="mobile-btn" id="chat-btn-telegram">! Telegram</button>
-        <button class="mobile-btn" id="chat-btn-lock">!L Lock</button>
-        <button class="mobile-btn" id="chat-btn-unlock">!U Unlock</button>
-        <button class="mobile-btn" id="chat-btn-who">!W Who</button>
-        <button class="mobile-btn" id="chat-btn-roominfo">!R RoomInfo</button>
+        <button class="mobile-btn" id="chat-btn-exit">Exit</button>
+        <button class="mobile-btn" id="chat-btn-telegram">Telegram</button>
+        <button class="mobile-btn" id="chat-btn-lock">Lock</button>
+        <button class="mobile-btn" id="chat-btn-unlock">Unlock</button>
+        <button class="mobile-btn" id="chat-btn-who">Who</button>
+        <button class="mobile-btn" id="chat-btn-roominfo">RoomInfo</button>
+    </div>
+
+    <!-- モバイルユーザー設定コントロール -->
+    <div id="mobile-userpref-controls">
+        <button class="mobile-btn" id="userpref-btn-1">1</button>
+        <button class="mobile-btn" id="userpref-btn-2">2</button>
+        <button class="mobile-btn" id="userpref-btn-3">3</button>
+        <button class="mobile-btn" id="userpref-btn-4">4</button>
+        <button class="mobile-btn" id="userpref-btn-5">5</button>
+        <button class="mobile-btn" id="userpref-btn-6">6</button>
+        <button class="mobile-btn" id="userpref-btn-7">7</button>
+        <button class="mobile-btn" id="userpref-btn-8">8</button>
+        <button class="mobile-btn" id="userpref-btn-9">9</button>
+        <button class="mobile-btn" id="userpref-btn-help">?</button>
+        <button class="mobile-btn" id="userpref-btn-0">0</button>
+        <button class="mobile-btn" id="userpref-btn-exit">E</button>
+        <button class="mobile-btn" id="userpref-btn-enter">Enter</button>
     </div>
 
     <!-- ハンバーガーメニュー本体 -->
@@ -978,8 +1044,9 @@
             // モバイル操作パネルのテーマクラスを更新
             const mobileControls = document.getElementById('mobile-bbs-controls');
             const chatControls = document.getElementById('mobile-chat-controls');
+            const userprefControls = document.getElementById('mobile-userpref-controls');
 
-            [mobileControls, chatControls].forEach(controls => {
+            [mobileControls, chatControls, userprefControls].forEach(controls => {
                 if (controls) {
                     controls.classList.remove('theme-default', 'theme-green', 'theme-amber');
                     controls.classList.add(`theme-${themeName}`);
@@ -1477,6 +1544,25 @@
                 data = data.replace(passkeyRegisterPattern, '');
             }
 
+            // UserPrefコントロール表示/非表示シーケンスをチェック
+            const userprefControlPattern = /\x1b\[\?2028(h|l)/;
+            const userprefMatch = data.match(userprefControlPattern);
+            if (userprefMatch) {
+                const mobileControls = document.getElementById('mobile-userpref-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (userprefMatch[1] === 'h') { // 'h' for show
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                } else { // 'l' for hide
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(userprefControlPattern, '');
+                updateTerminalLayout();
+            }
+
             // チャットコントロール表示/非表示シーケンスをチェック
             const chatControlPattern = /\x1b\[\?2026(h|l)/;
             const chatMatch = data.match(chatControlPattern);
@@ -1747,6 +1833,27 @@
                 if (btn) {
                     btn.addEventListener('click', () => { socket.emit('client_input', key); });
                 }
+            }
+
+            const userprefKeyMap = {
+                'userpref-btn-1': '1',
+                'userpref-btn-2': '2',
+                'userpref-btn-3': '3',
+                'userpref-btn-4': '4',
+                'userpref-btn-5': '5',
+                'userpref-btn-6': '6',
+                'userpref-btn-7': '7',
+                'userpref-btn-8': '8',
+                'userpref-btn-9': '9',
+                'userpref-btn-0': '0',
+                'userpref-btn-help': '?',
+                'userpref-btn-exit': 'e',
+                'userpref-btn-enter': '\r',
+            };
+
+            for (const [id, key] of Object.entries(userprefKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
             }
         });
 
