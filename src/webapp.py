@@ -715,6 +715,66 @@ def passkey_verify_registration():
         return jsonify({"verified": True})
     else:
         return jsonify({"verified": False, "error": "Verification failed on server"}), 400
+
+
+@app.route('/passkey/auth-options', methods=['POST'])
+def passkey_auth_options():
+    """Passkey認証のためのオプションを生成して返すAPI"""
+    data = request.get_json()
+    username = data.get('username', '').upper()
+    if not username:
+        return jsonify({"error": "Username is required"}), 400
+
+    try:
+        options_json_str = passkey_handler.generate_authentication_options_for_user(
+            username)
+        if not options_json_str:
+            return jsonify({"error": "User not found or no passkeys registered"}), 404
+
+        # 検証のためにチャレンジをセッションに保存
+        options_dict = json.loads(options_json_str)
+        session["passkey_authentication_challenge"] = options_dict.get(
+            "challenge")
+
+        return Response(options_json_str, mimetype='application/json')
+    except Exception as e:
+        logging.error(f"Passkey認証オプション生成エラー: {e}", exc_info=True)
+        return jsonify({"error": "Failed to generate authentication options"}), 500
+
+
+@app.route('/passkey/verify-auth', methods=['POST'])
+def passkey_verify_auth():
+    """Passkey認証の検証を行い、成功すればログインさせるAPI"""
+    challenge_str = session.pop("passkey_authentication_challenge", None)
+    if not challenge_str:
+        return jsonify({"error": "Challenge not found in session"}), 400
+
+    challenge_bytes = base64url_to_bytes(challenge_str)
+
+    data = request.get_json()
+    if not data or 'credential' not in data:
+        return jsonify({"error": "Invalid request body"}), 400
+
+    credential_json = json.dumps(data['credential'])
+    webapp_config = util.app_config.get('webapp', {})
+    expected_origin = webapp_config.get('ORIGIN', 'http://localhost:5000')
+
+    user_data = passkey_handler.verify_authentication_for_user(
+        credential=credential_json, expected_challenge=challenge_bytes, expected_origin=expected_origin)
+
+    if user_data:
+        session['lastlogin'] = user_data.get('lastlogin', 0)
+        session['user_id'] = user_data['id']
+        session['username'] = user_data['name']
+        session['userlevel'] = user_data['level']
+        session['menu_mode'] = user_data.get('menu_mode', '2')
+        logging.info(f"WebUI Passkey Login Success: {user_data['name']}")
+        database.update_record(
+            'users', {'lastlogin': int(time.time())}, {'id': user_data['id']})
+        return jsonify({"verified": True})
+    else:
+        logging.warning("WebUI Passkey Login Failed")
+        return jsonify({"verified": False, "error": "Authentication failed"}), 401
 # --- WebSocketイベントハンドラ ---
 
 

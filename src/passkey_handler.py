@@ -4,13 +4,18 @@ from webauthn import (
     generate_registration_options,
     options_to_json,
     verify_registration_response,
+    generate_authentication_options,
+    verify_authentication_response,
 )
-from webauthn.helpers import parse_registration_credential_json
+from webauthn.helpers import parse_registration_credential_json, parse_authentication_credential_json
 from webauthn.helpers.structs import (
     AttestationConveyancePreference,
     AuthenticatorSelectionCriteria,
     ResidentKeyRequirement,
     UserVerificationRequirement,
+    AuthenticationCredential,
+    PublicKeyCredentialDescriptor,
+    PublicKeyCredentialType,
 )
 from webauthn.helpers.exceptions import WebAuthnException
 
@@ -97,3 +102,70 @@ def verify_registration_for_user(user_id, credential, expected_challenge, expect
         logging.error(
             f"Passkey登録中に予期せぬエラー (UserID: {user_id}): {e}", exc_info=True)
         return False
+
+
+def generate_authentication_options_for_user(username):
+    """指定されたユーザーのPasskey認証オプションを生成する"""
+    webapp_config = util.app_config.get('webapp', {})
+    RP_ID = webapp_config.get('RP_ID', 'localhost')
+
+    user = database.get_user_auth_info(username)
+    if not user:
+        return None
+
+    passkeys = database.get_passkeys_by_user(user['id'])
+    if not passkeys:
+        return None
+
+    options = generate_authentication_options(
+        rp_id=RP_ID,
+        allow_credentials=[
+            PublicKeyCredentialDescriptor(
+                type=PublicKeyCredentialType.PUBLIC_KEY, id=pk["credential_id"])
+            for pk in passkeys
+        ],
+        user_verification=UserVerificationRequirement.PREFERRED,
+    )
+
+    return options_to_json(options)
+
+
+def verify_authentication_for_user(credential, expected_challenge, expected_origin):
+    """ユーザーからの認証レスポンスを検証し、成功すればユーザー情報を返す"""
+    webapp_config = util.app_config.get('webapp', {})
+    RP_ID = webapp_config.get('RP_ID', 'localhost')
+
+    try:
+        # フロントエンドから受け取ったJSONをライブラリが扱える形式に変換
+        auth_credential = parse_authentication_credential_json(credential)
+
+        # DBから対応するPasskey情報を取得
+        db_passkey = database.get_passkey_by_credential_id(
+            auth_credential.raw_id)
+        if not db_passkey:
+            raise WebAuthnException("Credential not found in database")
+
+        # 検証実行
+        verification = verify_authentication_response(
+            credential=auth_credential,
+            expected_challenge=expected_challenge,
+            expected_origin=expected_origin,
+            expected_rp_id=RP_ID,
+            credential_public_key=db_passkey['public_key'],
+            credential_current_sign_count=db_passkey['sign_count'],
+            require_user_verification=False,
+        )
+
+        # 署名カウントを更新
+        database.update_passkey_sign_count(
+            credential_id=verification.credential_id,
+            new_sign_count=verification.new_sign_count
+        )
+
+        return database.get_user_by_id(db_passkey['user_id'])
+    except WebAuthnException as e:
+        logging.error(f"Passkey認証検証エラー: {e}")
+        return None
+    except Exception as e:
+        logging.error(f"Passkey認証中に予期せぬエラー: {e}", exc_info=True)
+        return None

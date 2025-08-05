@@ -210,7 +210,7 @@ user_pref_menu:
       ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9]  電報受信制限       ●
       ●[2] パスワード変更     [6] 探索リスト登録          [10] ブラックリスト編集 ○
       ○[3] プロフィール変更   [7] 探索リスト読み出し      [11] メールアドレス変更 ●
-      ●[4] 会員リスト         [8] 元探索リスト読み出し    [P]  Passkey管理        ○
+      ●[4] 会員リスト         [8] 元探索リスト読み出し    [12] Passkey管理        ○
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ====================================================
@@ -227,7 +227,7 @@ user_pref_menu:
       [9] 電報受信制限
       [10] ブラックリスト編集
       [11] メールアドレス変更
-      [P] Passkey管理
+      [12] Passkey管理
       [E] 終了
       [H,?]: ヘルプ
       ====================================================
@@ -246,7 +246,7 @@ user_pref_menu:
       | 9       | Telegram Restrictions: Limit incoming messages |
       | 10      | Edit Blacklist: Manage blocked users           |
       | 11      | Change Email: Update mail address              |
-      | P       | Manage Passkeys: Add or remove passkeys        |
+      | 12      | Manage Passkeys: Add or remove passkeys        |
       | E       | Exit: Return to main menu                      |
       | H, ?    | Help: Display this help menu                   |
       +---------+------------------------------------------------+
@@ -438,21 +438,21 @@ user_pref_menu:
     header:
       mode_1: |
         --- Passkey管理 ---
-        [L] 登録済みPasskeyを一覧表示
         [1] 新しいPasskeyを登録
         [2] 登録済みPasskeyを削除
+        [3] 登録済みPasskeyを一覧表示
         [E] 戻る
       mode_2: |
         --- Passkey管理 ---
-        [L] 登録済みPasskeyを一覧表示
         [1] 新しいPasskeyを登録
         [2] 登録済みPasskeyを削除
+        [3] 登録済みPasskeyを一覧表示
         [E] 戻る
       mode_3: |
         --- Passkey Management ---
-        [L] List registered Passkeys
         [1] Register a new Passkey
         [2] Delete a registered Passkey
+        [3] List registered Passkeys
         [E] Back
     register_success:
       mode_1: "Passkeyの登録に成功しました。"
@@ -478,6 +478,22 @@ user_pref_menu:
       mode_1: "登録されているPasskeyはありません。"
       mode_2: "登録されているPasskeyはありません。"
       mode_3: "No Passkeys are registered."
+    delete_prompt:
+      mode_1: "削除するPasskeyの番号を入力してください (空入力でキャンセル): "
+      mode_2: "削除するPasskeyの番号を入力してください (空入力でキャンセル): "
+      mode_3: "Enter the number of the Passkey to delete (leave blank to cancel): "
+    delete_confirm_yn:
+      mode_1: "本当にPasskey「{nickname}」を削除しますか？ (y/n): "
+      mode_2: "本当にPasskey「{nickname}」を削除しますか？ (y/n): "
+      mode_3: "Are you sure you want to delete the Passkey '{nickname}'? (y/n): "
+    delete_success:
+      mode_1: "Passkeyを削除しました。"
+      mode_2: "Passkeyを削除しました。"
+      mode_3: "Passkey deleted successfully."
+    invalid_selection:
+      mode_1: "無効な選択です。"
+      mode_2: "無効な選択です。"
+      mode_3: "Invalid selection."
 # --- WHOメニュー関連 ---
 who_menu:
   header:

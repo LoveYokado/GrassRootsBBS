@@ -747,3 +747,27 @@ def update_passkey_sign_count(credential_id, new_sign_count):
     query = "UPDATE passkeys SET sign_count = %s, last_used_at = %s WHERE credential_id = %s"
     params = (new_sign_count, int(time.time()), credential_id)
     return execute_query(query, params) is not None
+
+
+def delete_passkey_by_id_and_user_id(passkey_id: int, user_id: int) -> bool:
+    """指定されたユーザーIDに属する特定のPasskeyをIDで削除する"""
+    query = "DELETE FROM passkeys WHERE id = %s AND user_id = %s"
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, (passkey_id, user_id))
+        conn.commit()
+        return cursor.rowcount > 0
+    except mysql.connector.Error as err:
+        logging.error(
+            f"Passkey削除中にDBエラー (passkey_id: {passkey_id}, user_id: {user_id}): {err}")
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
