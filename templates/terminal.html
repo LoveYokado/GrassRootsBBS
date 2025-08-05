@@ -858,27 +858,31 @@
 
         /* --- テーマ適用 --- */
         #mobile-mail-controls.theme-green .mobile-btn,
-        #mobile-bbs-entry-controls.theme-green .mobile-btn {
+        #mobile-bbs-entry-controls.theme-green .mobile-btn,
+        #mobile-top-menu-controls.theme-green .mobile-btn {
             background-color: #000000;
             border-color: #00FF00;
             color: #00FF00;
         }
 
         #mobile-mail-controls.theme-green .mobile-btn:active,
-        #mobile-bbs-entry-controls.theme-green .mobile-btn:active {
+        #mobile-bbs-entry-controls.theme-green .mobile-btn:active,
+        #mobile-top-menu-controls.theme-green .mobile-btn:active {
             background-color: #00FF00;
             color: #000000;
         }
 
         #mobile-mail-controls.theme-amber .mobile-btn,
-        #mobile-bbs-entry-controls.theme-amber .mobile-btn {
+        #mobile-bbs-entry-controls.theme-amber .mobile-btn,
+        #mobile-top-menu-controls.theme-amber .mobile-btn {
             background-color: #1a1000;
             border-color: #FFB000;
             color: #FFB000;
         }
 
         #mobile-mail-controls.theme-amber .mobile-btn:active,
-        #mobile-bbs-entry-controls.theme-amber .mobile-btn:active {
+        #mobile-bbs-entry-controls.theme-amber .mobile-btn:active,
+        #mobile-top-menu-controls.theme-amber .mobile-btn:active {
             background-color: #FFB000;
             color: #1a1000;
         }
@@ -1194,8 +1198,9 @@
             const userprefControls = document.getElementById('mobile-userpref-controls');
             const mailControls = document.getElementById('mobile-mail-controls');
             const bbsEntryControls = document.getElementById('mobile-bbs-entry-controls');
+            const topMenuControls = document.getElementById('mobile-top-menu-controls');
 
-            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls].forEach(controls => {
+            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls, topMenuControls].forEach(controls => {
                 if (controls) {
                     controls.classList.remove('theme-default', 'theme-green', 'theme-amber');
                     controls.classList.add(`theme-${themeName}`);
