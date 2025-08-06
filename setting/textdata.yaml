@@ -1835,10 +1835,6 @@ prompt:
     mode_2: "[TOP]選択してください: "
     mode_3: "[TOP]Select( [?] HELP ) > "
   hierarchy:
-    mode_1: "{menu_name}({hierarchy})]選択してください: "
-    mode_2: "{menu_name}({hierarchy})]$ "
-    mode_3: "{menu_name}({hierarchy})]$ "
-  hierarchy:
     mode_1: "選択してください ( [RET] 戻る [?] ヘルプ ) : "
     mode_2: "[{menu_name}({hierarchy})]選択してください: "
     mode_3: "[{menu_name}({hierarchy})]Select( [RET] BACK ) > "

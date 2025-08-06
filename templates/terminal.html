@@ -1924,6 +1924,8 @@
                     window.removeEventListener('focus', onFocus); // 一度きりのため削除
                     // changeイベントが先に処理される時間を確保するため、少し遅延させる
                     setTimeout(() => {
+                        // ファイル選択が終わったらUIはすぐに非表示にする
+                        attachmentContainer.style.display = 'none';
                         // サーバー側の process_input() を進めるための信号を送信
                         socket.emit('client_input', '\r');
                     }, 150);
@@ -1934,26 +1936,22 @@
                 data = data.replace(attachmentDialogPattern, ''); // シーケンスを消費
             }
 
-            // ファイル添付UI表示/非表示シーケンス
-            const attachmentUiPattern = /\x1b\[\?2032(h|l)/;
-            const attachmentUiMatch = data.match(attachmentUiPattern);
-            if (attachmentUiMatch) {
+            // ファイル添付UI非表示シーケンス (投稿完了/キャンセル時に呼ばれる)
+            const attachmentUiHidePattern = /\x1b\[\?2032l/;
+            if (attachmentUiHidePattern.test(data)) {
                 const attachmentContainer = document.getElementById('attachment-ui-container');
-                if (attachmentUiMatch[1] === 'h') {
-                    attachmentContainer.style.display = 'block';
-                } else {
-                    attachmentContainer.style.display = 'none';
-                    // UIを非表示にするときは、選択状態もリセット
-                    const attachmentInput = document.getElementById('attachment-input');
-                    const attachmentStatus = document.getElementById('attachment-status');
-                    const attachmentClearBtn = document.getElementById('attachment-clear-btn');
-                    attachmentInput.value = '';
-                    attachmentStatus.textContent = '';
-                    attachmentClearBtn.style.display = 'none';
-                    // サーバー側の保留情報もクリアする
-                    socket.emit('clear_pending_attachment');
-                }
-                data = data.replace(attachmentUiPattern, '');
+                attachmentContainer.style.display = 'none';
+                // UIを非表示にするときは、選択状態もリセット
+                const attachmentInput = document.getElementById('attachment-input');
+                const attachmentStatus = document.getElementById('attachment-status');
+                const attachmentClearBtn = document.getElementById('attachment-clear-btn');
+                attachmentInput.value = '';
+                attachmentStatus.textContent = '';
+                attachmentClearBtn.style.display = 'none';
+                // サーバー側の保留情報もクリアする
+                socket.emit('clear_pending_attachment');
+                data = data.replace(attachmentUiHidePattern, '');
+
             }
             term.write(data);
         });

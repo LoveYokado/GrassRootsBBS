@@ -330,8 +330,6 @@ class CommandHandler:
 
         while True:
             util.prompt_handler(self.chan, self.login_id, self.menu_mode)
-            util.send_text_by_key(
-                self.chan, "bbs.article_list_prompt", self.menu_mode, add_newline=False)
             key_input = None
             decoded_char_for_check = None  # 番号ジャンプ用数字判定
             try:
