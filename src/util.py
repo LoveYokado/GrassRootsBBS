@@ -10,7 +10,6 @@ import secrets
 import string
 import textwrap
 
-from . import database
 # テキストデータのキャッシュ用グローバル変数
 _master_text_data_cache = None
 
@@ -207,6 +206,7 @@ def check_database_initialized():
     MariaDBのテーブルが存在するか確認する。
     'users'テーブルの存在をチェックすることで判断する。
     """
+    from . import database
     try:
         # 'users'テーブルの存在を確認するクエリ
         query = "SHOW TABLES LIKE 'users'"
@@ -219,6 +219,7 @@ def check_database_initialized():
 
 def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
     """MariaDBのテーブルを作成し、初期ユーザーを登録する"""
+    from . import database
     try:
         # テーブル作成クエリ
         create_queries = [
@@ -292,7 +293,8 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 board_type VARCHAR(10) NOT NULL DEFAULT 'simple',
                 status VARCHAR(10) NOT NULL DEFAULT 'active',
                 read_level INT NOT NULL DEFAULT 1,
-                write_level INT NOT NULL DEFAULT 1
+                write_level INT NOT NULL DEFAULT 1,
+                allow_attachments BOOLEAN DEFAULT 0 NOT NULL
             )
             """,
             """
@@ -307,6 +309,8 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 ip_address VARCHAR(45),
                 is_deleted BOOLEAN DEFAULT 0,
                 created_at INT,
+                attachment_filename TEXT,
+                attachment_originalname TEXT,
                 FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
                 UNIQUE (board_id, article_number)
             )
@@ -384,6 +388,7 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
 
 def prompt_handler(chan, login_id, menu_mode='2', mail_notified_flag=False):
     """ 定型実行のまとめ """
+    from . import database
     # dbname引数は互換性のために残すが、使用しない
     updated_mail_notified_flag = check_new_mail(
         chan, login_id, menu_mode, mail_notified_flag)
@@ -458,6 +463,7 @@ def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
 
 def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, shortcut_input: str, online_members_func: callable):
     """ショートカットを処理する。ショートカットとして処理が完了したらtrueを返す"""
+    from . import database
     # ショートカットではない
     if not shortcut_input.startswith(';'):
         return False
@@ -537,6 +543,7 @@ def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, shor
 
 def check_new_mail(chan, username, current_menu_mode, notified_in_session):
     """新着メールがないか確認し、あれば通知する。"""
+    from . import database
     user_id = database.get_user_id_from_user_name(username)
     if user_id is None:
         return notified_in_session  # ユーザーが見つからない場合は元の状態を返す
@@ -580,6 +587,7 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode):
     """
     オンラインのメンバーにのみ電報を送信し、データベースに保存する。
     """
+    from . import database
     send_text_by_key(chan, "telegram.send_message",
                      current_menu_mode)  # 電報送信メッセージ
     send_text_by_key(chan, "telegram.send_prompt",
@@ -672,6 +680,7 @@ def truncate_ansi_string(text, max_width):
 
 def telegram_recieve(chan, username, current_menu_mode):
     """受信している電報を表示すして、表示後に削除する"""
+    from . import database
     # 電報受信設定を取得
     user_settings = database.get_user_auth_info(username)
     user_restriction = user_settings['telegram_restriction']

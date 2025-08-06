@@ -563,14 +563,14 @@ def delete_user(user_id):
     return execute_query(query, (user_id,)) is not None
 
 
-def create_board_entry(shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple"):
+def create_board_entry(shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple", allow_attachments=0):
     """新しい掲示板エントリをboardsテーブルに挿入"""
     query = """
-    INSERT INTO boards(shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level, board_type)
-    VALUES(%s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s)
+    INSERT INTO boards (shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level, board_type, allow_attachments)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s)
     """
-    params = (shortcut_id, name, description, operators,
-              default_permission, kanban_body, status, read_level, write_level, board_type)
+    params = (shortcut_id, name, description, operators, default_permission,
+              kanban_body, status, read_level, write_level, board_type, allow_attachments)
     return execute_query(query, params) is not None
 
 
@@ -580,15 +580,22 @@ def delete_board_entry(shortcut_id):
     return execute_query(query, (shortcut_id,)) is not None
 
 
-def insert_article(board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address=None, parent_article_id=None):
+def insert_article(board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None):
     """記事を挿入し、IDを返す"""
     query = """
-        INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, attachment_filename, attachment_originalname)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     params = (board_id_pk, article_number, user_identifier,
-              parent_article_id, title, body, timestamp, ip_address)
+              parent_article_id, title, body, timestamp, ip_address,
+              attachment_filename, attachment_originalname)
     return execute_query(query, params)
+
+
+def get_article_by_attachment_filename(filename):
+    """添付ファイル名から記事情報を取得する"""
+    query = "SELECT * FROM articles WHERE attachment_filename = %s"
+    return execute_query(query, (filename,), fetch='one')
 
 
 def get_articles_by_board_id(board_id_pk, order_by="created_at ASC, article_number ASC", include_deleted=False):
