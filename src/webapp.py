@@ -22,6 +22,7 @@ import json
 import os
 import logging
 import datetime
+import uuid
 import unicodedata
 from logging.handlers import RotatingFileHandler
 import glob
@@ -70,6 +71,18 @@ socketio = SocketIO(
 try:
     config_path = os.path.join(PROJECT_ROOT, 'setting', 'config.toml')
     util.load_app_config_from_path(config_path)
+
+    # --- 添付ファイルディレクトリ設定 ---
+    webapp_config = util.app_config.get('webapp', {})
+    ATTACHMENT_DIR = webapp_config.get(
+        'ATTACHMENT_UPLOAD_DIR', 'data/attachments')
+    if not os.path.isabs(ATTACHMENT_DIR):
+        ATTACHMENT_DIR = os.path.join(PROJECT_ROOT, ATTACHMENT_DIR)
+
+    if not os.path.exists(ATTACHMENT_DIR):
+        os.makedirs(ATTACHMENT_DIR)
+        logging.info(f"添付ファイル保存ディレクトリを作成しました: {ATTACHMENT_DIR}")
+
     if not os.path.exists(APP_LOG_DIR):
         os.makedirs(APP_LOG_DIR)
     if not os.path.exists(SESSION_LOG_DIR):
@@ -774,6 +787,15 @@ def passkey_verify_auth():
     else:
         logging.warning("WebUI Passkey Login Failed")
         return jsonify({"verified": False, "error": "Authentication failed"}), 401
+
+
+@app.route('/attachments/<path:filename>')
+@login_required
+def download_attachment(filename):
+    """保存された添付ファイルをダウンロードさせる"""
+    # セキュリティのため、ATTACHMENT_DIRからのみファイルを送信する
+    return send_from_directory(ATTACHMENT_DIR, filename, as_attachment=True)
+
 # --- WebSocketイベントハンドラ ---
 
 
@@ -1042,6 +1064,71 @@ def handle_get_current_log_buffer():
             # ロギング中でない場合は、空の内容を返すか、エラーメッセージを返す
             emit('log_content', {'filename': '(ロギング中)',
                  'content': 'ロギングが開始されていません。'}, to=sid)
+
+
+@socketio.on('upload_attachment')
+def handle_upload_attachment(data):
+    """クライアントからのファイルアップロードを処理する"""
+    sid = request.sid
+    if sid not in client_states:
+        return
+
+    handler = client_states[sid]
+    if 'user_id' not in handler.user_session:
+        emit('attachment_upload_error', {'message': '認証されていません。'})
+        return
+
+    filename = data.get('filename')
+    file_data = data.get('data')
+
+    if not filename or not file_data:
+        emit('attachment_upload_error', {'message': 'ファイル名またはデータがありません。'})
+        return
+
+    # ファイルサイズの制限 (例: 10MB)
+    limits_config = util.app_config.get('limits', {})
+    max_size = limits_config.get('attachment_max_size_mb', 10) * 1024 * 1024
+    if len(file_data) > max_size:
+        emit('attachment_upload_error', {
+             'message': f'ファイルサイズが大きすぎます ({max_size / 1024 / 1024}MBまで)。'})
+        return
+
+    # 安全なファイル名とユニークなファイル名を生成
+    _, ext = os.path.splitext(filename)
+    unique_filename = f"{uuid.uuid4()}{ext}"
+    save_path = os.path.join(ATTACHMENT_DIR, unique_filename)
+
+    try:
+        with open(save_path, 'wb') as f:
+            f.write(file_data)
+
+        # 成功情報をハンドラに一時保存
+        handler.pending_attachment = {
+            'unique_filename': unique_filename,
+            'original_filename': filename,
+            'filepath': save_path
+        }
+
+        logging.info(
+            f"ファイルがアップロードされました: {filename} -> {unique_filename} (User: {handler.user_session.get('username')})")
+        emit('attachment_upload_success', {'original_filename': filename})
+
+    except Exception as e:
+        logging.error(f"ファイルアップロード処理中にエラー: {e}", exc_info=True)
+        emit('attachment_upload_error', {'message': 'サーバーエラーが発生しました。'})
+
+
+@socketio.on('clear_pending_attachment')
+def handle_clear_pending_attachment():
+    """保留中の添付ファイル情報をクリアする"""
+    sid = request.sid
+    if sid in client_states:
+        handler = client_states[sid]
+        if handler.pending_attachment:
+            logging.info(
+                f"保留中の添付ファイルをクリアしました: {handler.pending_attachment.get('original_filename')} (User: {handler.user_session.get('username')})")
+            # TODO: もしファイルがDBに保存されなかった場合、ここで物理ファイルを削除するロジックを追加することもできる
+            handler.pending_attachment = None
 
 
 # --- Webサーバーの起動 ---

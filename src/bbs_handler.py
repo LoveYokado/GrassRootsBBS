@@ -1540,10 +1540,6 @@ class CommandHandler:
         allow_attachments = self.current_board.get('allow_attachments', 0) == 1
 
         try:
-            if allow_attachments:
-                # ファイルアップロードUI表示命令
-                self.chan.send(b'\x1b[?2032h')
-
             util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
 
             limits_config = util.app_config.get('limits', {})
@@ -1567,6 +1563,15 @@ class CommandHandler:
                 util.send_text_by_key(
                     self.chan, "bbs.title_required", self.menu_mode)
                 return
+
+            # タイトル入力後、ファイル添付ダイアログを即時表示
+            if allow_attachments:
+                # ファイルアップロードUI表示 & 即時ダイアログ表示命令
+                self.chan.send(b'\x1b[?2033h')
+                # クライアント側でファイルダイアログが閉じられるのを待つ。
+                # この入力はダミーで、クライアントからの通知を受け取るためだけに使用する。
+                # プロンプトは表示しない。
+                self.chan.process_input()
 
             body_max_len = limits_config.get('bbs_body_max_length', 8192)
             util.send_text_by_key(
