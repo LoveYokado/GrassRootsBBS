@@ -1024,6 +1024,16 @@
                 </div>
             </div>
             <textarea id="multiline-editor-input" class="popup-window-textarea" cols="80"></textarea>
+            <!-- ファイル添付UI -->
+            <div id="attachment-area"
+                style="display: none; margin-top: 10px; padding: 5px; border: 1px dashed #706b58; border-radius: 4px;">
+                <label for="attachment-input" class="ansi-btn" style="cursor: pointer;">ファイル添付</label>
+                <input type="file" id="attachment-input" style="display: none;">
+                <span id="attachment-status" style="margin-left: 10px; color: #504b38;"></span>
+                <button id="attachment-clear-btn" class="popup-close-btn"
+                    style="display: none; font-size: 1rem; vertical-align: middle;">&times;</button>
+            </div>
+            <!-- ここまで -->
             <div>
                 <button id="multiline-editor-insert-btn">Insert</button>
                 <button id="multiline-editor-cancel-btn">Cancel</button>
@@ -1405,6 +1415,75 @@
         }
 
         const socket = io();
+
+        // --- ファイル添付UIの制御 ---
+        const attachmentArea = document.getElementById('attachment-area');
+        const attachmentInput = document.getElementById('attachment-input');
+        const attachmentStatus = document.getElementById('attachment-status');
+        const attachmentClearBtn = document.getElementById('attachment-clear-btn');
+
+        // サーバーから添付UIの表示/非表示指示を受け取る
+        socket.on('show_attachment_ui', (data) => {
+            if (data.show) {
+                attachmentArea.style.display = 'block';
+            } else {
+                attachmentArea.style.display = 'none';
+                // UIが非表示になるときは、選択中のファイルをクリア
+                attachmentInput.value = '';
+                attachmentStatus.textContent = '';
+                attachmentClearBtn.style.display = 'none';
+                socket.emit('clear_pending_attachment'); // サーバー側の保留情報もクリア
+            }
+        });
+
+        // ファイルが選択されたときの処理
+        attachmentInput.addEventListener('change', () => {
+            if (attachmentInput.files.length > 0) {
+                const file = attachmentInput.files[0];
+
+                // ファイルを読み込んでサーバーに送信
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    socket.emit('upload_attachment', {
+                        filename: file.name,
+                        data: e.target.result // ArrayBuffer
+                    });
+                    // UIを更新
+                    attachmentStatus.textContent = `アップロード待機中: ${file.name}`;
+                    attachmentClearBtn.style.display = 'inline-block';
+                };
+                reader.onerror = (e) => {
+                    console.error("File reading error:", e);
+                    attachmentStatus.textContent = 'ファイル読み込みエラー';
+                    attachmentClearBtn.style.display = 'none';
+                };
+                reader.readAsArrayBuffer(file);
+
+            } else {
+                attachmentStatus.textContent = '';
+                attachmentClearBtn.style.display = 'none';
+                socket.emit('clear_pending_attachment'); // ファイル選択がキャンセルされた場合もクリア
+            }
+        });
+
+        // クリアボタンが押されたときの処理
+        attachmentClearBtn.addEventListener('click', () => {
+            attachmentInput.value = ''; // ファイル選択をリセット
+            attachmentStatus.textContent = '';
+            attachmentClearBtn.style.display = 'none';
+            socket.emit('clear_pending_attachment'); // サーバー側の保留情報もクリア
+        });
+
+        // サーバーからのアップロード結果を受け取る
+        socket.on('attachment_upload_success', (data) => {
+            attachmentStatus.textContent = `アップロード完了: ${data.original_filename}`;
+        });
+
+        socket.on('attachment_upload_error', (data) => {
+            attachmentStatus.textContent = `エラー: ${data.message}`;
+            attachmentInput.value = '';
+            attachmentClearBtn.style.display = 'none';
+        });
 
         // --- ポップアップ処理 ---
         const popupOverlay = document.getElementById('popup-overlay');

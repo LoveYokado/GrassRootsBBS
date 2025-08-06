@@ -1585,6 +1585,11 @@ bbs:
     mode_1: "探索リストから「{shortcut_id}」を削除しました。\r\n"
     mode_2: "探索リストから「{shortcut_id}」を削除しました。\r\n"
     mode_3: "Removed '{shortcut_id}' from exploration list.\r\n"
+  attachment_info:
+    mode_1: "添付ファイル: {original_filename} ({download_url})"
+    mode_2: "添付ファイル: {original_filename} ({download_url})"
+    mode_3: "Attachment: {original_filename} (URL: {download_url})"
+
 auto_download:
   start_message:
     mode_1: ""

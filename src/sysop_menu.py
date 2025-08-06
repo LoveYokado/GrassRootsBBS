@@ -609,6 +609,19 @@ def make_board(chan, sysop_login_id, current_menu_mode):
                 break
         except ValueError:
             pass
+    allow_attachments = 0
+    while True:
+        chan.send("ファイルを添付できるようにしますか？ (y/N): ".encode('utf-8'))
+        attach_input = chan.process_input()
+        if attach_input is None:
+            return None
+        if not attach_input.strip():
+            break  # デフォルトはN (0)
+        if attach_input.strip().lower() == 'y':
+            allow_attachments = 1
+            break
+        if attach_input.strip().lower() == 'n':
+            break
 
     operators_json = f'["{sysop_login_id}"]'
     kanban_body = ""
@@ -623,7 +636,7 @@ def make_board(chan, sysop_login_id, current_menu_mode):
             chan, "common_messages.cancel", current_menu_mode)
         return None
 
-    if database.create_board_entry(shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level, board_type):
+    if database.create_board_entry(shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level, board_type, allow_attachments):
         util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
                               current_menu_mode, shortcut_id=shortcut_id)
         util.send_text_by_key(
