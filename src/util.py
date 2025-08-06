@@ -311,6 +311,7 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 created_at INT,
                 attachment_filename TEXT,
                 attachment_originalname TEXT,
+                attachment_size INT DEFAULT NULL,
                 FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
                 UNIQUE (board_id, article_number)
             )
@@ -877,3 +878,16 @@ def shorten_text_by_slicing(text, width, placeholder="..."):
 
     truncated_len = width - placeholder_len
     return text[:truncated_len] + placeholder
+
+
+def format_file_size(size_in_bytes):
+    """ファイルサイズを人間が読みやすい形式にフォーマットする"""
+    if not isinstance(size_in_bytes, (int, float)) or size_in_bytes < 0:
+        return "0 B"
+    if size_in_bytes < 1024:
+        return f"{size_in_bytes} B"
+    size_in_kb = size_in_bytes / 1024
+    if size_in_kb < 1024:
+        return f"{size_in_kb:.1f} KB"
+    size_in_mb = size_in_kb / 1024
+    return f"{size_in_mb:.1f} MB"

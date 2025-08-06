@@ -620,53 +620,10 @@ def get_article_by_board_and_number(board_id, article_number, include_deleted=Fa
     if not include_deleted:
         where_clauses.append("is_deleted = 0")
 
-    # `parent_article_id` も取得するよう修正
-    query = f"SELECT id, article_number, user_id, parent_article_id, title, body, created_at, is_deleted, ip_address FROM articles WHERE {' AND '.join(where_clauses)}"
+    # 添付ファイル情報も取得するよう修正
+    query = f"SELECT id, article_number, user_id, parent_article_id, title, body, created_at, is_deleted, ip_address, attachment_filename, attachment_originalname, attachment_size FROM articles WHERE {' AND '.join(where_clauses)}"
 
     return execute_query(query, tuple(params), fetch='one')
-
-
-def toggle_article_deleted_status(article_id):
-    """記事の is_deleted フラグをトグルする"""
-    conn = None
-    cursor = None
-    try:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # 1. 現在の状態を取得
-        query_select = "SELECT is_deleted FROM articles WHERE id = %s"
-        cursor.execute(query_select, (article_id,))
-        result = cursor.fetchone()
-
-        if result is None:
-            logging.warning(
-                f"記事削除フラグのトグル失敗: 記事ID '{article_id}' が見つかりません。")
-            return False
-
-        current_status = result['is_deleted']
-        new_status = 1 - current_status  # 0 -> 1, 1 -> 0
-
-        # 2. 更新
-        query_update = "UPDATE articles SET is_deleted = %s WHERE id = %s"
-        cursor.execute(query_update, (new_status, article_id))
-        conn.commit()
-
-        logging.info(
-            f"記事ID {article_id} の is_deleted を {new_status} に変更しました。")
-        return True
-
-    except mysql.connector.Error as err:
-        logging.error(
-            f"記事削除フラグのトグル中にDBエラー (記事ID: {article_id}): {err}")
-        if conn:
-            conn.rollback()
-        return False
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
 
 
 def toggle_article_deleted_status(article_id):

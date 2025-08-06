@@ -1897,6 +1897,20 @@
                 // レイアウト変更後にターミナルのサイズを再計算
                 updateTerminalLayout();
             }
+            // ファイルダウンロードシーケンス
+            const downloadPattern = /\x1b_GRBBS_DOWNLOAD;(.*?)\x1b\\/;
+            const downloadMatch = data.match(downloadPattern);
+            if (downloadMatch) {
+                const url = downloadMatch[1];
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = ''; // download属性を付けるとファイル保存ダイアログが出る
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                data = data.replace(downloadPattern, ''); // シーケンスを消費
+            }
+
             // ファイル添付UI表示 & 即時ダイアログ表示シーケンス
             const attachmentDialogPattern = /\x1b\[\?2033h/;
             if (attachmentDialogPattern.test(data)) {

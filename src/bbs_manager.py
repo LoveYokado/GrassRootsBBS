@@ -90,7 +90,7 @@ class ArticleManager:
         return database.get_article_by_board_and_number(
             board_id, article_number, include_deleted=include_deleted)
 
-    def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None):
+    def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None, attachment_size=None):
         """
         記事を新規作成する
         board_id_pkはboardsテーブルの主キー
@@ -119,12 +119,12 @@ class ArticleManager:
             # 記事を挿入 (トランザクション内で実行)
             current_timestamp = int(time.time())
             query_insert = """
-                INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, attachment_filename, attachment_originalname)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, attachment_filename, attachment_originalname, attachment_size)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             params_insert = (board_id_pk, next_article_number, str(user_identifier),
                              parent_article_id, title, body, current_timestamp, ip_address,
-                             attachment_filename, attachment_originalname)
+                             attachment_filename, attachment_originalname, attachment_size)
             cursor.execute(query_insert, params_insert)
             article_id = cursor.lastrowid
             if article_id is None:

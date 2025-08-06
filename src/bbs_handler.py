@@ -335,7 +335,11 @@ class CommandHandler:
             key_input = None
             decoded_char_for_check = None  # 番号ジャンプ用数字判定
             try:
+                # Gunicornのタイムアウト(デフォルト30秒)より短いタイムアウトを設定
+                self.chan.settimeout(25.0)
                 data = self.chan.recv(1)  # 1バイトずつデータを受信
+                self.chan.settimeout(None)  # 他の処理に影響しないようにタイムアウトをリセット
+
                 if not data:
                     logging.info(
                         f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
@@ -391,6 +395,10 @@ class CommandHandler:
                     except UnicodeDecodeError:
                         self.chan.send(b'\a')  # デコードできないときはビープ音
                         continue  # 次のループへ
+            except socket.timeout:
+                # ユーザーからの入力がなくてもタイムアウトでループが継続する
+                # これによりワーカースレッドのハングを防ぐ
+                continue
             except Exception as e:
                 logging.info(
                     f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
@@ -1383,23 +1391,32 @@ class CommandHandler:
             for line in wrapped_body_lines:
                 self.chan.send(line.encode('utf-8') + b'\r\n')
 
-        # --- 添付ファイルリンク表示処理 ---
+        # --- 添付ファイルダウンロード確認処理 ---
         if article and article.get('attachment_filename') and article.get('attachment_originalname'):
-            webapp_config = util.app_config.get('webapp', {})
-            # Docker環境外からNginxなどでアクセスする場合を考慮し、config.tomlからオリジンを取得
-            origin = webapp_config.get('ORIGIN', '')
-            if not origin:
-                logging.warning(
-                    "config.tomlの[webapp]セクションにORIGINが設定されていません。添付ファイルのURLが不完全になる可能性があります。")
+            file_size_bytes = article.get('attachment_size')
+            formatted_size = util.format_file_size(
+                file_size_bytes) if file_size_bytes is not None else "不明"
 
-            download_url = f"{origin}/attachments/{article['attachment_filename']}"
             util.send_text_by_key(
                 self.chan,
-                "bbs.attachment_info",
+                "bbs.attachment_info_with_size",
                 self.menu_mode,
                 original_filename=article['attachment_originalname'],
-                download_url=download_url
+                formatted_size=formatted_size
             )
+            util.send_text_by_key(
+                self.chan, "bbs.attachment_download_prompt", self.menu_mode, add_newline=False)
+
+            confirm = self.chan.process_input()
+            if confirm and confirm.strip().lower() == 'y':
+                webapp_config = util.app_config.get('webapp', {})
+                origin = webapp_config.get('ORIGIN', '')
+                download_url = f"{origin}/attachments/{article['attachment_filename']}"
+
+                download_sequence = f"\x1b_GRBBS_DOWNLOAD;{download_url}\x1b\\"
+                self.chan.send(download_sequence.encode('utf-8'))
+                util.send_text_by_key(
+                    self.chan, "bbs.attachment_download_starting", self.menu_mode)
 
         # 本文表示後、改行を1行だけ入れる
         self.chan.send(b'\r\n')
@@ -1624,12 +1641,16 @@ class CommandHandler:
                 self.chan, 'handler') else None
             attachment_filename = None
             attachment_originalname = None
+            attachment_size = None
             if attachment_info:
                 attachment_filename = attachment_info.get('unique_filename')
                 attachment_originalname = attachment_info.get(
                     'original_filename')
+                attachment_size = attachment_info.get('size')
 
-            if self.article_manager.create_article(board_id_pk, user_identifier, title, body, ip_address=client_ip, attachment_filename=attachment_filename, attachment_originalname=attachment_originalname):
+            if self.article_manager.create_article(board_id_pk, user_identifier, title, body, ip_address=client_ip,
+                                                   attachment_filename=attachment_filename, attachment_originalname=attachment_originalname,
+                                                   attachment_size=attachment_size):
                 util.send_text_by_key(
                     self.chan, "bbs.post_success", self.menu_mode)
             else:

@@ -1106,7 +1106,8 @@ def handle_upload_attachment(data):
         handler.pending_attachment = {
             'unique_filename': unique_filename,
             'original_filename': filename,
-            'filepath': save_path
+            'filepath': save_path,
+            'size': len(file_data)
         }
 
         logging.info(
