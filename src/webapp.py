@@ -208,6 +208,7 @@ class WebTerminalHandler:
         self.log_buffer = []
         self.mail_notified_this_session = False  # 明示的に初期化
         self.main_thread_active = True
+        self.pending_attachment = None
 
         # SSHの `paramiko.Channel` のように振る舞うアダプタクラス
         class WebChannel:

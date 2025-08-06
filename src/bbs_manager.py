@@ -90,7 +90,7 @@ class ArticleManager:
         return database.get_article_by_board_and_number(
             board_id, article_number, include_deleted=include_deleted)
 
-    def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None):
+    def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None):
         """
         記事を新規作成する
         board_id_pkはboardsテーブルの主キー
