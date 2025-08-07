@@ -2058,6 +2058,20 @@
         socket.on('connect', () => {
             // 接続が確立したら、保存されている設定をサーバに送信
             loadSettings();
+
+            // URLからショートカットパラメータを読み取って実行
+            const urlParams = new URLSearchParams(window.location.search);
+            const shortcut = urlParams.get('shortcut');
+            if (shortcut) {
+                // サーバーがコマンドとして認識できるように、';'プレフィックスと改行を追加
+                const command = `;${shortcut}\r`;
+                // 少し待ってからコマンドを送信
+                setTimeout(() => {
+                    socket.emit('client_input', command);
+                    // URLからクエリパラメータを削除して見た目をクリーンにする
+                    window.history.replaceState({}, document.title, "/");
+                }, 500); // 500ms待機
+            }
         });
 
 
@@ -2388,7 +2402,15 @@
             const enablePushButton = document.getElementById('enable-push-btn');
             const pushStatus = document.getElementById('push-status');
 
-            if (!enablePushButton) return;
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                if (pushStatus) {
+                    pushStatus.textContent = 'Push Notifications are not supported by this browser.';
+                }
+                if (enablePushButton) {
+                    enablePushButton.disabled = true;
+                }
+                return;
+            }
 
             function urlBase64ToUint8Array(base64String) {
                 const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -2402,11 +2424,6 @@
             }
 
             async function subscribeUser() {
-                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                    pushStatus.textContent = 'Push Notifications are not supported.';
-                    return;
-                }
-
                 try {
                     const registration = await navigator.serviceWorker.ready;
                     const subscription = await registration.pushManager.subscribe({
@@ -2421,8 +2438,6 @@
                         headers: { 'Content-Type': 'application/json' }
                     });
 
-                    pushStatus.textContent = 'Push notifications enabled!';
-                    enablePushButton.disabled = true;
                 } catch (err) {
                     console.error('Failed to subscribe the user: ', err);
                     let errorMessage = 'Failed to enable push notifications.';
@@ -2436,9 +2451,49 @@
                     }
                     pushStatus.textContent = errorMessage;
                 }
+                updatePushButton();
             }
 
-            enablePushButton.addEventListener('click', subscribeUser);
+            async function unsubscribeUser() {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+                    if (subscription) {
+                        // サーバーに購読解除を通知
+                        await fetch('/push/unsubscribe', {
+                            method: 'POST',
+                            body: JSON.stringify({ endpoint: subscription.endpoint }),
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+                        await subscription.unsubscribe();
+                    }
+                } catch (err) {
+                    console.error('Error unsubscribing', err);
+                    pushStatus.textContent = 'Failed to disable notifications.';
+                }
+                updatePushButton();
+            }
+
+            async function updatePushButton() {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+
+                enablePushButton.removeEventListener('click', subscribeUser);
+                enablePushButton.removeEventListener('click', unsubscribeUser);
+
+                if (subscription) {
+                    pushStatus.textContent = 'Push notifications are enabled.';
+                    enablePushButton.textContent = 'Disable Notifications';
+                    enablePushButton.addEventListener('click', unsubscribeUser);
+                } else {
+                    pushStatus.textContent = '';
+                    enablePushButton.textContent = 'Enable Notifications';
+                    enablePushButton.addEventListener('click', subscribeUser);
+                }
+                enablePushButton.disabled = false;
+            }
+
+            updatePushButton();
         });
     </script>
 </body>

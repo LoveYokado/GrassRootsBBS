@@ -843,6 +843,28 @@ def subscribe_push():
         return jsonify({'status': 'error', 'message': 'Failed to save subscription on server'}), 500
 
 
+@app.route('/push/unsubscribe', methods=['POST'])
+@login_required
+def unsubscribe_push():
+    """
+    クライアントから送信されたPush Subscription解除リクエストを処理する
+    """
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'status': 'error', 'message': 'User not logged in'}), 401
+
+    data = request.get_json()
+    endpoint = data.get('endpoint')
+    if not endpoint:
+        return jsonify({'status': 'error', 'message': 'Endpoint not provided'}), 400
+
+    if database.delete_push_subscription(user_id, endpoint):
+        return jsonify({'status': 'success'}), 200
+    else:
+        # サーバー側で該当データが見つからなくても、クライアント側では成功したように見せるのが一般的
+        return jsonify({'status': 'success'}), 200
+
+
 @app.route('/attachments/<path:filename>')
 @login_required
 def download_attachment(filename):
