@@ -547,7 +547,14 @@ def index():
         "f6": {"label": "M-Line Edit", "action": "open_multiline_editor"},
         "f8": {"label": "ReConnect", "action": "redirect", "value": url_for('login')},
     }
-    return render_template('terminal.html', fkey_definitions=fkey_definitions)
+    # limits設定をテンプレートに渡す
+    limits_config = util.app_config.get('limits', {})
+    attachment_limits = {
+        'max_size_mb': limits_config.get('attachment_max_size_mb', 10),
+        'allowed_extensions': limits_config.get('allowed_attachment_extensions', 'jpg,jpeg,png,gif,txt')
+    }
+
+    return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -1074,6 +1081,9 @@ def handle_upload_attachment(data):
         return
 
     handler = client_states[sid]
+    # 以前の添付情報をクリア
+    handler.pending_attachment = None
+
     if 'user_id' not in handler.user_session:
         emit('attachment_upload_error', {'message': '認証されていません。'})
         return
@@ -1085,12 +1095,56 @@ def handle_upload_attachment(data):
         emit('attachment_upload_error', {'message': 'ファイル名またはデータがありません。'})
         return
 
-    # ファイルサイズの制限 (例: 10MB)
+    # --- 設定ファイルから制限を読み込む ---
     limits_config = util.app_config.get('limits', {})
-    max_size = limits_config.get('attachment_max_size_mb', 10) * 1024 * 1024
-    if len(file_data) > max_size:
-        emit('attachment_upload_error', {
-             'message': f'ファイルサイズが大きすぎます ({max_size / 1024 / 1024}MBまで)。'})
+
+    # ファイルサイズの制限
+    max_size_mb = limits_config.get('attachment_max_size_mb', 10)
+    max_size_bytes = max_size_mb * 1024 * 1024
+    message = ""
+    if len(file_data) > max_size_bytes:
+        message = f'ファイルサイズが大きすぎます ({max_size_mb}MBまで)。'
+
+    # 許可する拡張子の制限
+    if not message:  # ファイルサイズエラーがなければ拡張子をチェック
+        allowed_extensions_str = limits_config.get(
+            'allowed_attachment_extensions', '')
+        allowed_extensions = {ext.strip().lower()
+                              for ext in allowed_extensions_str.split(',') if ext.strip()}
+        file_ext = os.path.splitext(filename)[1].lstrip('.').lower()
+        if allowed_extensions and file_ext not in allowed_extensions:
+            message = f'許可されていないファイル形式です。({", ".join(sorted(list(allowed_extensions)))})'
+
+    # エラーがあれば記録して終了
+    if message:
+        handler.pending_attachment = {'error': message}
+        emit('attachment_upload_error', {'message': message})
+        return
+
+    # --- 設定ファイルから制限を読み込む ---
+    limits_config = util.app_config.get('limits', {})
+
+    # ファイルサイズの制限
+    max_size_mb = limits_config.get('attachment_max_size_mb', 10)
+    max_size_bytes = max_size_mb * 1024 * 1024
+    message = ""
+    if len(file_data) > max_size_bytes:
+        message = f'ファイルサイズが大きすぎます ({max_size_mb}MBまで)。'
+
+    # 許可する拡張子の制限
+    if not message:  # ファイルサイズエラーがなければ拡張子をチェック
+        allowed_extensions_str = limits_config.get(
+            'allowed_attachment_extensions', '')
+        allowed_extensions = {ext.strip().lower()
+                              for ext in allowed_extensions_str.split(',') if ext.strip()}
+        file_ext = os.path.splitext(filename)[1].lstrip('.').lower()
+        if allowed_extensions and file_ext not in allowed_extensions:
+            message = f'許可されていないファイル形式です。({", ".join(sorted(list(allowed_extensions)))})'
+
+    # エラーがあれば記録して終了
+    if message:
+        handler.pending_attachment = {'error': message}
+        emit('attachment_upload_error', {'message': message})
         return
 
     # 安全なファイル名とユニークなファイル名を生成

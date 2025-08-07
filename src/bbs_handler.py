@@ -127,7 +127,13 @@ class CommandHandler:
                 util.send_text_by_key(
                     self.chan, "prompt.bbs_wrdate", self.menu_mode, add_newline=False
                 )
-                choice = self.chan.process_input()
+                try:
+                    self.chan.settimeout(25.0)
+                    choice = self.chan.process_input()
+                except socket.timeout:
+                    continue  # タイムアウトしたらループを継続
+                finally:
+                    self.chan.settimeout(None)
                 if choice is None:
                     return  # 切断
                 choice = choice.lower().strip()
@@ -1405,7 +1411,17 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "bbs.attachment_download_prompt", self.menu_mode, add_newline=False)
 
-            confirm = self.chan.process_input()
+            confirm = None
+            try:
+                self.chan.settimeout(25.0)
+                confirm = self.chan.process_input()
+            except socket.timeout:
+                # タイムアウトしたらNを入力したことにする
+                self.chan.send(b'N\r\n')
+                confirm = 'n'
+            finally:
+                self.chan.settimeout(None)
+
             if confirm and confirm.strip().lower() == 'y':
                 webapp_config = util.app_config.get('webapp', {})
                 origin = webapp_config.get('ORIGIN', '')
@@ -1579,15 +1595,6 @@ class CommandHandler:
                     self.chan, "bbs.title_required", self.menu_mode)
                 return
 
-            # タイトル入力後、ファイル添付ダイアログを即時表示
-            if allow_attachments:
-                # ファイルアップロードUI表示 & 即時ダイアログ表示命令
-                self.chan.send(b'\x1b[?2033h')
-                # クライアント側でファイルダイアログが閉じられるのを待つ。
-                # この入力はダミーで、クライアントからの通知を受け取るためだけに使用する。
-                # プロンプトは表示しない。
-                self.chan.process_input()
-
             body_max_len = limits_config.get('bbs_body_max_length', 8192)
             util.send_text_by_key(
                 self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
@@ -1615,6 +1622,25 @@ class CommandHandler:
             elif not body.strip():
                 body = '(T/O)'  # 本文が空なら、本文に(T/O)と入れる
 
+            # 本文入力後、ファイル添付ダイアログを即時表示
+            if allow_attachments:
+                # ファイルアップロードUI表示 & 即時ダイアログ表示命令
+                self.chan.send(b'\x1b[?2033h')
+                # クライアント側でファイルダイアログが閉じられるのを待つ。
+                # この入力はダミーで、クライアントからの通知を受け取るためだけに使用する。
+                # プロンプトは表示しない。
+                try:
+                    # ファイル選択には時間がかかるかもしれないので長めに設定
+                    self.chan.settimeout(60.0)
+                    self.chan.process_input()
+                except socket.timeout:
+                    # タイムアウトした場合、アップロードが失敗したとみなし、エラーをセットする
+                    if hasattr(self.chan, 'handler'):
+                        self.chan.handler.pending_attachment = {
+                            'error': 'ファイル選択がタイムアウトしました。'}
+                finally:
+                    self.chan.settimeout(None)
+
             util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
                                   self.menu_mode, add_newline=False)
             confirm = self.chan.process_input()
@@ -1637,6 +1663,17 @@ class CommandHandler:
             # --- 添付ファイル処理 ---
             attachment_info = self.chan.handler.pending_attachment if hasattr(
                 self.chan, 'handler') else None
+
+            # ファイルアップロードでエラーが発生していないかチェック
+            if attachment_info and 'error' in attachment_info:
+                error_message = attachment_info.get(
+                    'error', '不明なアップロードエラーです。')
+                self.chan.send(
+                    f"\r\n** エラー: {error_message} **\r\n".encode('utf-8'))
+                util.send_text_by_key(
+                    self.chan, "bbs.post_cancel", self.menu_mode)
+                return  # 投稿処理を中止
+
             attachment_filename = None
             attachment_originalname = None
             attachment_size = None
