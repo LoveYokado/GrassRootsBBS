@@ -533,7 +533,7 @@ def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, user
             target_item, item_name = find_item_in_yaml(
                 chatroom_config, shortcut_id_to_search, menu_mode, "room")
             if target_item:
-                import chat_handler
+                from . import chat_handler
                 send_text_by_key(chan, "shortcut.jumping_to_chat",
                                  menu_mode, room_name=item_name)
                 chat_handler.set_online_members_function_for_chat(

@@ -42,6 +42,7 @@ OQOgCjDs+l2FYrvhyqDXUAv+edsZviGsEqSRPv8ZG/nmMfWjnDybyOsp
 -----END PRIVATE KEY-----
 """
 VAPID_CLAIMS_EMAIL = "mailto:your-email@example.com" # あなたのメールアドレスに変更
+NOTIFICATION_COOLDOWN_SECONDS = 60 # 同じルームへの入室通知のクールダウン時間（秒）
 
 [paths]
 db_name = "data/bbs.db"                   # DBファイル名

@@ -629,7 +629,8 @@ def login():
                     if handler.user_session.get('username') == username:
                         error = util.get_text_by_key(
                             "auth.already_logged_in",
-                            session.get('menu_mode', '2'),
+                            handler.user_session.get(
+                                'menu_mode', '2'),  # 切断される側のモードでメッセージ取得
                             default_value="This ID is already in use."
                         ).replace('\r\n', '')
                         logging.warning(
@@ -884,18 +885,23 @@ def handle_connect(auth=None):
     # --- マルチログインチェック ---
     username_to_connect = session.get('username', 'Unknown')
     if username_to_connect.upper() != 'GUEST':
-        # client_states を直接チェックして、同じユーザー名が既に存在しないか確認
+        # 同じユーザーが既に接続していないかチェック
+        sid_to_disconnect = None
         for sid, handler in client_states.copy().items():
             if handler.user_session.get('username') == username_to_connect:
-                logging.warning(
-                    f"WebUIでのマルチログインが試みられました: {username_to_connect} from {request.remote_addr}")
-                # クライアントに通知して切断させる
-                logoff_message_text = util.get_text_by_key(
-                    "auth.already_logged_in", session.get('menu_mode', '2'))
-                processed_text = logoff_message_text.replace(
-                    '\r\n', '\n').replace('\n', '\r\n')
-                emit('force_disconnect', {'message': processed_text})
-                return False  # 接続を拒否
+                sid_to_disconnect = sid
+                break
+
+        if sid_to_disconnect:
+            logging.warning(
+                f"WebUIでのマルチログインを検出: {username_to_connect}. 古いセッション(SID: {sid_to_disconnect})を切断します。")
+            logoff_message_text = util.get_text_by_key(
+                "auth.logged_in_from_another_location", session.get('menu_mode', '2'))
+            processed_text = logoff_message_text.replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            socketio.emit('force_disconnect', {
+                          'message': processed_text}, to=sid_to_disconnect)
+            disconnect(sid_to_disconnect, silent=True)
 
     # --- 接続数チェック ---
     global current_webapp_clients

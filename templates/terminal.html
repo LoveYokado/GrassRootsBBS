@@ -2074,6 +2074,18 @@
             }
         });
 
+        // --- Service Workerからのメッセージを処理 ---
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data && event.data.type === 'execute_shortcut') {
+                // メッセージからURLを取得し、ショートカットコマンドを組み立てる
+                const url = new URL(event.data.url, window.location.origin);
+                const shortcut = url.searchParams.get('shortcut');
+                if (shortcut) {
+                    const command = `;${shortcut}\r`;
+                    socket.emit('client_input', command);
+                }
+            }
+        });
 
         // --- ポップアップのドラッグ機能 ---
         function makePopupDraggable(popup) {

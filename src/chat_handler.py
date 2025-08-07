@@ -1,6 +1,7 @@
 import logging
 import collections
 import threading
+import time
 import json
 
 from . import util, bbsmenu
@@ -11,7 +12,12 @@ chat_room_histories = {}
 MAX_HISTORY_MESSAGES = 100
 
 active_chat_rooms = {}
-# {room_id: {"users": {login_id: chan}, "locked_by": "owner_login_id" or None}}
+# {room_id: {"users": {login_id: {"chan": chan, "menu_mode": "2", "user_id": 1}}, "locked_by": "owner_login_id" or None}}
+
+# 通知のクールダウンタイムスタンプを管理する辞書
+# この辞書はルームが空になっても維持される
+chat_room_notification_timestamps = {}
+# {room_id: 1678886400.0}
 
 chat_rooms_lock = threading.Lock()
 
@@ -157,7 +163,7 @@ def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_n
     logging.info(
         f"ChatEvent[{room_id}]: User {login_id}({display_name}) joined.")
 
-    # --- Push通知送信処理 (push: True のルームのみ) ---
+    # --- Push通知送信処理 (クールダウン付き) ---
     paths_config = util.app_config.get('paths', {})
     chatroom_config_path = paths_config.get('chatroom_yaml')
     chatroom_config = util.load_yaml_file_for_shortcut(chatroom_config_path)
@@ -167,22 +173,39 @@ def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_n
             chatroom_config, room_id, menu_mode, "room")
 
         if target_item and target_item.get('push') is True:
-            try:
-                from . import database
-                subscriptions = database.get_all_subscriptions(
-                    exclude_user_id=user_id)
-                if subscriptions:
-                    notification_payload = json.dumps({
-                        "title": "GR-BBS Chat",
-                        "body": f"{display_name}さんが「{room_name}」に入室しました。"
-                    })
-                    logging.info(
-                        f"Sending {len(subscriptions)} push notifications for user joining room {room_id}.")
-                    for sub in subscriptions:
-                        util.send_push_notification(
-                            sub['subscription_info'], notification_payload)
-            except Exception as e:
-                logging.error(f"Push通知の送信中にエラーが発生しました: {e}", exc_info=True)
+            push_config = util.app_config.get('push', {})
+            cooldown_seconds = push_config.get(
+                'NOTIFICATION_COOLDOWN_SECONDS', 60)
+            current_time = time.time()
+
+            with chat_rooms_lock:
+                last_notification_time = chat_room_notification_timestamps.get(
+                    room_id, 0)
+
+            if (current_time - last_notification_time) > cooldown_seconds:
+                try:
+                    from . import database
+                    subscriptions = database.get_all_subscriptions(
+                        exclude_user_id=user_id)
+                    if subscriptions:
+                        notification_payload = json.dumps({
+                            "title": "GR-BBS Chat",
+                            "body": f"{display_name}さんが「{room_name}」に入室しました。",
+                            "data": {"url": f"/?shortcut=c:{room_id}"}
+                        })
+                        logging.info(
+                            f"Sending {len(subscriptions)} push notifications for user joining room {room_id}.")
+                        for sub in subscriptions:
+                            util.send_push_notification(
+                                sub['subscription_info'], notification_payload)
+
+                        with chat_rooms_lock:
+                            chat_room_notification_timestamps[room_id] = current_time
+                except Exception as e:
+                    logging.error(f"Push通知の送信中にエラーが発生しました: {e}", exc_info=True)
+            else:
+                logging.info(
+                    f"Push notification for room {room_id} skipped due to cooldown.")
 
     # システムメッセージとしてブロードキャスト (画面表示用)
     broadcast_to_room(room_id, "System", join_notification,
