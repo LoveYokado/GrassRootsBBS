@@ -1418,6 +1418,10 @@ bbs:
       | ;Target + ENTER    | SIG Jump: Switch between SIGs           |
       +--------------------+-----------------------------------------+
   back_to_list_prompt: # 記事閲覧後、一覧に戻るかのプロンプト
+    mode_1: "選択してください ( [?] ヘルプ ) : "
+    mode_2: "[BBS]選択してください: "
+    mode_3: "[BBS]Select( [?] HELP ) > "
+  article_list_prompt:
     mode_1: "一覧に戻りますか？ ([E]xit / [Enter]戻る): "
     mode_2: "一覧に戻りますか？ ([E]xit / [Enter]戻る): "
     mode_3: "Back to list? ([E]xit / [Enter]Back): "
@@ -1585,6 +1589,23 @@ bbs:
     mode_1: "探索リストから「{shortcut_id}」を削除しました。\r\n"
     mode_2: "探索リストから「{shortcut_id}」を削除しました。\r\n"
     mode_3: "Removed '{shortcut_id}' from exploration list.\r\n"
+  attachment_info_with_size:
+    mode_1: "添付ファイル: {original_filename} (サイズ: {formatted_size})"
+    mode_2: "添付ファイル: {original_filename} (サイズ: {formatted_size})"
+    mode_3: "Attachment: {original_filename} (Size: {formatted_size})"
+  attachment_download_prompt:
+    mode_1: "ダウンロードしますか？ (y/N): "
+    mode_2: "ダウンロードしますか？ (y/N): "
+    mode_3: "Download? (y/N): "
+  attachment_download_starting:
+    mode_1: "ダウンロードを開始します...\r\n"
+    mode_2: "ダウンロードを開始します...\r\n"
+    mode_3: "Starting download...\r\n"
+  attachment_retry_prompt:
+    mode_1: "登録を取りやめますか？ (Y/N): "
+    mode_2: "登録を取りやめますか？ (Y/N): "
+    mode_3: "Cancel registration? (Y/N): "
+
 auto_download:
   start_message:
     mode_1: ""
@@ -1817,10 +1838,6 @@ prompt:
     mode_1: "選択してください ( [?] ヘルプ ) :  "
     mode_2: "[TOP]選択してください: "
     mode_3: "[TOP]Select( [?] HELP ) > "
-  hierarchy:
-    mode_1: "{menu_name}({hierarchy})]選択してください: "
-    mode_2: "{menu_name}({hierarchy})]$ "
-    mode_3: "{menu_name}({hierarchy})]$ "
   hierarchy:
     mode_1: "選択してください ( [RET] 戻る [?] ヘルプ ) : "
     mode_2: "[{menu_name}({hierarchy})]選択してください: "

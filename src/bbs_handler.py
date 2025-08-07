@@ -127,7 +127,13 @@ class CommandHandler:
                 util.send_text_by_key(
                     self.chan, "prompt.bbs_wrdate", self.menu_mode, add_newline=False
                 )
-                choice = self.chan.process_input()
+                try:
+                    self.chan.settimeout(25.0)
+                    choice = self.chan.process_input()
+                except socket.timeout:
+                    continue  # タイムアウトしたらループを継続
+                finally:
+                    self.chan.settimeout(None)
                 if choice is None:
                     return  # 切断
                 choice = choice.lower().strip()
@@ -330,12 +336,14 @@ class CommandHandler:
 
         while True:
             util.prompt_handler(self.chan, self.login_id, self.menu_mode)
-            util.send_text_by_key(
-                self.chan, "bbs.article_list_prompt", self.menu_mode, add_newline=False)
             key_input = None
             decoded_char_for_check = None  # 番号ジャンプ用数字判定
             try:
+                # Gunicornのタイムアウト(デフォルト30秒)より短いタイムアウトを設定
+                self.chan.settimeout(25.0)
                 data = self.chan.recv(1)  # 1バイトずつデータを受信
+                self.chan.settimeout(None)  # 他の処理に影響しないようにタイムアウトをリセット
+
                 if not data:
                     logging.info(
                         f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
@@ -391,6 +399,10 @@ class CommandHandler:
                     except UnicodeDecodeError:
                         self.chan.send(b'\a')  # デコードできないときはビープ音
                         continue  # 次のループへ
+            except socket.timeout:
+                # ユーザーからの入力がなくてもタイムアウトでループが継続する
+                # これによりワーカースレッドのハングを防ぐ
+                continue
             except Exception as e:
                 logging.info(
                     f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
@@ -767,9 +779,15 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
 
             elif key_input == "w":
-                self.write_article()
-                reload_articles_display(keep_index=False)  # 新規投稿後は先頭から再表示
-                self.just_displayed_header_from_tail_h = False
+                result = self.write_article()
+                if result == 'posted':
+                    # 投稿成功時は、記事一覧を抜けて掲示板トップに戻る
+                    self.chan.send(b'\x1b[?2024l')  # モバイルボタンを非表示
+                    return
+                else:
+                    # キャンセルまたはエラーの場合は、記事一覧を再表示
+                    reload_articles_display(keep_index=True)  # カーソル位置を維持して再表示
+                    self.just_displayed_header_from_tail_h = False
 
             elif key_input == "s":  # シグ看板表示
                 # 看板表示前に現在の記事ヘッダを消す必要はない（看板は別領域に表示される想定）
@@ -1383,6 +1401,43 @@ class CommandHandler:
             for line in wrapped_body_lines:
                 self.chan.send(line.encode('utf-8') + b'\r\n')
 
+        # --- 添付ファイルダウンロード確認処理 ---
+        if article and article.get('attachment_filename') and article.get('attachment_originalname'):
+            file_size_bytes = article.get('attachment_size')
+            formatted_size = util.format_file_size(
+                file_size_bytes) if file_size_bytes is not None else "不明"
+
+            util.send_text_by_key(
+                self.chan,
+                "bbs.attachment_info_with_size",
+                self.menu_mode,
+                original_filename=article['attachment_originalname'],
+                formatted_size=formatted_size
+            )
+            util.send_text_by_key(
+                self.chan, "bbs.attachment_download_prompt", self.menu_mode, add_newline=False)
+
+            confirm = None
+            try:
+                self.chan.settimeout(25.0)
+                confirm = self.chan.process_input()
+            except socket.timeout:
+                # タイムアウトしたらNを入力したことにする
+                self.chan.send(b'N\r\n')
+                confirm = 'n'
+            finally:
+                self.chan.settimeout(None)
+
+            if confirm and confirm.strip().lower() == 'y':
+                webapp_config = util.app_config.get('webapp', {})
+                origin = webapp_config.get('ORIGIN', '')
+                download_url = f"{origin}/attachments/{article['attachment_filename']}"
+
+                download_sequence = f"\x1b_GRBBS_DOWNLOAD;{download_url}\x1b\\"
+                self.chan.send(download_sequence.encode('utf-8'))
+                util.send_text_by_key(
+                    self.chan, "bbs.attachment_download_starting", self.menu_mode)
+
         # 本文表示後、改行を1行だけ入れる
         self.chan.send(b'\r\n')
 
@@ -1518,78 +1573,149 @@ class CommandHandler:
                 self.chan, "bbs.permission_denied_write_article", self.menu_mode)
             return
 
-        util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
+        # ファイル添付が許可されているかチェック
+        allow_attachments = self.current_board.get('allow_attachments', 0) == 1
 
-        limits_config = util.app_config.get('limits', {})
-        title_max_len = limits_config.get('bbs_title_max_length', 100)
+        try:
+            util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
 
-        util.send_text_by_key(self.chan, "bbs.post_subject", self.menu_mode,
-                              max_len=title_max_len, add_newline=False)
-        title = self.chan.process_input()
-        if title is None:
-            return  # 切断
-        title = title.strip()
+            limits_config = util.app_config.get('limits', {})
+            title_max_len = limits_config.get('bbs_title_max_length', 100)
 
-        if len(title) > title_max_len:
-            title = title[:title_max_len]
-            util.send_text_by_key(
-                self.chan, "bbs.title_truncated", self.menu_mode, max_len=title_max_len)
-
-        board_type = self.current_board.get('board_type', 'simple')
-        if not title and board_type == 'thread':
-            # スレッド形式の場合、新規投稿（スレッド作成）にはタイトルが必須
-            util.send_text_by_key(
-                self.chan, "bbs.title_required", self.menu_mode)
-            return
-
-        body_max_len = limits_config.get('bbs_body_max_length', 8192)
-        util.send_text_by_key(
-            self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
-        body_lines = []
-        while True:
-            line = self.chan.process_input()
-            if line is None:
+            util.send_text_by_key(self.chan, "bbs.post_subject", self.menu_mode,
+                                  max_len=title_max_len, add_newline=False)
+            title = self.chan.process_input()
+            if title is None:
                 return  # 切断
-            if line == '^':
-                break
-            body_lines.append(line)
-        body = '\r\n'.join(body_lines)
+            title = title.strip()
 
-        if len(body) > body_max_len:
-            body = body[:body_max_len]
+            if len(title) > title_max_len:
+                title = title[:title_max_len]
+                util.send_text_by_key(
+                    self.chan, "bbs.title_truncated", self.menu_mode, max_len=title_max_len)
+
+            board_type = self.current_board.get('board_type', 'simple')
+            if not title and board_type == 'thread':
+                # スレッド形式の場合、新規投稿（スレッド作成）にはタイトルが必須
+                util.send_text_by_key(
+                    self.chan, "bbs.title_required", self.menu_mode)
+                return
+
+            body_max_len = limits_config.get('bbs_body_max_length', 8192)
             util.send_text_by_key(
-                self.chan, "bbs.body_truncated", self.menu_mode, max_len=body_max_len)
+                self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
+            body_lines = []
+            while True:
+                line = self.chan.process_input()
+                if line is None:
+                    return  # 切断
+                if line == '^':
+                    break
+                body_lines.append(line)
+            body = '\r\n'.join(body_lines)
 
-        # 本文が空の場合の処理
-        if not body.strip() and not title.strip():
-            # タイトルも本文も空の場合はキャンセル
-            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
-            return
-        elif not body.strip():
-            body = '(T/O)'  # 本文が空なら、本文に(T/O)と入れる
+            if len(body) > body_max_len:
+                body = body[:body_max_len]
+                util.send_text_by_key(
+                    self.chan, "bbs.body_truncated", self.menu_mode, max_len=body_max_len)
 
-        util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
-                              self.menu_mode, add_newline=False)
-        confirm = self.chan.process_input()
-        if confirm is None or confirm.strip().lower() != 'y':
-            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
-            return  # キャンセル
+            # 本文が空の場合の処理
+            if not body.strip() and not title.strip():
+                # タイトルも本文も空の場合はキャンセル
+                util.send_text_by_key(
+                    self.chan, "bbs.post_cancel", self.menu_mode)
+                return
+            elif not body.strip():
+                body = '(T/O)'  # 本文が空なら、本文に(T/O)と入れる
 
-        # 投稿者識別子を決定
-        user_identifier = None
-        if self.login_id.upper() == 'GUEST':
-            # ゲストの場合、IPからハッシュ付きの表示名を生成
-            # util.get_display_name は 'GUEST(hash)' を返す
-            user_identifier = util.get_display_name(self.login_id, client_ip)
-        else:
-            # 登録ユーザーの場合、ユーザーID(数値)を使用
-            user_identifier = self.user_id_pk
+            # --- 本文入力後、ファイル添付処理 ---
+            if allow_attachments:
+                while True:  # エラーがなくなるまでループ
+                    # ファイルアップロードUI表示 & 即時ダイアログ表示命令
+                    self.chan.send(b'\x1b[?2033h')
+                    try:
+                        self.chan.settimeout(60.0)
+                        self.chan.process_input()
+                    except socket.timeout:
+                        if hasattr(self.chan, 'handler'):
+                            self.chan.handler.pending_attachment = {
+                                'error': 'ファイル選択がタイムアウトしました。'}
+                    finally:
+                        self.chan.settimeout(None)
 
-        if self.article_manager.create_article(board_id_pk, user_identifier, title, body, ip_address=client_ip):
-            util.send_text_by_key(
-                self.chan, "bbs.post_success", self.menu_mode)
-        else:
-            util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
+                    attachment_info = self.chan.handler.pending_attachment if hasattr(
+                        self.chan, 'handler') else None
+
+                    if attachment_info and 'error' in attachment_info:
+                        error_message = attachment_info.get(
+                            'error', '不明なアップロードエラーです。')
+                        self.chan.send(
+                            f"\r\n** エラー: {error_message} **\r\n".encode('utf-8'))
+                        util.send_text_by_key(
+                            self.chan, "bbs.attachment_retry_prompt", self.menu_mode, add_newline=False)
+                        retry_choice = None
+                        try:
+                            self.chan.settimeout(25.0)
+                            retry_choice = self.chan.process_input()
+                        except socket.timeout:
+                            self.chan.send(b'N\r\n')  # タイムアウトしたらNを入力したことにする
+                            retry_choice = 'n'
+                        finally:
+                            self.chan.settimeout(None)
+                        if retry_choice and retry_choice.strip().lower() == 'y':
+                            util.send_text_by_key(
+                                self.chan, "bbs.post_cancel", self.menu_mode)
+                            return  # 投稿中止
+                        continue  # 再試行
+                    break  # エラーがなければループを抜ける
+
+            util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
+                                  self.menu_mode, add_newline=False)
+            confirm = self.chan.process_input()
+            if confirm is None or confirm.strip().lower() != 'y':
+                util.send_text_by_key(
+                    self.chan, "bbs.post_cancel", self.menu_mode)
+                return  # キャンセル
+
+            # 投稿者識別子を決定
+            user_identifier = None
+            if self.login_id.upper() == 'GUEST':
+                # ゲストの場合、IPからハッシュ付きの表示名を生成
+                # util.get_display_name は 'GUEST(hash)' を返す
+                user_identifier = util.get_display_name(
+                    self.login_id, client_ip)
+            else:
+                # 登録ユーザーの場合、ユーザーID(数値)を使用
+                user_identifier = self.user_id_pk
+
+            # --- 添付ファイル処理 ---
+            attachment_info = self.chan.handler.pending_attachment if hasattr(
+                self.chan, 'handler') else None
+
+            attachment_filename = None
+            attachment_originalname = None
+            attachment_size = None
+            if attachment_info:
+                attachment_filename = attachment_info.get('unique_filename')
+                attachment_originalname = attachment_info.get(
+                    'original_filename')
+                attachment_size = attachment_info.get('size')
+
+            if self.article_manager.create_article(board_id_pk, user_identifier, title, body, ip_address=client_ip,
+                                                   attachment_filename=attachment_filename, attachment_originalname=attachment_originalname,
+                                                   attachment_size=attachment_size):
+                util.send_text_by_key(
+                    self.chan, "bbs.post_success", self.menu_mode)
+            else:
+                util.send_text_by_key(
+                    self.chan, "bbs.post_failed", self.menu_mode)
+        finally:
+            # 保留中の添付ファイルをクリア
+            if hasattr(self.chan, 'handler'):
+                self.chan.handler.pending_attachment = None
+            if allow_attachments:
+                # ファイルアップロードUI非表示命令
+                self.chan.send(b'\x1b[?2032l')
 
 
 def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_address):
