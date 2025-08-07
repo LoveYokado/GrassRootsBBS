@@ -2044,6 +2044,10 @@ auth:
     mode_1: "このIDは既に使用されています。切断します。\r\n"
     mode_2: "このIDは既に使用されています。切断します。\r\n"
     mode_3: "This ID is already in use. Disconnecting.\r\n"
+  logged_in_from_another_location:
+    mode_1: "他の場所からログインがあったため、この接続は切断されました。\r\n"
+    mode_2: "他の場所からログインがあったため、この接続は切断されました。\r\n"
+    mode_3: "This connection was terminated because you logged in from another location.\r\n"
   account_locked_temporary:
     mode_1: "アカウントは一時的にロックされています。{remaining_time:.0f}秒後に再試行してください。"
     mode_2: "アカウントは一時的にロックされています。{remaining_time:.0f}秒後に再試行してください。"

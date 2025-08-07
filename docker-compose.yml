@@ -6,6 +6,10 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs # アプリケーションログを永続化
       - ./src:/home/yuki/python/GrassRootsBBS/src # 開発用にソースコードをマウント
+      - ./private_key.pem:/app/private_key.pem:ro # 秘密鍵を読み取り専用でマウント
+      - ./public_key.pem:/app/public_key.pem:ro # 公開鍵を読み取り専用でマウント
+      - ./templates:/home/yuki/python/GrassRootsBBS/templates # テンプレートファイルをマウント
+      - ./static:/home/yuki/python/GrassRootsBBS/static # 静的ファイルをマウント
     ports:
       - "5000:5000"
     environment:

@@ -20,6 +20,9 @@ import socket
 import secrets
 import json
 import os
+import base64
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
 import logging
 import datetime
 import uuid
@@ -463,6 +466,7 @@ class WebTerminalHandler:
                     context['login_id'],
                     context['display_name'],
                     context['menu_mode'],
+                    context['user_id'],
                     command,  # strip() や lower() をかける前の生コマンドを渡す
                     context['online_members_func']
                 ):
@@ -554,7 +558,27 @@ def index():
         'allowed_extensions': limits_config.get('allowed_attachment_extensions', 'jpg,jpeg,png,gif,txt')
     }
 
-    return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits)
+    # Push通知用のVAPID公開鍵をテンプレートに渡す
+    push_config = util.app_config.get('push', {})
+    vapid_public_key_for_js = ''
+    public_key_path = '/app/public_key.pem'  # コンテナ内の絶対パス
+
+    if os.path.exists(public_key_path):
+        try:
+            with open(public_key_path, "rb") as key_file:
+                public_key = serialization.load_pem_public_key(key_file.read())
+            # ブラウザが必要とする非圧縮形式の公開鍵バイト列を取得
+            uncompressed_bytes = public_key.public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.UncompressedPoint
+            )
+            # URL-safe Base64エンコードして文字列にする
+            vapid_public_key_for_js = base64.urlsafe_b64encode(
+                uncompressed_bytes).rstrip(b'=').decode('utf-8')
+        except Exception as e:
+            logging.error(f"VAPID公開鍵の処理に失敗しました: {e}", exc_info=True)
+
+    return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits, vapid_public_key=vapid_public_key_for_js)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -605,7 +629,8 @@ def login():
                     if handler.user_session.get('username') == username:
                         error = util.get_text_by_key(
                             "auth.already_logged_in",
-                            session.get('menu_mode', '2'),
+                            handler.user_session.get(
+                                'menu_mode', '2'),  # 切断される側のモードでメッセージ取得
                             default_value="This ID is already in use."
                         ).replace('\r\n', '')
                         logging.warning(
@@ -796,6 +821,51 @@ def passkey_verify_auth():
         return jsonify({"verified": False, "error": "Authentication failed"}), 401
 
 
+@app.route('/push/subscribe', methods=['POST'])
+@login_required
+def subscribe_push():
+    """
+    クライアントから送信されたPush Subscription情報を保存するAPI
+    """
+    user_id = session.get('user_id')
+    # user_idはlogin_requiredデコレータで保証されているはずだが念のため
+    if not user_id:
+        return jsonify({'status': 'error', 'message': 'User not logged in'}), 401
+
+    subscription_data = request.get_json()
+    if not subscription_data or 'endpoint' not in subscription_data:
+        return jsonify({'status': 'error', 'message': 'Invalid subscription data'}), 400
+
+    # データベースに保存
+    subscription_json = json.dumps(subscription_data)
+    if database.save_push_subscription(user_id, subscription_json):
+        return jsonify({'status': 'success'}), 201
+    else:
+        return jsonify({'status': 'error', 'message': 'Failed to save subscription on server'}), 500
+
+
+@app.route('/push/unsubscribe', methods=['POST'])
+@login_required
+def unsubscribe_push():
+    """
+    クライアントから送信されたPush Subscription解除リクエストを処理する
+    """
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'status': 'error', 'message': 'User not logged in'}), 401
+
+    data = request.get_json()
+    endpoint = data.get('endpoint')
+    if not endpoint:
+        return jsonify({'status': 'error', 'message': 'Endpoint not provided'}), 400
+
+    if database.delete_push_subscription(user_id, endpoint):
+        return jsonify({'status': 'success'}), 200
+    else:
+        # サーバー側で該当データが見つからなくても、クライアント側では成功したように見せるのが一般的
+        return jsonify({'status': 'success'}), 200
+
+
 @app.route('/attachments/<path:filename>')
 @login_required
 def download_attachment(filename):
@@ -815,18 +885,23 @@ def handle_connect(auth=None):
     # --- マルチログインチェック ---
     username_to_connect = session.get('username', 'Unknown')
     if username_to_connect.upper() != 'GUEST':
-        # client_states を直接チェックして、同じユーザー名が既に存在しないか確認
+        # 同じユーザーが既に接続していないかチェック
+        sid_to_disconnect = None
         for sid, handler in client_states.copy().items():
             if handler.user_session.get('username') == username_to_connect:
-                logging.warning(
-                    f"WebUIでのマルチログインが試みられました: {username_to_connect} from {request.remote_addr}")
-                # クライアントに通知して切断させる
-                logoff_message_text = util.get_text_by_key(
-                    "auth.already_logged_in", session.get('menu_mode', '2'))
-                processed_text = logoff_message_text.replace(
-                    '\r\n', '\n').replace('\n', '\r\n')
-                emit('force_disconnect', {'message': processed_text})
-                return False  # 接続を拒否
+                sid_to_disconnect = sid
+                break
+
+        if sid_to_disconnect:
+            logging.warning(
+                f"WebUIでのマルチログインを検出: {username_to_connect}. 古いセッション(SID: {sid_to_disconnect})を切断します。")
+            logoff_message_text = util.get_text_by_key(
+                "auth.logged_in_from_another_location", session.get('menu_mode', '2'))
+            processed_text = logoff_message_text.replace(
+                '\r\n', '\n').replace('\n', '\r\n')
+            socketio.emit('force_disconnect', {
+                          'message': processed_text}, to=sid_to_disconnect)
+            disconnect(sid_to_disconnect, silent=True)
 
     # --- 接続数チェック ---
     global current_webapp_clients
@@ -1093,32 +1168,6 @@ def handle_upload_attachment(data):
 
     if not filename or not file_data:
         emit('attachment_upload_error', {'message': 'ファイル名またはデータがありません。'})
-        return
-
-    # --- 設定ファイルから制限を読み込む ---
-    limits_config = util.app_config.get('limits', {})
-
-    # ファイルサイズの制限
-    max_size_mb = limits_config.get('attachment_max_size_mb', 10)
-    max_size_bytes = max_size_mb * 1024 * 1024
-    message = ""
-    if len(file_data) > max_size_bytes:
-        message = f'ファイルサイズが大きすぎます ({max_size_mb}MBまで)。'
-
-    # 許可する拡張子の制限
-    if not message:  # ファイルサイズエラーがなければ拡張子をチェック
-        allowed_extensions_str = limits_config.get(
-            'allowed_attachment_extensions', '')
-        allowed_extensions = {ext.strip().lower()
-                              for ext in allowed_extensions_str.split(',') if ext.strip()}
-        file_ext = os.path.splitext(filename)[1].lstrip('.').lower()
-        if allowed_extensions and file_ext not in allowed_extensions:
-            message = f'許可されていないファイル形式です。({", ".join(sorted(list(allowed_extensions)))})'
-
-    # エラーがあれば記録して終了
-    if message:
-        handler.pending_attachment = {'error': message}
-        emit('attachment_upload_error', {'message': message})
         return
 
     # --- 設定ファイルから制限を読み込む ---

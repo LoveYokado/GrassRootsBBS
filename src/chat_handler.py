@@ -1,6 +1,8 @@
 import logging
 import collections
 import threading
+import time
+import json
 
 from . import util, bbsmenu
 
@@ -10,7 +12,12 @@ chat_room_histories = {}
 MAX_HISTORY_MESSAGES = 100
 
 active_chat_rooms = {}
-# {room_id: {"users": {login_id: chan}, "locked_by": "owner_login_id" or None}}
+# {room_id: {"users": {login_id: {"chan": chan, "menu_mode": "2", "user_id": 1}}, "locked_by": "owner_login_id" or None}}
+
+# 通知のクールダウンタイムスタンプを管理する辞書
+# この辞書はルームが空になっても維持される
+chat_room_notification_timestamps = {}
+# {room_id: 1678886400.0}
 
 chat_rooms_lock = threading.Lock()
 
@@ -142,19 +149,64 @@ def set_online_members_function_for_chat(func):
     ONLINE_MEMBERS_FUNC = func
 
 
-def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_name: str, menu_mode: str):
+def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_name: str, menu_mode: str, user_id: int):
     """ユーザーがルームに入室したときに呼び出される"""
     with chat_rooms_lock:
         if room_id not in active_chat_rooms:
             active_chat_rooms[room_id] = {"users": {}, "locked_by": None}
         # チャンネルと一緒に menu_mode も保存
         active_chat_rooms[room_id]["users"][login_id] = {
-            "chan": chan, "menu_mode": menu_mode}
+            "chan": chan, "menu_mode": menu_mode, "user_id": user_id}
 
     join_notification = f"{display_name} が入室しました。"
     # 履歴には残さず、サーバーログには手動で記録することも可能 (今回はブロードキャストのみ)
     logging.info(
         f"ChatEvent[{room_id}]: User {login_id}({display_name}) joined.")
+
+    # --- Push通知送信処理 (クールダウン付き) ---
+    paths_config = util.app_config.get('paths', {})
+    chatroom_config_path = paths_config.get('chatroom_yaml')
+    chatroom_config = util.load_yaml_file_for_shortcut(chatroom_config_path)
+
+    if chatroom_config:
+        target_item, _ = util.find_item_in_yaml(
+            chatroom_config, room_id, menu_mode, "room")
+
+        if target_item and target_item.get('push') is True:
+            push_config = util.app_config.get('push', {})
+            cooldown_seconds = push_config.get(
+                'NOTIFICATION_COOLDOWN_SECONDS', 60)
+            current_time = time.time()
+
+            with chat_rooms_lock:
+                last_notification_time = chat_room_notification_timestamps.get(
+                    room_id, 0)
+
+            if (current_time - last_notification_time) > cooldown_seconds:
+                try:
+                    from . import database
+                    subscriptions = database.get_all_subscriptions(
+                        exclude_user_id=user_id)
+                    if subscriptions:
+                        notification_payload = json.dumps({
+                            "title": "GR-BBS Chat",
+                            "body": f"{display_name}さんが「{room_name}」に入室しました。",
+                            "data": {"url": f"/?shortcut=c:{room_id}"}
+                        })
+                        logging.info(
+                            f"Sending {len(subscriptions)} push notifications for user joining room {room_id}.")
+                        for sub in subscriptions:
+                            util.send_push_notification(
+                                sub['subscription_info'], notification_payload)
+
+                        with chat_rooms_lock:
+                            chat_room_notification_timestamps[room_id] = current_time
+                except Exception as e:
+                    logging.error(f"Push通知の送信中にエラーが発生しました: {e}", exc_info=True)
+            else:
+                logging.info(
+                    f"Push notification for room {room_id} skipped due to cooldown.")
+
     # システムメッセージとしてブロードキャスト (画面表示用)
     broadcast_to_room(room_id, "System", join_notification,
                       is_system_message=True, exclude_login_id=login_id)
@@ -198,7 +250,7 @@ def user_leaves_room(room_id: str, login_id: str, display_name: str, room_name: 
                           leave_notification, is_system_message=True)
 
 
-def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, room_id: str, room_name: str):
+def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, user_id: int, room_id: str, room_name: str):
     """
     チャットルーム本体
     """
@@ -215,8 +267,8 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, roo
             util.send_text_by_key(chan, "chat.room_locked", menu_mode,
                                   room_name=room_name, owner=room_data.get("locked_by"))
             return "back_one_level"  # 入室せずに終了
-    user_joins_room(room_id, login_id, display_name,
-                    chan, room_name, menu_mode)
+    user_joins_room(room_id, login_id, display_name, chan,
+                    room_name, menu_mode, user_id)
 
     try:
         while True:
@@ -398,7 +450,7 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, roo
         # finallyブロックでは明示的な戻り値を返さない（例外発生時などはNoneが返る）
 
 
-def handle_chat_menu(chan, login_id, display_name, menu_mode, online_members_func):
+def handle_chat_menu(chan, login_id, display_name, menu_mode, user_id, online_members_func):
     """チャットの階層メニューを表示し、選択されたルームに入る"""
     paths_config = util.app_config.get('paths', {})
     chatroom_config_path = paths_config.get('chatroom_yaml')
@@ -422,6 +474,6 @@ def handle_chat_menu(chan, login_id, display_name, menu_mode, online_members_fun
         room_id = selected_item.get("id")
         room_name = selected_item.get("name", room_id)
         set_online_members_function_for_chat(online_members_func)
-        return handle_chat_room(chan, login_id, display_name, menu_mode, room_id, room_name)
+        return handle_chat_room(chan, login_id, display_name, menu_mode, user_id, room_id, room_name)
 
     return "back_to_top"

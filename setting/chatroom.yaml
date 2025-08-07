@@ -17,16 +17,19 @@ categories:
         name: "フリールーム１"
         description: "どなたでもどうぞ！"
         type: "room"
+        push: False
       - id: "chat_free2"
         number: 2
         name: "フリールーム２"
         description: "まったりお話ししましょう。"
         type: "room"
-      - id: "chat_free3"
+        push: False
+      - id: "lonely_room"
         number: 3
-        name: "フリールーム３"
-        description: "ご自由にどうぞ。"
+        name: "淋しいやつのための部屋"
+        description: "プッシュ通知を許可してる人に通知が送られます。きっと誰か来てくれる。と思う。"
         type: "room"
+        push: True
       - id: "chat_deep_dive"
         number: 4
         name: "フリー深堀りトピック"

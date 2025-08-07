@@ -34,6 +34,16 @@ Please enter your ID and PASSWORD.
 guestID = `GUEST/GUEST`
 """
 
+[push]
+VAPID_PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgDKStVK5Dp26dVBne
+q1RiwGXyc+BZuhw31P3Tzc2uBomhRANCAASY0ltQ0a2lQeqIGO4dEQ0t2/JZ+DVc
+OQOgCjDs+l2FYrvhyqDXUAv+edsZviGsEqSRPv8ZG/nmMfWjnDybyOsp
+-----END PRIVATE KEY-----
+"""
+VAPID_CLAIMS_EMAIL = "mailto:your-email@example.com" # あなたのメールアドレスに変更
+NOTIFICATION_COOLDOWN_SECONDS = 60 # 同じルームへの入室通知のクールダウン時間（秒）
+
 [paths]
 db_name = "data/bbs.db"                   # DBファイル名
 log_dir = "logs"                          # ログファイルの保存先

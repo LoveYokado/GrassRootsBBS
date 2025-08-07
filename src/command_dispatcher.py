@@ -106,8 +106,8 @@ def handle_chat(context):
     context['chan'].send(b'\x1b[?2031l')
     # 新しく作成したチャットメニューハンドラを呼び出す
     chat_handler.handle_chat_menu(
-        context['chan'], context['login_id'], context['display_name'],
-        context['menu_mode'], lambda: _get_online_members_list(context)
+        context['chan'], context['login_id'], context['display_name'], context['menu_mode'],
+        context['user_id'], lambda: _get_online_members_list(context)
     )
     # チャットメニューから抜けたときにトップメニューを再表示
     util.send_top_menu(context['chan'], context['menu_mode'])

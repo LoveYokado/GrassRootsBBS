@@ -669,6 +669,81 @@ def toggle_article_deleted_status(article_id):
             conn.close()
 
 
+def get_all_subscriptions(exclude_user_id=None):
+    """
+    すべての有効なプッシュ通知購読情報を取得する。
+    特定のユーザーIDを除外することも可能。
+    """
+    query = "SELECT user_id, subscription_info FROM push_subscriptions"
+    params = ()
+    if exclude_user_id is not None:
+        query += " WHERE user_id != %s"
+        params = (exclude_user_id,)
+    return execute_query(query, params, fetch='all')
+
+
+def save_push_subscription(user_id, subscription_info_json):
+    """
+    ユーザーのプッシュ通知購読情報を保存する。
+    """
+    import time
+    try:
+        # 同じendpointを持つ購読情報が既に存在するかどうかをチェックするロジックは、
+        # ユーザーが複数のデバイスで購読できるようにするため、一旦省略します。
+        # 必要であれば、endpointをUNIQUEキーにするか、INSERT前にSELECTで確認します。
+        query = "INSERT INTO push_subscriptions (user_id, subscription_info, created_at) VALUES (%s, %s, %s)"
+        params = (user_id, subscription_info_json, int(time.time()))
+
+        last_row_id = execute_query(query, params)
+        if last_row_id is not None:
+            logging.info(f"Push subscription saved for user_id: {user_id}")
+            return True
+        else:
+            logging.error(
+                f"Failed to save push subscription for user {user_id} (execute_query returned None).")
+            return False
+    except Exception as e:
+        logging.error(
+            f"Failed to save push subscription for user {user_id}: {e}", exc_info=True)
+        return False
+
+
+def delete_push_subscription(user_id, endpoint_to_delete):
+    """
+    ユーザーの特定のプッシュ通知購読情報を、endpointを元に削除する。
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # ユーザーのすべての購読情報を取得
+        cursor.execute("SELECT id, subscription_info FROM push_subscriptions WHERE user_id = %s", (user_id,))
+        subscriptions = cursor.fetchall()
+
+        for sub in subscriptions:
+            subscription_info = json.loads(sub['subscription_info'])
+            if subscription_info.get('endpoint') == endpoint_to_delete:
+                # マッチするendpointが見つかったら、そのIDで削除
+                cursor.execute("DELETE FROM push_subscriptions WHERE id = %s", (sub['id'],))
+                conn.commit()
+                logging.info(f"Push subscription deleted for user_id: {user_id} (endpoint: {endpoint_to_delete})")
+                return True
+
+        logging.warning(f"No matching push subscription found to delete for user_id: {user_id} (endpoint: {endpoint_to_delete})")
+        return False
+    except Exception as e:
+        logging.error(f"Failed to delete push subscription for user {user_id}: {e}", exc_info=True)
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 def get_all_users():
     """全ユーザーの情報を取得する"""
     query = "SELECT id, name, level, registdate, lastlogin, comment, email FROM users ORDER BY id ASC"
