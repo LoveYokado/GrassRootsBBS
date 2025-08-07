@@ -779,9 +779,15 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
 
             elif key_input == "w":
-                self.write_article()
-                reload_articles_display(keep_index=False)  # 新規投稿後は先頭から再表示
-                self.just_displayed_header_from_tail_h = False
+                result = self.write_article()
+                if result == 'posted':
+                    # 投稿成功時は、記事一覧を抜けて掲示板トップに戻る
+                    self.chan.send(b'\x1b[?2024l')  # モバイルボタンを非表示
+                    return
+                else:
+                    # キャンセルまたはエラーの場合は、記事一覧を再表示
+                    reload_articles_display(keep_index=True)  # カーソル位置を維持して再表示
+                    self.just_displayed_header_from_tail_h = False
 
             elif key_input == "s":  # シグ看板表示
                 # 看板表示前に現在の記事ヘッダを消す必要はない（看板は別領域に表示される想定）
@@ -1622,24 +1628,46 @@ class CommandHandler:
             elif not body.strip():
                 body = '(T/O)'  # 本文が空なら、本文に(T/O)と入れる
 
-            # 本文入力後、ファイル添付ダイアログを即時表示
+            # --- 本文入力後、ファイル添付処理 ---
             if allow_attachments:
-                # ファイルアップロードUI表示 & 即時ダイアログ表示命令
-                self.chan.send(b'\x1b[?2033h')
-                # クライアント側でファイルダイアログが閉じられるのを待つ。
-                # この入力はダミーで、クライアントからの通知を受け取るためだけに使用する。
-                # プロンプトは表示しない。
-                try:
-                    # ファイル選択には時間がかかるかもしれないので長めに設定
-                    self.chan.settimeout(60.0)
-                    self.chan.process_input()
-                except socket.timeout:
-                    # タイムアウトした場合、アップロードが失敗したとみなし、エラーをセットする
-                    if hasattr(self.chan, 'handler'):
-                        self.chan.handler.pending_attachment = {
-                            'error': 'ファイル選択がタイムアウトしました。'}
-                finally:
-                    self.chan.settimeout(None)
+                while True:  # エラーがなくなるまでループ
+                    # ファイルアップロードUI表示 & 即時ダイアログ表示命令
+                    self.chan.send(b'\x1b[?2033h')
+                    try:
+                        self.chan.settimeout(60.0)
+                        self.chan.process_input()
+                    except socket.timeout:
+                        if hasattr(self.chan, 'handler'):
+                            self.chan.handler.pending_attachment = {
+                                'error': 'ファイル選択がタイムアウトしました。'}
+                    finally:
+                        self.chan.settimeout(None)
+
+                    attachment_info = self.chan.handler.pending_attachment if hasattr(
+                        self.chan, 'handler') else None
+
+                    if attachment_info and 'error' in attachment_info:
+                        error_message = attachment_info.get(
+                            'error', '不明なアップロードエラーです。')
+                        self.chan.send(
+                            f"\r\n** エラー: {error_message} **\r\n".encode('utf-8'))
+                        util.send_text_by_key(
+                            self.chan, "bbs.attachment_retry_prompt", self.menu_mode, add_newline=False)
+                        retry_choice = None
+                        try:
+                            self.chan.settimeout(25.0)
+                            retry_choice = self.chan.process_input()
+                        except socket.timeout:
+                            self.chan.send(b'N\r\n')  # タイムアウトしたらNを入力したことにする
+                            retry_choice = 'n'
+                        finally:
+                            self.chan.settimeout(None)
+                        if retry_choice and retry_choice.strip().lower() == 'y':
+                            util.send_text_by_key(
+                                self.chan, "bbs.post_cancel", self.menu_mode)
+                            return  # 投稿中止
+                        continue  # 再試行
+                    break  # エラーがなければループを抜ける
 
             util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
                                   self.menu_mode, add_newline=False)
@@ -1663,16 +1691,6 @@ class CommandHandler:
             # --- 添付ファイル処理 ---
             attachment_info = self.chan.handler.pending_attachment if hasattr(
                 self.chan, 'handler') else None
-
-            # ファイルアップロードでエラーが発生していないかチェック
-            if attachment_info and 'error' in attachment_info:
-                error_message = attachment_info.get(
-                    'error', '不明なアップロードエラーです。')
-                self.chan.send(
-                    f"\r\n** エラー: {error_message} **\r\n".encode('utf-8'))
-                util.send_text_by_key(
-                    self.chan, "bbs.post_cancel", self.menu_mode)
-                return  # 投稿処理を中止
 
             attachment_filename = None
             attachment_originalname = None

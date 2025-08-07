@@ -1601,6 +1601,10 @@ bbs:
     mode_1: "ダウンロードを開始します...\r\n"
     mode_2: "ダウンロードを開始します...\r\n"
     mode_3: "Starting download...\r\n"
+  attachment_retry_prompt:
+    mode_1: "登録を取りやめますか？ (Y/N): "
+    mode_2: "登録を取りやめますか？ (Y/N): "
+    mode_3: "Cancel registration? (Y/N): "
 
 auto_download:
   start_message:
