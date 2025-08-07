@@ -9,6 +9,10 @@ import re
 import secrets
 import string
 import textwrap
+import json
+import base64
+from pywebpush import webpush, WebPushException
+from cryptography.hazmat.primitives import serialization
 
 # テキストデータのキャッシュ用グローバル変数
 _master_text_data_cache = None
@@ -339,6 +343,15 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
                 UNIQUE (board_id, user_id)
             )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                subscription_info TEXT NOT NULL,
+                created_at INT,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
             """
         ]
         for query in create_queries:
@@ -462,7 +475,7 @@ def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
     return None, None
 
 
-def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, shortcut_input: str, online_members_func: callable):
+def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, user_id: int, shortcut_input: str, online_members_func: callable):
     """ショートカットを処理する。ショートカットとして処理が完了したらtrueを返す"""
     from . import database
     # ショートカットではない
@@ -526,7 +539,7 @@ def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, shor
                 chat_handler.set_online_members_function_for_chat(
                     online_members_func)
                 chat_handler.handle_chat_room(
-                    chan, login_id, display_name, menu_mode, shortcut_id_to_search, item_name)
+                    chan, login_id, display_name, menu_mode, user_id, shortcut_id_to_search, item_name)
                 return True
             if target_type == "chat":
                 send_text_by_key(chan, "shortcut.not_found", menu_mode,
@@ -891,3 +904,52 @@ def format_file_size(size_in_bytes):
         return f"{size_in_kb:.1f} KB"
     size_in_mb = size_in_kb / 1024
     return f"{size_in_mb:.1f} MB"
+
+
+def send_push_notification(subscription_info_json, payload_json):
+    """
+    単一の購読情報に対してプッシュ通知を送信する。
+    """
+    push_config = app_config.get('push', {})
+    # VAPID_PRIVATE_KEY はファイルから直接読み込む
+    private_key_path = '/app/private_key.pem'
+    claims_email = push_config.get('VAPID_CLAIMS_EMAIL')
+
+    if not os.path.exists(private_key_path) or not claims_email:
+        logging.error(
+            "VAPID秘密鍵ファイルが見つからないか、連絡先メールアドレスが設定されていません。プッシュ通知は送信されません。")
+        return False
+
+    try:
+        # PEM形式の秘密鍵ファイルを読み込み、ライブラリが期待する
+        # URL-safe Base64エンコードされたDER形式の文字列に変換する
+        with open(private_key_path, "rb") as key_file:
+            private_key_obj = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None,
+            )
+        private_key_der = private_key_obj.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        vapid_private_key_b64 = base64.urlsafe_b64encode(
+            private_key_der).rstrip(b'=').decode('utf-8')
+
+        subscription_info = json.loads(subscription_info_json)
+        webpush(
+            subscription_info=subscription_info,
+            data=payload_json,
+            vapid_private_key=vapid_private_key_b64,
+            vapid_claims={'sub': claims_email}
+        )
+        return True
+    except WebPushException as ex:
+        logging.warning(f"Web push failed: {ex}")
+        if ex.response:
+            logging.warning(
+                f"Response: {ex.response.status_code} {ex.response.text}")
+        return False
+    except Exception as e:
+        logging.error(f"プッシュ通知送信中に予期せぬエラー: {e}", exc_info=True)
+        return False

@@ -1024,16 +1024,7 @@
                 </div>
             </div>
             <textarea id="multiline-editor-input" class="popup-window-textarea" cols="80"></textarea>
-            <!-- ファイル添付UI -->
-            <div id="attachment-area"
-                style="display: none; margin-top: 10px; padding: 5px; border: 1px dashed #706b58; border-radius: 4px;">
-                <label for="attachment-input" class="ansi-btn" style="cursor: pointer;">ファイル添付</label>
-                <input type="file" id="attachment-input" style="display: none;">
-                <span id="attachment-status" style="margin-left: 10px; color: #504b38;"></span>
-                <button id="attachment-clear-btn" class="popup-close-btn"
-                    style="display: none; font-size: 1rem; vertical-align: middle;">&times;</button>
-            </div>
-            <!-- ここまで -->
+
             <div>
                 <button id="multiline-editor-insert-btn">Insert</button>
                 <button id="multiline-editor-cancel-btn">Cancel</button>
@@ -1093,22 +1084,16 @@
                 <button class="effect-btn" data-effect="blur">にじみ (Glow)</button>
                 <button class="effect-btn" data-effect="scanline">走査線 (Scanline)</button>
             </div>
+            <div id="push-notification-settings">
+                <h3>Push Notifications</h3>
+                <button id="enable-push-btn">Enable Notifications</button>
+                <p id="push-status" style="font-size: 0.8em; margin-top: 5px; color: #504b38;"></p>
+            </div>
         </div>
     </div>
 
-    <!-- ファイル添付UI (ポップアップ外に移動) -->
-    <div id="attachment-ui-container"
-        style="display: none; position: fixed; bottom: 0; left: 0; width: 100%; background-color: rgba(20, 20, 20, 0.9); padding: 10px; box-sizing: border-box; z-index: 100; text-align: center;">
-        <div id="attachment-area">
-            <label for="attachment-input" class="mobile-btn"
-                style="cursor: pointer; padding: 8px 12px; display: inline-block;">ファイル添付</label>
-            <input type="file" id="attachment-input" style="display: none;">
-            <span id="attachment-status" style="margin-left: 10px; color: #eee;"></span>
-            <button id="attachment-clear-btn" class="mobile-btn"
-                style="display: none; font-size: 1rem; vertical-align: middle; padding: 4px 8px;">&times;</button>
-        </div>
-    </div>
-    <!-- ここまで -->
+    <!-- ファイル添付用の非表示input要素 -->
+    <input type="file" id="attachment-input" style="display: none;">
 
     <button id="hamburger-btn">&#9776;</button>
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
@@ -1432,10 +1417,7 @@
         const socket = io();
 
         // --- ファイル添付UIの制御 ---
-        const attachmentArea = document.getElementById('attachment-area');
         const attachmentInput = document.getElementById('attachment-input');
-        const attachmentStatus = document.getElementById('attachment-status');
-        const attachmentClearBtn = document.getElementById('attachment-clear-btn');
 
         // ファイルが選択されたときの処理
         attachmentInput.addEventListener('change', () => {
@@ -1449,41 +1431,27 @@
                         filename: file.name,
                         data: e.target.result // ArrayBuffer
                     });
-                    // UIを更新
-                    attachmentStatus.textContent = `アップロード待機中: ${file.name}`;
-                    attachmentClearBtn.style.display = 'inline-block';
                 };
                 reader.onerror = (e) => {
                     console.error("File reading error:", e);
-                    attachmentStatus.textContent = 'ファイル読み込みエラー';
-                    attachmentClearBtn.style.display = 'none';
                 };
                 reader.readAsArrayBuffer(file);
 
             } else {
-                attachmentStatus.textContent = '';
-                attachmentClearBtn.style.display = 'none';
                 socket.emit('clear_pending_attachment'); // ファイル選択がキャンセルされた場合もクリア
             }
         });
 
-        // クリアボタンが押されたときの処理
-        attachmentClearBtn.addEventListener('click', () => {
-            attachmentInput.value = ''; // ファイル選択をリセット
-            attachmentStatus.textContent = '';
-            attachmentClearBtn.style.display = 'none';
-            socket.emit('clear_pending_attachment'); // サーバー側の保留情報もクリア
-        });
-
         // サーバーからのアップロード結果を受け取る
         socket.on('attachment_upload_success', (data) => {
-            attachmentStatus.textContent = `アップロード完了: ${data.original_filename}`;
+            // 成功したことはコンソールで確認
+            console.log(`Upload complete: ${data.original_filename}`);
         });
 
         socket.on('attachment_upload_error', (data) => {
-            attachmentStatus.textContent = `エラー: ${data.message}`;
+            // エラーメッセージはサーバーからターミナルに直接表示されるので、ここではコンソールに出力するだけ
+            console.error(`Upload error: ${data.message}`);
             attachmentInput.value = '';
-            attachmentClearBtn.style.display = 'none';
         });
 
         // --- ポップアップ処理 ---
@@ -1914,18 +1882,13 @@
             // ファイル添付UI表示 & 即時ダイアログ表示シーケンス
             const attachmentDialogPattern = /\x1b\[\?2033h/;
             if (attachmentDialogPattern.test(data)) {
-                const attachmentContainer = document.getElementById('attachment-ui-container');
                 const attachmentInput = document.getElementById('attachment-input');
-
-                attachmentContainer.style.display = 'block';
 
                 // ファイルダイアログが閉じたことを検知するためのリスナー
                 const onFocus = () => {
                     window.removeEventListener('focus', onFocus); // 一度きりのため削除
                     // changeイベントが先に処理される時間を確保するため、少し遅延させる
                     setTimeout(() => {
-                        // ファイル選択が終わったらUIはすぐに非表示にする
-                        attachmentContainer.style.display = 'none';
                         // サーバー側の process_input() を進めるための信号を送信
                         socket.emit('client_input', '\r');
                     }, 150);
@@ -1939,15 +1902,9 @@
             // ファイル添付UI非表示シーケンス (投稿完了/キャンセル時に呼ばれる)
             const attachmentUiHidePattern = /\x1b\[\?2032l/;
             if (attachmentUiHidePattern.test(data)) {
-                const attachmentContainer = document.getElementById('attachment-ui-container');
-                attachmentContainer.style.display = 'none';
                 // UIを非表示にするときは、選択状態もリセット
                 const attachmentInput = document.getElementById('attachment-input');
-                const attachmentStatus = document.getElementById('attachment-status');
-                const attachmentClearBtn = document.getElementById('attachment-clear-btn');
                 attachmentInput.value = '';
-                attachmentStatus.textContent = '';
-                attachmentClearBtn.style.display = 'none';
                 // サーバー側の保留情報もクリアする
                 socket.emit('clear_pending_attachment');
                 data = data.replace(attachmentUiHidePattern, '');
@@ -2422,6 +2379,66 @@
                 });
                 sidenav.appendChild(link);
             }
+        });
+    </script>
+    <script>
+        // --- Push Notification Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const vapidPublicKey = '{{ vapid_public_key }}';
+            const enablePushButton = document.getElementById('enable-push-btn');
+            const pushStatus = document.getElementById('push-status');
+
+            if (!enablePushButton) return;
+
+            function urlBase64ToUint8Array(base64String) {
+                const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+                const rawData = window.atob(base64);
+                const outputArray = new Uint8Array(rawData.length);
+                for (let i = 0; i < rawData.length; ++i) {
+                    outputArray[i] = rawData.charCodeAt(i);
+                }
+                return outputArray;
+            }
+
+            async function subscribeUser() {
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                    pushStatus.textContent = 'Push Notifications are not supported.';
+                    return;
+                }
+
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                    });
+
+                    // 宛先情報をバックエンドに送信
+                    await fetch('/push/subscribe', {
+                        method: 'POST',
+                        body: JSON.stringify(subscription),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    pushStatus.textContent = 'Push notifications enabled!';
+                    enablePushButton.disabled = true;
+                } catch (err) {
+                    console.error('Failed to subscribe the user: ', err);
+                    let errorMessage = 'Failed to enable push notifications.';
+                    if (Notification.permission === 'denied') {
+                        errorMessage = 'ブラウザの通知がブロックされています。設定を確認してください。';
+                    } else if (err.name === 'NotAllowedError') {
+                        errorMessage = '通知の許可が得られませんでした。';
+                    } else if (err.message) {
+                        // より詳細なエラー情報を表示
+                        errorMessage += ` (${err.name}: ${err.message})`;
+                    }
+                    pushStatus.textContent = errorMessage;
+                }
+            }
+
+            enablePushButton.addEventListener('click', subscribeUser);
         });
     </script>
 </body>

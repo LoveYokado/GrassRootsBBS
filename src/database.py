@@ -669,6 +669,45 @@ def toggle_article_deleted_status(article_id):
             conn.close()
 
 
+def get_all_subscriptions(exclude_user_id=None):
+    """
+    すべての有効なプッシュ通知購読情報を取得する。
+    特定のユーザーIDを除外することも可能。
+    """
+    query = "SELECT user_id, subscription_info FROM push_subscriptions"
+    params = ()
+    if exclude_user_id is not None:
+        query += " WHERE user_id != %s"
+        params = (exclude_user_id,)
+    return execute_query(query, params, fetch='all')
+
+
+def save_push_subscription(user_id, subscription_info_json):
+    """
+    ユーザーのプッシュ通知購読情報を保存する。
+    """
+    import time
+    try:
+        # 同じendpointを持つ購読情報が既に存在するかどうかをチェックするロジックは、
+        # ユーザーが複数のデバイスで購読できるようにするため、一旦省略します。
+        # 必要であれば、endpointをUNIQUEキーにするか、INSERT前にSELECTで確認します。
+        query = "INSERT INTO push_subscriptions (user_id, subscription_info, created_at) VALUES (%s, %s, %s)"
+        params = (user_id, subscription_info_json, int(time.time()))
+
+        last_row_id = execute_query(query, params)
+        if last_row_id is not None:
+            logging.info(f"Push subscription saved for user_id: {user_id}")
+            return True
+        else:
+            logging.error(
+                f"Failed to save push subscription for user {user_id} (execute_query returned None).")
+            return False
+    except Exception as e:
+        logging.error(
+            f"Failed to save push subscription for user {user_id}: {e}", exc_info=True)
+        return False
+
+
 def get_all_users():
     """全ユーザーの情報を取得する"""
     query = "SELECT id, name, level, registdate, lastlogin, comment, email FROM users ORDER BY id ASC"
