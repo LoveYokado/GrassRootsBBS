@@ -886,6 +886,89 @@
             background-color: #FFB000;
             color: #1a1000;
         }
+
+        /* --- ディップスイッチ --- */
+        #dip-switch-container {
+            margin-top: 20px;
+            border-top: 1px solid #b0a888;
+            padding-top: 15px;
+        }
+
+        .dip-switch-panel {
+            background-color: #c0392b;
+            /* 赤い基板の色 */
+            border: 2px solid #962d22;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: inset 1px 1px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .dip-switch-bank {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            /* グループ間の隙間 */
+            flex-wrap: wrap;
+            /* 画面が狭い場合に折り返す */
+        }
+
+        .dip-switch-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dip-switch-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            /* スイッチと番号の間の隙間 */
+        }
+
+        .dip-switch-number {
+            color: white;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            text-shadow: 1px 1px 1px #000;
+        }
+
+        .dip-switch {
+            position: relative;
+            width: 22px;
+            height: 44px;
+            background-color: #fff;
+            border: 1px solid #999;
+            border-radius: 3px;
+        }
+
+        .dip-switch input[type="checkbox"] {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .dip-switch label {
+            position: absolute;
+            width: 18px;
+            height: 20px;
+            background-color: #333;
+            border: 1px solid #222;
+            cursor: pointer;
+            transition: top 0.15s ease-in-out;
+            left: 1px;
+            box-shadow: inset 0 2px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* OFF (下) */
+        .dip-switch input[type="checkbox"]+label {
+            top: 22px;
+        }
+
+        /* ON (上) */
+        .dip-switch input[type="checkbox"]:checked+label {
+            top: 1px;
+        }
     </style>
 </head>
 
@@ -1089,6 +1172,105 @@
                 <button id="enable-push-btn">Enable Notifications</button>
                 <p id="push-status" style="font-size: 0.8em; margin-top: 5px; color: #504b38;"></p>
             </div>
+            <div id="dip-switch-container">
+                <h3>DIP Switches</h3>
+                <div class="dip-switch-panel">
+
+                    <div class="dip-switch-bank">
+                        <!-- THEME -->
+                        <div class="dip-switch-group" data-group="theme">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-0" data-bit="0"><label
+                                        for="dip-theme-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-1" data-bit="1"><label
+                                        for="dip-theme-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-2" data-bit="2"><label
+                                        for="dip-theme-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-3" data-bit="3"><label
+                                        for="dip-theme-3"></label></div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- FONT -->
+                        <div class="dip-switch-group" data-group="font">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-0" data-bit="0"><label
+                                        for="dip-font-0"></label>
+                                </div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-1" data-bit="1"><label
+                                        for="dip-font-1"></label>
+                                </div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-2" data-bit="2"><label
+                                        for="dip-font-2"></label>
+                                </div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-3" data-bit="3"><label
+                                        for="dip-font-3"></label>
+                                </div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- SPEED -->
+                        <div class="dip-switch-group" data-group="speed">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-0" data-bit="0"><label
+                                        for="dip-speed-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-1" data-bit="1"><label
+                                        for="dip-speed-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-2" data-bit="2"><label
+                                        for="dip-speed-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-3" data-bit="3"><label
+                                        for="dip-speed-3"></label></div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- EFFECT -->
+                        <div class="dip-switch-group" data-group="effect">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-effect-0" data-bit="0"><label
+                                        for="dip-effect-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-effect-1" data-bit="1"><label
+                                        for="dip-effect-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-effect-2" data-bit="2"><label
+                                        for="dip-effect-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1196,6 +1378,18 @@
                 brightWhite: '#FFB000'
             }
         };
+        // --- DIPスイッチ関連 ---
+        const themeMap = { 'default': 0, 'green': 1, 'amber': 2 };
+        const fontMap = { 'M+ 1m': 0, 'M PLUS 1 Code': 1, 'IBM Plex Mono': 2, 'DotGothic16': 3 };
+        const speedMap = { 'full': 0, '9600': 1, '4800': 2, '2400': 3, '300': 4 };
+        const effectMap = { 'bezel': 0, 'blur': 1, 'scanline': 2 };
+
+        // 逆引きマップ
+        const themeMapReverse = Object.fromEntries(Object.entries(themeMap).map(([k, v]) => [v, k]));
+        const fontMapReverse = Object.fromEntries(Object.entries(fontMap).map(([k, v]) => [v, k]));
+        const speedMapReverse = Object.fromEntries(Object.entries(speedMap).map(([k, v]) => [v, k]));
+
+        let isDipSwitchUpdating = false; // スイッチ操作による再帰呼び出しを防ぐフラグ
 
         // にじみ効果のスタイルを動的に更新する
         const dynamicGlowStyle = document.getElementById('dynamic-glow-style');
@@ -1250,6 +1444,7 @@
             }
             localStorage.setItem('terminalTheme', themeName); // 選択を保存
             updateThemeButtons(themeName);
+            if (!isDipSwitchUpdating) updateDipSwitches('theme', themeName);
         }
 
         function applyFont(fontName) {
@@ -1259,6 +1454,7 @@
             term.options.fontSize = 16; // フォントサイズを16pxに統一
             localStorage.setItem('terminalFont', fontName); // フォント名のみを保存
             updateFontButtons(fontName);
+            if (!isDipSwitchUpdating) updateDipSwitches('font', fontName);
 
             // フォントサイズやファミリーの変更はレイアウトに影響するため、再計算をトリガー
             setTimeout(() => updateTerminalLayout(), 0);
@@ -1269,6 +1465,7 @@
             socket.emit('set_speed', speedName);
             localStorage.setItem('terminalSpeed', speedName); // 選択を保存
             updateSpeedButtons(speedName);
+            if (!isDipSwitchUpdating) updateDipSwitches('speed', speedName);
         }
 
         // --- 画面効果の管理 ---
@@ -1303,8 +1500,8 @@
             applyEffect(effectName, effectStates[effectName]);
             // localStorageに保存
             localStorage.setItem('effectStates', JSON.stringify(effectStates));
-            // ボタンの見た目を更新
             updateEffectButtons();
+            if (!isDipSwitchUpdating) updateDipSwitches('effect');
 
             // ベゼルの表示/非表示はコンテナサイズに影響するため、少し遅延させてから
             // ターミナルのレイアウトを再計算します。
@@ -1337,6 +1534,34 @@
         function updateSpeedButtons(speedName) {
             document.querySelectorAll('#speed-selector button').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`#speed-selector button[data-speed="${speedName}"]`).classList.add('active');
+        }
+
+        // DIPスイッチの状態を更新するヘルパー関数
+        function updateDipSwitches(groupName, value) {
+            let numericValue;
+            if (groupName === 'theme') {
+                numericValue = themeMap[value];
+            } else if (groupName === 'font') {
+                numericValue = fontMap[value];
+            } else if (groupName === 'speed') {
+                numericValue = speedMap[value];
+            } else if (groupName === 'effect') {
+                // エフェクトはビットごとのON/OFFなので特別扱い
+                const switches = document.querySelectorAll(`.dip-switch-group[data-group="effect"] input[type="checkbox"]`);
+                switches.forEach(sw => {
+                    const effectName = Object.keys(effectMap).find(key => effectMap[key] === parseInt(sw.dataset.bit));
+                    sw.checked = effectStates[effectName];
+                });
+                return;
+            }
+
+            if (numericValue === undefined) return;
+
+            const switches = document.querySelectorAll(`.dip-switch-group[data-group="${groupName}"] input[type="checkbox"]`);
+            switches.forEach(sw => {
+                const bit = parseInt(sw.dataset.bit);
+                sw.checked = (numericValue & (1 << bit)) !== 0;
+            });
         }
 
         const term = new Terminal({
@@ -2053,7 +2278,45 @@
                 applyEffect(effectName, effectStates[effectName]);
             }
             updateEffectButtons();
+            updateDipSwitches('theme', savedTheme);
+            updateDipSwitches('font', savedFontName);
+            updateDipSwitches('speed', savedSpeed);
+            updateDipSwitches('effect');
         }
+
+        // --- DIPスイッチのイベントリスナー ---
+        document.querySelector('.dip-switch-panel').addEventListener('change', (e) => {
+            if (e.target.type !== 'checkbox') return;
+
+            isDipSwitchUpdating = true; // ボタンの更新処理からの再帰呼び出しを防ぐ
+
+            const groupElement = e.target.closest('.dip-switch-group');
+            const groupName = groupElement.dataset.group;
+
+            if (groupName === 'effect') {
+                // エフェクトはビットごとのON/OFFなので特別扱い
+                const effectBit = parseInt(e.target.dataset.bit);
+                const effectName = Object.keys(effectMap).find(key => effectMap[key] === effectBit);
+                if (effectName) {
+                    toggleEffect(effectName);
+                }
+            } else {
+                // 他のグループは数値として計算
+                const switches = groupElement.querySelectorAll('input[type="checkbox"]');
+                let numericValue = 0;
+                switches.forEach(sw => {
+                    if (sw.checked) {
+                        numericValue |= (1 << parseInt(sw.dataset.bit));
+                    }
+                });
+
+                if (groupName === 'theme') { const themeName = themeMapReverse[numericValue]; if (themeName) applyTheme(themeName); }
+                else if (groupName === 'font') { const fontName = fontMapReverse[numericValue]; if (fontName) applyFont(fontName); }
+                else if (groupName === 'speed') { const speedName = speedMapReverse[numericValue]; if (speedName) applySpeed(speedName); }
+            }
+
+            setTimeout(() => { isDipSwitchUpdating = false; }, 50); // フラグを戻す
+        });
 
         socket.on('connect', () => {
             // 接続が確立したら、保存されている設定をサーバに送信
