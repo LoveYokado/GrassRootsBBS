@@ -16,7 +16,7 @@ def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
         'mkbd': make_board,
         'lsbd': list_boards,
         'dlbd': delete_board,
-        'bdlv': change_board_settings,
+        'chbd': change_board_full_settings,
         'delu': user_delete,
         'regs': user_register,
         'pasc': change_user_password_by_sysop,
@@ -623,6 +623,32 @@ def make_board(chan, sysop_login_id, current_menu_mode):
         if attach_input.strip().lower() == 'n':
             break
 
+    # 許可する拡張子の設定
+    chan.send("許可する拡張子 (例: jpg,png,gif / 空入力でconfig.tomlの設定を使用): ".encode('utf-8'))
+    extensions_input = chan.process_input()
+    if extensions_input is None:
+        return None
+    allowed_extensions = extensions_input.strip() if extensions_input.strip() else None
+
+    # 最大ファイルサイズの設定
+    max_attachment_size_mb = None
+    while True:
+        chan.send("最大ファイルサイズ(MB) (空入力でconfig.tomlの設定を使用): ".encode('utf-8'))
+        size_input = chan.process_input()
+        if size_input is None:
+            return None
+        if not size_input.strip():
+            break
+        try:
+            size_val = int(size_input.strip())
+            if size_val > 0:
+                max_attachment_size_mb = size_val
+                break
+            else:
+                chan.send("正の整数を入力してください。\r\n".encode('utf-8'))
+        except ValueError:
+            chan.send("数値を入力してください。\r\n".encode('utf-8'))
+
     operators_json = f'["{sysop_login_id}"]'
     kanban_body = ""
     status = "active"
@@ -636,7 +662,7 @@ def make_board(chan, sysop_login_id, current_menu_mode):
             chan, "common_messages.cancel", current_menu_mode)
         return None
 
-    if database.create_board_entry(shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level, board_type, allow_attachments):
+    if database.create_board_entry(shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb):
         util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
                               current_menu_mode, shortcut_id=shortcut_id)
         util.send_text_by_key(
@@ -737,14 +763,14 @@ def list_boards(chan, _sysop_login_id, current_menu_mode):
     return None
 
 
-def change_board_settings(chan, _sysop_login_id, current_menu_mode):
-    """掲示板の設定（R/Wレベルなど）を変更する"""
+def change_board_full_settings(chan, sysop_login_id, current_menu_mode):
+    """掲示板の各種設定をまとめて変更する"""
     util.send_text_by_key(
-        chan, "sysop_menu.change_board.header", current_menu_mode)
+        chan, "sysop_menu.change_board_full.header", current_menu_mode)
 
     # 掲示板IDの入力
     util.send_text_by_key(
-        chan, "sysop_menu.change_board.shortcut_id_prompt", current_menu_mode, add_newline=False)
+        chan, "sysop_menu.change_board_full.shortcut_id_prompt", current_menu_mode, add_newline=False)
     shortcut_id_input = chan.process_input()
     if not shortcut_id_input or not shortcut_id_input.strip():
         return None
@@ -757,81 +783,199 @@ def change_board_settings(chan, _sysop_login_id, current_menu_mode):
             chan, "sysop_menu.delete_board.board_not_found", current_menu_mode, shortcut_id=shortcut_id)
         return None
 
-    board_id_pk = board_info['id']
-    current_read_level = board_info['read_level'] if 'read_level' in board_info.keys(
-    ) else 1
-    current_write_level = board_info['write_level'] if 'write_level' in board_info.keys(
-    ) else 1
-
     # 現在の設定を表示
-    util.send_text_by_key(chan, "sysop_menu.change_board.current_settings", current_menu_mode,
-                          shortcut_id=shortcut_id,
-                          read_level=current_read_level,
-                          write_level=current_write_level)
+    util.send_text_by_key(chan, "sysop_menu.change_board_full.current_settings_header",
+                          current_menu_mode, name=board_info.get('name', ''), shortcut_id=shortcut_id)
 
-    # 新しい閲覧レベルの入力
-    new_read_level = current_read_level
-    chan.send(
-        f"新しい閲覧レベル (1-5, 現在:{current_read_level}, 空入力で変更なし): ".encode('utf-8'))
-    level_input = chan.process_input()
-    if level_input is None:
+    # 表示用の値整形 (DBからNULLが返ってくる可能性を考慮)
+    allowed_ext_val = board_info.get('allowed_extensions')
+    max_size_val = board_info.get('max_attachment_size_mb')
+
+    settings_to_display = {
+        "Board Name": board_info.get('name', ''),
+        "Description": board_info.get('description', ''),
+        "Permission": board_info.get('default_permission', 'open'),
+        "Read Level": board_info.get('read_level', 1),
+        "Write Level": board_info.get('write_level', 1),
+        "Allow Attachments": "Yes" if board_info.get('allow_attachments') else "No",
+        "Allowed Extensions": allowed_ext_val if allowed_ext_val is not None else '(Global default)',
+        "Max File Size(MB)": max_size_val if max_size_val is not None else '(Global default)',
+    }
+
+    for name, value in settings_to_display.items():
+        util.send_text_by_key(chan, "sysop_menu.change_board_full.current_setting_line",
+                              current_menu_mode, setting_name=name, setting_value=value)
+    chan.send(b'\r\n')
+
+    updates = {}
+
+    # --- 各設定項目の入力を受け付ける ---
+
+    # 掲示板名
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board_full.prompt_new_value", current_menu_mode,
+        setting_name="Board Name", current_value=board_info.get('name', ''), add_newline=False
+    )
+    new_name_input = chan.process_input()
+    if new_name_input is None:
         return None
-    if level_input.strip():
-        try:
-            level = int(level_input)
-            if 1 <= level <= 5:
-                new_read_level = level
-            else:
-                util.send_text_by_key(
-                    chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
-                return None
-        except ValueError:
-            util.send_text_by_key(
-                chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
-            return None
+    if new_name_input.strip():
+        updates['name'] = new_name_input.strip()
 
-    # 新しい書き込みレベルの入力
-    new_write_level = current_write_level
-    chan.send(
-        f"新しい書込レベル (1-5, 現在:{current_write_level}, 空入力で変更なし): ".encode('utf-8'))
-    level_input = chan.process_input()
-    if level_input is None:
+    # 説明
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board_full.prompt_new_value_with_clear", current_menu_mode,
+        setting_name="Description", current_value=board_info.get('description', ''), add_newline=False
+    )
+    new_desc_input = chan.process_input()
+    if new_desc_input is None:
         return None
-    if level_input.strip():
-        try:
-            level = int(level_input)
-            if 1 <= level <= 5:
-                new_write_level = level
-            else:
-                util.send_text_by_key(
-                    chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
-                return None
-        except ValueError:
-            util.send_text_by_key(
-                chan, "sysop_menu.change_user_level.invalid_level_range", current_menu_mode)
-            return None
+    if new_desc_input == '-':
+        updates['description'] = ''
+    elif new_desc_input:
+        updates['description'] = new_desc_input.strip()
 
-    # 変更内容の確認
-    if new_read_level == current_read_level and new_write_level == current_write_level:
+    # Permission
+    valid_permissions = ["open", "close", "readonly"]
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board_full.prompt_new_value", current_menu_mode,
+        setting_name=f"Permission ({','.join(valid_permissions)})", current_value=board_info.get('default_permission', 'open'), add_newline=False
+    )
+    new_perm_input = chan.process_input()
+    if new_perm_input is None:
+        return None
+    if new_perm_input.strip().lower() in valid_permissions:
+        updates['default_permission'] = new_perm_input.strip().lower()
+    elif new_perm_input.strip():
+        # Invalid input is just ignored, no message.
+        pass
+
+    # Read Level
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board_full.prompt_new_value", current_menu_mode,
+        setting_name="Read Level (1-5)", current_value=board_info.get('read_level', 1), add_newline=False
+    )
+    new_read_level_input = chan.process_input()
+    if new_read_level_input is None:
+        return None
+    if new_read_level_input.strip():
+        try:
+            level = int(new_read_level_input.strip())
+            if 1 <= level <= 5:
+                updates['read_level'] = level
+        except ValueError:
+            pass  # Ignore invalid input
+
+    # Write Level
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board_full.prompt_new_value", current_menu_mode,
+        setting_name="Write Level (1-5)", current_value=board_info.get('write_level', 1), add_newline=False
+    )
+    new_write_level_input = chan.process_input()
+    if new_write_level_input is None:
+        return None
+    if new_write_level_input.strip():
+        try:
+            level = int(new_write_level_input.strip())
+            if 1 <= level <= 5:
+                updates['write_level'] = level
+        except ValueError:
+            pass  # Ignore invalid input
+
+    # Allow Attachments
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board_full.prompt_new_yn", current_menu_mode,
+        setting_name="Allow Attachments", current_value="Yes" if board_info.get('allow_attachments') else "No", add_newline=False
+    )
+    new_attach_input = chan.process_input()
+    if new_attach_input is None:
+        return None
+    if new_attach_input.strip().lower() == 'y':
+        updates['allow_attachments'] = 1
+    elif new_attach_input.strip().lower() == 'n':
+        updates['allow_attachments'] = 0
+
+    # Allowed Extensions
+    current_ext = board_info.get('allowed_extensions')
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board_full.prompt_new_value_with_clear", current_menu_mode,
+        setting_name="Allowed Extensions", current_value=current_ext if current_ext is not None else '(Global default)', add_newline=False
+    )
+    new_ext_input = chan.process_input()
+    if new_ext_input is None:
+        return None
+    if new_ext_input.strip() == '-':
+        updates['allowed_extensions'] = None
+    elif new_ext_input.strip():
+        updates['allowed_extensions'] = new_ext_input.strip()
+
+    # Max File Size
+    current_size = board_info.get('max_attachment_size_mb')
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board_full.prompt_new_value_with_clear", current_menu_mode,
+        setting_name="Max File Size(MB)", current_value=current_size if current_size is not None else '(Global default)', add_newline=False
+    )
+    new_size_input = chan.process_input()
+    if new_size_input is None:
+        return None
+    if new_size_input.strip() == '-':
+        updates['max_attachment_size_mb'] = None
+    elif new_size_input.strip():
+        try:
+            size_val = int(new_size_input.strip())
+            if size_val > 0:
+                updates['max_attachment_size_mb'] = size_val
+        except ValueError:
+            pass  # Ignore invalid input
+
+    # 変更がなければ終了
+    if not updates:
         util.send_text_by_key(
-            chan, "sysop_menu.change_board.no_changes", current_menu_mode)
+            chan, "sysop_menu.change_board_full.no_changes", current_menu_mode)
         return None
 
-    util.send_text_by_key(chan, "sysop_menu.change_board.confirm_yn", current_menu_mode,
-                          shortcut_id=shortcut_id,
-                          old_read=current_read_level, new_read=new_read_level,
-                          old_write=current_write_level, new_write=new_write_level,
-                          add_newline=False)
-    confirm = chan.process_input()
-    if confirm is None or confirm.strip().lower() != 'y':
+    # 変更内容のサマリーを表示
+    util.send_text_by_key(
+        chan, "sysop_menu.change_board_full.confirm_summary_header", current_menu_mode)
+
+    key_to_display_name = {
+        "name": "Board Name",
+        "description": "Description",
+        "default_permission": "Permission",
+        "read_level": "Read Level",
+        "write_level": "Write Level",
+        "allow_attachments": "Allow Attachments",
+        "allowed_extensions": "Allowed Extensions",
+        "max_attachment_size_mb": "Max File Size(MB)",
+    }
+
+    for key, value in updates.items():
+        display_key = key_to_display_name.get(key, key)
+        display_value = value
+        if key == 'allow_attachments':
+            display_value = "Yes" if value else "No"
+        elif value is None:
+            display_value = '(Global default)'
+        elif value == '':
+            display_value = '(Empty)'
+
+        util.send_text_by_key(chan, "sysop_menu.change_board_full.current_setting_line",
+                              current_menu_mode, setting_name=display_key, setting_value=display_value)
+    chan.send(b'\r\n')
+
+    # 最終確認
+    util.send_text_by_key(
+        chan, "common_messages.confirm_yn", current_menu_mode, add_newline=False)
+    final_confirm = chan.process_input()
+    if final_confirm is None or final_confirm.strip().lower() != 'y':
         util.send_text_by_key(
             chan, "common_messages.cancel", current_menu_mode)
         return None
 
     # DB更新
-    if database.update_record('boards', {'read_level': new_read_level, 'write_level': new_write_level}, {'id': board_id_pk}):
+    if database.update_record('boards', updates, {'id': board_info['id']}):
         util.send_text_by_key(
-            chan, "sysop_menu.change_board.success", current_menu_mode, shortcut_id=shortcut_id)
+            chan, "sysop_menu.change_board_full.success", current_menu_mode, shortcut_id=shortcut_id)
     else:
         util.send_text_by_key(
             chan, "common_messages.database_update_error", current_menu_mode)

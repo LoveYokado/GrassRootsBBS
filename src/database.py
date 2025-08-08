@@ -563,14 +563,14 @@ def delete_user(user_id):
     return execute_query(query, (user_id,)) is not None
 
 
-def create_board_entry(shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple", allow_attachments=0):
+def create_board_entry(shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple", allow_attachments=0, allowed_extensions=None, max_attachment_size_mb=None):
     """新しい掲示板エントリをboardsテーブルに挿入"""
     query = """
-    INSERT INTO boards (shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level, board_type, allow_attachments)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s)
+    INSERT INTO boards (shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s)
     """
     params = (shortcut_id, name, description, operators, default_permission,
-              kanban_body, status, read_level, write_level, board_type, allow_attachments)
+              kanban_body, status, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb)
     return execute_query(query, params) is not None
 
 

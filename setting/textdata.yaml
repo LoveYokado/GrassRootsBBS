@@ -523,11 +523,11 @@ sysop_menu:
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       □[ALLR] 探索リストを読む                [USRL] 会員一覧表示                ■
       ■[ALLW] 探索リストを書く                                                  □
-      □[MKBD] 掲示板作成                      [PASC] パスワード変更              ■
+      □[MKBD] 掲示板作成                      [PASC] パスワード再発行           ■
       ■[LSBD] 掲示板一覧                      [CHGU] ユーザーレベル変更          □
       □[DLBD] 掲示板削除                      [DELU] 会員抹消                    ■
-      ■[BDLV] 掲示板R/Wレベル設定             [REGS] 会員登録                    □
-      □[TREE] 階層構造マップ                                                    ■
+      ■[CHBD] 掲示板総合設定変更              [REGS] 会員登録                    □
+      □[TREE] 階層構造マップ(未実装)                                            ■
       ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く      □
       □[VSET] 設定一覧表示                    [LGMG] ログインメッセージ変更      ■
       ■[EXIT] システム強制終了                [LETR] アンケート処理              □
@@ -539,10 +539,10 @@ sysop_menu:
       [ALLR] 探索リストを読む
       [ALLW] 探索リストを書く
       [LETR] アンケート処理(未実装)
-      [PASC] パスワード変更(未実装)
+      [PASC] パスワード再発行
       [MKBD] 掲示板作成
       [LSBD] 掲示板一覧
-      [BDLV] 掲示板R/Wレベル設定
+      [CHBD] 掲示板総合設定変更
       [DLBD] 掲示板削除
       [REGS] 会員登録
       [DELU] 会員抹消
@@ -561,10 +561,10 @@ sysop_menu:
       | ALLR    | Read Search List: Load search paths       |
       | ALLW    | Write Search List: Save search paths      |
       | LETR    | Process Survey: Manage polls (TBD)        |
-      | PASC    | Change Password: Update sysop pass (TBD)  |
+      | PASC    | Reissue Password: Reset user password     |
       | MKBD    | Create Board: Make new bulletin board     |
       | LSBD    | List Boards: View all boards              |
-      | BDLV    | Set Board Level: Adjust board access      |
+      | CHBD    | Change Board Settings: Full board config  |
       | DLBD    | Delete Board: Remove bulletin board       |
       | REGS    | Register User: Add new member             |
       | DELU    | Delete User: Remove member account        |
@@ -826,31 +826,47 @@ sysop_menu:
       mode_1: "データベースに登録されている掲示板はありません。"
       mode_2: "データベースに登録されている掲示板はありません。"
       mode_3: "No boards are registered in the database."
-  change_board:
+  change_board_full:
     header:
-      mode_1: "--- 掲示板設定変更 ---"
-      mode_2: "--- 掲示板設定変更 ---"
-      mode_3: "--- Change Board Settings ---"
+      mode_1: "--- 掲示板総合設定変更 ---"
+      mode_2: "--- 掲示板総合設定変更 ---"
+      mode_3: "--- Change Board Full Settings ---"
     shortcut_id_prompt:
       mode_1: "設定を変更する掲示板のIDを入力してください: "
       mode_2: "設定を変更する掲示板のIDを入力してください: "
       mode_3: "Enter the ID of the board to change settings for: "
-    current_settings:
-      mode_1: "掲示板 '{shortcut_id}' の現在の設定 -> 閲覧レベル: {read_level}, 書き込みレベル: {write_level}"
-      mode_2: "掲示板 '{shortcut_id}' の現在の設定 -> 閲覧レベル: {read_level}, 書き込みレベル: {write_level}"
-      mode_3: "Current settings for board '{shortcut_id}' -> Read Level: {read_level}, Write Level: {write_level}"
+    current_settings_header:
+      mode_1: "\r\n--- 掲示板「{name}」(ID: {shortcut_id}) の現在の設定 ---\r\n"
+      mode_2: "\r\n--- 掲示板「{name}」(ID: {shortcut_id}) の現在の設定 ---\r\n"
+      mode_3: "\r\n--- Current settings for board '{name}' (ID: {shortcut_id}) ---\r\n"
+    current_setting_line:
+      mode_1: "  {setting_name:<20}: {setting_value}"
+      mode_2: "  {setting_name:<20}: {setting_value}"
+      mode_3: "  {setting_name:<20}: {setting_value}"
+    prompt_new_value:
+      mode_1: "新しい{setting_name} (現在: {current_value}, 空入力で変更なし): "
+      mode_2: "新しい{setting_name} (現在: {current_value}, 空入力で変更なし): "
+      mode_3: "New {setting_name} (Current: {current_value}, blank for no change): "
+    prompt_new_value_with_clear:
+      mode_1: "新しい{setting_name} (現在: {current_value}, 空入力で変更なし, '-'でクリア): "
+      mode_2: "新しい{setting_name} (現在: {current_value}, 空入力で変更なし, '-'でクリア): "
+      mode_3: "New {setting_name} (Current: {current_value}, blank for no change, '-' to clear): "
+    prompt_new_yn:
+      mode_1: "新しい{setting_name} (現在: {current_value}, y/n/空入力で変更なし): "
+      mode_2: "新しい{setting_name} (現在: {current_value}, y/n/空入力で変更なし): "
+      mode_3: "New {setting_name} (Current: {current_value}, y/n/blank for no change): "
+    confirm_summary_header:
+      mode_1: "\r\n以下の内容で設定を変更します。\r\n"
+      mode_2: "\r\n以下の内容で設定を変更します。\r\n"
+      mode_3: "\r\nSettings will be changed as follows.\r\n"
     no_changes:
-      mode_1: "変更はありませんでした。"
-      mode_2: "変更はありませんでした。"
-      mode_3: "No changes were made."
-    confirm_yn:
-      mode_1: "設定を R:{old_read}->{new_read}, W:{old_write}->{new_write} に変更しますか？ (y/N): "
-      mode_2: "設定を R:{old_read}->{new_read}, W:{old_write}->{new_write} に変更しますか？ (y/N): "
-      mode_3: "Change settings to R:{old_read}->{new_read}, W:{old_write}->{new_write}? (y/N): "
+      mode_1: "変更点はありませんでした。\r\n"
+      mode_2: "変更点はありませんでした。\r\n"
+      mode_3: "There were no changes.\r\n"
     success:
-      mode_1: "掲示板 '{shortcut_id}' の設定を更新しました。"
-      mode_2: "掲示板 '{shortcut_id}' の設定を更新しました。"
-      mode_3: "Successfully updated settings for board '{shortcut_id}'."
+      mode_1: "掲示板 '{shortcut_id}' の設定を更新しました。\r\n"
+      mode_2: "掲示板 '{shortcut_id}' の設定を更新しました。\r\n"
+      mode_3: "Successfully updated settings for board '{shortcut_id}'.\r\n"
   change_user_password:
     header:
       mode_1: "--- パスワード変更 ---"
@@ -1297,6 +1313,10 @@ bbs:
     mode_1: "** 登録に失敗しました **\r\n"
     mode_2: "** 登録に失敗しました **\r\n"
     mode_3: "** Article posting failed **\r\n"
+  board_not_found:
+    mode_1: "掲示板「{shortcut_id}」は存在しないか、現在利用できません。\r\n"
+    mode_2: "掲示板「{shortcut_id}」は存在しないか、現在利用できません。\r\n"
+    mode_3: "Board '{shortcut_id}' does not exist or is currently unavailable.\r\n"
   reply_prompt:
     mode_1: "この記事に返信しますか？ ([R]eply / [Enter]続ける): "
     mode_2: "この記事に返信しますか？ ([R]eply / [Enter]続ける): "

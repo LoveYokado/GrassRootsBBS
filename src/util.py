@@ -298,7 +298,9 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 status VARCHAR(10) NOT NULL DEFAULT 'active',
                 read_level INT NOT NULL DEFAULT 1,
                 write_level INT NOT NULL DEFAULT 1,
-                allow_attachments BOOLEAN DEFAULT 0 NOT NULL
+                allow_attachments BOOLEAN DEFAULT 0 NOT NULL,
+                allowed_extensions TEXT DEFAULT NULL,
+                max_attachment_size_mb INT DEFAULT NULL
             )
             """,
             """
@@ -351,6 +353,17 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 subscription_info TEXT NOT NULL,
                 created_at INT,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS activitypub_actors (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                actor_type VARCHAR(50) NOT NULL,
+                actor_identifier VARCHAR(255) NOT NULL,
+                private_key_pem TEXT,
+                public_key_pem TEXT,
+                created_at INT,
+                UNIQUE KEY (actor_type, actor_identifier)
             )
             """
         ]

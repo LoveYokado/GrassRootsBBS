@@ -1658,6 +1658,10 @@ class CommandHandler:
                     util.send_text_by_key(
                         self.chan, "bbs.prompt_select_file", self.menu_mode)
 
+                    # webapp.py のアップロードハンドラに現在の掲示板情報を渡す
+                    if hasattr(self.chan, 'handler'):
+                        self.chan.handler.current_board_for_upload = self.current_board
+
                     # ファイルアップロードUI表示 & 即時ダイアログ表示命令
                     self.chan.send(b'\x1b[?2033h')
                     try:

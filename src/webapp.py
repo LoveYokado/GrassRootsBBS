@@ -1170,11 +1170,14 @@ def handle_upload_attachment(data):
         emit('attachment_upload_error', {'message': 'ファイル名またはデータがありません。'})
         return
 
-    # --- 設定ファイルから制限を読み込む ---
-    limits_config = util.app_config.get('limits', {})
+    # --- 制限設定の読み込み (掲示板個別設定 -> グローバル設定) ---
+    board_config = getattr(handler, 'current_board_for_upload', {}) or {}
+    global_limits_config = util.app_config.get('limits', {})
 
     # ファイルサイズの制限
-    max_size_mb = limits_config.get('attachment_max_size_mb', 10)
+    max_size_mb = board_config.get('max_attachment_size_mb')
+    if max_size_mb is None:
+        max_size_mb = global_limits_config.get('attachment_max_size_mb', 10)
     max_size_bytes = max_size_mb * 1024 * 1024
     message = ""
     if len(file_data) > max_size_bytes:
@@ -1182,8 +1185,11 @@ def handle_upload_attachment(data):
 
     # 許可する拡張子の制限
     if not message:  # ファイルサイズエラーがなければ拡張子をチェック
-        allowed_extensions_str = limits_config.get(
-            'allowed_attachment_extensions', '')
+        allowed_extensions_str = board_config.get('allowed_extensions')
+        if allowed_extensions_str is None:
+            allowed_extensions_str = global_limits_config.get(
+                'allowed_attachment_extensions', '')
+
         allowed_extensions = {ext.strip().lower()
                               for ext in allowed_extensions_str.split(',') if ext.strip()}
         file_ext = os.path.splitext(filename)[1].lstrip('.').lower()
