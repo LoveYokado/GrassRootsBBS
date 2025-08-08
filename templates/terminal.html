@@ -544,6 +544,14 @@
                 /* JSで .visible クラスが付与されても、PCでは強制的に非表示にする */
                 display: none !important;
             }
+
+            /* デスクトップでは設定ボタンを非表示にし、DIPスイッチのみにする */
+            #theme-selector,
+            #font-selector,
+            #speed-selector,
+            #effect-selector {
+                display: none;
+            }
         }
 
         .xterm-viewport::-webkit-scrollbar {
@@ -895,11 +903,12 @@
         }
 
         .dip-switch-panel {
-            background-color: #c0392b;
-            /* 赤い基板の色 */
-            border: 2px solid #962d22;
+            background-color: #4a4a4a;
+            /* グレーの金属パネル風に変更 */
+            border: 2px solid #333333;
             border-radius: 5px;
-            padding: 15px;
+            padding: 15px 15px 0px 15px;
+            /* 上、左右、下の順。下の余白を少し詰める */
             box-shadow: inset 1px 1px 4px rgba(0, 0, 0, 0.5);
         }
 
@@ -919,13 +928,15 @@
             border: 1px solid #962d22;
             padding: 5px 8px;
             border-radius: 3px;
+            background-color: #c0392b;
+            /* 赤い基板の色 */
         }
 
         .dip-switch-unit {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 2px;
             /* スイッチと番号の間の隙間 */
         }
 
