@@ -339,8 +339,8 @@ class WebTerminalHandler:
                                 continue
 
                 except socket.timeout:
-                    logging.warning(
-                        f"入力待機中にタイムアウトしました (SID: {self.handler.sid})")
+                    logging.info(
+                        f"入力待機タイムアウト (正常動作) (SID: {self.handler.sid})")
                 except Exception as e:
                     logging.error(
                         f"process_inputでエラー (SID: {self.handler.sid}): {e}")

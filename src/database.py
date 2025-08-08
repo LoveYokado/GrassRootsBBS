@@ -580,15 +580,15 @@ def delete_board_entry(shortcut_id):
     return execute_query(query, (shortcut_id,)) is not None
 
 
-def insert_article(board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None):
+def insert_article(board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None, attachment_size=None):
     """記事を挿入し、IDを返す"""
     query = """
-        INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, attachment_filename, attachment_originalname)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, attachment_filename, attachment_originalname, attachment_size)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     params = (board_id_pk, article_number, user_identifier,
               parent_article_id, title, body, timestamp, ip_address,
-              attachment_filename, attachment_originalname)
+              attachment_filename, attachment_originalname, attachment_size)
     return execute_query(query, params)
 
 
@@ -719,22 +719,27 @@ def delete_push_subscription(user_id, endpoint_to_delete):
         cursor = conn.cursor(dictionary=True)
 
         # ユーザーのすべての購読情報を取得
-        cursor.execute("SELECT id, subscription_info FROM push_subscriptions WHERE user_id = %s", (user_id,))
+        cursor.execute(
+            "SELECT id, subscription_info FROM push_subscriptions WHERE user_id = %s", (user_id,))
         subscriptions = cursor.fetchall()
 
         for sub in subscriptions:
             subscription_info = json.loads(sub['subscription_info'])
             if subscription_info.get('endpoint') == endpoint_to_delete:
                 # マッチするendpointが見つかったら、そのIDで削除
-                cursor.execute("DELETE FROM push_subscriptions WHERE id = %s", (sub['id'],))
+                cursor.execute(
+                    "DELETE FROM push_subscriptions WHERE id = %s", (sub['id'],))
                 conn.commit()
-                logging.info(f"Push subscription deleted for user_id: {user_id} (endpoint: {endpoint_to_delete})")
+                logging.info(
+                    f"Push subscription deleted for user_id: {user_id} (endpoint: {endpoint_to_delete})")
                 return True
 
-        logging.warning(f"No matching push subscription found to delete for user_id: {user_id} (endpoint: {endpoint_to_delete})")
+        logging.warning(
+            f"No matching push subscription found to delete for user_id: {user_id} (endpoint: {endpoint_to_delete})")
         return False
     except Exception as e:
-        logging.error(f"Failed to delete push subscription for user {user_id}: {e}", exc_info=True)
+        logging.error(
+            f"Failed to delete push subscription for user {user_id}: {e}", exc_info=True)
         if conn:
             conn.rollback()
         return False
@@ -743,6 +748,7 @@ def delete_push_subscription(user_id, endpoint_to_delete):
             cursor.close()
         if conn:
             conn.close()
+
 
 def get_all_users():
     """全ユーザーの情報を取得する"""

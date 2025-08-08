@@ -1285,6 +1285,14 @@ bbs:
     mode_1: "** 登録をとりやめました **\r\n"
     mode_2: "** 登録をとりやめました **\r\n"
     mode_3: "Article posting cancelled.\r\n"
+  confirm_upload_attachment_yn:
+    mode_1: "バイナリファイルをアップロードしますか(Y) : "
+    mode_2: "バイナリファイルをアップロードしますか(Y) : "
+    mode_3: "Upload a binary file? (Y): "
+  prompt_select_file:
+    mode_1: "ファイルを選択してください\r\n"
+    mode_2: "ファイルを選択してください\r\n"
+    mode_3: "Please select a file\r\n"
   post_failed:
     mode_1: "** 登録に失敗しました **\r\n"
     mode_2: "** 登録に失敗しました **\r\n"
