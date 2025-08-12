@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin{% endblock %} - GR-BBS Admin</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2em;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        nav {
+            background: #333;
+            padding: 1em;
+            margin-bottom: 1em;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-right: 1em;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #e9e9e9;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .flash-messages {
+            padding: 0;
+            margin-bottom: 1em;
+            list-style: none;
+        }
+
+        .flash-messages li {
+            padding: 10px;
+            border-radius: 3px;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .alert-danger {
+            background-color: #dc3545;
+        }
+
+        .alert-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .alert-success {
+            background-color: #28a745;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('admin.user_list') }}">User Management</a>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <ul class="flash-messages">
+            {% for category, message in messages %}
+            <li class="alert-{{ category }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</body>
+
+</html>

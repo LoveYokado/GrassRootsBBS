@@ -6,6 +6,7 @@
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
 from . import bbs_manager, command_dispatcher, database, util, passkey_handler
+from .admin.routes import admin_bp  # 管理画面のブループリントを直接インポート
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_socketio import SocketIO, emit, disconnect
 from flask_session import Session
@@ -167,9 +168,33 @@ try:
         'LOCKOUT_TIME_SECONDS', 300)
 
     sess = Session()
+    sess.init_app(app)
+
+    # --- ブループリントの登録 ---
+    app.register_blueprint(admin_bp)
+
 except Exception as e:
     logging.critical(f"設定の読み込みに失敗しました: {e}")
     sys.exit(1)
+
+# --- カスタムテンプレートフィルタ ---
+
+
+@app.template_filter('timestamp_to_datetime')
+def timestamp_to_datetime_filter(ts):
+    """
+    Jinja2テンプレート内でUNIXタイムスタンプを人間が読める形式の日時に変換するフィルタ。
+    """
+    if not ts or not isinstance(ts, (int, float)) or ts <= 0:
+        return "N/A"
+    try:
+        return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    except (ValueError, OSError):
+        # 非常に大きな値や不正な値の場合
+        return "Invalid Date"
+
+# --- ここまで ---
+
 
 # --- クライアントごとの状態管理 ---
 # {sid: WebTerminalHandler_instance}

@@ -1,0 +1,48 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Level</th>
+            <th>Email</th>
+            <th>Created At</th>
+            <th>Last Login</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.name }}</td>
+            <td>{{ user.level }}</td>
+            <td>{{ user.email }}</td>
+            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}</td>
+            <td>
+                {% if user.lastlogin and user.lastlogin > 0 %}
+                {{ user.lastlogin|int|timestamp_to_datetime }}
+                {% else %}
+                Never
+                {% endif %}
+            </td>
+            <td>
+                <a href="#">Edit</a> |
+                <a href="#">Delete</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="7">No users found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
