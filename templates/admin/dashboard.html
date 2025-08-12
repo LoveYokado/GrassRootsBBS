@@ -2,5 +2,61 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <h1>{{ title }}</h1>
-<p>Welcome to the GrassRootsBBS Admin Panel.</p>
+
+<div class="dashboard-grid">
+    <div class="main-panel">
+        <h2 style="margin-top: 0;">Recent Activity (Last 7 Days)</h2>
+        <div style="position: relative; height:40vh;">
+            <canvas id="activityChart"></canvas>
+        </div>
+    </div>
+    <div class="side-panel">
+        <h2>Statistics</h2>
+        <div class="compact-stats">
+            <p><span>Total Users:</span> <span>{{ stats.total_users }}</span></p>
+            <p><span>Total Boards:</span> <span>{{ stats.total_boards }}</span></p>
+            <p><span>Total Articles:</span> <span>{{ stats.total_articles }}</span></p>
+            <p><span><a href="{{ url_for('admin.who_online') }}" style="color: #87cefa;">Who's Online:</a></span>
+                <span>{{ stats.online_users }}</span></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chartData = JSON.parse({{ chart_data | tojson }});
+    const ctx = document.getElementById('activityChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'New Users',
+                data: chartData.user_registrations,
+                borderColor: '#87cefa', // Light Blue
+                backgroundColor: 'rgba(135, 206, 250, 0.2)',
+                tension: 0.1,
+                fill: true,
+            }, {
+                label: 'New Articles',
+                data: chartData.article_posts,
+                borderColor: '#90ee90', // Light Green
+                backgroundColor: 'rgba(144, 238, 144, 0.2)',
+                tension: 0.1,
+                fill: true,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, ticks: { color: '#ffffff', stepSize: 1 }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                x: { ticks: { color: '#ffffff' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+            },
+            plugins: {
+                legend: { labels: { color: '#ffffff' } }
+            }
+        }
+    });
+</script>
 {% endblock %}

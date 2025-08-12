@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin{% endblock %} - GR-BBS Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: sans-serif;
@@ -216,6 +217,43 @@
             font-size: inherit;
             text-decoration: underline;
         }
+
+        /* Dashboard Styles */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            /* 2/3 for graph, 1/3 for side panel */
+            gap: 2em;
+        }
+
+        .main-panel,
+        .side-panel {
+            background-color: #333;
+            padding: 1.5em;
+            border-radius: 5px;
+        }
+
+        .side-panel h2 {
+            margin-top: 0;
+        }
+
+        .compact-stats {
+            margin-bottom: 2em;
+        }
+
+        .compact-stats p {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.5em 0;
+            font-size: 1.1em;
+            border-bottom: 1px solid #555;
+            padding-bottom: 0.5em;
+        }
+
+        .compact-stats p span:last-child {
+            font-weight: bold;
+            color: #fff;
+        }
     </style>
 </head>
 
@@ -237,9 +275,11 @@
     </div>
     <nav class="bottom-nav">
         <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('admin.who_online') }}">Who's Online</a>
         <a href="{{ url_for('admin.user_list') }}">User Management</a>
         <a href="{{ url_for('admin.board_list') }}">Board Management</a>
         <a href="{{ url_for('admin.article_search') }}">Article Management</a>
+        <a href="{{ url_for('admin.system_settings') }}">System Settings</a>
     </nav>
 </body>
 

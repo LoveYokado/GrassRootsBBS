@@ -124,7 +124,7 @@ def get_text_by_key(key_string, menu_mode, default_value=""):
             return default_value
     except (KeyError, TypeError):
         logging.warning(
-            f"キー {key_string} (mode{menu_mode}) に対応するテキストデータが見つかりません。")
+            f"キー {key_string} (mode_{menu_mode}) に対応するテキストデータが見つかりません。")
         return default_value
 
 

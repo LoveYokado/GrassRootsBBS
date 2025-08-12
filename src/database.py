@@ -110,6 +110,51 @@ def get_user_names_from_user_ids(user_ids):
     return {row['id']: row['name'] for row in results} if results else {}
 
 
+def get_total_user_count():
+    """登録ユーザーの総数を取得する"""
+    query = "SELECT COUNT(*) as count FROM users"
+    result = execute_query(query, fetch='one')
+    return result['count'] if result else 0
+
+
+def get_total_board_count():
+    """掲示板の総数を取得する"""
+    query = "SELECT COUNT(*) as count FROM boards"
+    result = execute_query(query, fetch='one')
+    return result['count'] if result else 0
+
+
+def get_total_article_count():
+    """記事の総数を取得する"""
+    query = "SELECT COUNT(*) as count FROM articles"
+    result = execute_query(query, fetch='one')
+    return result['count'] if result else 0
+
+
+def get_daily_user_registrations(days=7):
+    """過去N日間の日毎のユーザー登録数を取得する"""
+    query = """
+        SELECT
+            DATE(FROM_UNIXTIME(registdate)) as registration_date,
+            COUNT(*) as count
+        FROM users
+        WHERE registdate >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
+        GROUP BY registration_date
+        ORDER BY registration_date ASC
+    """
+    return execute_query(query, (days - 1,), fetch='all')
+
+
+def get_daily_article_posts(days=7):
+    """過去N日間の日毎の記事投稿数を取得する"""
+    query = """
+        SELECT DATE(FROM_UNIXTIME(created_at)) as post_date, COUNT(*) as count
+        FROM articles WHERE created_at >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
+        GROUP BY post_date ORDER BY post_date ASC
+    """
+    return execute_query(query, (days - 1,), fetch='all')
+
+
 def update_record(table, set_data, where_data):
     """
     汎用的なレコード更新関数

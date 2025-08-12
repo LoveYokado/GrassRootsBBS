@@ -1,0 +1,69 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Here you can change the minimum access levels for top menu commands and other server-wide settings.</p>
+
+<form method="post">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2em;">
+
+        <div>
+            <h3>Command Access Levels (0-5)</h3>
+            <div class="form-group">
+                <label for="bbs">BBS (b)</label>
+                <input type="number" id="bbs" name="bbs" value="{{ settings.get('bbs', 2) }}" min="0" max="5" required>
+            </div>
+            <div class="form-group">
+                <label for="chat">Chat (c)</label>
+                <input type="number" id="chat" name="chat" value="{{ settings.get('chat', 2) }}" min="0" max="5"
+                    required>
+            </div>
+            <div class="form-group">
+                <label for="mail">Mail (m)</label>
+                <input type="number" id="mail" name="mail" value="{{ settings.get('mail', 2) }}" min="0" max="5"
+                    required>
+            </div>
+            <div class="form-group">
+                <label for="telegram">Telegram (#)</label>
+                <input type="number" id="telegram" name="telegram" value="{{ settings.get('telegram', 2) }}" min="0"
+                    max="5" required>
+            </div>
+            <div class="form-group">
+                <label for="userpref">UserPref (u)</label>
+                <input type="number" id="userpref" name="userpref" value="{{ settings.get('userpref', 2) }}" min="0"
+                    max="5" required>
+            </div>
+            <div class="form-group">
+                <label for="who">Who (w)</label>
+                <input type="number" id="who" name="who" value="{{ settings.get('who', 2) }}" min="0" max="5" required>
+            </div>
+            <div class="form-group">
+                <label for="hamlet">Hamlet (z)</label>
+                <input type="number" id="hamlet" name="hamlet" value="{{ settings.get('hamlet', 2) }}" min="0" max="5"
+                    required>
+            </div>
+        </div>
+
+        <div>
+            <h3>Text Settings</h3>
+            <div class="form-group">
+                <label for="login_message">Login Message</label>
+                <textarea id="login_message" name="login_message"
+                    rows="5">{{ settings.get('login_message', '') }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="default_exploration_list">Default Exploration List (comma-separated)</label>
+                <textarea id="default_exploration_list" name="default_exploration_list"
+                    rows="5">{{ settings.get('default_exploration_list', '') }}</textarea>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="form-actions" style="margin-top: 2em;">
+        <button type="submit" style="background-color: #28a745; color: white;">Save Changes</button>
+    </div>
+</form>
+{% endblock %}

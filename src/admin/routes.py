@@ -1,7 +1,9 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from ..decorators import sysop_required
 import json
-from .. import database, util
+from datetime import datetime, timedelta
+import time
+from .. import database, util, webapp
 
 # ブループリントを作成
 # 'admin' はブループリントの名前
@@ -13,7 +15,111 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @sysop_required
 def dashboard():
     """管理画面のダッシュボード"""
-    return render_template('admin/dashboard.html', title='Admin Dashboard')
+    # 循環参照を避けるため、関数内でインポートします
+    from .. import webapp
+    # オンラインメンバーの数を取得
+    online_count = len(webapp.get_webapp_online_members())
+
+    # 統計情報を取得
+    stats = {
+        'total_users': database.get_total_user_count(),
+        'total_boards': database.get_total_board_count(),
+        'total_articles': database.get_total_article_count(),
+        'online_users': online_count
+    }
+
+    # --- グラフ用データの準備 ---
+    # 過去7日間の日付ラベルを生成
+    labels = [(datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+              for i in range(6, -1, -1)]
+
+    # ユーザー登録数のデータを取得・整形
+    user_data_raw = database.get_daily_user_registrations(days=7)
+    user_data_map = {item['registration_date'].strftime(
+        '%Y-%m-%d'): item['count'] for item in user_data_raw} if user_data_raw else {}
+    user_counts = [user_data_map.get(label, 0) for label in labels]
+
+    # 記事投稿数のデータを取得・整形
+    article_data_raw = database.get_daily_article_posts(days=7)
+    article_data_map = {item['post_date'].strftime(
+        '%Y-%m-%d'): item['count'] for item in article_data_raw} if article_data_raw else {}
+    article_counts = [article_data_map.get(label, 0) for label in labels]
+
+    chart_data = {
+        'labels': labels,
+        'user_registrations': user_counts,
+        'article_posts': article_counts,
+    }
+    # --- ここまで ---
+
+    return render_template('admin/dashboard.html',
+                           title='Dashboard',
+                           stats=stats,
+                           chart_data=json.dumps(chart_data))
+
+
+@admin_bp.route('/who')
+@sysop_required
+def who_online():
+    """オンラインユーザーの詳細一覧ページ"""
+    online_members_raw = webapp.get_webapp_online_members()
+
+    # データを整形し、接続時間を計算
+    online_list = []
+    current_time = time.time()
+    for sid, member_data in online_members_raw.items():
+        connect_time = member_data.get('connect_time', current_time)
+        duration_seconds = current_time - connect_time
+        member_data['duration_seconds'] = duration_seconds
+        # 人間が読みやすい形式に変換
+        minutes, seconds = divmod(duration_seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        member_data['duration_str'] = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+        online_list.append(member_data)
+
+    # ソート処理
+    sort_by = request.args.get('sort_by', 'connect_time')
+    order = request.args.get('order', 'asc')
+    reverse = (order == 'desc')
+
+    # ソートキーを安全に処理
+    def sort_key(item):
+        key = item.get(sort_by)
+        return str(key).lower() if isinstance(key, str) else key if key is not None else 0
+
+    online_list.sort(key=sort_key, reverse=reverse)
+
+    next_order = 'desc' if order == 'asc' else 'asc'
+
+    return render_template(
+        'admin/who_online.html',
+        title="Who's Online",
+        online_list=online_list,
+        sort_by=sort_by,
+        order=order,
+        next_order=next_order
+    )
+
+
+@admin_bp.route('/who/kick/<sid>', methods=['POST'])
+@sysop_required
+def kick_user(sid):
+    """指定されたSIDのユーザーをキックする"""
+    # webappモジュールからキック関数を呼び出す
+    from .. import webapp
+
+    online_members = webapp.get_webapp_online_members()
+    member_to_kick = online_members.get(sid)
+    display_name = member_to_kick.get(
+        'display_name', f'session {sid}') if member_to_kick else f'session {sid}'
+
+    if webapp.kick_user_session(sid):
+        flash(f"User '{display_name}' has been kicked.", 'success')
+    else:
+        flash(
+            f"Failed to kick user '{display_name}'. They may have already disconnected.", 'warning')
+
+    return redirect(url_for('admin.who_online'))
 
 
 @admin_bp.route('/users')
@@ -398,3 +504,45 @@ def bulk_action_articles():
         flash('Invalid action.', 'danger')
 
     return redirect(request.referrer or url_for('admin.article_search'))
+
+
+@admin_bp.route('/settings', methods=['GET', 'POST'])
+@sysop_required
+def system_settings():
+    """システム設定ページ"""
+    pref_names = ['bbs', 'chat', 'mail', 'telegram', 'userpref',
+                  'who', 'default_exploration_list', 'hamlet', 'login_message']
+
+    if request.method == 'POST':
+        # フォームからデータを取得
+        settings_to_update = {
+            'bbs': request.form.get('bbs', type=int),
+            'chat': request.form.get('chat', type=int),
+            'mail': request.form.get('mail', type=int),
+            'telegram': request.form.get('telegram', type=int),
+            'userpref': request.form.get('userpref', type=int),
+            'who': request.form.get('who', type=int),
+            'hamlet': request.form.get('hamlet', type=int),
+            'default_exploration_list': request.form.get('default_exploration_list', '').strip(),
+            'login_message': request.form.get('login_message', '').strip()
+        }
+
+        # バリデーション (レベルが0-5の範囲にあるか)
+        for key in ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who', 'hamlet']:
+            if not (0 <= settings_to_update[key] <= 5):
+                flash(
+                    f"Invalid level for {key}. Must be between 0 and 5.", 'danger')
+                pref_list = database.read_server_pref()
+                current_settings = dict(
+                    zip(pref_names, pref_list)) if pref_list else {}
+                return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
+
+        if database.update_record('server_pref', settings_to_update, {'id': 1}):
+            flash('System settings have been updated successfully.', 'success')
+        else:
+            flash('Failed to update system settings.', 'danger')
+        return redirect(url_for('admin.system_settings'))
+
+    pref_list = database.read_server_pref()
+    current_settings = dict(zip(pref_names, pref_list)) if pref_list else {}
+    return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
