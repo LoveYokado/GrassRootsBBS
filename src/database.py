@@ -750,10 +750,36 @@ def delete_push_subscription(user_id, endpoint_to_delete):
             conn.close()
 
 
-def get_all_users():
-    """全ユーザーの情報を取得する"""
-    query = "SELECT id, name, level, registdate, lastlogin, comment, email FROM users ORDER BY id ASC"
-    return execute_query(query, fetch='all')
+def get_all_users(sort_by='id', order='asc', search_term=None):
+    """
+    すべてのユーザー情報を取得する。ソート順と検索語を指定可能。
+    :param sort_by: ソートするカラム名
+    :param order: 'asc' または 'desc'
+    :param search_term: 検索キーワード
+    """
+    # SQLインジェクションを防ぐため、許可するカラム名をホワイトリストで管理
+    allowed_columns = ['id', 'name', 'level', 'registdate', 'lastlogin']
+    if sort_by not in allowed_columns:
+        sort_by = 'id'  # デフォルト値
+
+    # 'asc' または 'desc' 以外は 'asc' にする
+    if order.lower() not in ['asc', 'desc']:
+        order = 'asc'
+
+    params = []
+    where_clauses = []
+
+    if search_term:
+        where_clauses.append("(name LIKE %s OR email LIKE %s)")
+        search_pattern = f"%{search_term}%"
+        params.extend([search_pattern, search_pattern])
+
+    # f-string is safe here because we've whitelisted the column names and order direction.
+    query = "SELECT id, name, level, registdate, lastlogin, comment, email FROM users"
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+    query += f" ORDER BY {sort_by} {order}"
+    return execute_query(query, tuple(params), fetch='all')
 
 
 def get_all_boards_for_sysop_list():

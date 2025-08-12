@@ -5,15 +5,37 @@
 {% block content %}
 <h1>{{ title }}</h1>
 
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
+    <div class="form-actions">
+        <a href="{{ url_for('admin.new_user') }}" style="background-color: #007bff; color: white; font-weight: bold;">+
+            Add New User</a>
+    </div>
+    <form method="get" action="{{ url_for('admin.user_list') }}" style="display: flex; gap: 8px;">
+        <input type="text" name="q" placeholder="Search by Name or Email..." value="{{ search_term or '' }}"
+            style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+        <button type="submit" style="background-color: #6c757d; color: white;">Search</button>
+    </form>
+</div>
+
 <table>
     <thead>
         <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Level</th>
+            <th><a
+                    href="{{ url_for('admin.user_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', q=search_term) }}">ID
+                    {% if sort_by == 'id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.user_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', q=search_term) }}">Name
+                    {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.user_list', sort_by='level', order=next_order if sort_by == 'level' else 'asc', q=search_term) }}">Level
+                    {% if sort_by == 'level' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
             <th>Email</th>
-            <th>Created At</th>
-            <th>Last Login</th>
+            <th><a
+                    href="{{ url_for('admin.user_list', sort_by='registdate', order=next_order if sort_by == 'registdate' else 'asc', q=search_term) }}">Created
+                    At {% if sort_by == 'registdate' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.user_list', sort_by='lastlogin', order=next_order if sort_by == 'lastlogin' else 'asc', q=search_term) }}">Last
+                    Login {% if sort_by == 'lastlogin' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
             <th>Actions</th>
         </tr>
     </thead>
@@ -24,7 +46,7 @@
             <td>{{ user.name }}</td>
             <td>{{ user.level }}</td>
             <td>{{ user.email }}</td>
-            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}</td>
+            <td>{{ user.registdate|int|timestamp_to_datetime if user.registdate else 'N/A' }}</td>
             <td>
                 {% if user.lastlogin and user.lastlogin > 0 %}
                 {{ user.lastlogin|int|timestamp_to_datetime }}
@@ -33,8 +55,15 @@
                 {% endif %}
             </td>
             <td>
-                <a href="#">Edit</a> |
-                <a href="#">Delete</a>
+                <a href="{{ url_for('admin.edit_user', user_id=user.id) }}">Edit</a>
+                {% if user.name.upper() != session.get('username').upper() and user.name.upper() != 'GUEST' %}
+                |
+                <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}"
+                    style="display: inline;"
+                    onsubmit="return confirm('Are you sure you want to delete user \'{{ user.name }}\'? This action cannot be undone.');">
+                    <button type="submit" class="action-link-delete">Delete</button>
+                </form>
+                {% endif %}
             </td>
         </tr>
         {% else %}

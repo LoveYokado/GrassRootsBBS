@@ -1,0 +1,35 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }} - {{ user.name }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}: {{ user.name }}</h1>
+
+<form method="post">
+    <div class="form-group">
+        <label for="name">Username (read-only)</label>
+        <input type="text" id="name" name="name" value="{{ user.name }}" readonly>
+    </div>
+    <div class="form-group">
+        <label for="level">Level (0-5)</label>
+        <input type="number" id="level" name="level" value="{{ user.level }}" min="0" max="5" required {% if
+            user.name.upper()=='GUEST' %}readonly{% endif %}>
+    </div>
+    <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ user.email or '' }}">
+    </div>
+    <div class="form-group">
+        <label for="comment">Comment</label>
+        <textarea id="comment" name="comment" rows="3">{{ user.comment or '' }}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="password">New Password (leave blank to keep current)</label>
+        <input type="password" id="password" name="password">
+    </div>
+    <div class="form-actions">
+        <button type="submit" style="background-color: #28a745; color: white;">Save Changes</button>
+        <a href="{{ url_for('admin.user_list') }}" style="background-color: #6c757d; color: white;">Cancel</a>
+    </div>
+</form>
+{% endblock %}
