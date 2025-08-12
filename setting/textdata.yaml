@@ -2084,6 +2084,11 @@ auth:
     mode_1: "アカウントはロックされました。{lockout_minutes:.0f}分後に再試行してください。"
     mode_2: "アカウントはロックされました。{lockout_minutes:.0f}分後に再試行してください。"
     mode_3: "Account has been locked. Please try again in {lockout_minutes:.0f} minutes."
+  kicked_by_sysop:
+    mode_1: "システムオペレーターによって接続が切断されました。"
+    mode_2: "システムオペレーターによって接続が切断されました。"
+    mode_3: "Your connection was terminated by the System Operator."
+
 
 
 # --- ログイン後処理関連 ---

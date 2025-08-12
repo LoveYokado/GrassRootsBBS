@@ -6,6 +6,7 @@
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
 from . import bbs_manager, command_dispatcher, database, util, passkey_handler
+from .admin.routes import admin_bp  # 管理画面のブループリントを直接インポート
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_socketio import SocketIO, emit, disconnect
 from flask_session import Session
@@ -167,9 +168,33 @@ try:
         'LOCKOUT_TIME_SECONDS', 300)
 
     sess = Session()
+    sess.init_app(app)
+
+    # --- ブループリントの登録 ---
+    app.register_blueprint(admin_bp)
+
 except Exception as e:
     logging.critical(f"設定の読み込みに失敗しました: {e}")
     sys.exit(1)
+
+# --- カスタムテンプレートフィルタ ---
+
+
+@app.template_filter('timestamp_to_datetime')
+def timestamp_to_datetime_filter(ts):
+    """
+    Jinja2テンプレート内でUNIXタイムスタンプを人間が読める形式の日時に変換するフィルタ。
+    """
+    if not ts or not isinstance(ts, (int, float)) or ts <= 0:
+        return "N/A"
+    try:
+        return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    except (ValueError, OSError):
+        # 非常に大きな値や不正な値の場合
+        return "Invalid Date"
+
+# --- ここまで ---
+
 
 # --- クライアントごとの状態管理 ---
 # {sid: WebTerminalHandler_instance}
@@ -198,13 +223,42 @@ def get_webapp_online_members():
         if user_session:
             login_id = user_session.get('username')
             if login_id:
-                members[login_id] = {
+                # sidをキーにすることで、同じユーザーの複数セッションも区別可能
+                members[sid] = {
+                    "sid": sid,
+                    "user_id": user_session.get('user_id'),
                     # GUESTの場合はハッシュ付きの表示名、それ以外はログインID
                     "display_name": user_session.get('display_name', login_id),
                     "addr": handler.channel.getpeername(),  # ダミーIPを返す
-                    "menu_mode": user_session.get('menu_mode', '?')
+                    "menu_mode": user_session.get('menu_mode', '?'),
+                    "connect_time": handler.connect_time
                 }
     return members
+
+
+def kick_user_session(sid):
+    """
+    指定されたSIDのユーザーセッションを強制的に切断する。
+    管理画面から呼び出されることを想定。
+    """
+    if sid in client_states:
+        # ユーザーに切断理由を通知
+        logoff_message_text = util.get_text_by_key(
+            "auth.kicked_by_sysop",
+            client_states[sid].user_session.get('menu_mode', '2')
+        )
+        processed_text = logoff_message_text.replace(
+            '\r\n', '\n').replace('\n', '\r\n')
+        socketio.emit('force_disconnect', {'message': processed_text}, to=sid)
+
+        # サーバー側で切断処理
+        # disconnect() を呼ぶと、handle_disconnect() がトリガーされ、
+        # client_states からのエントリ削除などが行われる。
+        socketio.close_room(sid)
+
+        logging.info(f"SysOp kicked user with SID: {sid}")
+        return True
+    return False
 
 
 class WebTerminalHandler:
@@ -221,6 +275,7 @@ class WebTerminalHandler:
         self.input_event = threading.Event()
         self.stop_worker_event = threading.Event()
         self.is_logging = False
+        self.connect_time = time.time()  # 接続時刻を記録
         self.log_buffer = []
         self.mail_notified_this_session = False  # 明示的に初期化
         self.main_thread_active = True

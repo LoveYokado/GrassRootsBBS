@@ -5,19 +5,20 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs # アプリケーションログを永続化
-      - ./src:/home/yuki/python/GrassRootsBBS/src # 開発用にソースコードをマウント
+      - ./src:/app/src # 開発用にソースコードをマウント
       - ./private_key.pem:/app/private_key.pem:ro # 秘密鍵を読み取り専用でマウント
       - ./public_key.pem:/app/public_key.pem:ro # 公開鍵を読み取り専用でマウント
-      - ./templates:/home/yuki/python/GrassRootsBBS/templates # テンプレートファイルをマウント
-      - ./static:/home/yuki/python/GrassRootsBBS/static # 静的ファイルをマウント
+      - ./templates:/app/templates # テンプレートファイルをマウント
+      - ./static:/app/static # 静的ファイルをマウント
     ports:
       - "5000:5000"
     environment:
+      # DBのホスト名をコンテナ名で指定
+      - DB_HOST=mariadb
+      # Redisのホスト名をコンテナ名で指定
       - REDIS_URL=redis://redis:6379/0
+      # Socket.IOが許可するオリジンを指定
       - SOCKETIO_ALLOWED_ORIGINS=http://localhost:5000
-      - DB_HOST=mariadb # コンテナ名を指定
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
     env_file:
       - .env # .env 必ず先に管理者IDとパスワードを設定してください。
     depends_on: # depends_onを詳細設定に変更
