@@ -1,0 +1,69 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }} - {{ board.name }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}: {{ board.name }}</h1>
+
+<form method="post">
+    <div class="form-group">
+        <label for="shortcut_id">Shortcut ID (read-only)</label>
+        <input type="text" id="shortcut_id" name="shortcut_id" value="{{ board.shortcut_id }}" readonly>
+    </div>
+    <div class="form-group">
+        <label for="name">Board Name</label>
+        <input type="text" id="name" name="name" value="{{ board.name }}" required>
+    </div>
+    <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="3">{{ board.description or '' }}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="board_type">Board Type</label>
+        <select id="board_type" name="board_type">
+            <option value="simple" {% if board.board_type=='simple' %}selected{% endif %}>Simple (レスなし)</option>
+            <option value="thread" {% if board.board_type=='thread' %}selected{% endif %}>Thread (レスあり)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="default_permission">Default Permission</label>
+        <select id="default_permission" name="default_permission">
+            <option value="open" {% if board.default_permission=='open' %}selected{% endif %}>Open (誰でも読み書き可)</option>
+            <option value="close" {% if board.default_permission=='close' %}selected{% endif %}>Close (リスト内のユーザーのみ)
+            </option>
+            <option value="readonly" {% if board.default_permission=='readonly' %}selected{% endif %}>Read-Only
+                (誰でも読めるが、書込みはリスト内のユーザーのみ)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="read_level">Read Level (0-5)</label>
+        <input type="number" id="read_level" name="read_level" value="{{ board.read_level }}" min="0" max="5" required>
+    </div>
+    <div class="form-group">
+        <label for="write_level">Write Level (0-5)</label>
+        <input type="number" id="write_level" name="write_level" value="{{ board.write_level }}" min="0" max="5"
+            required>
+    </div>
+    <div class="form-group">
+        <label for="allow_attachments">
+            <input type="checkbox" id="allow_attachments" name="allow_attachments" value="1" {% if
+                board.allow_attachments %}checked{% endif %}>
+            Allow File Attachments
+        </label>
+    </div>
+    <div class="form-group">
+        <label for="allowed_extensions">Allowed Extensions (e.g., jpg,png,gif / blank for global setting)</label>
+        <input type="text" id="allowed_extensions" name="allowed_extensions"
+            value="{{ board.allowed_extensions or '' }}">
+    </div>
+    <div class="form-group">
+        <label for="max_attachment_size_mb">Max File Size (MB) (blank for global setting)</label>
+        <input type="number" id="max_attachment_size_mb" name="max_attachment_size_mb"
+            value="{{ board.max_attachment_size_mb or '' }}" min="1">
+    </div>
+    <div class="form-actions">
+        <button type="submit" style="background-color: #28a745; color: white;">Save Changes</button>
+        <a href="{{ url_for('admin.board_list') }}" style="background-color: #6c757d; color: white;">Cancel</a>
+    </div>
+</form>
+{% endblock %}

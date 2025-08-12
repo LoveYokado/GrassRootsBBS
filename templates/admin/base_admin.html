@@ -9,52 +9,105 @@
         body {
             font-family: sans-serif;
             margin: 0;
-            background-color: #f4f4f4;
+            background-color: #000000;
+            color: #00FF00;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 2em;
+            padding-bottom: 70px;
+            /* 下部ナビゲーションの高さ分 */
         }
 
         h1 {
-            color: #333;
+            color: #00FF00;
         }
 
-        nav {
-            background: #333;
-            padding: 1em;
-            margin-bottom: 1em;
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #000;
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 100;
         }
 
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin-right: 1em;
+        .bottom-nav a {
+            background-color: #FFFFFF;
+            color: #000000;
+            padding: 5px 15px;
+            font-size: 0.9em;
             font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 3px;
+            text-decoration: none;
+            text-align: center;
+            box-sizing: border-box;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .bottom-nav a:hover {
+            background-color: #e0e0e0;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background-color: #fff;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            background-color: #2a2a2a;
+            /* テーブルの背景をダークグレーに */
+            box-shadow: none;
         }
 
         th,
         td {
-            border: 1px solid #ddd;
+            border: 1px solid #cccccc;
+            /* 枠線を白に */
             padding: 12px;
             text-align: left;
+            color: #ffffff;
+            /* テーブル内の文字を白に */
         }
 
         th {
-            background-color: #e9e9e9;
+            background-color: #555555;
+            /* ヘッダーの背景をグレーに */
+            color: #ffffff;
+            /* ヘッダー文字を白に */
+            font-weight: bold;
+        }
+
+        th a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        th a:hover {
+            text-decoration: underline;
         }
 
         tr:nth-child(even) {
-            background-color: #f9f9f9;
+            background-color: #333333;
+            /* 交互の行の色を少し明るいグレーに */
+        }
+
+        td a {
+            color: #87cefa;
+            /* 明るい青色で見やすく */
+            text-decoration: underline;
+        }
+
+        td a:hover {
+            color: #add8e6;
+            /* ホバー時にもう少し薄い青に */
+            text-decoration: none;
         }
 
         .flash-messages {
@@ -92,7 +145,8 @@
             display: block;
             margin-bottom: 0.5em;
             font-weight: bold;
-            color: #555;
+            color: #00FF00;
+            /* ラベルの色を緑に */
         }
 
         .form-group input[type="text"],
@@ -102,30 +156,60 @@
         .form-group textarea {
             width: 100%;
             padding: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid #005500;
+            /* 枠線を暗い緑に */
             border-radius: 4px;
             box-sizing: border-box;
+            background-color: #0d0d0d;
+            /* 背景を黒に近い色に */
+            color: #00FF00;
+            /* 文字色を緑に */
+            font-family: monospace;
+            /* フォントを等幅に */
         }
 
         .form-group input[readonly] {
-            background-color: #eee;
+            background-color: #222;
+            /* 読み取り専用の背景色 */
+            color: #aaa;
+            /* 読み取り専用の文字色 */
             cursor: not-allowed;
         }
 
         .form-actions button,
         .form-actions a {
             padding: 10px 15px;
-            border: none;
+            border: 1px solid #00FF00;
+            /* 枠線を緑に */
             border-radius: 4px;
             cursor: pointer;
             text-decoration: none;
+            background-color: #003300;
+            /* 背景を暗い緑に */
+            color: #00FF00;
+            /* 文字色を緑に */
+            font-weight: bold;
+            transition: background-color 0.2s;
         }
 
         .action-link-delete {
             background: none;
             border: none;
-            color: #dc3545;
+            color: #ff6b6b;
+            /* より明るい赤色に変更 */
             /* 赤色 */
+            cursor: pointer;
+            padding: 0;
+            font-family: inherit;
+            font-size: inherit;
+            text-decoration: underline;
+        }
+
+        .action-link-restore {
+            background: none;
+            border: none;
+            color: #28a745;
+            /* 緑色 */
             cursor: pointer;
             padding: 0;
             font-family: inherit;
@@ -136,10 +220,7 @@
 </head>
 
 <body>
-    <nav>
-        <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
-        <a href="{{ url_for('admin.user_list') }}">User Management</a>
-    </nav>
+
 
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -154,6 +235,13 @@
 
         {% block content %}{% endblock %}
     </div>
+    <nav class="bottom-nav">
+        <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('admin.user_list') }}">User Management</a>
+        <a href="{{ url_for('admin.board_list') }}">Board Management</a>
+        <a href="{{ url_for('admin.article_search') }}">Article Management</a>
+    </nav>
 </body>
+
 
 </html>

@@ -143,6 +143,12 @@ def get_board_by_shortcut_id(shortcut_id):
     return execute_query(query, (shortcut_id,), fetch='one')
 
 
+def get_board_by_id(board_id_pk):
+    """指定された主キーIDの掲示板情報をDBから取得"""
+    query = "SELECT * FROM boards WHERE id = %s"
+    return execute_query(query, (board_id_pk,), fetch='one')
+
+
 def get_all_boards():
     query = "SELECT id, shortcut_id, operators, default_permission, board_type FROM boards"
     return execute_query(query, fetch='all')
@@ -580,6 +586,50 @@ def delete_board_entry(shortcut_id):
     return execute_query(query, (shortcut_id,)) is not None
 
 
+def delete_board_and_related_data(board_id_pk):
+    """
+    指定された掲示板と、それに関連する全ての記事、権限設定をトランザクション内で削除する。
+    """
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # 1. 関連する記事を削除
+        cursor.execute(
+            "DELETE FROM articles WHERE board_id = %s", (board_id_pk,))
+        logging.info(
+            f"{cursor.rowcount} articles deleted for board_id {board_id_pk}.")
+
+        # 2. 関連する権限設定を削除
+        cursor.execute(
+            "DELETE FROM board_user_permissions WHERE board_id = %s", (board_id_pk,))
+        logging.info(
+            f"{cursor.rowcount} permissions deleted for board_id {board_id_pk}.")
+
+        # 3. 掲示板本体を削除
+        cursor.execute("DELETE FROM boards WHERE id = %s", (board_id_pk,))
+        logging.info(
+            f"{cursor.rowcount} board entry deleted for board_id {board_id_pk}.")
+
+        conn.commit()
+        logging.info(
+            f"Board ID {board_id_pk} and all related data have been successfully deleted.")
+        return True
+    except mysql.connector.Error as err:
+        logging.error(
+            f"掲示板削除中にDBエラー (BoardID: {board_id_pk}): {err}", exc_info=True)
+        if conn:
+            conn.rollback()
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
 def insert_article(board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None, attachment_size=None):
     """記事を挿入し、IDを返す"""
     query = """
@@ -590,6 +640,12 @@ def insert_article(board_id_pk, article_number, user_identifier, title, body, ti
               parent_article_id, title, body, timestamp, ip_address,
               attachment_filename, attachment_originalname, attachment_size)
     return execute_query(query, params)
+
+
+def get_article_by_id(article_id):
+    """記事ID(主キー)から記事情報を取得する"""
+    query = "SELECT * FROM articles WHERE id = %s"
+    return execute_query(query, (article_id,), fetch='one')
 
 
 def get_article_by_attachment_filename(filename):
@@ -662,6 +718,42 @@ def toggle_article_deleted_status(article_id):
         if conn:
             conn.rollback()
         return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+def bulk_update_articles_deleted_status(article_ids, new_status):
+    """
+    複数の記事の is_deleted フラグを一括で更新する。
+    :param article_ids: 更新対象の記事IDのリスト
+    :param new_status: 新しいステータス (0 or 1)
+    """
+    if not article_ids or new_status not in [0, 1]:
+        return 0
+
+    placeholders = ','.join(['%s'] * len(article_ids))
+    query = f"UPDATE articles SET is_deleted = %s WHERE id IN ({placeholders})"
+
+    params = [new_status] + article_ids
+
+    conn = None
+    cursor = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, tuple(params))
+        updated_rows = cursor.rowcount
+        conn.commit()
+        logging.info(f"{updated_rows}件の記事の削除ステータスを {new_status} に更新しました。")
+        return updated_rows
+    except mysql.connector.Error as err:
+        logging.error(f"記事の一括削除ステータス更新中にDBエラー: {err}")
+        if conn:
+            conn.rollback()
+        return 0
     finally:
         if cursor:
             cursor.close()
@@ -758,7 +850,8 @@ def get_all_users(sort_by='id', order='asc', search_term=None):
     :param search_term: 検索キーワード
     """
     # SQLインジェクションを防ぐため、許可するカラム名をホワイトリストで管理
-    allowed_columns = ['id', 'name', 'level', 'registdate', 'lastlogin']
+    allowed_columns = ['id', 'name', 'level',
+                       'email', 'registdate', 'lastlogin']
     if sort_by not in allowed_columns:
         sort_by = 'id'  # デフォルト値
 
@@ -782,10 +875,98 @@ def get_all_users(sort_by='id', order='asc', search_term=None):
     return execute_query(query, tuple(params), fetch='all')
 
 
-def get_all_boards_for_sysop_list():
-    """シスオペメニューの掲示板一覧表示用に、掲示板の情報を取得する"""
-    query = "SELECT shortcut_id, name, operators, default_permission, status, last_posted_at, read_level, write_level FROM boards ORDER BY shortcut_id ASC"
-    return execute_query(query, fetch='all')
+def get_all_boards_for_sysop_list(sort_by='shortcut_id', order='asc', search_term=None):  # noqa
+    """
+    シスオペメニューの掲示板一覧表示用に、掲示板の情報を取得する。ソートと検索に対応。
+    :param sort_by: ソートするカラム名
+    :param order: 'asc' または 'desc'
+    :param search_term: 検索キーワード
+    """
+    # SQLインジェクションを防ぐため、許可するカラム名をホワイトリストで管理
+    allowed_columns = [
+        'shortcut_id', 'name', 'board_type', 'status', 'last_posted_at',
+        'read_level', 'write_level', 'default_permission', 'allow_attachments', 'post_count'
+    ]
+    if sort_by not in allowed_columns:
+        sort_by = 'shortcut_id'
+
+    if order.lower() not in ['asc', 'desc']:
+        order = 'asc'
+
+    params = []
+    where_clauses = []
+
+    if search_term:
+        where_clauses.append("(b.shortcut_id LIKE %s OR b.name LIKE %s)")
+        search_pattern = f"%{search_term}%"
+        params.extend([search_pattern, search_pattern])
+
+    query = """
+        SELECT
+            b.id, b.shortcut_id, b.name, b.operators, b.default_permission, b.status,
+            b.last_posted_at, b.read_level, b.write_level, b.board_type,
+            b.allow_attachments, b.allowed_extensions, b.max_attachment_size_mb,
+            (
+                SELECT COUNT(*)
+                FROM articles a
+                WHERE a.board_id = b.id
+                AND (b.board_type != 'thread' OR a.parent_article_id IS NULL)
+            ) AS post_count
+        FROM boards b
+    """
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+    query += f" ORDER BY {sort_by} {order}"
+    return execute_query(query, tuple(params), fetch='all')
+
+
+def search_all_articles(keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc'):
+    """
+    全ての掲示板を横断して記事を検索する。
+    :param keyword: タイトルと本文から検索するキーワード
+    :param author_id: 登録ユーザーのID
+    :param author_name_guest: GUESTなどの非登録ユーザー名
+    :param sort_by: ソートするカラム名
+    :param order: 'asc' または 'desc'
+    """
+    allowed_columns = ['created_at', 'board_name', 'title']
+    if sort_by not in allowed_columns:
+        sort_by = 'created_at'
+    if order.lower() not in ['asc', 'desc']:
+        order = 'desc'
+
+    params = []
+    where_clauses = []
+
+    if keyword:
+        where_clauses.append("(a.title LIKE %s OR a.body LIKE %s)")
+        params.extend([f"%{keyword}%", f"%{keyword}%"])
+
+    if author_id is not None:
+        where_clauses.append("a.user_id = %s")
+        params.append(str(author_id))
+    elif author_name_guest:
+        where_clauses.append("a.user_id = %s")
+        params.append(author_name_guest)
+
+    query = """
+        SELECT
+            a.id, a.board_id, a.article_number, a.user_id, a.title, a.body, a.created_at, a.is_deleted,
+            b.name as board_name, b.shortcut_id as board_shortcut_id
+        FROM articles a
+        JOIN boards b ON a.board_id = b.id
+    """
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+
+    sort_column_map = {'created_at': 'a.created_at',
+                       'board_name': 'b.name', 'title': 'a.title'}
+    db_sort_by = sort_column_map.get(sort_by, 'a.created_at')
+
+    query += f" ORDER BY {db_sort_by} {order}"
+    query += " LIMIT 100"  # 念のため、最大100件に制限
+
+    return execute_query(query, tuple(params), fetch='all')
 
 
 def save_passkey(user_id, credential_id, public_key, sign_count, transports, nickname):

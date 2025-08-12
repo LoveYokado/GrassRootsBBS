@@ -1,0 +1,88 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
+    <div class="form-actions">
+        <a href="{{ url_for('admin.new_board') }}" style="background-color: #007bff; color: white; font-weight: bold;">+
+            Add New Board</a>
+    </div>
+    <form method="get" action="{{ url_for('admin.board_list') }}" style="display: flex; gap: 8px;">
+        <input type="text" name="q" placeholder="Search by ID or Name..." value="{{ search_term or '' }}"
+            style="padding: 8px; border: 1px solid #cccccc; border-radius: 4px; background-color: #333; color: #ffffff; font-family: sans-serif;">
+        <button type="submit"
+            style="background-color: #555555; color: #ffffff; border: 1px solid #cccccc; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Search</button>
+    </form>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th><a
+                    href="{{ url_for('admin.board_list', sort_by='shortcut_id', order=next_order if sort_by == 'shortcut_id' else 'asc', q=search_term) }}">ID
+                    {% if sort_by == 'shortcut_id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th style="width: 20%;"><a
+                    href="{{ url_for('admin.board_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', q=search_term) }}">Name
+                    {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.board_list', sort_by='board_type', order=next_order if sort_by == 'board_type' else 'asc', q=search_term) }}">Type
+                    {% if sort_by == 'board_type' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.board_list', sort_by='operators', order=next_order if sort_by == 'operators' else 'asc', q=search_term) }}">Operators
+                    {% if sort_by == 'operators' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.board_list', sort_by='default_permission', order=next_order if sort_by == 'default_permission' else 'asc', q=search_term) }}">Default
+                    Perm {% if sort_by == 'default_permission' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a>
+            </th>
+            <th><a
+                    href="{{ url_for('admin.board_list', sort_by='read_level', order=next_order if sort_by == 'read_level' else 'asc', q=search_term) }}">R/W
+                    {% if sort_by == 'read_level' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.board_list', sort_by='status', order=next_order if sort_by == 'status' else 'asc', q=search_term) }}">Status
+                    {% if sort_by == 'status' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.board_list', sort_by='allow_attachments', order=next_order if sort_by == 'allow_attachments' else 'asc', q=search_term) }}">Attachments
+                    {% if sort_by == 'allow_attachments' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.board_list', sort_by='post_count', order=next_order if sort_by == 'post_count' else 'asc', q=search_term) }}">Posts
+                    {% if sort_by == 'post_count' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th><a
+                    href="{{ url_for('admin.board_list', sort_by='last_posted_at', order=next_order if sort_by == 'last_posted_at' else 'asc', q=search_term) }}">Last
+                    Post {% if sort_by == 'last_posted_at' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for board in boards %}
+        <tr>
+            <td>{{ board.shortcut_id }}</td>
+            <td style=" word-break: break-all;">{{ board.name }}</td>
+            <td>{{ board.board_type }}</td>
+            <td>{{ board.operator_names_str }}</td>
+            <td>{{ board.default_permission }}</td>
+            <td>{{ board.read_level }}/{{ board.write_level }}</td>
+            <td>{{ board.status }}</td>
+            <td>{{ 'Yes' if board.allow_attachments else 'No' }}</td>
+            <td>{{ board.post_count }}</td>
+            <td>{{ board.last_posted_at|int|timestamp_to_datetime if board.last_posted_at else 'N/A' }}</td>
+            <td>
+                <a href="{{ url_for('admin.edit_board', board_id=board.id) }}">Edit</a> |
+                <form method="post" action="{{ url_for('admin.delete_board', board_id=board.id) }}"
+                    style="display: inline;"
+                    onsubmit="return confirm('Are you sure you want to delete board \'{{ board.name }}\' and all its articles? This action cannot be undone.');">
+                    <button type="submit" class="action-link-delete">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="11">No boards found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

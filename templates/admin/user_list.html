@@ -21,15 +21,17 @@
     <thead>
         <tr>
             <th><a
-                    href="{{ url_for('admin.user_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', q=search_term) }}">ID
+                    href="{{ url_for('admin.user_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', q=search_term) }}">No
                     {% if sort_by == 'id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
             <th><a
-                    href="{{ url_for('admin.user_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', q=search_term) }}">Name
+                    href="{{ url_for('admin.user_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', q=search_term) }}">ID
                     {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
             <th><a
                     href="{{ url_for('admin.user_list', sort_by='level', order=next_order if sort_by == 'level' else 'asc', q=search_term) }}">Level
                     {% if sort_by == 'level' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-            <th>Email</th>
+            <th><a
+                    href="{{ url_for('admin.user_list', sort_by='email', order=next_order if sort_by == 'email' else 'asc', q=search_term) }}">Email
+                    {% if sort_by == 'email' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
             <th><a
                     href="{{ url_for('admin.user_list', sort_by='registdate', order=next_order if sort_by == 'registdate' else 'asc', q=search_term) }}">Created
                     At {% if sort_by == 'registdate' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
