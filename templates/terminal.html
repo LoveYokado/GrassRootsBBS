@@ -1167,6 +1167,13 @@
                 <button data-font="IBM Plex Mono">IBM Plex Mono</button>
                 <button data-font="DotGothic16">DotGothic16</button>
             </div>
+            <div id="fontsize-selector">
+                <h3>Font Size</h3>
+                <button data-size="12">Small</button>
+                <button data-size="16">Medium</button>
+                <button data-size="20">Large</button>
+                <button data-size="24">Extra Large</button>
+            </div>
             <div id="speed-selector">
                 <h3>Speed</h3>
                 <button data-speed="full">Full</button>
@@ -1465,13 +1472,26 @@
             const fontFamily = `"${fontName}", "Courier New", monospace`; // フォント名を引用符で囲む
             term.options.fontFamily = fontFamily;
 
-            term.options.fontSize = 16; // フォントサイズを16pxに統一
             localStorage.setItem('terminalFont', fontName); // フォント名のみを保存
             updateFontButtons(fontName);
             if (!isDipSwitchUpdating) updateDipSwitches('font', fontName);
 
             // フォントサイズやファミリーの変更はレイアウトに影響するため、再計算をトリガー
             setTimeout(() => updateTerminalLayout(), 0);
+        }
+
+        function applyFontSize(size) {
+            term.options.fontSize = parseInt(size, 10);
+            localStorage.setItem('terminalFontSize', size);
+            updateFontSizeButtons(size);
+            // フォントサイズ変更はレイアウトに影響するため、再計算をトリガー
+            setTimeout(() => updateTerminalLayout(), 0);
+        }
+
+        function updateFontSizeButtons(size) {
+            document.querySelectorAll('#fontsize-selector button').forEach(btn => btn.classList.remove('active'));
+            const activeButton = document.querySelector(`#fontsize-selector button[data-size="${size}"]`);
+            if (activeButton) activeButton.classList.add('active');
         }
 
         function applySpeed(speedName) {
@@ -1536,12 +1556,6 @@
         function updateThemeButtons(themeName) {
             document.querySelectorAll('#theme-selector button').forEach(btn => btn.classList.remove('active'));
             const activeButton = document.querySelector(`#theme-selector button[data-theme="${themeName}"]`);
-            if (activeButton) activeButton.classList.add('active');
-        }
-
-        function updateFontButtons(fontName) {
-            document.querySelectorAll('#font-selector button').forEach(btn => btn.classList.remove('active'));
-            const activeButton = document.querySelector(`#font-selector button[data-font="${fontName}"]`);
             if (activeButton) activeButton.classList.add('active');
         }
 
@@ -1928,6 +1942,12 @@
             }
         });
 
+        document.getElementById('fontsize-selector').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                applyFontSize(e.target.dataset.size);
+            }
+        });
+
         document.getElementById('font-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 const fontName = e.target.dataset.font;
@@ -2278,6 +2298,10 @@
             // フォント
             const savedFontName = localStorage.getItem('terminalFont') || 'M+ 1m';
             applyFont(savedFontName);
+
+            // フォントサイズ
+            const savedFontSize = localStorage.getItem('terminalFontSize') || '16';
+            applyFontSize(savedFontSize);
 
             // 速度
             const savedSpeed = localStorage.getItem('terminalSpeed') || 'full';
