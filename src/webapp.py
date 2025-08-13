@@ -33,6 +33,8 @@ import glob
 import collections
 import codecs
 from gevent import monkey
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from webauthn.helpers import base64url_to_bytes
 monkey.patch_all()
 
@@ -1295,6 +1297,38 @@ def handle_clear_pending_attachment():
             # TODO: もしファイルがDBに保存されなかった場合、ここで物理ファイルを削除するロジックを追加することもできる
             handler.pending_attachment = None
 
+
+def scheduled_backup_job():
+    """スケジューラによって呼び出されるバックアップジョブ"""
+    # Flaskのアプリケーションコンテキスト内で実行
+    with app.app_context():
+        logging.info("スケジュールされたバックアップジョブを開始します...")
+        filename = backup_util.create_backup()
+        if filename:
+            logging.info(f"スケジュールされたバックアップが正常に作成されました: {filename}")
+            # 古いバックアップのクリーンアップも実行
+            backup_util.cleanup_old_backups()
+        else:
+            logging.error("スケジュールされたバックアップの作成に失敗しました。")
+
+
+# --- スケジューラの設定 ---
+scheduler_config = util.app_config.get('scheduler', {})
+if scheduler_config.get('enabled', False):
+    scheduler = BackgroundScheduler(daemon=True, timezone='Asia/Tokyo')
+    try:
+        cron_schedule = scheduler_config.get('schedule', '0 3 * * *')
+        scheduler.add_job(
+            scheduled_backup_job,
+            trigger=CronTrigger.from_crontab(cron_schedule),
+            id='scheduled_backup_job',
+            name='Daily Backup and Cleanup',
+            replace_existing=True
+        )
+        scheduler.start()
+        logging.info(f"バックアップスケジューラが有効になりました。スケジュール: '{cron_schedule}'")
+    except Exception as e:
+        logging.error(f"スケジューラの初期化に失敗しました: {e}")
 
 # --- Webサーバーの起動 ---
 if __name__ == '__main__':

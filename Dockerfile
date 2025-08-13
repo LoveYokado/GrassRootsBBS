@@ -4,8 +4,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # 依存関係ファイルをコピーし、インストール
-# これにより、依存関係が変更されない限り、このレイヤーはキャッシュされる
+# mysqldump と mysql コマンドラインクライアントをインストール
+RUN apt-get update && \
+    apt-get install -y default-mysql-client && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
+# Pythonの依存関係をインストール
 RUN python -m pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # アプリケーションのコードと必要なディレクトリをコピー

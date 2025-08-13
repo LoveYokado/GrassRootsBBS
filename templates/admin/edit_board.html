@@ -19,6 +19,11 @@
         <textarea id="description" name="description" rows="3">{{ board.description or '' }}</textarea>
     </div>
     <div class="form-group">
+        <label for="kanban_body">Kanban (Signboard)</label>
+        <textarea id="kanban_body" name="kanban_body" rows="5">{{ board.kanban_body or '' }}</textarea>
+        <small>This message is displayed when a user enters the board. Supports multi-line text.</small>
+    </div>
+    <div class="form-group">
         <label for="board_type">Board Type</label>
         <select id="board_type" name="board_type">
             <option value="simple" {% if board.board_type=='simple' %}selected{% endif %}>Simple (レスなし)</option>
@@ -60,6 +65,23 @@
         <label for="max_attachment_size_mb">Max File Size (MB) (blank for global setting)</label>
         <input type="number" id="max_attachment_size_mb" name="max_attachment_size_mb"
             value="{{ board.max_attachment_size_mb or '' }}" min="1">
+    </div>
+    <div class="form-group">
+        <label for="operators">Operators (comma-separated)</label>
+        <input type="text" id="operators" name="operators"
+            value="{{ board.operators_str if board.operators_str else '' }}">
+        <small>Enter user IDs separated by commas. The user who creates the board is automatically added.</small>
+    </div>
+    <div class="form-group">
+        <label for="permission_users">B/W List (comma-separated usernames)</label>
+        <textarea id="permission_users" name="permission_users"
+            rows="3">{{ board.permission_users_str or '' }}</textarea>
+        <small>
+            How this list works depends on the 'Default Permission' setting:<br>
+            - <b>Open:</b> This is a <u>blacklist</u>. Listed users are denied access.<br>
+            - <b>Close / Read-Only:</b> This is a <u>whitelist</u>. Only listed users are granted access/write
+            permission.
+        </small>
     </div>
     <div class="form-actions">
         <button type="submit" style="background-color: #28a745; color: white;">Save Changes</button>

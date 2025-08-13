@@ -6,3 +6,4 @@ logs/*
 .sshkey
 data/bbs.db
 data/attachments/*
+data/backups/*

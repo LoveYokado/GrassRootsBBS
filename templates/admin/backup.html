@@ -1,0 +1,63 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Create and manage full backups, including the database, attachments, and configuration files.</p>
+
+<div class="form-actions">
+    <form method="post" action="{{ url_for('admin.create_backup_route') }}" style="display: inline;"
+        onsubmit="return confirm('Create a new backup? This may take several minutes.');">
+        <button type="submit">Create New Backup</button>
+    </form>
+</div>
+
+<h2>Existing Backups</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Filename</th>
+            <th>Created At</th>
+            <th>Size</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for backup in backups %}
+        <tr>
+            <td>{{ backup.filename }}</td>
+            <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ backup.size }}</td>
+            <td>
+                <a href="{{ url_for('admin.download_backup', filename=backup.filename) }}">Download</a> |
+                <form method="post" action="{{ url_for('admin.delete_backup', filename=backup.filename) }}"
+                    style="display: inline;"
+                    onsubmit="return confirm('Are you sure you want to delete the backup file \'{{ backup.filename }}\'? This action cannot be undone.');">
+                    <button type="submit" class="action-link-delete">Delete</button>
+                </form> |
+                <form method="post" action="{{ url_for('admin.restore_from_backup', filename=backup.filename) }}"
+                    style="display: inline;"
+                    onsubmit="return confirm('Are you sure you want to restore from backup \'{{ backup.filename }}\'?\n\nAll current data (users, boards, attachments) will be overwritten and lost.\n\nThis action cannot be undone.') && confirm('Final confirmation. Are you sure you want to proceed? The server will restart automatically after the restore.');">
+                    <button type="submit" class="action-link-restore">Restore</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="4">No backups available.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="danger-zone">
+    <h2>Danger Zone</h2>
+    <p>This action is irreversible and will permanently delete ALL users, boards, articles, and attachments. Please be
+        absolutely sure before proceeding.</p>
+    <form method="post" action="{{ url_for('admin.wipe_all_data') }}" style="display: inline;"
+        onsubmit="return confirm('DANGER: This will permanently delete ALL data. Are you sure?') && prompt('To confirm, please type DELETE ALL DATA into the box below:') === 'DELETE ALL DATA';">
+        <button type="submit" class="danger-button">Wipe All Data</button>
+    </form>
+</div>
+{% endblock %}

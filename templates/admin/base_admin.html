@@ -218,6 +218,31 @@
             text-decoration: underline;
         }
 
+        .danger-zone {
+            border: 2px solid #dc3545;
+            /* red */
+            border-radius: 5px;
+            padding: 1em;
+            margin-top: 2em;
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+
+        .danger-zone h2 {
+            color: #dc3545;
+            margin-top: 0;
+        }
+
+        .danger-button {
+            background-color: #dc3545;
+            color: white;
+            border: 1px solid #c82333;
+            font-weight: bold;
+        }
+
+        .danger-button:hover {
+            background-color: #c82333;
+        }
+
         /* Dashboard Styles */
         .dashboard-grid {
             display: grid;
@@ -280,6 +305,7 @@
         <a href="{{ url_for('admin.board_list') }}">Board Management</a>
         <a href="{{ url_for('admin.article_search') }}">Article Management</a>
         <a href="{{ url_for('admin.system_settings') }}">System Settings</a>
+        <a href="{{ url_for('admin.backup_management') }}">Data Management</a>
     </nav>
 </body>
 

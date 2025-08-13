@@ -11,3 +11,4 @@ mysql-connector-python
 webauthn
 pywebpush==2.0.3
 cryptography==42.0.8
+APScheduler

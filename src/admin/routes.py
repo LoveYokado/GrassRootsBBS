@@ -1,14 +1,21 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory
 from ..decorators import sysop_required
 import json
+import os
 from datetime import datetime, timedelta
 import time
-from .. import database, util, webapp
+from .. import database, util, webapp, backup_util
 
 # ブループリントを作成
 # 'admin' はブループリントの名前
 # __name__ はPythonのおまじない
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+# バックアップディレクトリの設定
+BACKUP_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), '..', '..', 'data', 'backups'))
+os.makedirs(BACKUP_DIR, exist_ok=True)
 
 
 @admin_bp.route('/')
@@ -351,6 +358,7 @@ def edit_board(board_id):
         # フォームからデータを取得
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
+        kanban_body = request.form.get('kanban_body', '').strip()
         board_type = request.form.get('board_type', 'simple')
         default_permission = request.form.get('default_permission', 'open')
         read_level = request.form.get('read_level', 1, type=int)
@@ -361,6 +369,45 @@ def edit_board(board_id):
         max_size_mb_str = request.form.get('max_attachment_size_mb')
         max_attachment_size_mb = int(
             max_size_mb_str) if max_size_mb_str and max_size_mb_str.isdigit() else None
+        operators_str = request.form.get('operators', '').strip()
+
+        # オペレーター文字列をIDのリストに変換
+        new_operator_ids = []
+        if operators_str:
+            operator_names = [name.strip().upper()
+                              for name in operators_str.split(',') if name.strip()]
+            all_users = database.get_all_users()
+            user_map = {user['name'].upper(): user['id'] for user in all_users}
+
+            invalid_names = []
+            for name in operator_names:
+                if name in user_map:
+                    new_operator_ids.append(user_map[name])
+                else:
+                    invalid_names.append(name)
+
+            if invalid_names:
+                flash(
+                    f"The following operator names were not found: {', '.join(invalid_names)}", 'danger')
+                return render_template('admin/edit_board.html', title='Edit Board', board=board)
+
+        # B/Wリストの処理
+        permission_users_str = request.form.get('permission_users', '').strip()
+        new_permission_user_ids = []
+        if permission_users_str:
+            permission_user_names = [name.strip().upper()
+                                     for name in permission_users_str.split(',') if name.strip()]
+            # user_map is already available from operator processing
+            invalid_perm_names = []
+            for name in permission_user_names:
+                if name in user_map:
+                    new_permission_user_ids.append(user_map[name])
+                else:
+                    invalid_perm_names.append(name)
+            if invalid_perm_names:
+                flash(
+                    f"The following B/W list user names were not found: {', '.join(invalid_perm_names)}", 'danger')
+                return render_template('admin/edit_board.html', title='Edit Board', board=board)
 
         # バリデーション
         if not name:
@@ -368,18 +415,60 @@ def edit_board(board_id):
             return render_template('admin/edit_board.html', title='Edit Board', board=board)
 
         updates = {
-            'name': name, 'description': description, 'board_type': board_type,
+            'name': name, 'description': description, 'kanban_body': kanban_body, 'board_type': board_type,
             'default_permission': default_permission, 'read_level': read_level, 'write_level': write_level,
             'allow_attachments': allow_attachments, 'allowed_extensions': allowed_extensions,
-            'max_attachment_size_mb': max_attachment_size_mb
+            'max_attachment_size_mb': max_attachment_size_mb,
+            'operators': json.dumps(new_operator_ids)
         }
 
         if database.update_record('boards', updates, {'id': board_id}):
+            # B/Wリストの更新処理
+            # 1. 既存のパーミッションを削除
+            database.delete_board_permissions_by_board_id(board_id)
+
+            # 2. 新しいパーミッションを追加
+            if new_permission_user_ids:
+                # default_permission はフォームから送信された新しい値を使う
+                board_default_permission = updates.get(
+                    'default_permission', board.get('default_permission'))
+                access_level_to_set = "deny" if board_default_permission == "open" else "allow"
+
+                for user_id_to_add in new_permission_user_ids:
+                    database.add_board_permission(
+                        board_id, str(user_id_to_add), access_level_to_set)
             flash(f"Board '{name}' has been updated successfully.", 'success')
         else:
             flash(f"Failed to update board '{name}'.", 'danger')
 
         return redirect(url_for('admin.board_list'))
+
+    # 現在のオペレーターIDリストをユーザー名のカンマ区切り文字列に変換してテンプレートに渡す
+    current_operator_ids_json = board.get('operators', '[]')
+    try:
+        current_operator_ids = json.loads(current_operator_ids_json)
+        if current_operator_ids:
+            id_to_name_map = database.get_user_names_from_user_ids(
+                current_operator_ids)
+            operator_names = [id_to_name_map.get(
+                op_id, f"ID:{op_id}") for op_id in current_operator_ids]
+            board['operators_str'] = ", ".join(operator_names)
+    except (json.JSONDecodeError, TypeError):
+        board['operators_str'] = ""
+
+    # B/Wリストのユーザー名を取得
+    current_permissions = database.get_board_permissions(board_id)
+    board['permission_users_str'] = ""
+    if current_permissions:
+        user_ids_in_list = [perm['user_id'] for perm in current_permissions]
+        # get_user_names_from_user_ids expects a list of ints
+        user_ids_in_list_int = [
+            int(uid) for uid in user_ids_in_list if str(uid).isdigit()]
+        id_to_name_map = database.get_user_names_from_user_ids(
+            user_ids_in_list_int)
+        user_names = [id_to_name_map.get(
+            int(uid), f"ID:{uid}") for uid in user_ids_in_list]
+        board['permission_users_str'] = ", ".join(user_names)
 
     return render_template('admin/edit_board.html', title='Edit Board', board=board)
 
@@ -546,3 +635,132 @@ def system_settings():
     pref_list = database.read_server_pref()
     current_settings = dict(zip(pref_names, pref_list)) if pref_list else {}
     return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
+
+
+@admin_bp.route('/backup')
+@sysop_required
+def backup_management():
+    """バックアップ管理ページを表示する"""
+    backups = []
+    try:
+        for filename in sorted(os.listdir(BACKUP_DIR), reverse=True):
+            if filename.endswith('.tar.gz'):
+                filepath = os.path.join(BACKUP_DIR, filename)
+                try:
+                    stat = os.stat(filepath)
+                    backups.append({
+                        'filename': filename,
+                        'size': util.format_file_size(stat.st_size),
+                        'created_at': datetime.fromtimestamp(stat.st_mtime)
+                    })
+                except OSError:
+                    continue
+    except Exception as e:
+        flash(f'Error retrieving backup list: {e}', 'error')
+
+    return render_template('admin/backup.html', title="Backup Management", backups=backups)
+
+
+@admin_bp.route('/backup/create', methods=['POST'])
+@sysop_required
+def create_backup_route():
+    """新しいバックアップを作成する"""
+    try:
+        # バックアップ作成処理を呼び出す
+        filename = backup_util.create_backup()
+        if filename:
+            flash(f'Backup file "{filename}" created successfully.', 'success')
+        else:
+            flash('Backup creation failed. Please check the logs for details.', 'error')
+    except Exception as e:
+        flash(
+            f'An unexpected error occurred during backup creation: {e}', 'error')
+
+    return redirect(url_for('admin.backup_management'))
+
+
+@admin_bp.route('/backup/download/<path:filename>')
+@sysop_required
+def download_backup(filename):
+    """バックアップファイルをダウンロードする"""
+    # send_from_directory はディレクトリトラバーサル攻撃から保護してくれます
+    return send_from_directory(BACKUP_DIR, filename, as_attachment=True)
+
+
+@admin_bp.route('/backup/delete/<path:filename>', methods=['POST'])
+@sysop_required
+def delete_backup(filename):
+    """バックアップファイルを削除する"""
+    try:
+        filepath = os.path.join(BACKUP_DIR, filename)
+        # パストラバーサル攻撃のチェック
+        if not os.path.abspath(filepath).startswith(os.path.abspath(BACKUP_DIR)):
+            flash('Invalid file path.', 'danger')
+            return redirect(url_for('admin.backup_management'))
+
+        if os.path.exists(filepath) and os.path.isfile(filepath):
+            os.remove(filepath)
+            flash(f'Backup file "{filename}" has been deleted.', 'success')
+        else:
+            flash(f'File "{filename}" not found.', 'warning')
+    except Exception as e:
+        flash(f'An error occurred while deleting the file: {e}', 'error')
+
+    return redirect(url_for('admin.backup_management'))
+
+
+@admin_bp.route('/backup/restore/<path:filename>', methods=['POST'])
+@sysop_required
+def restore_from_backup(filename):
+    """バックアップファイルからリストアを実行する"""
+    try:
+        # リストア処理を呼び出す
+        success = backup_util.restore_from_backup(filename)
+        if success:
+            flash(
+                f'Restore from backup "{filename}" has started. The server will restart automatically upon completion.', 'success')
+            # Gunicornに再起動を促すために、現在のプロセスを終了させる
+
+            def restart_server():
+                import time
+                time.sleep(3)  # flashメッセージがブラウザに届くのを待つ
+                os._exit(0)
+            import threading
+            threading.Thread(target=restart_server).start()
+        else:
+            flash(
+                f'Failed to restore from backup "{filename}". Please check the logs for details.', 'error')
+    except Exception as e:
+        flash(
+            f'An unexpected error occurred during the restore process: {e}', 'error')
+    return redirect(url_for('admin.backup_management'))
+
+
+@admin_bp.route('/wipe-data', methods=['POST'])
+@sysop_required
+def wipe_all_data():
+    """すべてのBBSデータを削除し、初期状態に戻す"""
+    try:
+        # 重要な操作なので、セッションのユーザーが本当にシスオペか再確認
+        if session.get('userlevel', 0) < 5:
+            flash('You do not have sufficient permissions for this action.', 'danger')
+            return redirect(url_for('admin.backup_management'))
+
+        # データ削除処理を呼び出す
+        if backup_util.wipe_all_data():
+            flash(
+                'All data has been wiped. The system will now restart to apply initial settings.', 'success')
+            # Gunicornに再起動を促す
+
+            def restart_server():
+                import time
+                time.sleep(3)
+                os._exit(0)
+            import threading
+            threading.Thread(target=restart_server).start()
+        else:
+            flash('Failed to wipe data. Please check the logs.', 'error')
+    except Exception as e:
+        flash(
+            f'An unexpected error occurred during the data wipe process: {e}', 'error')
+    return redirect(url_for('admin.backup_management'))
