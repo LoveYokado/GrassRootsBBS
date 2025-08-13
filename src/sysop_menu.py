@@ -623,31 +623,70 @@ def make_board(chan, sysop_login_id, current_menu_mode):
         if attach_input.strip().lower() == 'n':
             break
 
-    # 許可する拡張子の設定
-    chan.send("許可する拡張子 (例: jpg,png,gif / 空入力でconfig.tomlの設定を使用): ".encode('utf-8'))
-    extensions_input = chan.process_input()
-    if extensions_input is None:
-        return None
-    allowed_extensions = extensions_input.strip() if extensions_input.strip() else None
-
-    # 最大ファイルサイズの設定
+    allowed_extensions = None
     max_attachment_size_mb = None
-    while True:
-        chan.send("最大ファイルサイズ(MB) (空入力でconfig.tomlの設定を使用): ".encode('utf-8'))
-        size_input = chan.process_input()
-        if size_input is None:
+
+    if allow_attachments == 1:
+        # 許可する拡張子の設定
+        chan.send(
+            "許可する拡張子 (例: jpg,png,gif / 空入力でconfig.tomlの設定を使用): ".encode('utf-8'))
+        extensions_input = chan.process_input()
+        if extensions_input is None:
             return None
-        if not size_input.strip():
-            break
+        allowed_extensions = extensions_input.strip() if extensions_input.strip() else None
+
+        # 最大ファイルサイズの設定
+        while True:
+            chan.send("最大ファイルサイズ(MB) (空入力でconfig.tomlの設定を使用): ".encode('utf-8'))
+            size_input = chan.process_input()
+            if size_input is None:
+                return None
+            if not size_input.strip():
+                break
+            try:
+                size_val = int(size_input.strip())
+                if size_val > 0:
+                    max_attachment_size_mb = size_val
+                    break
+                else:
+                    chan.send("正の整数を入力してください。\r\n".encode('utf-8'))
+            except ValueError:
+                chan.send("数値を入力してください。\r\n".encode('utf-8'))
+
+    # Max Threads
+    max_threads = 0
+    while True:
+        chan.send("スレッド/記事 上限数 (1-99999): ".encode('utf-8'))
+        threads_input = chan.process_input()
+        if threads_input is None:
+            return None
         try:
-            size_val = int(size_input.strip())
-            if size_val > 0:
-                max_attachment_size_mb = size_val
+            threads = int(threads_input.strip())
+            if 1 <= threads <= 99999:
+                max_threads = threads
                 break
             else:
-                chan.send("正の整数を入力してください。\r\n".encode('utf-8'))
+                chan.send("** 1から99999の範囲で入力してください。 **\r\n".encode('utf-8'))
         except ValueError:
-            chan.send("数値を入力してください。\r\n".encode('utf-8'))
+            chan.send("** 1から99999の範囲で数値を入力してください。 **\r\n".encode('utf-8'))
+
+    # Max Replies
+    max_replies = 0
+    if board_type == 'thread':
+        while True:
+            chan.send("リプライ上限数 (1-999): ".encode('utf-8'))
+            replies_input = chan.process_input()
+            if replies_input is None:
+                return None
+            try:
+                replies = int(replies_input.strip())
+                if 1 <= replies <= 999:
+                    max_replies = replies
+                    break
+                else:
+                    chan.send("** 0から999の範囲で入力してください。 **\r\n".encode('utf-8'))
+            except ValueError:
+                chan.send("** 1から999の範囲で数値を入力してください。 **\r\n".encode('utf-8'))
 
     operators_json = f'["{sysop_login_id}"]'
     kanban_body = ""
@@ -662,7 +701,12 @@ def make_board(chan, sysop_login_id, current_menu_mode):
             chan, "common_messages.cancel", current_menu_mode)
         return None
 
-    if database.create_board_entry(shortcut_id, board_name, description, operators_json, default_permission, kanban_body, status, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb):
+    if database.create_board_entry(
+        shortcut_id, board_name, description, operators_json, default_permission,
+        kanban_body, status, read_level, write_level, board_type,
+        allow_attachments, allowed_extensions, max_attachment_size_mb,
+        max_threads, max_replies
+    ):
         util.send_text_by_key(chan, "sysop_menu.make_board.success_direct",
                               current_menu_mode, shortcut_id=shortcut_id)
         util.send_text_by_key(
@@ -800,7 +844,11 @@ def change_board_full_settings(chan, sysop_login_id, current_menu_mode):
         "Allow Attachments": "Yes" if board_info.get('allow_attachments') else "No",
         "Allowed Extensions": allowed_ext_val if allowed_ext_val is not None else '(Global default)',
         "Max File Size(MB)": max_size_val if max_size_val is not None else '(Global default)',
+        "Max Threads": board_info.get('max_threads', 0),
     }
+
+    if board_info.get('board_type') == 'thread':
+        settings_to_display["Max Replies"] = board_info.get('max_replies', 0)
 
     for name, value in settings_to_display.items():
         util.send_text_by_key(chan, "sysop_menu.change_board_full.current_setting_line",
@@ -895,38 +943,81 @@ def change_board_full_settings(chan, sysop_login_id, current_menu_mode):
     elif new_attach_input.strip().lower() == 'n':
         updates['allow_attachments'] = 0
 
-    # Allowed Extensions
-    current_ext = board_info.get('allowed_extensions')
-    util.send_text_by_key(
-        chan, "sysop_menu.change_board_full.prompt_new_value_with_clear", current_menu_mode,
-        setting_name="Allowed Extensions", current_value=current_ext if current_ext is not None else '(Global default)', add_newline=False
-    )
-    new_ext_input = chan.process_input()
-    if new_ext_input is None:
-        return None
-    if new_ext_input.strip() == '-':
-        updates['allowed_extensions'] = None
-    elif new_ext_input.strip():
-        updates['allowed_extensions'] = new_ext_input.strip()
+    # 添付が許可されている場合のみ、関連設定を聞く
+    attachments_are_allowed = updates.get(
+        'allow_attachments', board_info.get('allow_attachments')) == 1
 
-    # Max File Size
-    current_size = board_info.get('max_attachment_size_mb')
+    if attachments_are_allowed:
+        # Allowed Extensions
+        current_ext = board_info.get('allowed_extensions')
+        util.send_text_by_key(
+            chan, "sysop_menu.change_board_full.prompt_new_value_with_clear", current_menu_mode,
+            setting_name="Allowed Extensions", current_value=current_ext if current_ext is not None else '(Global default)', add_newline=False
+        )
+        new_ext_input = chan.process_input()
+        if new_ext_input is None:
+            return None
+        if new_ext_input.strip() == '-':
+            updates['allowed_extensions'] = None
+        elif new_ext_input.strip():
+            updates['allowed_extensions'] = new_ext_input.strip()
+
+        # Max File Size
+        current_size = board_info.get('max_attachment_size_mb')
+        util.send_text_by_key(
+            chan, "sysop_menu.change_board_full.prompt_new_value_with_clear", current_menu_mode,
+            setting_name="Max File Size(MB)", current_value=current_size if current_size is not None else '(Global default)', add_newline=False
+        )
+        new_size_input = chan.process_input()
+        if new_size_input is None:
+            return None
+        if new_size_input.strip() == '-':
+            updates['max_attachment_size_mb'] = None
+        elif new_size_input.strip():
+            try:
+                size_val = int(new_size_input.strip())
+                if size_val > 0:
+                    updates['max_attachment_size_mb'] = size_val
+            except ValueError:
+                pass  # Ignore invalid input
+
+    # Max Threads
     util.send_text_by_key(
-        chan, "sysop_menu.change_board_full.prompt_new_value_with_clear", current_menu_mode,
-        setting_name="Max File Size(MB)", current_value=current_size if current_size is not None else '(Global default)', add_newline=False
+        chan, "sysop_menu.change_board_full.prompt_new_value", current_menu_mode,
+        setting_name="Max Threads (1-99999)", current_value=board_info.get('max_threads', 0), add_newline=False
     )
-    new_size_input = chan.process_input()
-    if new_size_input is None:
+    new_max_threads_input = chan.process_input()
+    if new_max_threads_input is None:
         return None
-    if new_size_input.strip() == '-':
-        updates['max_attachment_size_mb'] = None
-    elif new_size_input.strip():
+    if new_max_threads_input.strip():
         try:
-            size_val = int(new_size_input.strip())
-            if size_val > 0:
-                updates['max_attachment_size_mb'] = size_val
+            threads = int(new_max_threads_input.strip())
+            if 1 <= threads <= 99999:
+                updates['max_threads'] = threads
+            else:
+                chan.send("\r\n** 1から99999の範囲で入力してください。 **\r\n".encode('utf-8'))
         except ValueError:
             pass  # Ignore invalid input
+
+    # Max Replies
+    if board_info.get('board_type') == 'thread':
+        util.send_text_by_key(
+            chan, "sysop_menu.change_board_full.prompt_new_value", current_menu_mode,
+            setting_name="Max Replies (1-999)", current_value=board_info.get('max_replies', 0), add_newline=False
+        )
+        new_max_replies_input = chan.process_input()
+        if new_max_replies_input is None:
+            return None
+        if new_max_replies_input.strip():
+            try:
+                replies = int(new_max_replies_input.strip())
+                if 1 <= replies <= 999:
+                    updates['max_replies'] = replies
+                else:
+                    chan.send(
+                        "\r\n** 1から999の範囲で入力してください。 **\r\n".encode('utf-8'))
+            except ValueError:
+                pass  # Ignore invalid input
 
     # 変更がなければ終了
     if not updates:
@@ -947,6 +1038,8 @@ def change_board_full_settings(chan, sysop_login_id, current_menu_mode):
         "allow_attachments": "Allow Attachments",
         "allowed_extensions": "Allowed Extensions",
         "max_attachment_size_mb": "Max File Size(MB)",
+        "max_threads": "Max Threads",
+        "max_replies": "Max Replies",
     }
 
     for key, value in updates.items():

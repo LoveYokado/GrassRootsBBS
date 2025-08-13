@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g
 from ..decorators import sysop_required
 import json
 import os
 from datetime import datetime, timedelta
 import time
-from .. import database, util, webapp, backup_util
+from .. import database, util, backup_util
 
 # ブループリントを作成
 # 'admin' はブループリントの名前
@@ -16,6 +16,34 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 BACKUP_DIR = os.path.abspath(os.path.join(
     os.path.dirname(__file__), '..', '..', 'data', 'backups'))
 os.makedirs(BACKUP_DIR, exist_ok=True)
+
+
+def _process_texts_for_mode(node, menu_mode):
+    """
+    YAMLから読み込んだ辞書を再帰的に処理し、指定されたmenu_modeのテキストだけを抽出する。
+    これにより、テンプレート側では g.texts.dashboard.title のようにシンプルにアクセスできる。
+    """
+    if isinstance(node, dict):
+        # 'mode1', 'mode2', 'mode3' のようなキーを持つ末端の辞書かチェック
+        mode_key = f"mode{menu_mode}"
+        # 'mode_3' のようなタイポも許容する
+        if f"mode_{menu_mode}" in node:
+            mode_key = f"mode_{menu_mode}"
+
+        if mode_key in node:
+            return node[mode_key]
+        else:
+            # 末端でなければ、さらに下の階層を処理
+            return {key: _process_texts_for_mode(value, menu_mode) for key, value in node.items()}
+    return node
+
+
+@admin_bp.before_request
+def load_admin_texts():
+    """管理画面へのリクエストの前に、ユーザーの言語設定に応じたテキストをロードする"""
+    menu_mode = session.get('menu_mode', '3')  # デフォルトは英語モード
+    all_admin_texts = util.load_master_text_data().get('admin', {})
+    g.texts = _process_texts_for_mode(all_admin_texts, menu_mode)
 
 
 @admin_bp.route('/')
@@ -60,7 +88,8 @@ def dashboard():
     # --- ここまで ---
 
     return render_template('admin/dashboard.html',
-                           title='Dashboard',
+                           title=g.texts.get('dashboard', {}).get(
+                               'title', 'Dashboard'),
                            stats=stats,
                            chart_data=json.dumps(chart_data))
 
@@ -69,6 +98,8 @@ def dashboard():
 @sysop_required
 def who_online():
     """オンラインユーザーの詳細一覧ページ"""
+    # 循環参照を避けるため、関数内でwebappをインポートします
+    from .. import webapp
     online_members_raw = webapp.get_webapp_online_members()
 
     # データを整形し、接続時間を計算
@@ -100,7 +131,7 @@ def who_online():
 
     return render_template(
         'admin/who_online.html',
-        title="Who's Online",
+        title=g.texts.get('who_online', {}).get('title', "Who's Online"),
         online_list=online_list,
         sort_by=sort_by,
         order=order,
@@ -322,6 +353,8 @@ def new_board():
         max_size_mb = request.form.get('max_attachment_size_mb')
         max_attachment_size_mb = int(
             max_size_mb) if max_size_mb and max_size_mb.isdigit() else None
+        max_threads = request.form.get('max_threads', 99999, type=int)
+        max_replies = request.form.get('max_replies', 999, type=int)
 
         # バリデーション
         if not shortcut_id or not name:
@@ -332,11 +365,23 @@ def new_board():
             flash(f"Shortcut ID '{shortcut_id}' already exists.", 'danger')
             return render_template('admin/new_board.html', title='Add New Board')
 
+        if not (1 <= max_threads <= 99999):
+            flash('Max Threads must be between 1 and 99999.', 'danger')
+            return render_template('admin/new_board.html', title='Add New Board')
+
+        if board_type == 'thread':
+            if not (1 <= max_replies <= 999):
+                flash(
+                    'Max Replies must be between 1 and 999 for thread boards.', 'danger')
+                return render_template('admin/new_board.html', title='Add New Board')
+        else:
+            max_replies = 0  # simple board has no replies
+
         # シスオペをオペレーターとして自動設定
         sysop_user_id = session.get('user_id')
         operators_json = json.dumps([sysop_user_id]) if sysop_user_id else '[]'
 
-        if database.create_board_entry(shortcut_id, name, description, operators_json, default_permission, "", "active", read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb):
+        if database.create_board_entry(shortcut_id, name, description, operators_json, default_permission, "", "active", read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies):
             flash(f"Board '{name}' has been created successfully.", 'success')
             return redirect(url_for('admin.board_list'))
         else:
@@ -370,6 +415,8 @@ def edit_board(board_id):
         max_attachment_size_mb = int(
             max_size_mb_str) if max_size_mb_str and max_size_mb_str.isdigit() else None
         operators_str = request.form.get('operators', '').strip()
+        max_threads = request.form.get('max_threads', 99999, type=int)
+        max_replies = request.form.get('max_replies', 999, type=int)
 
         # オペレーター文字列をIDのリストに変換
         new_operator_ids = []
@@ -419,7 +466,9 @@ def edit_board(board_id):
             'default_permission': default_permission, 'read_level': read_level, 'write_level': write_level,
             'allow_attachments': allow_attachments, 'allowed_extensions': allowed_extensions,
             'max_attachment_size_mb': max_attachment_size_mb,
-            'operators': json.dumps(new_operator_ids)
+            'operators': json.dumps(new_operator_ids),
+            'max_threads': max_threads,
+            'max_replies': max_replies if board_type == 'thread' else 0
         }
 
         if database.update_record('boards', updates, {'id': board_id}):

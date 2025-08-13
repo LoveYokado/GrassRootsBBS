@@ -1505,6 +1505,16 @@ class CommandHandler:
                 self.chan, "bbs.permission_denied_write_article", self.menu_mode)
             return
 
+        # --- リプライ上限チェック ---
+        max_replies = self.current_board.get('max_replies', 0)
+        if max_replies > 0:
+            # 親記事のIDは parent_article['id']
+            current_reply_count = self.article_manager.get_reply_count(
+                parent_article['id'])
+            if current_reply_count >= max_replies:
+                util.send_text_by_key(
+                    self.chan, "bbs.reply_limit_reached", self.menu_mode)
+                return
         util.send_text_by_key(
             self.chan, "bbs.reply_header", self.menu_mode,
             parent_id=parent_article['article_number']
@@ -1572,6 +1582,19 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "bbs.permission_denied_write_article", self.menu_mode)
             return 'failed'
+
+        # --- スレッド/記事数 上限チェック ---
+        # 'max_threads' はスレッド形式ではスレッド数、シンプル形式では記事数の上限として扱う
+        max_threads = self.current_board.get('max_threads', 0)
+        if max_threads > 0:
+            # get_thread_countは親記事(parent_article_id IS NULL)の数を数える。
+            # シンプル形式では全記事が親記事扱いなので、これで記事総数をチェックできる。
+            current_thread_count = self.article_manager.get_thread_count(
+                board_id_pk)
+            if current_thread_count >= max_threads:
+                util.send_text_by_key(
+                    self.chan, "bbs.thread_limit_reached", self.menu_mode)
+                return 'failed'
 
         # ファイル添付が許可されているかチェック
         allow_attachments = self.current_board.get('allow_attachments', 0) == 1

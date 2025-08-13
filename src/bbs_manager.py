@@ -178,6 +178,19 @@ class ArticleManager:
         # TODO: 実装
         pass
 
+    def get_thread_count(self, board_id_pk):
+        """指定された掲示板の現在のスレッド数を取得する（削除済みは除く）"""
+        query = "SELECT COUNT(*) AS count FROM articles WHERE board_id = %s AND parent_article_id IS NULL AND is_deleted = 0"
+        result = database.execute_query(query, (board_id_pk,), fetch='one')
+        return result['count'] if result else 0
+
+    def get_reply_count(self, parent_article_id_pk):
+        """指定された親記事の現在の返信数を取得する（削除済みは除く）"""
+        query = "SELECT COUNT(*) AS count FROM articles WHERE parent_article_id = %s AND is_deleted = 0"
+        result = database.execute_query(
+            query, (parent_article_id_pk,), fetch='one')
+        return result['count'] if result else 0
+
 
 class PermissionManager:
     """権限管理を行うクラス"""
@@ -290,5 +303,3 @@ class PermissionManager:
     def update_permission_list(self, board_id, user_id, permission_type):
         """指定された掲示板のパーミッションリストを更新する"""
         # permission_type: "allow" (ホワイトリスト), "deny" (ブラックリスト)
-        # TODO: 実装
-        pass

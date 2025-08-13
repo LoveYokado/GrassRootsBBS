@@ -614,14 +614,14 @@ def delete_user(user_id):
     return execute_query(query, (user_id,)) is not None
 
 
-def create_board_entry(shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple", allow_attachments=0, allowed_extensions=None, max_attachment_size_mb=None):
+def create_board_entry(shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple", allow_attachments=0, allowed_extensions=None, max_attachment_size_mb=None, max_threads=0, max_replies=0):
     """新しい掲示板エントリをboardsテーブルに挿入"""
     query = """
-    INSERT INTO boards (shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s)
+    INSERT INTO boards (shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     params = (shortcut_id, name, description, operators, default_permission,
-              kanban_body, status, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb)
+              kanban_body, status, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies)
     return execute_query(query, params) is not None
 
 

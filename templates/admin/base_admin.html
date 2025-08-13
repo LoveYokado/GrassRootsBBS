@@ -299,14 +299,16 @@
         {% block content %}{% endblock %}
     </div>
     <nav class="bottom-nav">
-        <a href="{{ url_for('admin.dashboard') }}">Dashboard</a>
-        <a href="{{ url_for('admin.who_online') }}">Who's Online</a>
-        <a href="{{ url_for('admin.user_list') }}">User Management</a>
-        <a href="{{ url_for('admin.board_list') }}">Board Management</a>
-        <a href="{{ url_for('admin.article_search') }}">Article Management</a>
-        <a href="{{ url_for('admin.system_settings') }}">System Settings</a>
-        <a href="{{ url_for('admin.backup_management') }}">Data Management</a>
+        <a href="{{ url_for('admin.dashboard') }}">{{ g.texts.nav.dashboard }}</a>
+        <a href="{{ url_for('admin.who_online') }}">{{ g.texts.nav.who_online }}</a>
+        <a href="{{ url_for('admin.user_list') }}">{{ g.texts.nav.user_management }}</a>
+        <a href="{{ url_for('admin.board_list') }}">{{ g.texts.nav.board_management }}</a>
+        <a href="{{ url_for('admin.article_search') }}">{{ g.texts.nav.article_management }}</a>
+        <a href="{{ url_for('admin.system_settings') }}">{{ g.texts.nav.system_settings }}</a>
+        <a href="{{ url_for('admin.backup_management') }}">{{ g.texts.nav.data_management }}</a>
     </nav>
+
+    {% block scripts %}{% endblock %}
 </body>
 
 

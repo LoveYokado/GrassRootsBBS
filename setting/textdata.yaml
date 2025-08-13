@@ -1633,6 +1633,14 @@ bbs:
     mode_1: "登録を取りやめますか？ (Y/N): "
     mode_2: "登録を取りやめますか？ (Y/N): "
     mode_3: "Cancel registration? (Y/N): "
+  thread_limit_reached:
+    mode_1: "この掲示板はスレッド数の上限に達しているため、新しいスレッドを作成できません。"
+    mode_2: "この掲示板はスレッド数の上限に達しているため、新しいスレッドを作成できません。"
+    mode_3: "Cannot create a new thread because this board has reached its thread limit."
+  reply_limit_reached:
+    mode_1: "このスレッドは返信数の上限に達しているため、返信できません。"
+    mode_2: "このスレッドは返信数の上限に達しているため、返信できません。"
+    mode_3: "Cannot reply because this thread has reached its reply limit."
 
 auto_download:
   start_message:
@@ -2088,6 +2096,74 @@ auth:
     mode_1: "システムオペレーターによって接続が切断されました。"
     mode_2: "システムオペレーターによって接続が切断されました。"
     mode_3: "Your connection was terminated by the System Operator."
+
+admin:
+  nav:
+    dashboard:
+      mode_1: "ダッシュボード"
+      mode_2: "ダッシュボード"
+      mode_3: "Dashboard"
+    who_online:
+      mode_1: "オンライン"
+      mode_2: "オンライン"
+      mode_3: "Who's Online"
+    user_management:
+      mode_1: "ユーザー管理"
+      mode_2: "ユーザー管理"
+      mode_3: "User Management"
+    board_management:
+      mode_1: "掲示板管理"
+      mode_2: "掲示板管理"
+      mode_3: "Board Management"
+    article_management:
+      mode_1: "記事管理"
+      mode_2: "記事管理"
+      mode_3: "Article Management"
+    system_settings:
+      mode_1: "システム設定"
+      mode_2: "システム設定"
+      mode_3: "System Settings"
+    data_management:
+      mode_1: "データ管理"
+      mode_2: "データ管理"
+      mode_3: "Data Management"
+  dashboard:
+    title:
+      mode_1: "ダッシュボード"
+      mode_2: "ダッシュボード"
+      mode_3: "Dashboard"
+    quick_stats:
+      mode_1: "統計情報"
+      mode_2: "統計情報"
+      mode_3: "Quick Stats"
+    total_users:
+      mode_1: "総ユーザー数"
+      mode_2: "総ユーザー数"
+      mode_3: "Total Users"
+    total_boards:
+      mode_1: "総掲示板数"
+      mode_2: "総掲示板数"
+      mode_3: "Total Boards"
+    total_articles:
+      mode_1: "総記事数"
+      mode_2: "総記事数"
+      mode_3: "Total Articles"
+    online_users:
+      mode_1: "オンラインユーザー"
+      mode_2: "オンラインユーザー"
+      mode_3: "Online Users"
+    recent_activity:
+      mode_1: "最近のアクティビティ (過去7日間)"
+      mode_2: "最近のアクティビティ (過去7日間)"
+      mode_3: "Recent Activity (Last 7 Days)"
+    user_registrations:
+      mode_1: "ユーザー登録数"
+      mode_2: "ユーザー登録数"
+      mode_3: "User Registrations"
+    article_posts:
+      mode_1: "記事投稿数"
+      mode_2: "記事投稿数"
+      mode_3: "Article Posts"
 
 
 

@@ -300,7 +300,9 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 write_level INT NOT NULL DEFAULT 1,
                 allow_attachments BOOLEAN DEFAULT 0 NOT NULL,
                 allowed_extensions TEXT DEFAULT NULL,
-                max_attachment_size_mb INT DEFAULT NULL
+                max_attachment_size_mb INT DEFAULT NULL,
+                max_threads INT DEFAULT 0,
+                max_replies INT DEFAULT 0
             )
             """,
             """

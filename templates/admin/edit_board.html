@@ -67,6 +67,19 @@
             value="{{ board.max_attachment_size_mb or '' }}" min="1">
     </div>
     <div class="form-group">
+        <label for="max_threads">Max Threads/Articles (1-99999)</label>
+        <input type="number" id="max_threads" name="max_threads" value="{{ board.max_threads or '99999' }}" min="1"
+            max="99999" required>
+    </div>
+
+    <div class="form-group" id="max_replies_group"
+        style="display: {% if board.board_type == 'thread' %}block{% else %}none{% endif %};">
+        <label for="max_replies">Max Replies (1-999)</label>
+        <input type="number" id="max_replies" name="max_replies" value="{{ board.max_replies or '999' }}" min="1"
+            max="999">
+    </div>
+
+    <div class="form-group">
         <label for="operators">Operators (comma-separated)</label>
         <input type="text" id="operators" name="operators"
             value="{{ board.operators_str if board.operators_str else '' }}">
@@ -88,4 +101,23 @@
         <a href="{{ url_for('admin.board_list') }}" style="background-color: #6c757d; color: white;">Cancel</a>
     </div>
 </form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const boardTypeSelect = document.getElementById('board_type');
+        const maxRepliesGroup = document.getElementById('max_replies_group');
+
+        function toggleMaxReplies() {
+            if (boardTypeSelect.value === 'thread') {
+                maxRepliesGroup.style.display = 'block';
+            } else {
+                maxRepliesGroup.style.display = 'none';
+            }
+        }
+        boardTypeSelect.addEventListener('change', toggleMaxReplies);
+        // Initial state is set by Jinja2, so no need to call it here.
+    });
+</script>
 {% endblock %}
