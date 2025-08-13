@@ -160,6 +160,21 @@ def kick_user(sid):
     return redirect(url_for('admin.who_online'))
 
 
+@admin_bp.route('/set-mode/<int:mode>')
+@sysop_required
+def set_menu_mode(mode):
+    """管理画面のメニューモードをセッションに保存する"""
+    if mode in [1, 2, 3]:
+        session['menu_mode'] = str(mode)
+        flash(f'Menu mode switched to Mode {mode}.', 'success')
+    else:
+        flash('Invalid menu mode.', 'danger')
+
+    # 元のページにリダイレクト
+    next_url = request.args.get('next', url_for('admin.dashboard'))
+    return redirect(next_url)
+
+
 @admin_bp.route('/users')
 @sysop_required
 def user_list():

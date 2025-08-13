@@ -2101,68 +2101,68 @@ admin:
   nav:
     dashboard:
       mode_1: "ダッシュボード"
-      mode_2: "ダッシュボード"
+      mode_2: "Dashboard"
       mode_3: "Dashboard"
     who_online:
       mode_1: "オンライン"
-      mode_2: "オンライン"
+      mode_2: "Who's Online"
       mode_3: "Who's Online"
     user_management:
       mode_1: "ユーザー管理"
-      mode_2: "ユーザー管理"
+      mode_2: "User Management"
       mode_3: "User Management"
     board_management:
       mode_1: "掲示板管理"
-      mode_2: "掲示板管理"
+      mode_2: "Board Management"
       mode_3: "Board Management"
     article_management:
       mode_1: "記事管理"
-      mode_2: "記事管理"
+      mode_2: "Article Management"
       mode_3: "Article Management"
     system_settings:
       mode_1: "システム設定"
-      mode_2: "システム設定"
+      mode_2: "System Settings"
       mode_3: "System Settings"
     data_management:
       mode_1: "データ管理"
-      mode_2: "データ管理"
+      mode_2: "Data Management"
       mode_3: "Data Management"
   dashboard:
     title:
       mode_1: "ダッシュボード"
-      mode_2: "ダッシュボード"
+      mode_2: "Dashboard"
       mode_3: "Dashboard"
     quick_stats:
       mode_1: "統計情報"
-      mode_2: "統計情報"
+      mode_2: "Quick Stats"
       mode_3: "Quick Stats"
     total_users:
       mode_1: "総ユーザー数"
-      mode_2: "総ユーザー数"
+      mode_2: "Total Users"
       mode_3: "Total Users"
     total_boards:
       mode_1: "総掲示板数"
-      mode_2: "総掲示板数"
+      mode_2: "Total Boards"
       mode_3: "Total Boards"
     total_articles:
       mode_1: "総記事数"
-      mode_2: "総記事数"
+      mode_2: "Total Articles"
       mode_3: "Total Articles"
     online_users:
       mode_1: "オンラインユーザー"
-      mode_2: "オンラインユーザー"
+      mode_2: "Online Users"
       mode_3: "Online Users"
     recent_activity:
       mode_1: "最近のアクティビティ (過去7日間)"
-      mode_2: "最近のアクティビティ (過去7日間)"
+      mode_2: "Recent Activity (Last 7 Days)"
       mode_3: "Recent Activity (Last 7 Days)"
     user_registrations:
       mode_1: "ユーザー登録数"
-      mode_2: "ユーザー登録数"
+      mode_2: "User Registrations"
       mode_3: "User Registrations"
     article_posts:
       mode_1: "記事投稿数"
-      mode_2: "記事投稿数"
+      mode_2: "Article Posts"
       mode_3: "Article Posts"
 
 
