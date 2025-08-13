@@ -199,8 +199,8 @@
             cursor: pointer;
             user-select: none;
             border-radius: 2px;
-            width: 90px;
-            /* ボタンの幅を固定 */
+            white-space: nowrap;
+            /* テキストが折り返さないようにする */
             text-align: center;
             /* テキストを中央揃え */
             box-sizing: border-box;
@@ -530,6 +530,11 @@
                 padding-right: 0;
                 padding-bottom: 10px;
             }
+
+            #dip-switch-container {
+                display: none;
+                /* モバイルではDIPスイッチを非表示 */
+            }
         }
 
         /* --- デスクトップでのモバイルUI強制非表示 --- */
@@ -548,9 +553,14 @@
             /* デスクトップでは設定ボタンを非表示にし、DIPスイッチのみにする */
             #theme-selector,
             #font-selector,
+            #fontsize-selector,
             #speed-selector,
             #effect-selector {
                 display: none;
+            }
+
+            #popup-window {
+                min-width: 780px;
             }
         }
 
@@ -1289,6 +1299,29 @@
                                 <span class="dip-switch-number">3</span>
                             </div>
                         </div>
+                        <!-- FONTSIZE -->
+                        <div class="dip-switch-group" data-group="fontsize">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-0" data-bit="0"><label
+                                        for="dip-fontsize-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-1" data-bit="1"><label
+                                        for="dip-fontsize-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-2" data-bit="2"><label
+                                        for="dip-fontsize-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-3" data-bit="3"><label
+                                        for="dip-fontsize-3"></label></div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1404,11 +1437,13 @@
         const fontMap = { 'M+ 1m': 0, 'M PLUS 1 Code': 1, 'IBM Plex Mono': 2, 'DotGothic16': 3 };
         const speedMap = { 'full': 0, '9600': 1, '4800': 2, '2400': 3, '300': 4 };
         const effectMap = { 'bezel': 0, 'blur': 1, 'scanline': 2 };
+        const fontsizeMap = { '12': 0, '16': 1, '20': 2, '24': 3 };
 
         // 逆引きマップ
         const themeMapReverse = Object.fromEntries(Object.entries(themeMap).map(([k, v]) => [v, k]));
         const fontMapReverse = Object.fromEntries(Object.entries(fontMap).map(([k, v]) => [v, k]));
         const speedMapReverse = Object.fromEntries(Object.entries(speedMap).map(([k, v]) => [v, k]));
+        const fontsizeMapReverse = Object.fromEntries(Object.entries(fontsizeMap).map(([k, v]) => [v, k]));
 
         let isDipSwitchUpdating = false; // スイッチ操作による再帰呼び出しを防ぐフラグ
 
@@ -1481,10 +1516,27 @@
         }
 
         function applyFontSize(size) {
-            term.options.fontSize = parseInt(size, 10);
+            const baseSize = parseInt(size, 10);
+
+            // 1. ターミナル本体のフォントサイズを設定
+            term.options.fontSize = baseSize;
+
+            // 2. ファンクションキーのフォントサイズを連動させる (基本サイズの約80%)
+            const fKeySize = Math.max(10, baseSize * 0.8); // 最小でも10pxは確保
+            document.querySelectorAll('.f-key').forEach(btn => {
+                btn.style.fontSize = `${fKeySize}px`;
+            });
+
+            // 3. モバイルボタンのフォントサイズを連動させる (基本サイズの約120%)
+            const mobileBtnSize = Math.max(14, baseSize * 1.2); // 最小でも14pxは確保
+            document.querySelectorAll('.mobile-btn').forEach(btn => {
+                btn.style.fontSize = `${mobileBtnSize}px`;
+            });
+
             localStorage.setItem('terminalFontSize', size);
             updateFontSizeButtons(size);
-            // フォントサイズ変更はレイアウトに影響するため、再計算をトリガー
+            if (!isDipSwitchUpdating) updateDipSwitches('fontsize', size);
+            // フォントサイズ変更はレイアウトに影響するため、再計算をトリガーします
             setTimeout(() => updateTerminalLayout(), 0);
         }
 
@@ -1573,6 +1625,8 @@
                 numericValue = fontMap[value];
             } else if (groupName === 'speed') {
                 numericValue = speedMap[value];
+            } else if (groupName === 'fontsize') {
+                numericValue = fontsizeMap[value];
             } else if (groupName === 'effect') {
                 // エフェクトはビットごとのON/OFFなので特別扱い
                 const switches = document.querySelectorAll(`.dip-switch-group[data-group="effect"] input[type="checkbox"]`);
@@ -2319,6 +2373,7 @@
             updateDipSwitches('theme', savedTheme);
             updateDipSwitches('font', savedFontName);
             updateDipSwitches('speed', savedSpeed);
+            updateDipSwitches('fontsize', savedFontSize);
             updateDipSwitches('effect');
         }
 
@@ -2351,6 +2406,7 @@
                 if (groupName === 'theme') { const themeName = themeMapReverse[numericValue]; if (themeName) applyTheme(themeName); }
                 else if (groupName === 'font') { const fontName = fontMapReverse[numericValue]; if (fontName) applyFont(fontName); }
                 else if (groupName === 'speed') { const speedName = speedMapReverse[numericValue]; if (speedName) applySpeed(speedName); }
+                else if (groupName === 'fontsize') { const size = fontsizeMapReverse[numericValue]; if (size) applyFontSize(size); }
             }
 
             setTimeout(() => { isDipSwitchUpdating = false; }, 50); // フラグを戻す
