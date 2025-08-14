@@ -85,6 +85,7 @@ def dashboard():
         'user_registrations': user_counts,
         'article_posts': article_counts,
     }
+    # --- ここまで ---
 
     return render_template('admin/dashboard.html',
                            title=g.texts.get('dashboard', {}).get(
@@ -93,7 +94,7 @@ def dashboard():
                            chart_data=json.dumps(chart_data))
 
 
-@admin_bp.route('/who-online')
+@admin_bp.route('/who')
 @sysop_required
 def who_online():
     """オンラインユーザーの詳細一覧ページ"""
@@ -157,21 +158,6 @@ def kick_user(sid):
             f"Failed to kick user '{display_name}'. They may have already disconnected.", 'warning')
 
     return redirect(url_for('admin.who_online'))
-
-
-@admin_bp.route('/set-mode/<int:mode>')
-@sysop_required
-def set_menu_mode(mode):
-    """管理画面のメニューモードをセッションに保存する"""
-    if mode in [1, 2, 3]:
-        session['menu_mode'] = str(mode)
-        flash(f'Menu mode switched to Mode {mode}.', 'success')
-    else:
-        flash('Invalid menu mode.', 'danger')
-
-    # 元のページにリダイレクト
-    next_url = request.args.get('next', url_for('admin.dashboard'))
-    return redirect(next_url)
 
 
 @admin_bp.route('/users')
@@ -700,40 +686,10 @@ def system_settings():
     return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
 
 
-@admin_bp.route('/backup', methods=['GET', 'POST'])
+@admin_bp.route('/backup')
 @sysop_required
 def backup_management():
     """バックアップ管理ページを表示する"""
-    if request.method == 'POST':
-        # スケジューラ設定の更新処理
-        enabled = 'scheduler_enabled' in request.form
-        schedule_type = request.form.get('schedule_type', 'daily')
-        schedule_time_str = request.form.get('schedule_time', '03:00')
-        max_backups = request.form.get('max_backups', 7, type=int)
-
-        day_of_week = request.form.get('day_of_week', 1, type=int)
-        day_of_month = request.form.get('day_of_month', 1, type=int)
-
-        schedule_day = 1
-        if schedule_type == 'weekly':
-            schedule_day = day_of_week
-        elif schedule_type == 'monthly':
-            schedule_day = day_of_month
-
-        updates = {
-            'scheduler_enabled': 1 if enabled else 0,
-            'schedule_type': schedule_type,
-            'schedule_time': schedule_time_str,
-            'schedule_day': schedule_day,
-            'max_backups': max_backups
-        }
-
-        if database.update_record('server_pref', updates, {'id': 1}):
-            flash('Scheduler settings have been updated. A server restart is required for changes to take effect.', 'success')
-        else:
-            flash('Failed to update scheduler settings.', 'danger')
-        return redirect(url_for('admin.backup_management'))
-
     backups = []
     try:
         for filename in sorted(os.listdir(BACKUP_DIR), reverse=True):
@@ -751,10 +707,7 @@ def backup_management():
     except Exception as e:
         flash(f'Error retrieving backup list: {e}', 'error')
 
-    # 現在のスケジューラ設定をDBから取得
-    scheduler_settings = database.get_server_pref_settings()
-
-    return render_template('admin/backup.html', title="Data Management", backups=backups, settings=scheduler_settings)
+    return render_template('admin/backup.html', title="Backup Management", backups=backups)
 
 
 @admin_bp.route('/backup/create', methods=['POST'])

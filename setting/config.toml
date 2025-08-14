@@ -51,3 +51,16 @@ text_data_yaml = "setting/textdata.yaml"  # BBS内で使われる定型文デー
 bbs_mode1_yaml = "setting/bbs_mode1.yaml" # mode1での掲示板の階層設定ファイル
 bbs_mode3_yaml = "setting/bbs_mode3.yaml" # mode2,3での掲示板の階層設定ファイル
 chatroom_yaml = "setting/chatroom.yaml"   # チャットルームの階層設定ファイル
+bbs_sync_config = "setting/bbs.yaml"      # 掲示板同期設定ファイル (BoardManager用)
+
+[scheduler]
+# バックアップの自動スケジューリングを有効にするか (true / false)
+enabled = true
+
+# スケジュール設定 (cron形式: 分 時 日 月 曜日)
+# 以下の例は、毎日午前3時に実行
+schedule = "0 3 * * *"
+
+# 保持するバックアップの最大数 (0は無制限)
+# これを超えた最も古いバックアップは自動的に削除されます
+max_backups = 7

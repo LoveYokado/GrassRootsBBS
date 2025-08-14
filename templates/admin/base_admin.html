@@ -284,17 +284,6 @@
 
 <body>
 
-    <div class="mode-switcher" style="position: absolute; top: 1em; right: 2em; font-size: 0.9em; z-index: 101;">
-        <span style="color: #ccc;">Mode:</span>
-        <a href="{{ url_for('admin.set_menu_mode', mode=1, next=request.path) }}"
-            style="color: {% if session.get('menu_mode', '3') == '1' %}#FFFF00{% else %}#00FF00{% endif %}; font-weight: bold; text-decoration: none;">1</a>
-        |
-        <a href="{{ url_for('admin.set_menu_mode', mode=2, next=request.path) }}"
-            style="color: {% if session.get('menu_mode', '3') == '2' %}#FFFF00{% else %}#00FF00{% endif %}; font-weight: bold; text-decoration: none;">2</a>
-        |
-        <a href="{{ url_for('admin.set_menu_mode', mode=3, next=request.path) }}"
-            style="color: {% if session.get('menu_mode', '3') == '3' %}#FFFF00{% else %}#00FF00{% endif %}; font-weight: bold; text-decoration: none;">3</a>
-    </div>
 
     <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
