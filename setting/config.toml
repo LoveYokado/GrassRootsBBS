@@ -34,6 +34,12 @@ Please enter your ID and PASSWORD.
 guestID = `GUEST/GUEST`
 """
 
+[admin]
+# 管理画面へのIPアドレスアクセス制限
+ip_restriction_enabled = false # trueで有効化
+# 許可するIPアドレス/CIDRのリスト (例: ["192.168.1.10", "192.168.1.0/24", "127.0.0.1"])
+allowed_ips = ["127.0.0.1", "::1"]
+
 [push]
 VAPID_PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----
 MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgDKStVK5Dp26dVBne

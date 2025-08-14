@@ -1,5 +1,4 @@
 import logging
-import json
 from webauthn import (
     generate_registration_options,
     options_to_json,
@@ -13,7 +12,6 @@ from webauthn.helpers.structs import (
     AuthenticatorSelectionCriteria,
     ResidentKeyRequirement,
     UserVerificationRequirement,
-    AuthenticationCredential,
     PublicKeyCredentialDescriptor,
     PublicKeyCredentialType,
 )

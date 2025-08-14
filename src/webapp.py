@@ -5,15 +5,16 @@
 # Gunicorn + gevent で WebSocket を動作させるために必須
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
-from . import bbs_manager, command_dispatcher, database, util, passkey_handler
+from . import command_dispatcher, database, util, passkey_handler
 from .admin.routes import admin_bp  # 管理画面のブループリントを直接インポート
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_socketio import SocketIO, emit, disconnect
 from flask_session import Session
-from flask import (Flask, jsonify, redirect, render_template, request,
+from flask import (Flask, abort, jsonify, redirect, render_template, request,
                    send_from_directory, session, url_for, Response)
 import redis
 from functools import wraps
+import ipaddress
 import time
 import threading
 import sys
@@ -23,7 +24,6 @@ import json
 import os
 import base64
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec
 import logging
 import datetime
 import uuid
@@ -196,6 +196,46 @@ def timestamp_to_datetime_filter(ts):
         return "Invalid Date"
 
 # --- ここまで ---
+
+
+@app.before_request
+def restrict_admin_access_by_ip():
+    """
+    リクエストの前処理として、管理画面へのIPアドレスベースのアクセスを制御する。
+    """
+    # /admin パスへのリクエストの場合のみチェック
+    if request.path.startswith('/admin'):
+        admin_config = util.app_config.get('admin', {})
+
+        # 設定が有効かチェック
+        if not admin_config.get('ip_restriction_enabled', False):
+            return  # 設定が無効なら何もしない
+
+        # 許可IPリストを取得
+        allowed_ips_str = admin_config.get('allowed_ips', ['127.0.0.1', '::1'])
+        remote_ip_str = request.remote_addr
+
+        if not remote_ip_str:
+            logging.warning("IPアドレスによるアクセス制限: リモートIPが取得できませんでした。")
+            abort(403)  # IPが取れない場合は安全側に倒して拒否
+
+        try:
+            remote_ip = ipaddress.ip_address(remote_ip_str)
+            is_allowed = False
+            for allowed_entry in allowed_ips_str:
+                allowed_network = ipaddress.ip_network(
+                    allowed_entry, strict=False)
+                if remote_ip in allowed_network:
+                    is_allowed = True
+                    break
+
+            if not is_allowed:
+                logging.warning(
+                    f"管理画面への不正アクセスをブロックしました (IP制限)。IP: {remote_ip_str}, Path: {request.path}")
+                abort(403)
+        except ValueError:
+            logging.error(f"IPアドレスの解析に失敗しました: {remote_ip_str}")
+            abort(403)
 
 
 # --- クライアントごとの状態管理 ---
