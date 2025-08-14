@@ -1312,23 +1312,44 @@ def scheduled_backup_job():
             logging.error("スケジュールされたバックアップの作成に失敗しました。")
 
 
+def _construct_cron_from_db(settings):
+    """DBから読み込んだ設定を元にcron文字列を生成する"""
+    if not settings or not settings.get('scheduler_enabled'):
+        return None
+
+    time_val = settings.get('schedule_time', datetime.time(3, 0))
+    minute = time_val.minute
+    hour = time_val.hour
+
+    schedule_type = settings.get('schedule_type', 'daily')
+    day = settings.get('schedule_day', 1)
+
+    if schedule_type == 'daily':
+        return f"{minute} {hour} * * *"
+    elif schedule_type == 'weekly':
+        # cron形式: 1-7 (月-日)
+        return f"{minute} {hour} * * {day}"
+    elif schedule_type == 'monthly':
+        return f"{minute} {hour} {day} * *"
+    return None
+
+
 # --- スケジューラの設定 ---
-scheduler_config = util.app_config.get('scheduler', {})
-if scheduler_config.get('enabled', False):
+with app.app_context():
+    server_prefs = database.get_server_pref_settings()
     scheduler = BackgroundScheduler(daemon=True, timezone='Asia/Tokyo')
-    try:
-        cron_schedule = scheduler_config.get('schedule', '0 3 * * *')
+    cron_schedule_from_db = _construct_cron_from_db(server_prefs)
+    if cron_schedule_from_db:
         scheduler.add_job(
             scheduled_backup_job,
-            trigger=CronTrigger.from_crontab(cron_schedule),
+            trigger=CronTrigger.from_crontab(cron_schedule_from_db),
             id='scheduled_backup_job',
             name='Daily Backup and Cleanup',
             replace_existing=True
         )
         scheduler.start()
-        logging.info(f"バックアップスケジューラが有効になりました。スケジュール: '{cron_schedule}'")
-    except Exception as e:
-        logging.error(f"スケジューラの初期化に失敗しました: {e}")
+        logging.info(
+            f"バックアップスケジューラが有効になりました。スケジュール: '{cron_schedule_from_db}'")
 
 # --- Webサーバーの起動 ---
 if __name__ == '__main__':

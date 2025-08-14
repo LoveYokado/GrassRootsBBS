@@ -241,8 +241,11 @@ def cleanup_old_backups():
     古いバックアップファイルをクリーンアップする。
     設定ファイルに基づいて保持する数を決定する。
     """
-    scheduler_config = util.app_config.get('scheduler', {})
-    max_backups = scheduler_config.get('max_backups', 0)
+    # この関数はスケジューラから呼ばれるため、循環インポートを避けるためにここでインポート
+    from . import database
+    server_prefs = database.get_server_pref_settings()
+    # DBに設定がない場合のフォールバックとして0（無制限）を設定
+    max_backups = server_prefs.get('max_backups', 0) if server_prefs else 0
 
     if max_backups <= 0:
         logging.info("バックアップの自動クリーンアップは無効です (max_backups <= 0)。")

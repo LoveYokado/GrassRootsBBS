@@ -257,7 +257,12 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 who INT DEFAULT 2,
                 default_exploration_list TEXT,
                 hamlet INT DEFAULT 2,
-                login_message TEXT
+                login_message TEXT,
+                scheduler_enabled TINYINT(1) NOT NULL DEFAULT 0,
+                schedule_type VARCHAR(10) NOT NULL DEFAULT 'daily',
+                schedule_day INT NOT NULL DEFAULT 1,
+                schedule_time TIME NOT NULL DEFAULT '03:00:00',
+                max_backups INT NOT NULL DEFAULT 7
             )
             """,
             """
@@ -378,8 +383,12 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
         # server_pref
         if not database.execute_query("SELECT * FROM server_pref", fetch='one'):
             database.execute_query(
-                "INSERT INTO server_pref (id, login_message) VALUES (%s, %s)",
-                (1, 'GR-BBSへようこそ！')
+                """INSERT INTO server_pref (
+                    id, login_message, scheduler_enabled, schedule_type,
+                    schedule_day, schedule_time, max_backups
+                   ) VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                # スケジューラはデフォルトで無効(0)
+                (1, 'GR-BBSへようこそ！', 0, 'daily', 1, '03:00:00', 7)
             )
             logging.info("Initialized server_pref with default values.")
 

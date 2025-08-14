@@ -182,6 +182,13 @@ def read_server_pref():
     return list(result.values()) if result else []
 
 
+def get_server_pref_settings():
+    """サーバー設定を辞書として取得する"""
+    query = "SELECT * FROM server_pref WHERE id = 1"
+    # 常に一つのレコードを期待する
+    return execute_query(query, fetch='one')
+
+
 def get_board_by_shortcut_id(shortcut_id):
     """指定されたショートカットIDの掲示板情報をDBから取得"""
     query = "SELECT * FROM boards WHERE shortcut_id = %s"
