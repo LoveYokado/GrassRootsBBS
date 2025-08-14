@@ -80,10 +80,22 @@ def dashboard():
         '%Y-%m-%d'): item['count'] for item in article_data_raw} if article_data_raw else {}
     article_counts = [article_data_map.get(label, 0) for label in labels]
 
+    # グラフの凡例を言語ファイルから取得
+    dashboard_texts = g.texts.get('dashboard', {})
+    user_reg_label = dashboard_texts.get(
+        'user_registrations', 'User Registrations')
+    article_posts_label = dashboard_texts.get('article_posts', 'Article Posts')
+
     chart_data = {
         'labels': labels,
-        'user_registrations': user_counts,
-        'article_posts': article_counts,
+        'user_registrations': {
+            'label': user_reg_label,
+            'data': user_counts
+        },
+        'article_posts': {
+            'label': article_posts_label,
+            'data': article_counts
+        },
     }
 
     return render_template('admin/dashboard.html',

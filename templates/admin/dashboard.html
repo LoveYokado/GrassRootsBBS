@@ -5,58 +5,83 @@
 
 <div class="dashboard-grid">
     <div class="main-panel">
-        <h2 style="margin-top: 0;">Recent Activity (Last 7 Days)</h2>
-        <div style="position: relative; height:40vh;">
-            <canvas id="activityChart"></canvas>
-        </div>
+        <h2>{{ g.texts.dashboard.recent_activity }}</h2>
+        <canvas id="activityChart"></canvas>
     </div>
     <div class="side-panel">
-        <h2>Statistics</h2>
+        <h2>{{ g.texts.dashboard.quick_stats }}</h2>
         <div class="compact-stats">
-            <p><span>Total Users:</span> <span>{{ stats.total_users }}</span></p>
-            <p><span>Total Boards:</span> <span>{{ stats.total_boards }}</span></p>
-            <p><span>Total Articles:</span> <span>{{ stats.total_articles }}</span></p>
-            <p><span><a href="{{ url_for('admin.who_online') }}" style="color: #87cefa;">Who's Online:</a></span>
-                <span>{{ stats.online_users }}</span></p>
+            <p><span>{{ g.texts.dashboard.total_users }}</span> <span>{{ stats.total_users }}</span></p>
+            <p><span>{{ g.texts.dashboard.total_boards }}</span> <span>{{ stats.total_boards }}</span></p>
+            <p><span>{{ g.texts.dashboard.total_articles }}</span> <span>{{ stats.total_articles }}</span></p>
+            <p><span><a href="{{ url_for('admin.who_online') }}" style="color: #87cefa;">{{
+                        g.texts.dashboard.online_users }}</a></span> <span>{{ stats.online_users }}</span></p>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-    const chartData = JSON.parse({{ chart_data | tojson }});
-    const ctx = document.getElementById('activityChart').getContext('2d');
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        const chartData = JSON.parse('{{ chart_data|tojson|safe }}');
 
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-                label: 'New Users',
-                data: chartData.user_registrations,
-                borderColor: '#87cefa', // Light Blue
-                backgroundColor: 'rgba(135, 206, 250, 0.2)',
-                tension: 0.1,
-                fill: true,
-            }, {
-                label: 'New Articles',
-                data: chartData.article_posts,
-                borderColor: '#90ee90', // Light Green
-                backgroundColor: 'rgba(144, 238, 144, 0.2)',
-                tension: 0.1,
-                fill: true,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: { beginAtZero: true, ticks: { color: '#ffffff', stepSize: 1 }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
-                x: { ticks: { color: '#ffffff' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: [
+                    {
+                        label: chartData.user_registrations.label,
+                        data: chartData.user_registrations.data,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: chartData.article_posts.label,
+                        data: chartData.article_posts.data,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ]
             },
-            plugins: {
-                legend: { labels: { color: '#ffffff' } }
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#00FF00', // Green ticks
+                            stepSize: 1,
+                            callback: function (value) { if (value % 1 === 0) { return value; } }
+                        },
+                        grid: {
+                            color: 'rgba(0, 255, 0, 0.1)' // Faint green grid lines
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#00FF00' // Green ticks
+                        },
+                        grid: {
+                            color: 'rgba(0, 255, 0, 0.1)' // Faint green grid lines
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#FFFFFF' // White legend text
+                        }
+                    }
+                }
             }
-        }
+        });
     });
 </script>
 {% endblock %}
