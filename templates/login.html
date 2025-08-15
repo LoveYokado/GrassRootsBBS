@@ -7,15 +7,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
 
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
+
     <!-- PWA化のための追加 -->
     <link rel="manifest" href="{{ url_for('manifest') }}">
     <meta name="theme-color" content="#282c34">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="GR-BBS">
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+1m:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1m:wght@400&display=swap" rel="stylesheet">
     <style>
         *,
         *::before,
@@ -33,7 +37,7 @@
             /* コンテンツが少なくても画面の高さいっぱいに広がるように */
             margin: 0;
             background-color: #282c34;
-            font-family: '"M+ 1m", "Courier New", monospace';
+            font-family: '"M PLUS 1m", "Courier New", monospace';
             display: flex;
             align-items: center;
             justify-content: center;
@@ -103,7 +107,7 @@
             color: #00ff00;
             border: 1px solid #005500;
             border-radius: 4px;
-            font-family: '"M+ 1m", "Courier New", monospace';
+            font-family: '"M PLUS 1m", "Courier New", monospace';
             box-sizing: border-box;
         }
 
@@ -122,7 +126,7 @@
             cursor: pointer;
             border-radius: 3px;
             font-size: 1em;
-            font-family: '"M+ 1m", "Courier New", monospace';
+            font-family: '"M PLUS 1m", "Courier New", monospace';
             font-weight: bold;
             transition: background-color 0.2s;
         }

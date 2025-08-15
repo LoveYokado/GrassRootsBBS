@@ -9,12 +9,6 @@ self.addEventListener('activate', event => {
     console.log('Service Worker activating.');
 });
 
-self.addEventListener('fetch', (event) => {
-    // For now, we just pass through network requests.
-    // Caching strategies could be implemented here later.
-    event.respondWith(fetch(event.request));
-});
-
 self.addEventListener('push', (event) => {
     console.log('[Service Worker] Push Received.');
     let data;

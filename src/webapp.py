@@ -198,6 +198,54 @@ def timestamp_to_datetime_filter(ts):
         # 非常に大きな値や不正な値の場合
         return "Invalid Date"
 
+
+@app.after_request
+def add_security_headers(response):
+    """
+    すべてのレスポンスにセキュリティ関連のHTTPヘッダーを追加する。
+    特にContent-Security-Policy (CSP) を設定し、外部リソースの読み込みを制御する。
+    """
+    # CSPの設定
+    webapp_config = util.app_config.get('webapp', {})
+    origin = webapp_config.get('ORIGIN', 'http://localhost:5000')
+    # http:// or https:// を ws:// or wss:// に置換してWebSocketの接続元を許可
+    ws_origin = origin.replace('http', 'ws', 1)
+
+    csp = {
+        # デフォルトでは同一オリジンのみ許可
+        "default-src": ["'self'"],
+        # スクリプトのソース: self, インライン, 各CDN
+        "script-src": [
+            "'self'",
+            "'unsafe-inline'",  # terminal.html内のインラインスクリプトのため
+            "https://cdn.socket.io",
+            "https://cdn.jsdelivr.net"
+        ],
+        # スタイルのソース: self, インライン, 各CDN
+        "style-src": [
+            "'self'",
+            "'unsafe-inline'",  # terminal.html内のインラインスタイルのため
+            "https://cdn.jsdelivr.net",
+            "https://fonts.googleapis.com"
+        ],
+        # フォントのソース
+        "font-src": ["'self'", "https://fonts.gstatic.com"],
+        # 接続先(WebSocket, Service Workerからのfetchなど)
+        "connect-src": [
+            "'self'",
+            ws_origin,
+            "https://cdn.jsdelivr.net",
+            "https://fonts.googleapis.com",
+            "https://cdn.socket.io",
+            "https://fonts.gstatic.com"  # Service Workerがフォントファイルをキャッシュするために追加
+        ],
+        "worker-src": ["'self'"],
+    }
+    csp_string = "; ".join(
+        [f"{key} {' '.join(values)}" for key, values in csp.items()])
+    response.headers['Content-Security-Policy'] = csp_string
+    return response
+
 # --- ここまで ---
 
 

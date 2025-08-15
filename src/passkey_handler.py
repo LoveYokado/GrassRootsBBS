@@ -64,6 +64,9 @@ def verify_registration_for_user(user_id, credential, expected_challenge, expect
     webapp_config = util.app_config.get('webapp', {})
     RP_ID = webapp_config.get('RP_ID', 'localhost')
 
+    # 末尾のスラッシュを削除してオリジンを正規化
+    normalized_origin = expected_origin.rstrip('/')
+
     logging.info(f"ユーザーID {user_id} のPasskey登録を検証します。")
 
     try:
@@ -74,7 +77,7 @@ def verify_registration_for_user(user_id, credential, expected_challenge, expect
         verification = verify_registration_response(
             credential=webauthn_credential,
             expected_challenge=expected_challenge,
-            expected_origin=expected_origin,
+            expected_origin=normalized_origin,
             expected_rp_id=RP_ID,
             require_user_verification=False,  # PREFERREDなので必須ではない
         )
@@ -133,6 +136,9 @@ def verify_authentication_for_user(credential, expected_challenge, expected_orig
     webapp_config = util.app_config.get('webapp', {})
     RP_ID = webapp_config.get('RP_ID', 'localhost')
 
+    # 末尾のスラッシュを削除してオリジンを正規化
+    normalized_origin = expected_origin.rstrip('/')
+
     try:
         # フロントエンドから受け取ったJSONをライブラリが扱える形式に変換
         auth_credential = parse_authentication_credential_json(credential)
@@ -147,7 +153,7 @@ def verify_authentication_for_user(credential, expected_challenge, expected_orig
         verification = verify_authentication_response(
             credential=auth_credential,
             expected_challenge=expected_challenge,
-            expected_origin=expected_origin,
+            expected_origin=normalized_origin,
             expected_rp_id=RP_ID,
             credential_public_key=db_passkey['public_key'],
             credential_current_sign_count=db_passkey['sign_count'],
