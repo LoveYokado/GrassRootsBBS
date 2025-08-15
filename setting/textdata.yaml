@@ -2263,6 +2263,39 @@ login:
     mode_1: "{message}\r\n"
     mode_2: "** \x1b[36m今日の一言\x1b[0m **\r\n\x1b[33m{message}\x1b[0m\r\n" 
     mode_3: "** \x1b[36mDaily message\x1b[0m **\r\n\x1b[33m{message}\x1b[0m\r\n"
+
+# --- プラグインメニュー関連 ---
+plugin_menu:
+  header:
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      ☆ [P] プログラムコーナー                                                    ★
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      ====================================================
+        プラグインメニュー
+      ====================================================
+    mode_3: |
+      +--------------------------------------------------+
+      |   Plugin Menu                                    |
+      +--------------------------------------------------+
+  no_plugins:
+    mode_1: "利用可能なプログラムはありません。\r\n"
+    mode_2: "利用可能なプラグインはありません。\r\n"
+    mode_3: "No plugins available.\r\n"
+  select_prompt:
+    mode_1: "実行するプログラムの番号を選択してください ([E] 終了): "
+    mode_2: "実行するプラグインの番号を選択してください ([E] 終了): "
+    mode_3: "Select a plugin number to run ([E] to Exit): "
+  invalid_selection:
+    mode_1: "無効な選択です。\r\n"
+    mode_2: "無効な選択です。\r\n"
+    mode_3: "Invalid selection.\r\n"
+  returning_to_menu:
+    mode_1: "\r\n--- プログラムコーナーに戻ります ---\r\n"
+    mode_2: "\r\n--- プラグインメニューに戻ります ---\r\n"
+    mode_3: "\r\n--- Returning to Plugin Menu ---\r\n"
+
 # --- 未実装機能のプレースホルダー ---
 unimplemented:
   message:

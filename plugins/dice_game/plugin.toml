@@ -1,0 +1,4 @@
+name = "サイコロゲーム"
+description = "シンプルなサイコロゲームです。大きな目を出した方が勝ち！"
+entry_point = "plugins.dice_game"
+requirements = []

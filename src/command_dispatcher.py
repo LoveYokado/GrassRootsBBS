@@ -10,6 +10,7 @@ from . import hierarchical_menu
 from . import chat_handler
 from . import bbs_handler
 from . import manual_menu_handler
+from . import plugin_manager
 from . import hamlet_game
 
 # --- Command Handlers ---
@@ -181,6 +182,54 @@ def handle_hamlet_game(context):
     util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
+
+def handle_plugin_menu(context):
+    """'p' プラグインメニューコマンドを処理する"""
+    chan = context['chan']
+    menu_mode = context['menu_mode']
+
+    while True:
+        plugins = plugin_manager.get_loaded_plugins()
+
+        util.send_text_by_key(chan, "plugin_menu.header", menu_mode)
+
+        if not plugins:
+            util.send_text_by_key(chan, "plugin_menu.no_plugins", menu_mode)
+            # Enterキー待ちを追加して、ユーザーがメッセージを読む時間を与える
+            chan.process_input()
+            return {'status': 'continue'}
+
+        for i, plugin in enumerate(plugins):
+            chan.send(
+                f"  [{i+1}] {plugin['name']} - {plugin['description']}\r\n".encode('utf-8'))
+        chan.send(b'\r\n')
+
+        util.send_text_by_key(
+            chan, "plugin_menu.select_prompt", menu_mode, add_newline=False)
+        choice = chan.process_input()
+
+        if choice is None:
+            return {'status': 'break'}
+
+        choice = choice.strip().lower()
+
+        if choice == 'e' or choice == '':
+            return {'status': 'continue'}
+
+        try:
+            choice_index = int(choice) - 1
+            if 0 <= choice_index < len(plugins):
+                selected_plugin = plugins[choice_index]
+                plugin_manager.run_plugin(selected_plugin['id'], context)
+                util.send_text_by_key(
+                    chan, "plugin_menu.returning_to_menu", menu_mode)
+            else:
+                util.send_text_by_key(
+                    chan, "plugin_menu.invalid_selection", menu_mode)
+        except ValueError:
+            util.send_text_by_key(
+                chan, "plugin_menu.invalid_selection", menu_mode)
+
 # --- Dispatch Table ---
 
 
@@ -200,6 +249,7 @@ COMMAND_DISPATCH_TABLE = {
     'b': {'handler': handle_bbs, 'level_key': 'bbs'},
     'c': {'handler': handle_chat, 'level_key': 'chat'},
     'l': {'handler': handle_online_signup, 'level': 1, 'guest_only': True},
+    'p': {'handler': handle_plugin_menu, 'level': 2},
     'e': {'handler': handle_logoff, 'level': 0},
     'z': {'handler': handle_hamlet_game, 'level_key': 'hamlet'},
 }

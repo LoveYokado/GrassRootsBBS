@@ -1,0 +1,4 @@
+name = "ヒットアンドブロー"
+description = "4桁の数字を当てるクラシックな数当てゲームです。"
+entry_point = "plugins.hit_and_blow"
+requirements = []

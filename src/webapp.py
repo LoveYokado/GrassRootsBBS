@@ -5,7 +5,7 @@
 # Gunicorn + gevent で WebSocket を動作させるために必須
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
-from . import command_dispatcher, database, util, passkey_handler
+from . import command_dispatcher, database, util, passkey_handler, plugin_manager
 from .admin.routes import admin_bp  # 管理画面のブループリントを直接インポート
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_socketio import SocketIO, emit, disconnect
@@ -153,6 +153,9 @@ try:
             except Exception as e:
                 logging.exception(
                     f"データベースの初期化中にエラーが発生しました: {e}")
+
+    # --- プラグインのロード ---
+    plugin_manager.load_plugins()
 
     # --- セッション設定 ---
     redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
