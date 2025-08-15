@@ -2600,6 +2600,32 @@
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
         window.addEventListener('resize', debounce(updateTerminalLayout, 100));
 
+        // --- キーボード表示時にモバイルコントロールを追従させる ---
+        if ('visualViewport' in window) {
+            const controls = [
+                document.getElementById('mobile-bbs-controls'),
+                document.getElementById('mobile-chat-controls'),
+                document.getElementById('mobile-userpref-controls'),
+                document.getElementById('mobile-mail-controls'),
+                document.getElementById('mobile-bbs-entry-controls'),
+                document.getElementById('mobile-top-menu-controls')
+            ];
+
+            const handleViewportResize = () => {
+                // キーボードによって隠されている領域の高さを計算
+                const keyboardHeight = window.innerHeight - window.visualViewport.height;
+
+                controls.forEach(control => {
+                    if (control) {
+                        // iOSのSafariでは、キーボードが表示されていなくても僅かな差が出ることがあるため、
+                        // 80px以上の変化があった場合のみキーボードが表示されたと判断する。
+                        control.style.bottom = (keyboardHeight > 80) ? `${keyboardHeight}px` : '0px';
+                    }
+                });
+            };
+
+            window.visualViewport.addEventListener('resize', handleViewportResize);
+        }
     </script>
 
     <script>
