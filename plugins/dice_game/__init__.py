@@ -6,30 +6,30 @@ import random
 
 def run(context):
     """プラグインのメイン実行関数"""
-    chan = context['chan']
-    login_id = context['login_id']
-    menu_mode = context.get('menu_mode', '2')
+    api = context['api']
+    # コンテキストから表示名を取得。なければログインIDをフォールバックとして使用
+    display_name = context.get('display_name', context.get('login_id', 'ゲスト'))
 
-    chan.send("\r\n--- サイコロゲームへようこそ！ ---\r\n".encode('utf-8'))
-    chan.send("Enterキーを押してサイコロを振ってください...\r\n".encode('utf-8'))
-    chan.process_input()
+    api.send(f"\r\n--- {display_name}さん、サイコロゲームへようこそ！ ---\r\n")
+    api.send("Enterキーを押してサイコロを振ってください...\r\n")
+    api.get_input()
 
     player_roll = random.randint(1, 6)
-    chan.send(f"あなたの出目: {player_roll}\r\n".encode('utf-8'))
+    api.send(f"あなたの出目: {player_roll}\r\n")
 
     time.sleep(1)
 
-    chan.send("コンピュータがサイコロを振ります...\r\n".encode('utf-8'))
+    api.send("コンピュータがサイコロを振ります...\r\n")
     time.sleep(1)
     computer_roll = random.randint(1, 6)
-    chan.send(f"コンピュータの出目: {computer_roll}\r\n\r\n".encode('utf-8'))
+    api.send(f"コンピュータの出目: {computer_roll}\r\n\r\n")
 
     if player_roll > computer_roll:
-        chan.send("** あなたの勝ちです！ **\r\n".encode('utf-8'))
+        api.send("** あなたの勝ちです！ **\r\n")
     elif player_roll < computer_roll:
-        chan.send("** コンピュータの勝ちです... **\r\n".encode('utf-8'))
+        api.send("** コンピュータの勝ちです... **\r\n")
     else:
-        chan.send("** 引き分けです！ **\r\n".encode('utf-8'))
+        api.send("** 引き分けです！ **\r\n")
 
-    chan.send("\r\nゲームを終了します。Enterキーを押してください。".encode('utf-8'))
-    chan.process_input()
+    api.send("\r\nゲームを終了します。Enterキーを押してください。")
+    api.get_input()

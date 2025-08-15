@@ -3,8 +3,11 @@
 import os
 import importlib
 import importlib.util
+from gevent import Timeout
 import logging
 import toml
+
+from .grbbs_api import GrbbsApi
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
@@ -101,12 +104,34 @@ def run_plugin(plugin_id, context):
     """
     指定されたIDのプラグインを実行する。
     """
+    # プラグインの実行時間にタイムアウトを設定 (例: 60秒)
+    TIMEOUT_SECONDS = 60
+
     plugin_data = _loaded_plugins.get(plugin_id)
     if not plugin_data:
         logging.error(f"実行しようとしたプラグイン '{plugin_id}' が見つかりません。")
         return False
 
-    logging.info(f"プラグイン '{plugin_data['name']}' を実行します...")
-    plugin_data['module'].run(context)
-    logging.info(f"プラグイン '{plugin_data['name']}' の実行が完了しました。")
-    return True
+    logging.info(
+        f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {TIMEOUT_SECONDS}秒)...")
+
+    # プラグインに渡すコンテキストを再構築し、安全なAPIのみを公開する
+    api = GrbbsApi(context['chan'])
+    safe_context = {
+        'api': api,
+        'login_id': context.get('login_id'),
+        'display_name': context.get('display_name'),
+        'user_id': context.get('user_id'),
+        'user_level': context.get('userlevel'),
+    }
+
+    try:
+        with Timeout(TIMEOUT_SECONDS):
+            plugin_data['module'].run(safe_context)
+        logging.info(f"プラグイン '{plugin_data['name']}' の実行が完了しました。")
+        return True
+    except Timeout:
+        logging.error(f"プラグイン '{plugin_data['name']}' がタイムアウトしました。実行を強制終了します。")
+        api.send(
+            f"\r\nエラー: プログラムが時間内に応答しませんでした。({TIMEOUT_SECONDS}秒)\r\n".encode('utf-8'))
+        return False

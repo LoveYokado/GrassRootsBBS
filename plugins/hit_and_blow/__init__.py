@@ -33,40 +33,41 @@ def check_guess(secret, guess):
 
 def run(context):
     """プラグインのメイン実行関数"""
-    chan = context['chan']
+    api = context['api']
 
-    chan.send("\r\n--- ヒットアンドブロー ---\r\n".encode('utf-8'))
-    chan.send("コンピュータが4桁のユニークな数字を決定しました。\r\n".encode('utf-8'))
-    chan.send("重複しない4桁の数字を推測してください (例: 1234)。\r\n".encode('utf-8'))
+    api.send("\r\n--- ヒットアンドブロー ---\r\n")
+    api.send("コンピュータが4桁のユニークな数字を決定しました。\r\n")
+    api.send("重複しない4桁の数字を推測してください (例: 1234)。\r\n")
 
     secret_number = generate_secret_number()
     attempts = 0
 
     while True:
         attempts += 1
-        prompt = f"\r\n[{attempts}回目] あなたの推測 ('q'でギブアップ): ".encode('utf-8')
-        chan.send(prompt)
-        guess = chan.process_input()
+        prompt = f"\r\n[{attempts}回目] あなたの推測 ('q'でギブアップ): "
+        api.send(prompt)
+        guess = api.get_input()
 
         if guess is None or guess.lower() == 'q':
-            chan.send(
-                f"\r\nギブアップですね。正解は {secret_number} でした。\r\n".encode('utf-8'))
+            api.send(
+                f"\r\nギブアップですね。正解は {secret_number} でした。\r\n")
+
             break
 
         is_valid, message = validate_input(guess)
         if not is_valid:
-            chan.send(f"\r\n{message}\r\n".encode('utf-8'))
+            api.send(f"\r\n{message}\r\n")
             attempts -= 1  # 不正な入力はカウントしない
             continue
 
         hits, blows = check_guess(secret_number, guess)
 
         if hits == 4:
-            chan.send(f"\r\n** 正解！ ** {attempts}回で当てました！\r\n".encode('utf-8'))
+            api.send(f"\r\n** 正解！ ** {attempts}回で当てました！\r\n")
             break
         else:
             result_message = f" -> {hits} Hit, {blows} Blow\r\n"
-            chan.send(result_message.encode('utf-8'))
+            api.send(result_message)
 
-    chan.send("\r\nゲームを終了します。Enterキーを押してください。".encode('utf-8'))
-    chan.process_input()
+    api.send("\r\nゲームを終了します。Enterキーを押してください。")
+    api.get_input()
