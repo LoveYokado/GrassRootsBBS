@@ -6,7 +6,7 @@
     <title>GR-BBS Web Terminal</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- PWA -->
+    <!-- PWA化のための追加 -->
     <link rel="manifest" href="{{ url_for('manifest') }}">
     <meta name="theme-color" content="#282c34">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,6 +30,7 @@
         }
 
         body {
+            /* デスクトップでは中央寄せ */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -38,22 +39,26 @@
         .monitor-chassis {
             /* 立体感を出すためのグラデーション背景 */
             background: linear-gradient(145deg, #f0e8c0, #d3cba0);
+            /* 枠線の立体感 */
             border-top: 2px solid #fdf5d5;
             border-left: 2px solid #fdf5d5;
             border-bottom: 2px solid #b0a888;
             border-right: 2px solid #b0a888;
             border-radius: 15px;
             padding: 25px;
+            /* 複数の影を重ねて立体感を強調 */
             box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), inset 3px 3px 5px rgba(255, 255, 255, 0.6), inset -3px -3px 5px rgba(0, 0, 0, 0.2);
             position: relative;
             display: flex;
             flex-direction: column;
             max-height: 95vh;
+            /* 画面からはみ出ないように */
         }
 
         /* --- ハンバーガーメニュー --- */
         #hamburger-btn {
             display: none;
+            /* デフォルトでは非表示 */
             position: absolute;
             top: 10px;
             right: 15px;
@@ -115,30 +120,41 @@
         .monitor-footer {
             text-align: center;
             padding-top: 15px;
+            /* 画面とロゴの間隔 */
             font-size: 1.2em;
             font-weight: bold;
+            /* 筐体の色に合わせた文字色 */
             color: #706b58;
+            /* 彫り込まれたような文字の効果 */
             text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
         }
 
         .monitor-screen {
             background-color: #000;
             padding: 10px;
+            /* 画面が奥にあるように見せるための影と境界線 */
             box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.9);
             border-style: solid;
             border-width: 2px;
             border-color: #222 #555 #555 #222;
+            /* top, right, bottom, left */
             border-radius: 8px;
+            /* ブラウン管の丸みを少し強く */
             display: flex;
             position: relative;
+            /* 擬似要素の基準点 */
             overflow: hidden;
+            /* はみ出した擬似要素を隠す */
             flex-direction: column;
             flex-grow: 1;
             min-height: 0;
+            /* flexアイテムが縮むように */
         }
 
         /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
-        #terminal.blur-effect {}
+        #terminal.blur-effect {
+            /* このクラスはJSでfilterを適用するために使用 */
+        }
 
         /* 走査線エフェクト */
         .monitor-screen.scanline-effect::after {
@@ -156,7 +172,9 @@
         #terminal {
             flex-grow: 1;
             min-height: 0;
+            /* flexアイテムが縮むように */
             overflow: hidden;
+            /* xterm自体がスクロールバーを持つため */
         }
 
         #function-keys-container {
@@ -182,11 +200,14 @@
             user-select: none;
             border-radius: 2px;
             white-space: nowrap;
+            /* テキストが折り返さないようにする */
             text-align: center;
+            /* テキストを中央揃え */
             box-sizing: border-box;
+            /* paddingとborderを幅に含める */
         }
 
-        /* ログビューワ */
+        /* --- ログビューワーのスタイル調整 --- */
         #log-viewer-window {
             width: 80vw;
             height: 70vh;
@@ -197,11 +218,13 @@
         .log-viewer-container {
             display: flex;
             height: calc(100% - 50px);
+            /* ヘッダーの高さを引く */
             gap: 15px;
         }
 
         .file-list-pane {
             flex: 0 0 300px;
+            /* 幅を固定 */
             overflow-y: auto;
             border-right: 1px solid #b0a888;
             padding-right: 15px;
@@ -218,7 +241,7 @@
             height: 100%;
         }
 
-        /* ポップアップ */
+        /* --- ポップアップ --- */
         .popup-overlay {
             display: none;
             position: fixed;
@@ -236,6 +259,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            /* 筐体のスタイルを適用 */
             background: linear-gradient(145deg, #f0e8c0, #d3cba0);
             border-top: 2px solid #fdf5d5;
             border-left: 2px solid #fdf5d5;
@@ -251,6 +275,7 @@
         #line-editor-window {
             width: 80%;
             max-width: 900px;
+            /* あまりに広くなりすぎないように最大幅も設定 */
         }
 
         .popup-overlay.visible,
@@ -262,15 +287,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            /* 筐体の影の色に合わせる */
             border-bottom: 1px solid #b0a888;
             padding-bottom: 10px;
             margin-bottom: 15px;
             cursor: grab;
+            /* ドラッグ可能なことを示すカーソル */
             user-select: none;
+            /* ドラッグ中のテキスト選択を無効化 */
         }
 
         .popup-header h2 {
             margin: 0;
+            /* 彫り込み文字風 */
             color: #706b58;
             text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
         }
@@ -286,6 +315,7 @@
         .popup-content h3 {
             margin-top: 0;
             margin-bottom: 10px;
+            /* 彫り込み文字風 */
             color: #706b58;
             text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
         }
@@ -295,6 +325,7 @@
         }
 
         .popup-content button {
+            /* 筐体の色に合わせたボタン */
             background: linear-gradient(145deg, #e0d8b8, #c8c098);
             border: 1px solid #b0a888;
             border-top-color: #fdf5d5;
@@ -306,7 +337,7 @@
             border-radius: 3px;
         }
 
-        /* ログビューワーのスタイル調整 */
+        /* --- ログビューワーのスタイル調整 --- */
         #log-viewer-window {
             width: 80vw;
             height: 70vh;
@@ -317,11 +348,13 @@
         .log-viewer-container {
             display: flex;
             height: calc(100% - 50px);
+            /* ヘッダーの高さを引く */
             gap: 15px;
         }
 
         .file-list-pane {
             flex: 0 0 300px;
+            /* 幅を固定 */
             overflow-y: auto;
             border-right: 1px solid #b0a888;
 
@@ -346,6 +379,7 @@
             width: 95%;
             padding: 8px;
             margin-bottom: 15px;
+            /* ターミナル風の入力欄 */
             background-color: #000;
             color: #eee;
             border-style: solid;
@@ -373,6 +407,7 @@
             height: 250px;
             padding: 8px;
             margin-bottom: 15px;
+            /* ターミナル風の入力欄 */
             background-color: #000;
             color: #eee;
             border-style: solid;
@@ -403,8 +438,10 @@
             border-radius: 3px;
             font-size: 0.9em;
             font-family: sans-serif;
+            /* 文字色はJSで動的に設定されるため、ここでは指定しない */
         }
 
+        /* xterm.jsの点滅(blink)を有効にするためのCSSアニメーション */
         .xterm .xterm-screen .blinking {
             animation: xterm-blink 1s steps(1, start) infinite;
         }
@@ -416,7 +453,9 @@
         }
 
 
-        #terminal {}
+        #terminal {
+            /* サイズはxterm.jsが管理するため、CSSでの指定は不要 */
+        }
 
         /* Xterm.jsが内部で生成するスクロールバーを非表示にする */
         .xterm-viewport {
@@ -429,6 +468,7 @@
         /* --- レスポンシブ対応 --- */
         @media screen and (max-width: 992px) {
             body {
+                /* モバイルでは中央寄せをやめる */
                 display: block;
             }
 
@@ -470,6 +510,7 @@
                 display: flex;
                 flex-direction: column;
                 height: calc(100% - 60px);
+                /* ヘッダーとボタンの高さを考慮 */
             }
 
             #multiline-editor-input {
@@ -483,6 +524,7 @@
 
             .file-list-pane {
                 flex: 0 1 40%;
+                /* 高さを40%に */
                 border-right: none;
                 border-bottom: 1px solid #b0a888;
                 padding-right: 0;
@@ -504,6 +546,7 @@
             #mobile-mail-controls,
             #mobile-bbs-entry-controls,
             #mobile-top-menu-controls {
+                /* JSで .visible クラスが付与されても、PCでは強制的に非表示にする */
                 display: none !important;
             }
 
@@ -639,6 +682,7 @@
 
         #mobile-bbs-controls.theme-default #bbs-btn-read:active {
             background-color: #c85252;
+            /* 少し明るく */
         }
 
         /* グリーンテーマ */
@@ -754,6 +798,7 @@
 
         #userpref-btn-enter {
             grid-column: 1 / -1;
+            /* Span all columns */
         }
 
         /* --- モバイルユーザー設定コントロールのテーマ --- */
@@ -869,9 +914,11 @@
 
         .dip-switch-panel {
             background-color: #4a4a4a;
+            /* グレーの金属パネル風に変更 */
             border: 2px solid #333333;
             border-radius: 5px;
             padding: 15px 15px 0px 15px;
+            /* 上、左右、下の順。下の余白を少し詰める */
             box-shadow: inset 1px 1px 4px rgba(0, 0, 0, 0.5);
         }
 
@@ -879,7 +926,9 @@
             display: flex;
             justify-content: center;
             gap: 20px;
+            /* グループ間の隙間 */
             flex-wrap: wrap;
+            /* 画面が狭い場合に折り返す */
         }
 
         .dip-switch-group {
@@ -890,6 +939,7 @@
             padding: 5px 8px;
             border-radius: 3px;
             background-color: #c0392b;
+            /* 赤い基板の色 */
         }
 
         .dip-switch-unit {
@@ -1033,6 +1083,7 @@
 
     <!-- ハンバーガーメニュー本体 -->
     <div id="sidenav" class="sidenav">
+        <!-- メニュー項目はJSで動的に生成 -->
     </div>
     <!-- １行エディタ用ポップアップ -->
     <div id="line-editor-overlay" class="popup-overlay"></div>
@@ -1303,6 +1354,7 @@
                     });
             });
         }
+        // --- ここまで ---
 
         const themes = {
             default: {
@@ -1312,14 +1364,14 @@
                 fkey_bg: '#FFFFFF',
                 fkey_fg: '#000000',
                 text_shadow_glow: '-1px 0 1px rgba(255,0,0,0.3), 1px 0 1px rgba(0,255,0,0.3), 0 0 3px rgba(255,255,255,0.4)',
-                black: '#000000',
-                red: '#FF0000',
-                green: '#00FF00',
-                yellow: '#FFFF00',
-                blue: '#0000FF',
-                magenta: '#FF00FF',
-                cyan: '#00FFFF',
-                white: '#FFFFFF',
+                black: '#000000',      // 標準の黒
+                red: '#FF0000',      // 鮮やかな赤
+                green: '#00FF00',      // 鮮やかな緑
+                yellow: '#FFFF00',      // 鮮やかな黄
+                blue: '#0000FF',      // 鮮やかな青
+                magenta: '#FF00FF',      // 鮮やかなマゼンタ
+                cyan: '#00FFFF',      // 鮮やかなシアン
+                white: '#FFFFFF',      // 真っ白
                 brightBlack: '#7F7F7F',
                 brightRed: '#FF0000',
                 brightGreen: '#00FF00',
@@ -1484,7 +1536,7 @@
             localStorage.setItem('terminalFontSize', size);
             updateFontSizeButtons(size);
             if (!isDipSwitchUpdating) updateDipSwitches('fontsize', size);
-            // フォントサイズ変更はレイアウトに影響するため、再計算をトリガー
+            // フォントサイズ変更はレイアウトに影響するため、再計算をトリガーします
             setTimeout(() => updateTerminalLayout(), 0);
         }
 
@@ -1618,7 +1670,7 @@
             }
 
             if (isMobile) {
-                // モバイル端末では、コンテナの幅に合わせてターミナルの桁数を自動調整
+                // モバイル端末では、コンテナの幅に合わせてターミナルの桁数を自動調整します。
                 try {
                     fitAddon.fit();
                 } catch (e) {
@@ -1651,7 +1703,7 @@
                     setTimeout(updateTerminalLayout, 50);
                 }
             } else {
-                // デスクトップの通常表示では、伝統的な80x25のサイズに固定
+                // デスクトップの通常表示では、伝統的な80x25のサイズに固定します。
                 term.resize(80, 25);
             }
         }
@@ -1679,12 +1731,12 @@
             if (attachmentInput.files.length > 0) {
                 const file = attachmentInput.files[0];
 
-                // ファイルを読み込んでサーバに送信
+                // ファイルを読み込んでサーバーに送信
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     socket.emit('upload_attachment', {
                         filename: file.name,
-                        data: e.target.result
+                        data: e.target.result // ArrayBuffer
                     });
                 };
                 reader.onerror = (e) => {
@@ -1697,14 +1749,14 @@
             }
         });
 
-        // サーバからのアップロード結果を受け取る
+        // サーバーからのアップロード結果を受け取る
         socket.on('attachment_upload_success', (data) => {
             // 成功したことはコンソールで確認
             console.log(`Upload complete: ${data.original_filename}`);
         });
 
         socket.on('attachment_upload_error', (data) => {
-            // エラーメッセージはサーバからターミナルに直接表示されるので、ここではコンソールに出力するだけ
+            // エラーメッセージはサーバーからターミナルに直接表示されるので、ここではコンソールに出力するだけ
             console.error(`Upload error: ${data.message}`);
             attachmentInput.value = '';
         });
@@ -1825,7 +1877,7 @@
                 if (lineEditorHistory.length === 0 || lineEditorHistory[lineEditorHistory.length - 1] !== textToInsert) {
                     lineEditorHistory.push(textToInsert);
                 }
-                // サーバの入力バッファに送る
+                // サーバーの入力バッファに送る
                 socket.emit('client_input', textToInsert);
             }
             closeLineEditor();
@@ -1866,7 +1918,7 @@
         function openLogViewer() {
             logFilesList.innerHTML = ''; // リストをクリア
             logContentDisplay.value = ''; // 内容をクリア
-            // サーバにログファイル一覧を要求
+            // サーバーにログファイル一覧を要求
             socket.emit('get_log_files');
             logViewerOverlay.classList.add('visible');
             logViewerWindow.classList.add('visible');
@@ -1894,7 +1946,7 @@
                     key.addEventListener('click', openPopup);
                 } else if (definition.action === 'send_command') {
                     key.addEventListener('click', () => {
-                        // コマンドを送信し、Enterキーも送信
+                        // コマンドを送信し、Enterキーも送信する
                         socket.emit('client_input', definition.value + '\r');
                     });
                 } else if (definition.action === 'open_multiline_editor') {
@@ -1940,8 +1992,9 @@
         // ボタンにイベントリスナーを設定
         document.getElementById('theme-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
-                applyTheme(e.target.dataset.theme);
-            });
+                applyTheme(e.target.dataset.theme); // ウィンドウは閉じない
+            }
+        });
 
         document.getElementById('fontsize-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
@@ -1952,13 +2005,13 @@
         document.getElementById('font-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 const fontName = e.target.dataset.font;
-                applyFont(fontName);
+                applyFont(fontName); // ウィンドウは閉じない
             }
         });
 
         document.getElementById('speed-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
-                applySpeed(e.target.dataset.speed);
+                applySpeed(e.target.dataset.speed); // ウィンドウは閉じない
             }
         });
 
@@ -1982,19 +2035,19 @@
             if (isPasswordInputMode) {
                 // パスワード入力モード
                 if (data === '\r') { // Enterキー
-                    // サーバにはEnterキーを送信。改行表示はサーバからの応答を待つ
+                    // サーバーにはEnterキーを送信。改行表示はサーバーからの応答を待つ。
                     socket.emit('client_input', data);
                 } else if (data === '\x7f' || data === '\x08') { // Backspaceキー
-                    // サーバにはBackspaceを送信し、ターミナルから1文字削除
+                    // サーバーにはBackspaceを送信し、ターミナルから1文字削除
                     socket.emit('client_input', data);
                     term.write('\b \b');
                 } else {
-                    // その他の文字はサーバに送信し、ターミナルには '*' を表示
+                    // その他の文字はサーバーに送信し、ターミナルには '*' を表示
                     socket.emit('client_input', data);
                     term.write('*');
                 }
             } else {
-                // 通常モードでは、そのままサーバに送信 (エコーバックはサーバに任せる)
+                // 通常モードでは、そのままサーバーに送信 (エコーバックはサーバーに任せる)
                 socket.emit('client_input', data);
             }
         });
@@ -2015,11 +2068,11 @@
                 const mobileControls = document.getElementById('mobile-userpref-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (userprefMatch[1] === 'h') {
+                if (userprefMatch[1] === 'h') { // 'h' for show
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                } else {
+                } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2034,11 +2087,11 @@
                 const mobileControls = document.getElementById('mobile-chat-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (chatMatch[1] === 'h') {
+                if (chatMatch[1] === 'h') { // 'h' for show
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                } else {
+                } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2053,11 +2106,11 @@
                 const mobileControls = document.getElementById('mobile-mail-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (mailMatch[1] === 'h') {
+                if (mailMatch[1] === 'h') { // 'h' for show
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                } else {
+                } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2072,11 +2125,11 @@
                 const mobileControls = document.getElementById('mobile-bbs-entry-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (bbsEntryMatch[1] === 'h') {
+                if (bbsEntryMatch[1] === 'h') { // 'h' for show
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                } else {
+                } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2091,11 +2144,11 @@
                 const mobileControls = document.getElementById('mobile-top-menu-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (topMenuMatch[1] === 'h') {
+                if (topMenuMatch[1] === 'h') { // 'h' for show
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                } else {
+                } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2146,10 +2199,10 @@
 
                 // ファイルダイアログが閉じたことを検知するためのリスナー
                 const onFocus = () => {
-                    window.removeEventListener('focus', onFocus);
+                    window.removeEventListener('focus', onFocus); // 一度きりのため削除
                     // changeイベントが先に処理される時間を確保するため、少し遅延させる
                     setTimeout(() => {
-                        // サーバ側の process_input() を進めるための信号を送信
+                        // サーバー側の process_input() を進めるための信号を送信
                         socket.emit('client_input', '\r');
                     }, 150);
                 };
@@ -2165,7 +2218,7 @@
                 // UIを非表示にするときは、選択状態もリセット
                 const attachmentInput = document.getElementById('attachment-input');
                 attachmentInput.value = '';
-                // サーバ側の保留情報もクリアする
+                // サーバー側の保留情報もクリアする
                 socket.emit('clear_pending_attachment');
                 data = data.replace(attachmentUiHidePattern, '');
 
@@ -2173,7 +2226,7 @@
             term.write(data);
         });
 
-        // サーバからログファイル一覧を受け取ったときの処理
+        // サーバーからログファイル一覧を受け取ったときの処理
         socket.on('log_files_list', (data) => {
             logFilesList.innerHTML = ''; // 既存のリストをクリア
 
@@ -2219,7 +2272,7 @@
             }
         });
 
-        // サーバからログの内容を受け取ったときの処理
+        // サーバーからログの内容を受け取ったときの処理
         socket.on('log_content', (data) => {
             logContentDisplay.value = data.content;
         });
@@ -2277,7 +2330,7 @@
             // ログが空だった場合などのメッセージはターミナルに表示しない
         });
 
-        // サーバからの切断要求を処理
+        // サーバーからの切断要求を処理
         socket.on('force_disconnect', (data) => {
             const message = (data && data.message) ? data.message : '[Connection closed by server]';
             term.writeln('\r\n\n' + message);
@@ -2367,7 +2420,7 @@
             const urlParams = new URLSearchParams(window.location.search);
             const shortcut = urlParams.get('shortcut');
             if (shortcut) {
-                // サーバがコマンドとして認識できるように、';'プレフィックスと改行を追加
+                // サーバーがコマンドとして認識できるように、';'プレフィックスと改行を追加
                 const command = `;${shortcut}\r`;
                 // 少し待ってからコマンドを送信
                 setTimeout(() => {
@@ -2580,7 +2633,7 @@
          * 新しいPasskeyの登録フローを開始します。
          */
         async function registerNewPasskey() {
-            // 1. サーバから登録オプションを取得
+            // 1. サーバーから登録オプションを取得
             let options;
             try {
                 const resp = await fetch('/passkey/register-options', {
@@ -2593,7 +2646,7 @@
                 return;
             }
 
-            // 2. サーバから受け取ったBase64URL文字列をArrayBufferに変換
+            // 2. サーバーから受け取ったBase64URL文字列をArrayBufferに変換
             options.challenge = base64urlToBuffer(options.challenge);
             options.user.id = base64urlToBuffer(options.user.id);
             if (options.excludeCredentials) {
@@ -2626,7 +2679,7 @@
                 return;
             }
 
-            // 5. サーバに送るために、ArrayBufferをBase64URL文字列に戻す
+            // 5. サーバーに送るために、ArrayBufferをBase64URL文字列に戻す
             const attestationResponse = {
                 id: credential.id,
                 rawId: bufferToBase64url(credential.rawId),
@@ -2637,7 +2690,7 @@
                 type: credential.type,
             };
 
-            // 6. サーバに検証をリクエスト
+            // 6. サーバーに検証をリクエスト
             try {
                 const verificationResp = await fetch('/passkey/verify-registration', {
                     method: 'POST',
@@ -2775,7 +2828,7 @@
                     const registration = await navigator.serviceWorker.ready;
                     const subscription = await registration.pushManager.getSubscription();
                     if (subscription) {
-                        // サーバに購読解除を通知
+                        // サーバーに購読解除を通知
                         await fetch('/push/unsubscribe', {
                             method: 'POST',
                             body: JSON.stringify({ endpoint: subscription.endpoint }),
