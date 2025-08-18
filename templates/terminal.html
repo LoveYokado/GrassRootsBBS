@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>GR-BBS Web Terminal</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
     <!-- Favicon -->
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
@@ -31,6 +31,21 @@
             margin: 0;
             background-color: #282c34;
             font-family: '"M PLUS 1m", "Courier New", monospace';
+        }
+
+        /* iOSの自動ズームを防ぐため、Xterm.jsが内部的に使用する
+           非表示のテキストエリアのフォントサイズを16px以上に保つ */
+        .xterm-helper-textarea {
+            /* --- モバイルでの強制ズームを抑制するための最終手段 --- */
+            /* 1. フォントサイズを16px以上に保つ */
+            font-size: 16px !important;
+            /* 2. ブラウザがフォーカス時にズーム/スクロールしないよう、画面の遥か彼方に配置する */
+            position: absolute !important;
+            top: 0 !important;
+            left: -9999px !important;
+            width: 0 !important;
+            height: 0 !important;
+            opacity: 0 !important;
         }
 
         body {
@@ -66,7 +81,8 @@
             position: absolute;
             top: 10px;
             right: 15px;
-            font-size: 24px;
+            font-size: 1.5em;
+            /* ベースフォントサイズに連動させる */
             background: none;
             border: none;
             cursor: pointer;
@@ -90,7 +106,8 @@
         .sidenav a {
             padding: 10px 15px 10px 32px;
             text-decoration: none;
-            font-size: 18px;
+            font-size: 1.1em;
+            /* ベースフォントサイズに連動させる */
             color: #f1f1f1;
             display: block;
             transition: 0.2s;
@@ -103,8 +120,10 @@
         .sidenav .closebtn {
             position: absolute;
             top: 0;
-            right: 25px;
-            font-size: 36px;
+            right: 15px;
+            /* 少し内側に */
+            font-size: 2.2em;
+            /* ベースフォントサイズに連動させる */
             margin-left: 50px;
         }
 
@@ -153,6 +172,8 @@
             flex-grow: 1;
             min-height: 0;
             /* flexアイテムが縮むように */
+            touch-action: none;
+            /* モバイルでのピンチズームなどの意図しない操作を無効化 */
         }
 
         /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
@@ -311,7 +332,8 @@
         .popup-close-btn {
             background: none;
             border: none;
-            font-size: 1.5rem;
+            font-size: 1.5em;
+            /* ベースフォントサイズに連動させる */
             color: #706b58;
             cursor: pointer;
         }
@@ -607,6 +629,8 @@
             user-select: none;
             font-family: '"M PLUS 1m", "Courier New", monospace';
             font-weight: bold;
+            padding: 0.6em 0;
+            /* ボタンの高さを確保 (約2倍) */
         }
 
         #bbs-btn-y {
@@ -1183,10 +1207,10 @@
             </div>
             <div id="fontsize-selector">
                 <h3>Font Size</h3>
-                <button data-size="12">Small</button>
-                <button data-size="16">Medium</button>
-                <button data-size="20">Large</button>
-                <button data-size="24">Extra Large</button>
+                <button data-size="20">Small</button>
+                <button data-size="28">Medium</button>
+                <button data-size="36">Large</button>
+                <button data-size="44">Extra Large</button>
             </div>
             <div id="speed-selector">
                 <h3>Speed</h3>
@@ -1441,7 +1465,7 @@
         const fontMap = { 'M PLUS 1m': 0, 'M PLUS 1 Code': 1, 'IBM Plex Mono': 2, 'DotGothic16': 3 };
         const speedMap = { 'full': 0, '9600': 1, '4800': 2, '2400': 3, '300': 4 };
         const effectMap = { 'bezel': 0, 'blur': 1, 'scanline': 2 };
-        const fontsizeMap = { '12': 0, '16': 1, '20': 2, '24': 3 };
+        const fontsizeMap = { '20': 0, '28': 1, '36': 2, '44': 3 };
 
         // 逆引きマップ
         const themeMapReverse = Object.fromEntries(Object.entries(themeMap).map(([k, v]) => [v, k]));
@@ -1522,20 +1546,11 @@
         function applyFontSize(size) {
             const baseSize = parseInt(size, 10);
 
-            // 1. ターミナル本体のフォントサイズを設定
+            // ターミナル本体のフォントサイズを設定
             term.options.fontSize = baseSize;
 
-            // 2. ファンクションキーのフォントサイズを連動させる (基本サイズの約80%)
-            const fKeySize = Math.max(10, baseSize * 0.8); // 最小でも10pxは確保
-            document.querySelectorAll('.f-key').forEach(btn => {
-                btn.style.fontSize = `${fKeySize}px`;
-            });
-
-            // 3. モバイルボタンのフォントサイズを連動させる (基本サイズの約120%)
-            const mobileBtnSize = Math.max(14, baseSize * 1.2); // 最小でも14pxは確保
-            document.querySelectorAll('.mobile-btn').forEach(btn => {
-                btn.style.fontSize = `${mobileBtnSize}px`;
-            });
+            // body全体のフォントサイズも変更する。これによりem単位のUI要素が追従する。
+            document.body.style.fontSize = `${baseSize}px`;
 
             localStorage.setItem('terminalFontSize', size);
             updateFontSizeButtons(size);
@@ -2360,11 +2375,13 @@
             applyTheme(savedTheme);
 
             // フォント
-            const savedFontName = localStorage.getItem('terminalFont') || 'M PLUS 1m';
+            const isMobile = window.matchMedia("(max-width: 992px)").matches;
+            const defaultFontSize = isMobile ? '28' : '20'; // モバイルは28px, PCは20pxをデフォルトに
+            const savedFontName = localStorage.getItem('terminalFont') || 'M PLUS 1m'; // フォントはそのまま
             applyFont(savedFontName);
 
             // フォントサイズ
-            const savedFontSize = localStorage.getItem('terminalFontSize') || '16';
+            const savedFontSize = localStorage.getItem('terminalFontSize') || defaultFontSize;
             applyFontSize(savedFontSize);
 
             // 速度
@@ -2600,8 +2617,9 @@
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
         window.addEventListener('resize', debounce(updateTerminalLayout, 100));
 
-        // --- キーボード表示時にモバイルコントロールを追従させる ---
+        // --- モバイルでのキーボード表示と自動ズームに対応する最終手段 ---
         if ('visualViewport' in window) {
+            const vv = window.visualViewport;
             const controls = [
                 document.getElementById('mobile-bbs-controls'),
                 document.getElementById('mobile-chat-controls'),
@@ -2612,19 +2630,23 @@
             ];
 
             const handleViewportResize = () => {
-                // キーボードによって隠されている領域の高さを計算
-                const keyboardHeight = window.innerHeight - window.visualViewport.height;
+                const isMobile = window.matchMedia("(max-width: 992px)").matches;
+                if (!isMobile) {
+                    document.body.style.height = ''; // PC表示では高さをリセット
+                    return;
+                }
+                // bodyの高さを、キーボードを除いた実際の表示領域(visualViewport)に合わせる。
+                // これにより、ブラウザがズームしてもレイアウトが追従し、画面全体が表示される。
+                document.body.style.height = `${vv.height}px`;
 
+                const keyboardHeight = window.innerHeight - vv.height;
                 controls.forEach(control => {
-                    if (control) {
-                        // iOSのSafariでは、キーボードが表示されていなくても僅かな差が出ることがあるため、
-                        // 80px以上の変化があった場合のみキーボードが表示されたと判断する。
-                        control.style.bottom = (keyboardHeight > 80) ? `${keyboardHeight}px` : '0px';
-                    }
+                    if (control) { control.style.bottom = (keyboardHeight > 80) ? `${keyboardHeight}px` : '0px'; }
                 });
+                // レイアウト変更が適用された後にターミナルをリサイズ
+                setTimeout(() => { try { fitAddon.fit(); } catch (e) { /* ignore */ } }, 100);
             };
-
-            window.visualViewport.addEventListener('resize', handleViewportResize);
+            vv.addEventListener('resize', handleViewportResize);
         }
     </script>
 
