@@ -177,7 +177,8 @@
         }
 
         /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
-        #terminal.blur-effect {
+        #terminal.blur-effect,
+        .mobile-btn.blur-effect {
             text-shadow: var(--glow-text-shadow, none);
         }
 
@@ -192,6 +193,11 @@
             right: 0;
             background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 2px);
             pointer-events: none;
+        }
+
+        .mobile-btn {
+            /* デフォルトではボタンににじみ効果はつけない */
+            transition: text-shadow 0.3s;
         }
 
         #terminal {
@@ -598,6 +604,11 @@
             .monitor-screen.scanline-effect::after {
                 background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px);
             }
+
+            .mobile-btn {
+                /* テーマごとのグローを適用 */
+                text-shadow: var(--glow-text-shadow-mobile, none);
+            }
         }
 
         /* --- デスクトップでのモバイルUI強制非表示 --- */
@@ -668,8 +679,6 @@
             font-weight: bold;
             padding: 0.6em 0;
             /* ボタンの高さを確保 (約2倍) */
-            box-shadow: 0 2px 5px var(--mobile-btn-shadow-color);
-            transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s, text-shadow 0.3s;
         }
 
         #bbs-btn-y {
@@ -684,8 +693,6 @@
 
         .mobile-btn:active {
             background-color: #666;
-            box-shadow: 0 1px 2px var(--mobile-btn-shadow-color);
-            transform: translateY(1px);
         }
 
         /* グリッドレイアウトでの位置指定 */
@@ -935,10 +942,33 @@
             box-sizing: border-box;
             z-index: 100;
             grid-template-columns: repeat(4, 1fr);
-            /* 4列グリッド */
             grid-template-rows: repeat(3, 1fr);
-            /* 3行グリッドに拡張 */
             gap: 8px;
+        }
+
+        #mobile-plugin-menu-controls {
+            display: none;
+            /* JSで表示を制御 */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        #mobile-plugin-menu-controls.visible {
+            display: grid;
+        }
+
+        #plugin-btn-enter {
+            grid-column: 1 / -1;
+            /* Span all columns */
         }
 
         #mobile-top-menu-controls.visible {
@@ -947,6 +977,7 @@
 
         /* --- テーマ適用 --- */
         #mobile-mail-controls.theme-green .mobile-btn,
+        #mobile-plugin-menu-controls.theme-green .mobile-btn,
         #mobile-bbs-entry-controls.theme-green .mobile-btn,
         #mobile-top-menu-controls.theme-green .mobile-btn {
             background-color: #000000;
@@ -955,6 +986,7 @@
         }
 
         #mobile-mail-controls.theme-green .mobile-btn:active,
+        #mobile-plugin-menu-controls.theme-green .mobile-btn:active,
         #mobile-bbs-entry-controls.theme-green .mobile-btn:active,
         #mobile-top-menu-controls.theme-green .mobile-btn:active {
             background-color: #00FF00;
@@ -962,6 +994,7 @@
         }
 
         #mobile-mail-controls.theme-amber .mobile-btn,
+        #mobile-plugin-menu-controls.theme-amber .mobile-btn,
         #mobile-bbs-entry-controls.theme-amber .mobile-btn,
         #mobile-top-menu-controls.theme-amber .mobile-btn {
             background-color: #1a1000;
@@ -970,6 +1003,7 @@
         }
 
         #mobile-mail-controls.theme-amber .mobile-btn:active,
+        #mobile-plugin-menu-controls.theme-amber .mobile-btn:active,
         #mobile-bbs-entry-controls.theme-amber .mobile-btn:active,
         #mobile-top-menu-controls.theme-amber .mobile-btn:active {
             background-color: #FFB000;
@@ -1150,6 +1184,23 @@
         <button class="mobile-btn" id="top-btn-telegram">Telegram</button>
         <button class="mobile-btn" id="top-btn-help">Help</button>
         <button class="mobile-btn" id="top-btn-logoff">Logoff</button>
+    </div>
+
+    <!-- モバイルプラグインメニューコントロール -->
+    <div id="mobile-plugin-menu-controls">
+        <button class="mobile-btn" id="plugin-btn-1">1</button>
+        <button class="mobile-btn" id="plugin-btn-2">2</button>
+        <button class="mobile-btn" id="plugin-btn-3">3</button>
+        <button class="mobile-btn" id="plugin-btn-4">4</button>
+        <button class="mobile-btn" id="plugin-btn-5">5</button>
+        <button class="mobile-btn" id="plugin-btn-6">6</button>
+        <button class="mobile-btn" id="plugin-btn-7">7</button>
+        <button class="mobile-btn" id="plugin-btn-8">8</button>
+        <button class="mobile-btn" id="plugin-btn-9">9</button>
+        <button class="mobile-btn" id="plugin-btn-help">?</button>
+        <button class="mobile-btn" id="plugin-btn-0">0</button>
+        <button class="mobile-btn" id="plugin-btn-exit">E</button>
+        <button class="mobile-btn" id="plugin-btn-enter">Enter</button>
     </div>
 
 
@@ -1431,8 +1482,6 @@
                 fkey_bg: '#FFFFFF',
                 fkey_fg: '#000000',
                 text_shadow_glow: '-1px 0 1px rgba(255,0,0,0.3), 1px 0 1px rgba(0,255,0,0.3), 0 0 3px rgba(255,255,255,0.4)',
-                text_shadow_glow_mobile: '-1px 0 2px rgba(255,0,0,0.5), 1px 0 2px rgba(0,255,0,0.5), 0 0 5px rgba(255,255,255,0.7)',
-                mobile_btn_shadow: 'rgba(255, 255, 255, 0.2)',
                 black: '#000000',      // 標準の黒
                 red: '#FF0000',      // 鮮やかな赤
                 green: '#00FF00',      // 鮮やかな緑
@@ -1457,8 +1506,6 @@
                 fkey_bg: '#00FF00',
                 fkey_fg: '#000000',
                 text_shadow_glow: '0 0 5px rgba(0,255,0,0.5), 0 0 10px rgba(0,255,0,0.3)',
-                text_shadow_glow_mobile: '0 0 8px rgba(0,255,0,0.7), 0 0 15px rgba(0,255,0,0.5)',
-                mobile_btn_shadow: 'rgba(0, 255, 0, 0.4)',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#00FF00',
                 red: '#00FF00',
@@ -1484,8 +1531,6 @@
                 fkey_bg: '#FFB000',
                 fkey_fg: '#1a1000',
                 text_shadow_glow: '0 0 5px rgba(255,176,0,0.5), 0 0 10px rgba(255,176,0,0.3)',
-                text_shadow_glow_mobile: '0 0 8px rgba(255,176,0,0.7), 0 0 15px rgba(255,176,0,0.5)',
-                mobile_btn_shadow: 'rgba(255, 176, 0, 0.4)',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#FFB000',
                 red: '#FFB000',
@@ -1520,12 +1565,12 @@
 
         let isDipSwitchUpdating = false; // スイッチ操作による再帰呼び出しを防ぐフラグ
 
+        // にじみ効果のスタイルを動的に更新する
+        const dynamicGlowStyle = document.getElementById('dynamic-glow-style');
+
         function applyTheme(themeName) {
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
-            document.body.style.setProperty('--glow-text-shadow', theme.text_shadow_glow || 'none');
-            document.body.style.setProperty('--glow-text-shadow-mobile', theme.text_shadow_glow_mobile || theme.text_shadow_glow || 'none');
-            document.body.style.setProperty('--mobile-btn-shadow-color', theme.mobile_btn_shadow || 'rgba(0,0,0,0.5)');
 
             // モバイル操作パネルのテーマクラスを更新
             const mobileControls = document.getElementById('mobile-bbs-controls');
@@ -1534,14 +1579,19 @@
             const mailControls = document.getElementById('mobile-mail-controls');
             const bbsEntryControls = document.getElementById('mobile-bbs-entry-controls');
             const topMenuControls = document.getElementById('mobile-top-menu-controls');
+            const pluginMenuControls = document.getElementById('mobile-plugin-menu-controls');
 
-            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls, topMenuControls].forEach(controls => {
+            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls, topMenuControls, pluginMenuControls].forEach(controls => {
                 if (controls) {
                     controls.classList.remove('theme-default', 'theme-green', 'theme-amber');
                     controls.classList.add(`theme-${themeName}`);
                 }
             });
 
+            // 動的スタイルシートを更新して、テーマに合わせたにじみ効果を適用
+            if (dynamicGlowStyle) {
+                dynamicGlowStyle.innerHTML = `#terminal.blur-effect { text-shadow: ${theme.text_shadow_glow || 'none'}; }`;
+            }
             // ファンクションキーのスタイルを更新
             const fkeys = document.querySelectorAll('.f-key');
             fkeys.forEach(key => {
@@ -1632,10 +1682,6 @@
                     break;
                 case 'blur':
                     terminalElement.classList.toggle('blur-effect', isActive);
-                    // モバイルボタンにも効果をトグル
-                    document.querySelectorAll('.mobile-btn').forEach(btn => {
-                        btn.classList.toggle('blur-effect', isActive);
-                    });
                     break;
                 case 'scanline':
                     monitorScreen.classList.toggle('scanline-effect', isActive);
@@ -2207,6 +2253,25 @@
                 updateTerminalLayout();
             }
 
+            // Plugin Menuコントロール表示/非表示シーケンスをチェック
+            const pluginMenuControlPattern = /\x1b\[\?2032(h|l)/;
+            const pluginMenuMatch = data.match(pluginMenuControlPattern);
+            if (pluginMenuMatch) {
+                const mobileControls = document.getElementById('mobile-plugin-menu-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (pluginMenuMatch[1] === 'h') { // 'h' for show
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                } else { // 'l' for hide
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(pluginMenuControlPattern, '');
+                updateTerminalLayout();
+            }
+
             // Top Menuコントロール表示/非表示シーケンスをチェック
             const topMenuControlPattern = /\x1b\[\?2031(h|l)/;
             const topMenuMatch = data.match(topMenuControlPattern);
@@ -2658,6 +2723,26 @@
                 const btn = document.getElementById(id);
                 if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
             }
+
+            const pluginMenuKeyMap = {
+                'plugin-btn-1': '1',
+                'plugin-btn-2': '2',
+                'plugin-btn-3': '3',
+                'plugin-btn-4': '4',
+                'plugin-btn-5': '5',
+                'plugin-btn-6': '6',
+                'plugin-btn-7': '7',
+                'plugin-btn-8': '8',
+                'plugin-btn-9': '9',
+                'plugin-btn-0': '0',
+                'plugin-btn-help': '?',
+                'plugin-btn-exit': 'e', // 抜ける
+                'plugin-btn-enter': '\r', // 決定
+            };
+            for (const [id, key] of Object.entries(pluginMenuKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
         });
 
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
@@ -2672,7 +2757,8 @@
                 document.getElementById('mobile-userpref-controls'),
                 document.getElementById('mobile-mail-controls'),
                 document.getElementById('mobile-bbs-entry-controls'),
-                document.getElementById('mobile-top-menu-controls')
+                document.getElementById('mobile-top-menu-controls'),
+                document.getElementById('mobile-plugin-menu-controls')
             ];
 
             const handleViewportResize = () => {
