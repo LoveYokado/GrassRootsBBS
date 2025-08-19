@@ -178,7 +178,7 @@
 
         /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
         #terminal.blur-effect {
-            /* このクラスはJSでfilterを適用するために使用 */
+            text-shadow: var(--glow-text-shadow, none);
         }
 
         /* 走査線エフェクト */
@@ -561,6 +561,43 @@
                 display: none;
                 /* モバイルではDIPスイッチを非表示 */
             }
+
+            /* --- モバイルでの設定画面の視認性向上 --- */
+            #popup-window {
+                width: 90vw;
+                max-height: 85vh;
+                overflow-y: auto;
+                /* コンテンツが多い場合にスクロール可能にする */
+            }
+
+            #popup-window .popup-content h3 {
+                font-size: 1.2em;
+                /* 見出しを大きく */
+                margin-bottom: 0.8em;
+            }
+
+            #popup-window .popup-content button {
+                display: block;
+                /* ボタンを縦に並べる */
+                width: 100%;
+                padding: 0.8em 1em;
+                /* タップしやすくする */
+                font-size: 1.1em;
+                /* ボタンの文字を大きく */
+                margin: 0.5em 0;
+                /* ボタン間の余白 */
+                box-sizing: border-box;
+            }
+
+            /* モバイルでの画面効果を強化 */
+            #terminal.blur-effect,
+            .mobile-btn.blur-effect {
+                text-shadow: var(--glow-text-shadow-mobile, none);
+            }
+
+            .monitor-screen.scanline-effect::after {
+                background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px);
+            }
         }
 
         /* --- デスクトップでのモバイルUI強制非表示 --- */
@@ -631,6 +668,8 @@
             font-weight: bold;
             padding: 0.6em 0;
             /* ボタンの高さを確保 (約2倍) */
+            box-shadow: 0 2px 5px var(--mobile-btn-shadow-color);
+            transition: background-color 0.2s, box-shadow 0.2s, transform 0.1s, text-shadow 0.3s;
         }
 
         #bbs-btn-y {
@@ -645,6 +684,8 @@
 
         .mobile-btn:active {
             background-color: #666;
+            box-shadow: 0 1px 2px var(--mobile-btn-shadow-color);
+            transform: translateY(1px);
         }
 
         /* グリッドレイアウトでの位置指定 */
@@ -1364,11 +1405,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
-    <!-- にじみ効果の強さを動的に変更するためのスタイルシート -->
-    <style id="dynamic-glow-style">
-        #terminal.blur-effect {}
-    </style>
-
     <script>
         // --- Service Workerの登録 ---
         if ('serviceWorker' in navigator) {
@@ -1392,6 +1428,8 @@
                 fkey_bg: '#FFFFFF',
                 fkey_fg: '#000000',
                 text_shadow_glow: '-1px 0 1px rgba(255,0,0,0.3), 1px 0 1px rgba(0,255,0,0.3), 0 0 3px rgba(255,255,255,0.4)',
+                text_shadow_glow_mobile: '-1px 0 2px rgba(255,0,0,0.5), 1px 0 2px rgba(0,255,0,0.5), 0 0 5px rgba(255,255,255,0.7)',
+                mobile_btn_shadow: 'rgba(255, 255, 255, 0.2)',
                 black: '#000000',      // 標準の黒
                 red: '#FF0000',      // 鮮やかな赤
                 green: '#00FF00',      // 鮮やかな緑
@@ -1416,6 +1454,8 @@
                 fkey_bg: '#00FF00',
                 fkey_fg: '#000000',
                 text_shadow_glow: '0 0 5px rgba(0,255,0,0.5), 0 0 10px rgba(0,255,0,0.3)',
+                text_shadow_glow_mobile: '0 0 8px rgba(0,255,0,0.7), 0 0 15px rgba(0,255,0,0.5)',
+                mobile_btn_shadow: 'rgba(0, 255, 0, 0.4)',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#00FF00',
                 red: '#00FF00',
@@ -1441,6 +1481,8 @@
                 fkey_bg: '#FFB000',
                 fkey_fg: '#1a1000',
                 text_shadow_glow: '0 0 5px rgba(255,176,0,0.5), 0 0 10px rgba(255,176,0,0.3)',
+                text_shadow_glow_mobile: '0 0 8px rgba(255,176,0,0.7), 0 0 15px rgba(255,176,0,0.5)',
+                mobile_btn_shadow: 'rgba(255, 176, 0, 0.4)',
                 // 全てのANSIカラーをテーマ色で上書き
                 black: '#FFB000',
                 red: '#FFB000',
@@ -1475,12 +1517,12 @@
 
         let isDipSwitchUpdating = false; // スイッチ操作による再帰呼び出しを防ぐフラグ
 
-        // にじみ効果のスタイルを動的に更新する
-        const dynamicGlowStyle = document.getElementById('dynamic-glow-style');
-
         function applyTheme(themeName) {
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
+            document.body.style.setProperty('--glow-text-shadow', theme.text_shadow_glow || 'none');
+            document.body.style.setProperty('--glow-text-shadow-mobile', theme.text_shadow_glow_mobile || theme.text_shadow_glow || 'none');
+            document.body.style.setProperty('--mobile-btn-shadow-color', theme.mobile_btn_shadow || 'rgba(0,0,0,0.5)');
 
             // モバイル操作パネルのテーマクラスを更新
             const mobileControls = document.getElementById('mobile-bbs-controls');
@@ -1497,10 +1539,6 @@
                 }
             });
 
-            // 動的スタイルシートを更新して、テーマに合わせたにじみ効果を適用
-            if (dynamicGlowStyle) {
-                dynamicGlowStyle.innerHTML = `#terminal.blur-effect { text-shadow: ${theme.text_shadow_glow || 'none'}; }`;
-            }
             // ファンクションキーのスタイルを更新
             const fkeys = document.querySelectorAll('.f-key');
             fkeys.forEach(key => {
@@ -1591,6 +1629,10 @@
                     break;
                 case 'blur':
                     terminalElement.classList.toggle('blur-effect', isActive);
+                    // モバイルボタンにも効果をトグル
+                    document.querySelectorAll('.mobile-btn').forEach(btn => {
+                        btn.classList.toggle('blur-effect', isActive);
+                    });
                     break;
                 case 'scanline':
                     monitorScreen.classList.toggle('scanline-effect', isActive);
