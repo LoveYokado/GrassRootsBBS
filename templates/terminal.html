@@ -935,7 +935,9 @@
             box-sizing: border-box;
             z-index: 100;
             grid-template-columns: repeat(4, 1fr);
-            grid-template-rows: repeat(2, 1fr);
+            /* 4列グリッド */
+            grid-template-rows: repeat(3, 1fr);
+            /* 3行グリッドに拡張 */
             gap: 8px;
         }
 
@@ -1142,6 +1144,7 @@
         <button class="mobile-btn" id="top-btn-bbs">BBS</button>
         <button class="mobile-btn" id="top-btn-chat">Chat</button>
         <button class="mobile-btn" id="top-btn-mail">Mail</button>
+        <button class="mobile-btn" id="top-btn-program">Program</button>
         <button class="mobile-btn" id="top-btn-userpref">UserPref</button>
         <button class="mobile-btn" id="top-btn-who">Who</button>
         <button class="mobile-btn" id="top-btn-telegram">Telegram</button>
@@ -2643,6 +2646,7 @@
                 'top-btn-bbs': 'b\r',
                 'top-btn-chat': 'c\r',
                 'top-btn-mail': 'm\r',
+                'top-btn-program': 'p\r',
                 'top-btn-userpref': 'u\r',
                 'top-btn-who': 'w\r',
                 'top-btn-telegram': '#\r',
