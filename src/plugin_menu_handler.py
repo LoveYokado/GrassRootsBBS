@@ -38,7 +38,8 @@ def handle_plugin_menu(chan, context):
                 chan, "plugin_menu.select_prompt", menu_mode, add_newline=False)
             choice = chan.process_input()
 
-            if choice is None or choice.lower().strip() in ('e', ''):
+            # Eではなく空エンターで終了するように変更
+            if choice is None or choice.strip() == '':
                 break
 
             try:

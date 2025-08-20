@@ -28,7 +28,6 @@ def userpref_menu(chan, login_id, display_name, current_menu_mode):
         '10': edit_blacklist,
         '11': change_email_address,
         '12': manage_passkeys,
-        'e': lambda *args, **kwargs: "back_to_top",  # メニュー終了
         '': lambda *args, **kwargs: "back_to_top",   # 空入力もメニュー終了
         'h': display_help,
         '?': display_help,
