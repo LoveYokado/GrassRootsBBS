@@ -127,8 +127,12 @@ def handle_who_menu(context):
 def handle_telegram(context):
     """'#' or '!' 電報コマンドを処理する"""
     online_members_dict = _get_online_members_list(context)
-    util.telegram_send(context['chan'], context['display_name'], list(
-        online_members_dict.keys()), context['menu_mode'])
+    # オンラインメンバーの辞書から、SIDではなくログインIDのリストを抽出する
+    online_user_logins = [
+        member_data.get('username') for member_data in online_members_dict.values() if member_data.get('username')
+    ]
+    util.telegram_send(context['chan'], context['display_name'],
+                       online_user_logins, context['menu_mode'])
     util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 

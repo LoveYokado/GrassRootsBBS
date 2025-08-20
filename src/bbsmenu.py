@@ -18,8 +18,13 @@ def who_menu(chan, online_members_dict, current_menu_mode):
                               current_menu_mode)
         return
 
-    for login_id, member_data in online_members_dict.items():
-        display_name = member_data.get("display_name", login_id)
+    # online_members_dict のキーはSID。ループ変数を sid に変更して明確化
+    for sid, member_data in online_members_dict.items():
+        display_name = member_data.get("display_name")
+        login_id = member_data.get("username")  # 実際のログインIDを取得
+
+        if not display_name or not login_id:
+            continue  # 必要なデータがなければスキップ
 
         # 掲示板のユーザ名表示(14文字)と合わせる
         display_name_short = util.shorten_text_by_slicing(
@@ -27,7 +32,7 @@ def who_menu(chan, online_members_dict, current_menu_mode):
 
         menu_mode = member_data.get("menu_mode", "?")
         # コメントはDBから取得する必要がある
-        user_db_data = database.get_user_auth_info(login_id)
+        user_db_data = database.get_user_auth_info(login_id)  # 正しいlogin_idを使用
         comment = user_db_data['comment'] if user_db_data and user_db_data['comment'] is not None else ''
 
         # ヘッダーのCOMMENT列(17桁目開始)と合わせるため、14桁にパディング後、スペースを2つ追加

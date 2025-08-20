@@ -320,6 +320,7 @@ def get_webapp_online_members():
                 members[sid] = {
                     "sid": sid,
                     "user_id": user_session.get('user_id'),
+                    "username": login_id,
                     # GUESTの場合はハッシュ付きの表示名、それ以外はログインID
                     "display_name": user_session.get('display_name', login_id),
                     "addr": handler.channel.getpeername(),  # ダミーIPを返す

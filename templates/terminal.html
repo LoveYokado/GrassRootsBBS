@@ -1302,10 +1302,10 @@
             </div>
             <div id="fontsize-selector">
                 <h3>Font Size</h3>
-                <button data-size="20">Small</button>
-                <button data-size="28">Medium</button>
-                <button data-size="36">Large</button>
-                <button data-size="44">Extra Large</button>
+                <button data-size="12">Small</button>
+                <button data-size="16">Medium</button>
+                <button data-size="20">Large</button>
+                <button data-size="24">Extra Large</button>
             </div>
             <div id="speed-selector">
                 <h3>Speed</h3>
@@ -1555,7 +1555,7 @@
         const fontMap = { 'M PLUS 1m': 0, 'M PLUS 1 Code': 1, 'IBM Plex Mono': 2, 'DotGothic16': 3 };
         const speedMap = { 'full': 0, '9600': 1, '4800': 2, '2400': 3, '300': 4 };
         const effectMap = { 'bezel': 0, 'blur': 1, 'scanline': 2 };
-        const fontsizeMap = { '20': 0, '28': 1, '36': 2, '44': 3 };
+        const fontsizeMap = { '12': 0, '16': 1, '20': 2, '24': 3 };
 
         // 逆引きマップ
         const themeMapReverse = Object.fromEntries(Object.entries(themeMap).map(([k, v]) => [v, k]));
@@ -2486,7 +2486,7 @@
 
             // フォント
             const isMobile = window.matchMedia("(max-width: 992px)").matches;
-            const defaultFontSize = isMobile ? '28' : '20'; // モバイルは28px, PCは20pxをデフォルトに
+            const defaultFontSize = isMobile ? '28' : '12'; // モバイルは28px, PCは12pxをデフォルトに
             const savedFontName = localStorage.getItem('terminalFont') || 'M PLUS 1m'; // フォントはそのまま
             applyFont(savedFontName);
 
