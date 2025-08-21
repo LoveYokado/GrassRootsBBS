@@ -2212,10 +2212,11 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (userprefMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    // キーボード表示時に復元できるよう、高さを記憶しておく
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
@@ -2232,10 +2233,11 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (chatMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    // キーボード表示時に復元できるよう、高さを記憶しておく
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
@@ -2252,10 +2254,11 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (mailMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    // キーボード表示時に復元できるよう、高さを記憶しておく
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
@@ -2272,10 +2275,11 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (bbsEntryMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    // キーボード表示時に復元できるよう、高さを記憶しておく
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
@@ -2292,10 +2296,11 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (pluginMenuMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    // キーボード表示時に復元できるよう、高さを記憶しておく
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
@@ -2312,10 +2317,11 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (topMenuMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    // キーボード表示時に復元できるよう、高さを記憶しておく
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else { // 'l' for hide
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
@@ -2332,11 +2338,12 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (match[1] === 'h') { // 'h' for show (表示)
-                    hideAllMobileControls(); // 他のパネルをすべて隠す
                     mobileControls.classList.add('visible');
                     // コントロールの高さを計算して、ターミナルコンテナのpadding-bottomに設定
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    // キーボード表示時に復元できるよう、高さを記憶しておく
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else { // 'l' for hide (非表示)
                     mobileControls.classList.remove('visible');
                     // padding-bottomを元に戻す (CSSで定義された値に戻る)
@@ -2803,20 +2810,10 @@
                     // キーボード表示時、ボタンのためのパディングをなくす
                     monitorScreen.style.paddingBottom = '0px';
                 } else {
-                    // キーボードが非表示になったら、表示されているボタンパネルを探す準備
-                    const controls = [
-                        document.getElementById('mobile-bbs-controls'),
-                        document.getElementById('mobile-chat-controls'),
-                        document.getElementById('mobile-userpref-controls'),
-                        document.getElementById('mobile-mail-controls'),
-                        document.getElementById('mobile-bbs-entry-controls'),
-                        document.getElementById('mobile-top-menu-controls'),
-                        document.getElementById('mobile-plugin-menu-controls')
-                    ];
-                    // 表示されているコントロールを探して、その高さ分だけパディングを復元
-                    const visibleControl = controls.find(c => c && c.classList.contains('visible'));
-                    if (visibleControl) {
-                        monitorScreen.style.paddingBottom = `${visibleControl.offsetHeight}px`;
+                    // キーボードが非表示になったら、記憶しておいたボタンの高さを復元
+                    const storedHeight = monitorScreen.dataset.controlsHeight;
+                    if (storedHeight) {
+                        monitorScreen.style.paddingBottom = `${storedHeight}px`;
                     }
                 }
                 // レイアウト変更が適用された後にターミナルをリサイズ
