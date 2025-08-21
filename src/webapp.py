@@ -727,7 +727,19 @@ def index():
         except Exception as e:
             logging.error(f"VAPID公開鍵の処理に失敗しました: {e}", exc_info=True)
 
-    return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits, vapid_public_key=vapid_public_key_for_js)
+    # textdata.yamlからモバイルボタンのレイアウト定義を取得
+    # util.text_data を直接参照するとモジュールのロード順でエラーになるため、関数経由で取得する
+    all_text_data = util.load_master_text_data()
+    mobile_button_layouts = all_text_data.get("mobile_button_layouts", {})
+
+    if request.method == 'POST':
+        # ユーザーIDは大文字に統一して扱う
+        username = request.form.get('username', '').upper()
+        password = request.form.get('password')
+        error = None
+
+        # GUESTアカウントはロックアウト対象外
+    return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits, vapid_public_key=vapid_public_key_for_js, mobile_button_layouts=mobile_button_layouts)
 
 
 @app.route('/login', methods=['GET', 'POST'])

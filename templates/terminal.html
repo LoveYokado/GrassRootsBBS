@@ -1643,7 +1643,11 @@
             // body全体のフォントサイズも変更する。これによりem単位のUI要素が追従する。
             document.body.style.fontSize = `${baseSize}px`;
 
-            localStorage.setItem('terminalFontSize', size);
+            // PCとモバイルで設定を分けて保存する
+            const isMobile = window.matchMedia("(max-width: 992px)").matches;
+            const storageKey = isMobile ? 'terminalFontSizeMobile' : 'terminalFontSizePC';
+            localStorage.setItem(storageKey, size);
+
             updateFontSizeButtons(size);
             if (!isDipSwitchUpdating) updateDipSwitches('fontsize', size);
             // フォントサイズ変更はレイアウトに影響するため、再計算をトリガーします
