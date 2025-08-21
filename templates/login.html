@@ -46,20 +46,18 @@
         }
 
         .login-container {
-            background-color: #000;
-            /* 黒い画面 */
-            border: 2px solid #008800;
-            /* 中間的な緑の枠線 */
+            background-color: rgba(0, 20, 0, 0.75);
+            /* 半透明の暗い緑 */
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            /* 半透明の明るい緑の枠線 */
             border-radius: 10px;
             width: 350px;
             text-align: center;
-            /* 静的なグローと内側のライン */
-            box-shadow: inset 0 0 0 1px rgba(0, 255, 0, 0.5),
-                /* 内側の緑のライン */
-                inset 0 0 10px rgba(0, 0, 0, 0.8),
-                /* 内側の黒い影 */
-                0 0 25px rgba(0, 255, 0, 0.5);
-            /* 外側の緑のグロー */
+            /* 浮遊感を出すための影と、背景をぼかす効果 */
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            /* Safari用 */
             padding: 30px;
         }
 

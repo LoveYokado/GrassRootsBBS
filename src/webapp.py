@@ -5,7 +5,7 @@
 # Gunicorn + gevent で WebSocket を動作させるために必須
 # monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
 # インポートする前に、可能な限り早く呼び出す必要があります。
-from . import command_dispatcher, database, util, passkey_handler, plugin_manager
+from . import command_dispatcher, database, util, passkey_handler, plugin_manager, backup_util
 from .admin.routes import admin_bp  # 管理画面のブループリントを直接インポート
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_socketio import SocketIO, emit, disconnect
@@ -153,6 +153,9 @@ try:
             except Exception as e:
                 logging.exception(
                     f"データベースの初期化中にエラーが発生しました: {e}")
+
+    # --- データベースマイグレーション ---
+    database.apply_migrations()
 
     # --- プラグインのロード ---
     plugin_manager.load_plugins()
@@ -547,12 +550,8 @@ class WebTerminalHandler:
         server_pref_dict = {}
         try:
             # サーバ設定読み込み
-            pref_list = database.read_server_pref()
-            pref_names = ['bbs', 'chat', 'mail', 'telegram',
-                          'userpref', 'who', 'default_exploration_list', 'hamlet', 'login_message']
-            if pref_list and len(pref_list) >= len(pref_names):
-                server_pref_dict = dict(zip(pref_names, pref_list))
-            else:
+            server_pref_dict = database.read_server_pref()
+            if not server_pref_dict:
                 logging.error(
                     f"サーバ設定読み込みエラーです。デフォルト値を使用します。 (User: {self.user_session.get('username')})")
                 server_pref_dict = {'bbs': 2, 'chat': 2, 'mail': 2, 'telegram': 2,
@@ -698,6 +697,7 @@ def index():
         "f4": {"label": "NoFunction", "action": "none"},  # 予約
         "f5": {"label": "Line Edit", "action": "open_line_editor"},
         "f6": {"label": "M-Line Edit", "action": "open_multiline_editor"},
+        "f7": {"label": "Admin", "action": "redirect", "value": url_for('admin.dashboard')},
         "f8": {"label": "ReConnect", "action": "redirect", "value": url_for('login')},
     }
     # limits設定をテンプレートに渡す
@@ -1417,11 +1417,13 @@ def scheduled_backup_job():
 
 
 # --- スケジューラの設定 ---
-scheduler_config = util.app_config.get('scheduler', {})
-if scheduler_config.get('enabled', False):
+# データベースからスケジュール設定を読み込む
+schedule_settings = database.read_server_pref()
+if schedule_settings.get('backup_schedule_enabled'):
     scheduler = BackgroundScheduler(daemon=True, timezone='Asia/Tokyo')
     try:
-        cron_schedule = scheduler_config.get('schedule', '0 3 * * *')
+        cron_schedule = schedule_settings.get(
+            'backup_schedule_cron', '0 3 * * *')
         scheduler.add_job(
             scheduled_backup_job,
             trigger=CronTrigger.from_crontab(cron_schedule),
@@ -1433,6 +1435,8 @@ if scheduler_config.get('enabled', False):
         logging.info(f"バックアップスケジューラが有効になりました。スケジュール: '{cron_schedule}'")
     except Exception as e:
         logging.error(f"スケジューラの初期化に失敗しました: {e}")
+else:
+    logging.info("自動バックアップスケジュールは無効です。")
 
 # --- Webサーバーの起動 ---
 if __name__ == '__main__':

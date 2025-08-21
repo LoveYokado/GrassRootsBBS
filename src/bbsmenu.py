@@ -166,8 +166,7 @@ def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id
     exploration_list_str = database.get_user_exploration_list(user_id_pk)
     if not exploration_list_str:
         server_prefs = database.read_server_pref()
-        if server_prefs and len(server_prefs) > 6:
-            exploration_list_str = server_prefs[6]  # default_exploration_list
+        exploration_list_str = server_prefs.get('default_exploration_list', '')
 
     if not exploration_list_str:
         util.send_text_by_key(
@@ -301,14 +300,11 @@ def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_leve
     """新アーティクル見出し表示"""
     util.send_text_by_key(
         chan, "new_article_headlines.start_message", menu_mode)
-
     # 探索リスト取得(TODO:これ、後で関数化出来そうだな)
     exploration_list_str = database.get_user_exploration_list(user_id_pk)
     if not exploration_list_str:
         server_prefs = database.read_server_pref()
-        # server_prefs[6] が default_exploration_list
-        if server_prefs and len(server_prefs) > 6 and server_prefs[6]:
-            exploration_list_str = server_prefs[6]
+        exploration_list_str = server_prefs.get('default_exploration_list', '')
 
     if not exploration_list_str:
         util.send_text_by_key(
@@ -418,8 +414,7 @@ def handle_auto_download(chan, login_id: str, user_id_pk: int, user_level: int, 
     exploration_list_str = database.get_user_exploration_list(user_id_pk)
     if not exploration_list_str:
         server_prefs = database.read_server_pref()
-        if server_prefs and len(server_prefs) > 6 and server_prefs[6]:
-            exploration_list_str = server_prefs[6]
+        exploration_list_str = server_prefs.get('default_exploration_list', '')
 
     if not exploration_list_str:
         util.send_text_by_key(

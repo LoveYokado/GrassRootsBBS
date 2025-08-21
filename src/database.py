@@ -177,9 +177,9 @@ def update_record(table, set_data, where_data):
 
 def read_server_pref():
     """サーバー設定を読み込む"""
-    query = "SELECT bbs, chat, mail, telegram, userpref, who, default_exploration_list, hamlet, login_message FROM server_pref LIMIT 1"
+    query = "SELECT * FROM server_pref LIMIT 1"
     result = execute_query(query, fetch='one')
-    return list(result.values()) if result else []
+    return result if result else {}
 
 
 def get_board_by_shortcut_id(shortcut_id):
@@ -699,6 +699,40 @@ def get_article_by_attachment_filename(filename):
     return execute_query(query, (filename,), fetch='one')
 
 
+def apply_migrations():
+    """
+    アプリケーション起動時にデータベーススキーマの変更を適用する。
+    """
+    conn = None
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # server_prefテーブルのカラムをチェック
+        cursor.execute("DESCRIBE server_pref")
+        columns = [row['Field'].lower() for row in cursor.fetchall()]
+
+        # backup_schedule_enabled カラムが存在しない場合に追加
+        if 'backup_schedule_enabled' not in columns:
+            cursor.execute(
+                "ALTER TABLE server_pref ADD COLUMN backup_schedule_enabled BOOLEAN DEFAULT 0")
+            logging.info(
+                "データベースマイグレーション: 'server_pref'テーブルに'backup_schedule_enabled'カラムを追加しました。")
+
+        # backup_schedule_cron カラムが存在しない場合に追加
+        if 'backup_schedule_cron' not in columns:
+            cursor.execute(
+                "ALTER TABLE server_pref ADD COLUMN backup_schedule_cron VARCHAR(255) DEFAULT '0 3 * * *'")
+            logging.info(
+                "データベースマイグレーション: 'server_pref'テーブルに'backup_schedule_cron'カラムを追加しました。")
+
+    except Exception as e:
+        logging.error(f"Database migration failed: {e}", exc_info=True)
+    finally:
+        if conn:
+            conn.close()
+
+
 def get_articles_by_board_id(board_id_pk, order_by="created_at ASC, article_number ASC", include_deleted=False):
     """
     指定された掲示板IDの記事リストを取得する。
@@ -1068,3 +1102,15 @@ def delete_passkey_by_id_and_user_id(passkey_id: int, user_id: int) -> bool:
             cursor.close()
         if conn:
             conn.close()
+    result = execute_query(query, fetch='one')
+    return result if result else {}
+
+
+def update_backup_schedule(enabled: bool, cron_string: str):
+    """バックアップスケジュール設定を更新する"""
+    update_data = {
+        'backup_schedule_enabled': enabled,
+        'backup_schedule_cron': cron_string
+    }
+    # server_prefは常にID=1のレコードを更新する
+    return update_record('server_pref', update_data, {'id': 1}) is not None

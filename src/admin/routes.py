@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime, timedelta
 import time
-from .. import database, util, backup_util
+from .. import database, util, backup_util, plugin_manager
 
 # ブループリントを作成
 # 'admin' はブループリントの名前
@@ -686,10 +686,26 @@ def system_settings():
     return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
 
 
-@admin_bp.route('/backup')
+@admin_bp.route('/backup', methods=['GET', 'POST'])
 @sysop_required
 def backup_management():
     """バックアップ管理ページを表示する"""
+    if request.method == 'POST':
+        # スケジュール保存リクエストを処理
+        if request.form.get('action') == 'save_schedule':
+            # チェックボックスがONならTrue、なければFalse
+            is_enabled = 'schedule_enabled' in request.form
+            cron_string = request.form.get('schedule_cron', '0 3 * * *')
+
+            if database.update_backup_schedule(is_enabled, cron_string):
+                flash('Backup schedule updated successfully.', 'success')
+            else:
+                flash('Failed to update backup schedule.', 'danger')
+            return redirect(url_for('admin.backup_management'))
+
+    # GETリクエスト、または他のPOSTアクションの場合
+    schedule_settings = database.read_server_pref()
+
     backups = []
     try:
         for filename in sorted(os.listdir(BACKUP_DIR), reverse=True):
@@ -707,7 +723,7 @@ def backup_management():
     except Exception as e:
         flash(f'Error retrieving backup list: {e}', 'error')
 
-    return render_template('admin/backup.html', title="Backup Management", backups=backups)
+    return render_template('admin/backup.html', title="Backup Management", backups=backups, schedule_settings=schedule_settings)
 
 
 @admin_bp.route('/backup/create', methods=['POST'])
@@ -813,3 +829,11 @@ def wipe_all_data():
         flash(
             f'An unexpected error occurred during the data wipe process: {e}', 'error')
     return redirect(url_for('admin.backup_management'))
+
+
+@admin_bp.route('/plugins')
+@sysop_required
+def plugin_management():
+    """プラグイン管理ページ"""
+    loaded_plugins = plugin_manager.get_loaded_plugins()
+    return render_template('admin/plugin_list.html', title='Plugin Management', plugins=loaded_plugins)

@@ -1,0 +1,39 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>View the status of all loaded plugins.</p>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-puzzle-piece me-1"></i>
+        Loaded Plugins
+    </div>
+    <div class="card-body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>ID</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plugin in plugins %}
+                <tr>
+                    <td>{{ plugin.name }}</td>
+                    <td>{{ plugin.description }}</td>
+                    <td>{{ plugin.id }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3">No plugins are currently loaded.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

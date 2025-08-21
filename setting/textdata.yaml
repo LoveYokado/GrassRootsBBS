@@ -2127,6 +2127,10 @@ admin:
       mode_1: "データ管理"
       mode_2: "データ管理"
       mode_3: "Data Management"
+    plugins:
+      mode_1: "プラグイン管理"
+      mode_2: "プラグイン管理"
+      mode_3: "Plugin Management"
   dashboard:
     title:
       mode_1: "ダッシュボード"
@@ -2296,9 +2300,86 @@ plugin_menu:
     mode_2: "\r\n--- プラグインメニューに戻ります ---\r\n"
     mode_3: "\r\n--- Returning to Plugin Menu ---\r\n"
 
-# --- 未実装機能のプレースホルダー ---
-unimplemented:
-  message:
-    mode_1: "{feature_name} は未実装です。\r\n"
-    mode_2: "{feature_name} は未実装です。\r\n"
-    mode_3: "{feature_name} is unimplemented.\r\n"
+# --- モバイルボタンレイアウト定義 ---
+mobile_button_layouts:
+  top_menu:
+    grid: { columns: 3, rows: 3 }
+    buttons:
+      - { label: "BBS", command: "b\r" }
+      - { label: "Chat", command: "c\r" }
+      - { label: "Mail", command: "m\r" }
+      - { label: "Program", command: "p\r" }
+      - { label: "UserPref", command: "u\r" }
+      - { label: "Who", command: "w\r" }
+      - { label: "Telegram", command: "#\r" }
+      - { label: "Help", command: "?\r" }
+      - { label: "Logoff", command: "e\r" }
+  bbs_entry:
+    grid: { columns: 3, rows: 1 }
+    buttons:
+      - { label: "Write", command: "w" }
+      - { label: "Read", command: "r" }
+      - { label: "Exit", command: "e" }
+  bbs_list:
+    grid: { columns: 5, rows: 3 }
+    buttons:
+      - { label: "^", command: "^", gridArea: "1 / 1" }
+      - { label: "W", command: "w", gridArea: "2 / 1" }
+      - { label: "Y", command: "y", gridArea: "1 / 2" }
+      - { label: "N", command: "n", gridArea: "1 / 4" }
+      - { label: "↑", command: "k", gridArea: "1 / 3", style: "font-size: 1.5em;" }
+      - { label: "*", command: "*", gridArea: "2 / 5" }
+      - { label: "←", command: "h", gridArea: "2 / 2", style: "font-size: 1.5em;" }
+      - { label: "Enter", command: "\r", gridArea: "2 / 3" }
+      - { label: "→", command: "l", gridArea: "2 / 4", style: "font-size: 1.5em;" }
+      - { label: "?", command: "?", gridArea: "3 / 1" }
+      - { label: "↓", command: "j", gridArea: "3 / 3", style: "font-size: 1.5em;" }
+      - { label: "E", command: "e", gridArea: "3 / 5" }
+  chat:
+    grid: { columns: 3, rows: 2 }
+    buttons:
+      - { label: "Exit", command: "^\r" }
+      - { label: "Telegram", command: "!\r" }
+      - { label: "Lock", command: "!l\r" }
+      - { label: "Unlock", command: "!u\r" }
+      - { label: "Who", command: "!w\r" }
+      - { label: "RoomInfo", command: "!r\r" }
+  mail_main:
+    grid: { columns: 4, rows: 1 }
+    buttons:
+      - { label: "Write", command: "w\r" }
+      - { label: "Read", command: "r\r" }
+      - { label: "List", command: "l\r" }
+      - { label: "Exit", command: "e\r" }
+  user_pref:
+    grid: { columns: 3, rows: 5 }
+    buttons:
+      - { label: "1", command: "1" }
+      - { label: "2", command: "2" }
+      - { label: "3", command: "3" }
+      - { label: "4", command: "4" }
+      - { label: "5", command: "5" }
+      - { label: "6", command: "6" }
+      - { label: "7", command: "7" }
+      - { label: "8", command: "8" }
+      - { label: "9", command: "9" }
+      - { label: "?", command: "?" }
+      - { label: "0", command: "0" }
+      - { label: "", command: "", style: "visibility: hidden;" }
+      - { label: "Enter", command: "\r", gridArea: "5 / 1 / 6 / 4" }
+  plugin_menu:
+    grid: { columns: 3, rows: 5 }
+    buttons:
+      - { label: "1", command: "1" }
+      - { label: "2", command: "2" }
+      - { label: "3", command: "3" }
+      - { label: "4", command: "4" }
+      - { label: "5", command: "5" }
+      - { label: "6", command: "6" }
+      - { label: "7", command: "7" }
+      - { label: "8", command: "8" }
+      - { label: "9", command: "9" }
+      - { label: "?", command: "?" }
+      - { label: "0", command: "0" }
+      - { label: "", command: "", style: "visibility: hidden;" }
+      - { label: "Enter", command: "\r", gridArea: "5 / 1 / 6 / 4" }

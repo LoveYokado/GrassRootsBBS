@@ -35,6 +35,20 @@ def load_app_config_from_path(config_file_path):
         raise
 
 
+def save_app_config(config_data, config_file_path):
+    """
+    設定辞書を指定されたパスのTOMLファイルに保存する。
+    """
+    try:
+        with open(config_file_path, 'w', encoding='utf-8') as f:
+            toml.dump(config_data, f)
+        logging.info(f"設定ファイルを保存しました: {config_file_path}")
+        return True
+    except Exception as e:
+        logging.error(f"設定ファイル '{config_file_path}' の保存エラー: {e}")
+        return False
+
+
 def verify_password(stored_password_hash, salt_hex, provided_password):
     """
     パスワードと保存されたハッシュの検証
@@ -256,7 +270,9 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 who INT DEFAULT 2,
                 default_exploration_list TEXT,
                 hamlet INT DEFAULT 2,
-                login_message TEXT
+                login_message TEXT,
+                backup_schedule_enabled BOOLEAN DEFAULT 0,
+                backup_schedule_cron VARCHAR(255) DEFAULT '0 3 * * *'
             )
             """,
             """
