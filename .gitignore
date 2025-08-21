@@ -7,5 +7,5 @@ logs/*
 data/bbs.db
 data/attachments/*
 data/backups/*
-docker-comose.yml
 setting/config.toml
+docker-compose.yml
