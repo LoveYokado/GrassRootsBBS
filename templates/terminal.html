@@ -2753,15 +2753,7 @@
         // --- モバイルでのキーボード表示と自動ズームに対応する最終手段 ---
         if ('visualViewport' in window) {
             const vv = window.visualViewport;
-            const controls = [
-                document.getElementById('mobile-bbs-controls'),
-                document.getElementById('mobile-chat-controls'),
-                document.getElementById('mobile-userpref-controls'),
-                document.getElementById('mobile-mail-controls'),
-                document.getElementById('mobile-bbs-entry-controls'),
-                document.getElementById('mobile-top-menu-controls'),
-                document.getElementById('mobile-plugin-menu-controls')
-            ];
+            const controlsContainer = document.getElementById('mobile-controls-container');
 
             const handleViewportResize = () => {
                 const isMobile = window.matchMedia("(max-width: 992px)").matches;
@@ -2774,9 +2766,9 @@
                 document.body.style.height = `${vv.height}px`;
 
                 const keyboardHeight = window.innerHeight - vv.height;
-                controls.forEach(control => {
-                    if (control) { control.style.bottom = (keyboardHeight > 80) ? `${keyboardHeight}px` : '0px'; }
-                });
+                if (controlsContainer) {
+                    controlsContainer.style.bottom = (keyboardHeight > 80) ? `${keyboardHeight}px` : '0px';
+                }
                 // レイアウト変更が適用された後にターミナルをリサイズ
                 setTimeout(() => { try { fitAddon.fit(); } catch (e) { /* ignore */ } }, 100);
             };
