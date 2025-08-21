@@ -669,7 +669,7 @@
             background-color: #444;
             border: 1px solid #666;
             color: #eee;
-            font-size: 1.2em;
+            font-size: 1.0em;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -677,7 +677,7 @@
             user-select: none;
             font-family: '"M PLUS 1m", "Courier New", monospace';
             font-weight: bold;
-            padding: 0.6em 0;
+            padding: 0.5em 0;
             /* ボタンの高さを確保 (約2倍) */
         }
 
@@ -1766,10 +1766,12 @@
             });
         }
 
+        const isMobileForTermInit = window.matchMedia("(max-width: 992px)").matches;
         const term = new Terminal({
             cursorBlink: true,
             fontSize: 16, // 固定サイズなので少し見やすく
-            scrollback: 0, // スクロールバックバッファを行数と同じにし、スクロールバーを非表示にする
+            // モバイルではスクロールバックを有効にし、PCでは無効にする
+            scrollback: isMobileForTermInit ? 1000 : 0,
         });
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
@@ -2489,13 +2491,14 @@
             applyTheme(savedTheme);
 
             // フォント
-            const isMobile = window.matchMedia("(max-width: 992px)").matches;
-            const defaultFontSize = isMobile ? '28' : '12'; // モバイルは28px, PCは12pxをデフォルトに
+            const isMobileForLoad = window.matchMedia("(max-width: 992px)").matches;
+            const defaultFontSize = isMobileForLoad ? '28' : '12'; // モバイルは28px, PCは12pxをデフォルトに
             const savedFontName = localStorage.getItem('terminalFont') || 'M PLUS 1m'; // フォントはそのまま
             applyFont(savedFontName);
 
             // フォントサイズ
-            const savedFontSize = localStorage.getItem('terminalFontSize') || defaultFontSize;
+            const storageKey = isMobileForLoad ? 'terminalFontSizeMobile' : 'terminalFontSizePC';
+            const savedFontSize = localStorage.getItem(storageKey) || defaultFontSize;
             applyFontSize(savedFontSize);
 
             // 速度
