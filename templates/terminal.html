@@ -2174,6 +2174,27 @@
             }
         });
 
+        // --- Helper function to hide all mobile control panels ---
+        function hideAllMobileControls() {
+            const controls = [
+                document.getElementById('mobile-bbs-controls'),
+                document.getElementById('mobile-chat-controls'),
+                document.getElementById('mobile-userpref-controls'),
+                document.getElementById('mobile-mail-controls'),
+                document.getElementById('mobile-bbs-entry-controls'),
+                document.getElementById('mobile-top-menu-controls'),
+                document.getElementById('mobile-plugin-menu-controls')
+            ];
+            const monitorScreen = document.querySelector('.monitor-screen');
+
+            controls.forEach(control => {
+                if (control) {
+                    control.classList.remove('visible');
+                }
+            });
+            monitorScreen.style.paddingBottom = '';
+        }
+
         socket.on('server_output', data => {
             // Passkey登録フロー開始シーケンスをチェック
             const passkeyRegisterPattern = /\x1b\[\?2027h/;
@@ -2191,6 +2212,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (userprefMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2210,6 +2232,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (chatMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2229,6 +2252,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (mailMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2248,6 +2272,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (bbsEntryMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2267,6 +2292,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (pluginMenuMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2286,6 +2312,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (topMenuMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2305,6 +2332,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (match[1] === 'h') { // 'h' for show (表示)
+                    hideAllMobileControls(); // 他のパネルをすべて隠す
                     mobileControls.classList.add('visible');
                     // コントロールの高さを計算して、ターミナルコンテナのpadding-bottomに設定
                     const controlsHeight = mobileControls.offsetHeight;
@@ -2767,6 +2795,30 @@
                 // これにより、ブラウザがズームしてもレイアウトが追従し、画面全体が表示される。
                 document.body.style.height = `${vv.height}px`;
 
+                const keyboardHeight = window.innerHeight - vv.height;
+                const isKeyboardVisible = keyboardHeight > 80;
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (isKeyboardVisible) {
+                    // キーボード表示時、ボタンのためのパディングをなくす
+                    monitorScreen.style.paddingBottom = '0px';
+                } else {
+                    // キーボードが非表示になったら、表示されているボタンパネルを探す準備
+                    const controls = [
+                        document.getElementById('mobile-bbs-controls'),
+                        document.getElementById('mobile-chat-controls'),
+                        document.getElementById('mobile-userpref-controls'),
+                        document.getElementById('mobile-mail-controls'),
+                        document.getElementById('mobile-bbs-entry-controls'),
+                        document.getElementById('mobile-top-menu-controls'),
+                        document.getElementById('mobile-plugin-menu-controls')
+                    ];
+                    // 表示されているコントロールを探して、その高さ分だけパディングを復元
+                    const visibleControl = controls.find(c => c && c.classList.contains('visible'));
+                    if (visibleControl) {
+                        monitorScreen.style.paddingBottom = `${visibleControl.offsetHeight}px`;
+                    }
+                }
                 // レイアウト変更が適用された後にターミナルをリサイズ
                 setTimeout(() => { try { fitAddon.fit(); } catch (e) { /* ignore */ } }, 100);
             };
