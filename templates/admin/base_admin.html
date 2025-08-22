@@ -362,17 +362,25 @@
     </div>
     <nav class="bottom-nav">
         <div class="nav-row">
-            <a href="{{ url_for('admin.dashboard') }}">{{ g.texts.nav.dashboard }}</a>
-            <a href="{{ url_for('admin.who_online') }}">{{ g.texts.nav.who_online }}</a>
-            <a href="{{ url_for('admin.user_list') }}">{{ g.texts.nav.user_management }}</a>
-            <a href="{{ url_for('admin.board_list') }}">{{ g.texts.nav.board_management }}</a>
-            <a href="{{ url_for('admin.article_search') }}">{{ g.texts.nav.article_management }}</a>
+            <a href="{{ url_for('admin.dashboard') }}">{{ g.texts.get('nav', {}).get('dashboard', 'Dashboard') }}</a>
+            <a href="{{ url_for('admin.who_online') }}">{{ g.texts.get('nav', {}).get('who_online', 'Who''s Online')
+                }}</a>
+            <a href="{{ url_for('admin.user_list') }}">{{ g.texts.get('nav', {}).get('user_management', 'User
+                Management') }}</a>
+            <a href="{{ url_for('admin.board_list') }}">{{ g.texts.get('nav', {}).get('board_management', 'Board
+                Management') }}</a>
+            <a href="{{ url_for('admin.article_search') }}">{{ g.texts.get('nav', {}).get('article_management', 'Article
+                Management') }}</a>
         </div>
         <div class="nav-row">
-            <a href="{{ url_for('admin.system_settings') }}">{{ g.texts.nav.system_settings }}</a>
-            <a href="{{ url_for('admin.backup_management') }}">{{ g.texts.nav.data_management }}</a>
-            <a href="{{ url_for('admin.config_editor') }}">{{ g.texts.nav.config_editor }}</a>
-            <a href="{{ url_for('admin.plugin_management') }}">{{ g.texts.nav.plugins }}</a>
+            <a href="{{ url_for('admin.system_settings') }}">{{ g.texts.get('nav', {}).get('system_settings', 'System
+                Settings') }}</a>
+            <a href="{{ url_for('admin.backup_management') }}">{{ g.texts.get('nav', {}).get('data_management', 'Data
+                Management') }}</a>
+            <a href="{{ url_for('admin.config_editor') }}">{{ g.texts.get('nav', {}).get('config_editor', 'Config
+                Editor') }}</a>
+            <a href="{{ url_for('admin.plugin_management') }}">{{ g.texts.get('nav', {}).get('plugins', 'Plugin
+                Management') }}</a>
         </div>
     </nav>
 
