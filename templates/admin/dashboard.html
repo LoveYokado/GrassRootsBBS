@@ -17,7 +17,45 @@
             <p><span>Total Boards:</span> <span>{{ stats.total_boards }}</span></p>
             <p><span>Total Articles:</span> <span>{{ stats.total_articles }}</span></p>
             <p><span><a href="{{ url_for('admin.who_online') }}" style="color: #87cefa;">Who's Online:</a></span>
-                <span>{{ stats.online_users }}</span></p>
+                <span>{{ stats.online_users }}</span>
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-heartbeat me-1"></i>
+        System Health
+    </div>
+    <div class="card-body" id="system-health-container">
+        <div class="health-grid">
+            <div class="health-item">
+                <h5>CPU Usage</h5>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: {{ system_health.cpu_percent }}%;">
+                        <span>{{ "%.1f"|format(system_health.cpu_percent) }}%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="health-item">
+                <h5>Memory Usage</h5>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: {{ system_health.memory_percent }}%;">
+                        <span>{{ "%.1f"|format(system_health.memory_percent) }}%</span>
+                    </div>
+                </div>
+                <small>{{ system_health.memory_used_gb }}GB / {{ system_health.memory_total_gb }}GB</small>
+            </div>
+            <div class="health-item">
+                <h5>Disk Usage</h5>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: {{ system_health.disk_percent }}%;">
+                        <span>{{ "%.1f"|format(system_health.disk_percent) }}%</span>
+                    </div>
+                </div>
+                <small>{{ system_health.disk_used_gb }}GB / {{ system_health.disk_total_gb }}GB</small>
+            </div>
         </div>
     </div>
 </div>

@@ -1,7 +1,6 @@
 services:
   grassrootsbbs:
     build: .
-    # Nginx経由でアクセスするため、直接ポートを公開する必要はなくなります
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs # アプリケーションログを永続化

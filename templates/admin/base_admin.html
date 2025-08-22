@@ -17,9 +17,9 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2em;
-            padding-bottom: 70px;
+            padding: 2em 2em 120px 2em;
             /* 下部ナビゲーションの高さ分 */
+
         }
 
         h1 {
@@ -34,29 +34,41 @@
             background-color: #000;
             padding: 10px 0;
             display: flex;
-            justify-content: center;
-            gap: 10px;
+            flex-direction: column;
+            /* 縦に並べる */
+            align-items: center;
+            /* 中央寄せ */
+            gap: 5px;
+            /* 行間のギャップ */
             box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3);
             z-index: 100;
         }
 
         .bottom-nav a {
-            background-color: #FFFFFF;
-            color: #000000;
             padding: 5px 15px;
             font-size: 0.9em;
             font-weight: bold;
             cursor: pointer;
             user-select: none;
             border-radius: 3px;
+            border: 1px solid #00FF00;
             text-decoration: none;
+            background-color: #003300;
+            color: #00FF00;
             text-align: center;
             box-sizing: border-box;
-            transition: background-color 0.2s, color 0.2s;
+            transition: background-color 0.2s;
         }
 
         .bottom-nav a:hover {
-            background-color: #e0e0e0;
+            background-color: #005500;
+        }
+
+        .nav-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            /* ボタン間のギャップ */
         }
 
         table {
@@ -279,6 +291,56 @@
             font-weight: bold;
             color: #fff;
         }
+
+        /* System Health Styles */
+        .health-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5em;
+        }
+
+        .health-item h5 {
+            margin-top: 0;
+            margin-bottom: 0.5em;
+            font-size: 1em;
+            color: #00FF00;
+        }
+
+        .progress-bar-container {
+            background-color: #222;
+            border-radius: 5px;
+            overflow: hidden;
+            height: 25px;
+            margin-bottom: 0.5em;
+            border: 1px solid #444;
+        }
+
+        .progress-bar {
+            background-color: #008800;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: bold;
+            transition: width 0.5s ease-in-out;
+        }
+
+        .health-item small {
+            color: #aaa;
+        }
+
+        .progress-bar.warning {
+            background-color: #ffc107;
+            /* Bootstrap's warning yellow */
+            color: #212529;
+            /* Dark text for yellow background */
+        }
+
+        .progress-bar.danger {
+            background-color: #dc3545;
+            /* Bootstrap's danger red */
+        }
     </style>
 </head>
 
@@ -299,14 +361,19 @@
         {% block content %}{% endblock %}
     </div>
     <nav class="bottom-nav">
-        <a href="{{ url_for('admin.dashboard') }}">{{ g.texts.nav.dashboard }}</a>
-        <a href="{{ url_for('admin.who_online') }}">{{ g.texts.nav.who_online }}</a>
-        <a href="{{ url_for('admin.user_list') }}">{{ g.texts.nav.user_management }}</a>
-        <a href="{{ url_for('admin.board_list') }}">{{ g.texts.nav.board_management }}</a>
-        <a href="{{ url_for('admin.article_search') }}">{{ g.texts.nav.article_management }}</a>
-        <a href="{{ url_for('admin.system_settings') }}">{{ g.texts.nav.system_settings }}</a>
-        <a href="{{ url_for('admin.backup_management') }}">{{ g.texts.nav.data_management }}</a>
-        <a href="{{ url_for('admin.plugin_management') }}">{{ g.texts.nav.plugins }}</a>
+        <div class="nav-row">
+            <a href="{{ url_for('admin.dashboard') }}">{{ g.texts.nav.dashboard }}</a>
+            <a href="{{ url_for('admin.who_online') }}">{{ g.texts.nav.who_online }}</a>
+            <a href="{{ url_for('admin.user_list') }}">{{ g.texts.nav.user_management }}</a>
+            <a href="{{ url_for('admin.board_list') }}">{{ g.texts.nav.board_management }}</a>
+            <a href="{{ url_for('admin.article_search') }}">{{ g.texts.nav.article_management }}</a>
+        </div>
+        <div class="nav-row">
+            <a href="{{ url_for('admin.system_settings') }}">{{ g.texts.nav.system_settings }}</a>
+            <a href="{{ url_for('admin.backup_management') }}">{{ g.texts.nav.data_management }}</a>
+            <a href="{{ url_for('admin.config_editor') }}">{{ g.texts.nav.config_editor }}</a>
+            <a href="{{ url_for('admin.plugin_management') }}">{{ g.texts.nav.plugins }}</a>
+        </div>
     </nav>
 
     {% block scripts %}{% endblock %}

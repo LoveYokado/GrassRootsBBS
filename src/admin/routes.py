@@ -5,6 +5,9 @@ import os
 from datetime import datetime, timedelta
 import time
 from .. import database, util, backup_util, plugin_manager
+import psutil
+import toml
+import shutil
 
 # ブループリントを作成
 # 'admin' はブループリントの名前
@@ -25,11 +28,7 @@ def _process_texts_for_mode(node, menu_mode):
     """
     if isinstance(node, dict):
         # 'mode1', 'mode2', 'mode3' のようなキーを持つ末端の辞書かチェック
-        mode_key = f"mode{menu_mode}"
-        # 'mode_3' のようなタイポも許容する
-        if f"mode_{menu_mode}" in node:
-            mode_key = f"mode_{menu_mode}"
-
+        mode_key = f"mode_{menu_mode}"  # e.g., 'mode_1', 'mode_2'
         if mode_key in node:
             return node[mode_key]
         else:
@@ -63,6 +62,19 @@ def dashboard():
         'online_users': online_count
     }
 
+    # --- System Health ---
+    disk_info = shutil.disk_usage('/')
+    memory_info = psutil.virtual_memory()
+    system_health = {
+        'cpu_percent': psutil.cpu_percent(interval=0.1),
+        'memory_percent': memory_info.percent,
+        'memory_used_gb': f"{memory_info.used / (1024**3):.1f}",
+        'memory_total_gb': f"{memory_info.total / (1024**3):.1f}",
+        'disk_percent': (disk_info.used / disk_info.total) * 100,
+        'disk_used_gb': f"{disk_info.used / (1024**3):.1f}",
+        'disk_total_gb': f"{disk_info.total / (1024**3):.1f}",
+    }
+
     # --- グラフ用データの準備 ---
     # 過去7日間の日付ラベルを生成
     labels = [(datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
@@ -91,7 +103,8 @@ def dashboard():
                            title=g.texts.get('dashboard', {}).get(
                                'title', 'Dashboard'),
                            stats=stats,
-                           chart_data=json.dumps(chart_data))
+                           chart_data=json.dumps(chart_data),
+                           system_health=system_health)
 
 
 @admin_bp.route('/who')
@@ -859,3 +872,45 @@ def toggle_plugin_status():
         flash(f"Failed to update status for plugin '{plugin_id}'.", 'danger')
 
     return redirect(url_for('admin.plugin_management'))
+
+
+@admin_bp.route('/config-editor', methods=['GET', 'POST'])
+@sysop_required
+def config_editor():
+    """設定ファイル(config.toml)エディタ"""
+    config_path = os.path.join(
+        backup_util.PROJECT_ROOT, 'setting', 'config.toml')
+
+    if request.method == 'POST':
+        new_content = request.form.get('config_content', '')
+
+        # TOML形式として正しいか検証
+        try:
+            parsed_config = toml.loads(new_content)
+        except toml.TomlDecodeError as e:
+            flash(f"Invalid TOML format. Changes not saved: {e}", 'danger')
+            return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=new_content)
+
+        # ファイルに保存
+        try:
+            # バックアップを作成
+            backup_path = config_path + '.bak'
+            if os.path.exists(config_path):
+                shutil.copy2(config_path, backup_path)
+
+            if util.save_app_config(parsed_config, config_path):
+                flash(
+                    'Configuration file saved successfully. A restart is often required for changes to take effect.', 'success')
+            return redirect(url_for('admin.config_editor'))
+        except Exception as e:
+            flash(f"Error saving configuration file: {e}", 'danger')
+            return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=new_content)
+
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config_content = f.read()
+    except Exception as e:
+        config_content = f"# Error reading config file: {e}"
+        flash(f'Error reading configuration file: {e}', 'danger')
+
+    return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=config_content)

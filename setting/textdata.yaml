@@ -2127,6 +2127,10 @@ admin:
       mode_1: "データ管理"
       mode_2: "データ管理"
       mode_3: "Data Management"
+    config_editor:
+      mode_1: "設定エディタ"
+      mode_2: "設定エディタ"
+      mode_3: "Config Editor"
     plugins:
       mode_1: "プラグイン管理"
       mode_2: "プラグイン管理"
@@ -2168,6 +2172,27 @@ admin:
       mode_1: "記事投稿数"
       mode_2: "記事投稿数"
       mode_3: "Article Posts"
+  config_editor:
+    title:
+      mode_1: "設定ファイルエディタ"
+      mode_2: "設定ファイルエディタ"
+      mode_3: "Configuration Editor"
+    description_1:
+      mode_1: "ここでは <code>config.toml</code> ファイルを直接編集できます。"
+      mode_2: "ここでは <code>config.toml</code> ファイルを直接編集できます。"
+      mode_3: "You can directly edit the <code>config.toml</code> file here."
+    description_2:
+      mode_1: "設定を誤るとアプリケーションが起動しなくなる可能性があります。編集には十分注意してください。"
+      mode_2: "設定を誤るとアプリケーションが起動しなくなる可能性があります。編集には十分注意してください。"
+      mode_3: "Incorrect settings can prevent the application from starting. Please be very careful when editing."
+    description_3:
+      mode_1: "変更を適用するには、多くの場合アプリケーションの再起動が必要です。"
+      mode_2: "変更を適用するには、多くの場合アプリケーションの再起動が必要です。"
+      mode_3: "A restart is often required to apply changes."
+    save_button:
+      mode_1: "変更を保存"
+      mode_2: "変更を保存"
+      mode_3: "Save Changes"
 
 
 
