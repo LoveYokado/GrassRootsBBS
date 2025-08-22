@@ -90,6 +90,24 @@
             z-index: 10;
         }
 
+        #scroll-to-bottom-btn {
+            display: none;
+            /* デフォルトでは非表示 */
+            position: absolute;
+            top: 55px;
+            /* ハンバーガーボタンの下に配置 */
+            right: 15px;
+            font-size: 1.8em;
+            /* アイコンサイズを調整 */
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #dbd4a3;
+            /* ハンバーガーボタンと色を合わせる */
+            z-index: 10;
+            padding: 0;
+        }
+
         .sidenav {
             height: 100%;
             width: 0;
@@ -530,6 +548,11 @@
             #hamburger-btn {
                 display: block;
                 /* 狭い画面ではハンバーガーメニューを表示 */
+            }
+
+            #scroll-to-bottom-btn {
+                display: block;
+                /* モバイルで表示 */
             }
 
             #multiline-editor-window,
@@ -1456,6 +1479,7 @@
     <input type="file" id="attachment-input" style="display: none;">
 
     <button id="hamburger-btn">&#9776;</button>
+    <button id="scroll-to-bottom-btn">&darr;</button>
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -3005,6 +3029,14 @@
                     closeNav(); // メニュー項目をクリックしたらメニューを閉じる
                 });
                 sidenav.appendChild(link);
+            }
+
+            // --- 画面右上の「一番下に移動」ボタンのイベントリスナー ---
+            const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
+            if (scrollToBottomBtn) {
+                scrollToBottomBtn.addEventListener('click', () => {
+                    term.scrollToBottom();
+                });
             }
         });
     </script>
