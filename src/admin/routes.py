@@ -4,6 +4,7 @@ import json
 import os
 from datetime import datetime, timedelta
 import time
+import logging
 from .. import database, util, backup_util, plugin_manager
 import psutil
 import toml
@@ -914,3 +915,65 @@ def config_editor():
         flash(f'Error reading configuration file: {e}', 'danger')
 
     return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=config_content)
+
+
+@admin_bp.route('/broadcast', methods=['POST'])
+@sysop_required
+def broadcast():
+    """オンラインユーザーにブロードキャストメッセージを送信する"""
+    message = request.form.get('message', '').strip()
+
+    if not message:
+        flash(g.texts.get('broadcast', {}).get(
+            'flash_empty', 'Message cannot be empty.'), 'warning')
+        return redirect(url_for('admin.dashboard'))
+
+    # 循環参照を避けるため、関数内でインポート
+    from .. import webapp
+    online_members = webapp.get_webapp_online_members()
+
+    if not online_members:
+        flash(g.texts.get('broadcast', {}).get(
+            'flash_no_users', 'No users are currently online.'), 'info')
+        return redirect(url_for('admin.dashboard'))
+
+    sender_name = session.get('username', 'SYSOP')
+    count = 0
+    for sid, member_data in online_members.items():
+        recipient_name = member_data.get('username')
+        if recipient_name:
+            database.save_telegram(
+                sender_name, recipient_name, message, int(time.time()))
+            count += 1
+
+    if count > 0:
+        success_message = g.texts.get('broadcast', {}).get(
+            'flash_success', 'Broadcast message sent to {count} online users.').format(count=count)
+        flash(success_message, 'success')
+    else:
+        flash(g.texts.get('broadcast', {}).get(
+            'flash_no_users', 'No users are currently online.'), 'info')
+
+    return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/restart', methods=['POST'])
+@sysop_required
+def restart_server():
+    """サーバーを再起動する"""
+    flash_message = g.texts.get('system_actions', {}).get(
+        'flash_restarting', 'Server is restarting... Please reload the page to reconnect.')
+    flash(flash_message, 'warning')
+
+    # レスポンスをクライアントに送信する時間を確保するために、
+    # 別のスレッドで少し待ってから終了処理を行う。
+    def do_restart():
+        time.sleep(2)  # 2秒待機
+        logging.info("SysOp triggered server restart.")
+        os._exit(0)  # Gunicornワーカーを終了させる。Dockerがコンテナを再起動する。
+
+    import threading
+    threading.Thread(target=do_restart).start()
+
+    # flashメッセージを表示させるために、一度ダッシュボードにリダイレクトする
+    return redirect(url_for('admin.dashboard'))

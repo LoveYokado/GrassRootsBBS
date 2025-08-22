@@ -20,6 +20,22 @@
                 <span>{{ stats.online_users }}</span>
             </p>
         </div>
+
+        <!-- Broadcast Card -->
+        <div style="margin-top: 2em;">
+            <h2>{{ g.texts.get('broadcast', {}).get('title', 'Broadcast Message') }}</h2>
+            <p>{{ g.texts.get('broadcast', {}).get('description', 'Send a message to all online users.') }}</p>
+            <form action="{{ url_for('admin.broadcast') }}" method="post">
+                <div class="form-group">
+                    <textarea name="message" class="form-control" rows="3"
+                        placeholder="{{ g.texts.get('broadcast', {}).get('placeholder', 'Enter your message...') }}"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit">{{ g.texts.get('broadcast', {}).get('send_button', 'Send Broadcast')
+                        }}</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -58,6 +74,18 @@
             </div>
         </div>
     </div>
+</div>
+
+<div class="danger-zone" style="margin-top: 2em;">
+    <h2>{{ g.texts.get('system_actions', {}).get('restart_server_title', 'Restart Server') }}</h2>
+    <p>{{ g.texts.get('system_actions', {}).get('restart_server_description', 'Restart the server to apply configuration
+        changes or plugin updates. The service will be unavailable for a few seconds during the restart.') }}
+    </p>
+    <form action="{{ url_for('admin.restart_server') }}" method="post"
+        onsubmit="return confirm('Are you sure you want to restart the server?');">
+        <button type="submit" class="danger-button">{{ g.texts.get('system_actions', {}).get('restart_button', 'Restart
+            Server') }}</button>
+    </form>
 </div>
 
 <script>

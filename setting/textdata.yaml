@@ -2172,6 +2172,35 @@ admin:
       mode_1: "記事投稿数"
       mode_2: "記事投稿数"
       mode_3: "Article Posts"
+  broadcast:
+    title:
+      mode_1: "ブロードキャストメッセージ"
+      mode_2: "ブロードキャストメッセージ"
+      mode_3: "Broadcast Message"
+    description:
+      mode_1: "オンライン中の全ユーザーにメッセージを送信します。"
+      mode_2: "オンライン中の全ユーザーにメッセージを送信します。"
+      mode_3: "Send a message to all online users."
+    placeholder:
+      mode_1: "メッセージを入力..."
+      mode_2: "メッセージを入力..."
+      mode_3: "Enter your message..."
+    send_button:
+      mode_1: "ブロードキャスト送信"
+      mode_2: "ブロードキャスト送信"
+      mode_3: "Send Broadcast"
+    flash_empty:
+      mode_1: "メッセージが空です。"
+      mode_2: "メッセージが空です。"
+      mode_3: "Message cannot be empty."
+    flash_no_users:
+      mode_1: "現在オンラインのユーザーがいません。"
+      mode_2: "現在オンラインのユーザーがいません。"
+      mode_3: "No users are currently online."
+    flash_success:
+      mode_1: "{count}人のオンラインユーザーにメッセージを送信しました。"
+      mode_2: "{count}人のオンラインユーザーにメッセージを送信しました。"
+      mode_3: "Broadcast message sent to {count} online users."
   config_editor:
     title:
       mode_1: "設定ファイルエディタ"
@@ -2193,6 +2222,23 @@ admin:
       mode_1: "変更を保存"
       mode_2: "変更を保存"
       mode_3: "Save Changes"
+  system_actions:
+    restart_server_title:
+      mode_1: "サーバー再起動"
+      mode_2: "サーバー再起動"
+      mode_3: "Restart Server"
+    restart_server_description:
+      mode_1: "設定ファイルの変更やプラグインの更新を適用するためにサーバーを再起動します。再起動中は数秒間サービスが停止します。"
+      mode_2: "設定ファイルの変更やプラグインの更新を適用するためにサーバーを再起動します。再起動中は数秒間サービスが停止します。"
+      mode_3: "Restart the server to apply configuration changes or plugin updates. The service will be unavailable for a few seconds during the restart."
+    restart_button:
+      mode_1: "サーバーを再起動"
+      mode_2: "サーバーを再起動"
+      mode_3: "Restart Server"
+    flash_restarting:
+      mode_1: "サーバーを再起動しています... ページをリロードして再接続してください。"
+      mode_2: "サーバーを再起動しています... ページをリロードして再接続してください。"
+      mode_3: "Server is restarting... Please reload the page to reconnect."
 
 
 
