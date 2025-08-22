@@ -796,6 +796,13 @@ def login():
                         ).replace('\r\n', '')
                         logging.warning(
                             f"ログイン試行成功後のマルチログイン検出: {username}")
+                        # データベースにログイン失敗イベントを記録
+                        database.log_access_event(
+                            ip_address=request.remote_addr,
+                            event_type='LOGIN_FAILURE',
+                            username=username,
+                            message='Multi-login detected.'
+                        )
                         return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
             # --- ここまで ---
 
@@ -814,6 +821,15 @@ def login():
             session['menu_mode'] = user_auth_info['menu_mode'] if 'menu_mode' in user_auth_info.keys(
             ) else '2'
             logging.info(f"WebUI Login Success: {username}")
+
+            # データベースにログイン成功イベントを記録
+            database.log_access_event(
+                ip_address=request.remote_addr,
+                event_type='LOGIN_SUCCESS',
+                user_id=user_auth_info['id'],
+                username=user_auth_info['name'],
+                message='Password authentication successful.'
+            )
 
             # DBのログイン時刻を更新
             database.update_record(
@@ -838,10 +854,25 @@ def login():
                     ).format(lockout_minutes=lockout_minutes)
                     logging.warning(
                         f"アカウントをロックしました: {username} (試行回数超過)")
+                    # データベースにアカウントロックイベントを記録
+                    database.log_access_event(
+                        ip_address=request.remote_addr,
+                        event_type='ACCOUNT_LOCKED',
+                        username=username,
+                        message=f"Account locked for user '{username}' due to too many failed attempts."
+                    )
                 else:
                     error = 'IDまたはパスワードが違います。'
             else:
                 error = 'IDまたはパスワードが違います。'
+
+            # データベースにログイン失敗イベントを記録
+            database.log_access_event(
+                ip_address=request.remote_addr,
+                event_type='LOGIN_FAILURE',
+                username=username,
+                message=f"Invalid password for user '{username}'."
+            )
 
             logging.warning(f"WebUI Login Failed: {username}")
             return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message)
@@ -974,6 +1005,14 @@ def passkey_verify_auth():
         session['userlevel'] = user_data['level']
         session['menu_mode'] = user_data.get('menu_mode', '2')
         logging.info(f"WebUI Passkey Login Success: {user_data['name']}")
+        # データベースにログイン成功イベントを記録
+        database.log_access_event(
+            ip_address=request.remote_addr,
+            event_type='LOGIN_SUCCESS',
+            user_id=user_data['id'],
+            username=user_data['name'],
+            message='Passkey authentication successful.'
+        )
         database.update_record(
             'users', {'lastlogin': int(time.time())}, {'id': user_data['id']})
         return jsonify({"verified": True})
@@ -1081,6 +1120,14 @@ def handle_connect(auth=None):
     display_name = util.get_display_name(username, ip_addr)
     logging.getLogger('grbbs.access').info(
         f"CONNECT - User: {username}, DisplayName: {display_name}, IP: {ip_addr}, SID: {request.sid}")
+    # データベースに接続イベントを記録
+    database.log_access_event(
+        ip_address=ip_addr,
+        event_type='CONNECT',
+        user_id=session.get('user_id'),
+        username=username,
+        message=f"User connected with SID {request.sid}."
+    )
 
     sid = request.sid
     # ユーザーセッション情報を辞書としてハンドラに渡す
@@ -1128,6 +1175,14 @@ def handle_disconnect():
             'display_name', username)
     logging.getLogger('grbbs.access').info(
         f"DISCONNECT - User: {username}, DisplayName: {display_name}, SID: {sid}")
+    # データベースに切断イベントを記録
+    database.log_access_event(
+        ip_address=request.remote_addr or 'N/A',
+        event_type='DISCONNECT',
+        user_id=session.get('user_id'),
+        username=username,
+        message=f"User disconnected with SID {sid}."
+    )
 
     if sid in client_states:
         client_states[sid].stop_worker()  # これで両方のスレッドが停止する

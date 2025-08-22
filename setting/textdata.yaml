@@ -2135,6 +2135,10 @@ admin:
       mode_1: "プラグイン管理"
       mode_2: "プラグイン管理"
       mode_3: "Plugin Management"
+    access_log:
+      mode_1: "アクセスログ"
+      mode_2: "アクセスログ"
+      mode_3: "Access Log"
   dashboard:
     title:
       mode_1: "ダッシュボード"
@@ -2222,6 +2226,15 @@ admin:
       mode_1: "変更を保存"
       mode_2: "変更を保存"
       mode_3: "Save Changes"
+  access_log:
+    title:
+      mode_1: "アクセスログビューワー"
+      mode_2: "アクセスログビューワー"
+      mode_3: "Access Log Viewer"
+    description:
+      mode_1: "最近のアクセスログを表示します。新しいログが一番上に表示されます。"
+      mode_2: "最近のアクセスログを表示します。新しいログが一番上に表示されます。"
+      mode_3: "Displays recent access logs. Newest logs are shown at the top."
   system_actions:
     restart_server_title:
       mode_1: "サーバー再起動"

@@ -1,0 +1,66 @@
+{% extends "admin/base_admin.html" %}
+
+{% block content %}
+<div>
+    <h1>{{ g.texts.get('access_log', {}).get('title', 'Access Log Viewer') }}</h1>
+    <p>{{ g.texts.get('access_log', {}).get('description', 'Displays recent access logs. Newest logs are shown at the
+        top.') }}</p>
+
+    <form method="get" action="{{ url_for('admin.access_log_viewer') }}" style="margin-bottom: 1em;">
+        <div style="display: flex; gap: 1em; align-items: flex-end;">
+            <div class="form-group" style="flex-grow: 1;">
+                <label for="ip">IP Address</label>
+                <input type="text" id="ip" name="ip" value="{{ search_params.ip or '' }}">
+            </div>
+            <div class="form-group" style="flex-grow: 1;">
+                <label for="user">Username</label>
+                <input type="text" id="user" name="user" value="{{ search_params.user or '' }}">
+            </div>
+            <div class="form-group" style="flex-grow: 1;">
+                <label for="event">Event Type</label>
+                <input type="text" id="event" name="event" value="{{ search_params.event or '' }}">
+            </div>
+            <div class="form-actions">
+                <button type="submit">Search</button>
+                <a href="{{ url_for('admin.access_log_viewer') }}">Clear</a>
+            </div>
+        </div>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th><a
+                        href="{{ url_for('admin.access_log_viewer', sort_by='timestamp', order=next_order if sort_by == 'timestamp' else 'desc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Timestamp
+                        {% if sort_by == 'timestamp' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.access_log_viewer', sort_by='ip_address', order=next_order if sort_by == 'ip_address' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">IP
+                        Address {% if sort_by == 'ip_address' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.access_log_viewer', sort_by='username', order=next_order if sort_by == 'username' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">User
+                        {% if sort_by == 'username' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.access_log_viewer', sort_by='event_type', order=next_order if sort_by == 'event_type' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Event
+                        Type {% if sort_by == 'event_type' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td style="white-space: nowrap;">{{ log.timestamp | timestamp_to_datetime }}</td>
+                <td>{{ log.ip_address }}</td>
+                <td>{% if log.user_id %}<a href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">{{ log.username
+                        or log.user_id }}</a>{% else %}{{ log.username or 'N/A' }}{% endif %}</td>
+                <td>{{ log.event_type }}</td>
+                <td>{{ log.message }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5">No access logs found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,17 +1,6 @@
-# Git
 .git
 .gitignore
-
-# Docker
-Dockerfile
 .dockerignore
-
-# Environment
-.env
-
-# Python cache
 __pycache__/
 *.pyc
-
-# IDE settings
 .vscode/

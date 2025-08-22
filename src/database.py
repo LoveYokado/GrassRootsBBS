@@ -742,6 +742,26 @@ def apply_migrations():
             logging.info(
                 "データベースマイグレーション: 'server_pref'テーブルに'backup_schedule_cron'カラムを追加しました。")
 
+        # --- access_logsテーブルの存在チェックと作成 ---
+        cursor.execute("SHOW TABLES LIKE 'access_logs'")
+        if not cursor.fetchone():
+            create_query = """
+            CREATE TABLE access_logs (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                timestamp INT NOT NULL,
+                ip_address VARCHAR(45),
+                user_id INT,
+                username VARCHAR(255),
+                event_type VARCHAR(50) NOT NULL,
+                message VARCHAR(255),
+                INDEX (timestamp),
+                INDEX (ip_address),
+                INDEX (user_id)
+            )
+            """
+            cursor.execute(create_query)
+            logging.info("データベースマイグレーション: 'access_logs'テーブルを作成しました。")
+
     except Exception as e:
         logging.error(f"Database migration failed: {e}", exc_info=True)
     finally:
@@ -1151,3 +1171,56 @@ def upsert_plugin_setting(plugin_id: str, is_enabled: bool):
     current_time = int(time.time())
     params = (plugin_id, is_enabled, current_time, current_time)
     return execute_query(query, params) is not None
+
+
+def log_access_event(ip_address, event_type, user_id=None, username=None, message=None):
+    """アクセスイベントをデータベースに記録する"""
+    import time
+    query = """
+        INSERT INTO access_logs (timestamp, ip_address, user_id, username, event_type, message)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """
+    params = (int(time.time()), ip_address, user_id,
+              username, event_type, message)
+    # ログ記録はfire-and-forget。execute_queryがエラーをログに出力してくれる。
+    execute_query(query, params)
+
+
+def get_access_logs(limit=200, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
+    """最近のアクセスログをデータベースから取得する。フィルタリングとソート機能付き。"""
+    query = """
+        SELECT id, timestamp, ip_address, user_id, username, event_type, message
+        FROM access_logs
+    """
+    where_clauses = []
+    params = []
+
+    if ip_address:
+        where_clauses.append("ip_address LIKE %s")
+        params.append(f"%{ip_address}%")
+
+    if username:
+        where_clauses.append("username LIKE %s")
+        params.append(f"%{username}%")
+
+    if event_type:
+        where_clauses.append("event_type = %s")
+        params.append(event_type)
+
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
+
+    # SQLインジェクションを防ぐため、ソートカラムをホワイトリストで検証
+    allowed_sort_columns = ['timestamp',
+                            'ip_address', 'username', 'event_type']
+    if sort_by not in allowed_sort_columns:
+        sort_by = 'timestamp'  # デフォルト値
+
+    # 'asc' または 'desc' 以外は 'desc' にする
+    if order.lower() not in ['asc', 'desc']:
+        order = 'desc'
+
+    query += f" ORDER BY {sort_by} {order} LIMIT %s"
+    params.append(limit)
+
+    return execute_query(query, tuple(params), fetch='all')

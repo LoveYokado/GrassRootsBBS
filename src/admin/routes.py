@@ -977,3 +977,42 @@ def restart_server():
 
     # flashメッセージを表示させるために、一度ダッシュボードにリダイレクトする
     return redirect(url_for('admin.dashboard'))
+
+
+@admin_bp.route('/access-log')
+@sysop_required
+def access_log_viewer():
+    """アクセスログをデータベースから取得して表示する"""
+    # 検索フォームからのパラメータを取得
+    search_ip = request.args.get('ip', '')
+    search_user = request.args.get('user', '')
+    search_event = request.args.get('event', '')
+    # ソート用のパラメータを取得
+    sort_by = request.args.get('sort_by', 'timestamp')  # デフォルトはtimestamp
+    order = request.args.get('order', 'desc')  # デフォルトは降順
+
+    try:
+        logs = database.get_access_logs(
+            limit=200,
+            ip_address=search_ip,
+            username=search_user,
+            event_type=search_event,
+            sort_by=sort_by,
+            order=order
+        )
+    except Exception as e:
+        flash(f"Error retrieving access logs: {e}", 'danger')
+        logs = []
+
+    # 検索条件をテンプレートに渡して、フォームに値を再表示する
+    search_params = {
+        'ip': search_ip,
+        'user': search_user,
+        'event': search_event
+    }
+
+    # 次のソート順を計算
+    next_order = 'desc' if order == 'asc' else 'asc'
+
+    return render_template('admin/log_viewer.html', title=g.texts.get('access_log', {}).get('title', 'Access Log Viewer'), logs=logs, search_params=search_params,
+                           sort_by=sort_by, order=order, next_order=next_order)
