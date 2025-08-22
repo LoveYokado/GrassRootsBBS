@@ -8,6 +8,7 @@ import logging
 import toml
 
 from .grbbs_api import GrbbsApi
+from . import database
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
@@ -21,6 +22,7 @@ _loaded_plugins = {}
 def load_plugins():
     """
     'plugins' ディレクトリをスキャンし、有効なプラグインをロードする。
+    DBの設定を読み込み、無効化されているプラグインはスキップする。
     """
     global _loaded_plugins
     _loaded_plugins = {}
@@ -30,6 +32,9 @@ def load_plugins():
         logging.warning(f"プラグインディレクトリが見つかりません: {PLUGINS_DIR}")
         return
 
+    # 1. DBから現在のプラグイン設定を取得
+    plugin_settings = database.get_all_plugin_settings()
+
     for item in os.listdir(PLUGINS_DIR):
         plugin_dir = os.path.join(PLUGINS_DIR, item)
         metadata_path = os.path.join(plugin_dir, 'plugin.toml')
@@ -37,11 +42,20 @@ def load_plugins():
         if os.path.isdir(plugin_dir) and os.path.exists(metadata_path):
             plugin_id = item
             try:
-                # 1. メタデータを先に読み込む
+                # 2. DBの設定をチェック。なければデフォルトで有効としてDBに登録。
+                is_enabled = plugin_settings.get(plugin_id, True)
+                if plugin_id not in plugin_settings:
+                    database.upsert_plugin_setting(plugin_id, True)
+
+                if not is_enabled:
+                    logging.info(f"プラグイン '{plugin_id}' は無効化されているため、スキップします。")
+                    continue
+
+                # 3. メタデータを先に読み込む
                 with open(metadata_path, 'r', encoding='utf-8') as f:
                     metadata = toml.load(f)
 
-                # 2. 依存関係をチェック
+                # 4. 依存関係をチェック
                 requirements = metadata.get('requirements', [])
                 is_loadable = True
                 for req in requirements:
@@ -54,7 +68,7 @@ def load_plugins():
                 if not is_loadable:
                     continue
 
-                # 3. 依存関係が満たされていれば、モジュールをインポート
+                # 5. 依存関係が満たされていれば、モジュールをインポート
                 module_name = metadata.get('entry_point')
                 if not module_name:
                     logging.warning(
@@ -135,3 +149,39 @@ def run_plugin(plugin_id, context):
         api.send(
             f"\r\nエラー: プログラムが時間内に応答しませんでした。({TIMEOUT_SECONDS}秒)\r\n".encode('utf-8'))
         return False
+
+
+def get_all_available_plugins():
+    """
+    'plugins' ディレクトリをスキャンし、利用可能なすべてのプラグインの情報を返す。
+    DBから有効/無効の状態も取得する。
+    """
+    available_plugins = []
+    if not os.path.isdir(PLUGINS_DIR):
+        return []
+
+    plugin_settings = database.get_all_plugin_settings()
+
+    for item in os.listdir(PLUGINS_DIR):
+        plugin_dir = os.path.join(PLUGINS_DIR, item)
+        metadata_path = os.path.join(plugin_dir, 'plugin.toml')
+
+        if os.path.isdir(plugin_dir) and os.path.exists(metadata_path):
+            plugin_id = item
+            try:
+                with open(metadata_path, 'r', encoding='utf-8') as f:
+                    metadata = toml.load(f)
+
+                is_enabled = plugin_settings.get(plugin_id, True)
+
+                available_plugins.append({
+                    'id': plugin_id,
+                    'name': metadata.get('name', plugin_id),
+                    'description': metadata.get('description', ''),
+                    'is_enabled': is_enabled,
+                })
+            except Exception as e:
+                logging.error(f"プラグイン '{plugin_id}' のメタデータ読み込みに失敗: {e}")
+                continue
+
+    return sorted(available_plugins, key=lambda p: p['name'])

@@ -11,14 +11,14 @@ services:
       - ./templates:/app/templates # テンプレートファイルをマウント
       - ./static:/app/static # 静的ファイルをマウント
     ports:
-      - "8183:5000"
+      - "5000:5000"
     environment:
       # DBのホスト名をコンテナ名で指定
       - DB_HOST=mariadb
       # Redisのホスト名をコンテナ名で指定
       - REDIS_URL=redis://redis:6379/0
       # Socket.IOが許可するオリジンを指定
-      - SOCKETIO_ALLOWED_ORIGINS=https://grbbs.midyuki.net
+      - SOCKETIO_ALLOWED_ORIGINS=http://localhost:5000
     env_file:
       - .env # .env 必ず先に管理者IDとパスワードを設定してください。
     depends_on: # depends_onを詳細設定に変更

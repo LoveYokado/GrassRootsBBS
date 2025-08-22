@@ -383,6 +383,15 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
                 UNIQUE KEY (actor_type, actor_identifier)
             )
             """
+            """
+            CREATE TABLE IF NOT EXISTS plugins (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                plugin_id VARCHAR(255) UNIQUE NOT NULL,
+                is_enabled BOOLEAN NOT NULL DEFAULT 1,
+                created_at INT,
+                updated_at INT
+            )
+            """
         ]
         for query in create_queries:
             database.execute_query(query)

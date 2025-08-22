@@ -17,7 +17,9 @@
                 <tr>
                     <th>Name</th>
                     <th>Description</th>
+                    <th>Status</th>
                     <th>ID</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -25,11 +27,31 @@
                 <tr>
                     <td>{{ plugin.name }}</td>
                     <td>{{ plugin.description }}</td>
+                    <td>
+                        {% if plugin.is_enabled %}
+                        <span style="color: #28a745; font-weight: bold;">Enabled</span>
+                        {% else %}
+                        <span style="color: #dc3545;">Disabled</span>
+                        {% endif %}
+                    </td>
                     <td>{{ plugin.id }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('admin.toggle_plugin_status') }}"
+                            style="display: inline;">
+                            <input type="hidden" name="plugin_id" value="{{ plugin.id }}">
+                            {% if plugin.is_enabled %}
+                            <button type="submit" name="action" value="disable"
+                                class="action-link-delete">Disable</button>
+                            {% else %}
+                            <button type="submit" name="action" value="enable"
+                                class="action-link-restore">Enable</button>
+                            {% endif %}
+                        </form>
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="3">No plugins are currently loaded.</td>
+                    <td colspan="5">No plugins are currently available.</td>
                 </tr>
                 {% endfor %}
             </tbody>

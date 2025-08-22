@@ -708,6 +708,22 @@ def apply_migrations():
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
 
+        # --- pluginsテーブルの存在チェックと作成 ---
+        cursor.execute("SHOW TABLES LIKE 'plugins'")
+        if not cursor.fetchone():
+            # util.pyの定義と合わせる
+            create_query = """
+            CREATE TABLE plugins (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                plugin_id VARCHAR(255) UNIQUE NOT NULL,
+                is_enabled BOOLEAN NOT NULL DEFAULT 1,
+                created_at INT,
+                updated_at INT
+            )
+            """
+            cursor.execute(create_query)
+            logging.info("データベースマイグレーション: 'plugins'テーブルを作成しました。")
+
         # server_prefテーブルのカラムをチェック
         cursor.execute("DESCRIBE server_pref")
         columns = [row['Field'].lower() for row in cursor.fetchall()]
@@ -1114,3 +1130,24 @@ def update_backup_schedule(enabled: bool, cron_string: str):
     }
     # server_prefは常にID=1のレコードを更新する
     return update_record('server_pref', update_data, {'id': 1}) is not None
+
+
+def get_all_plugin_settings():
+    """すべてのプラグイン設定をDBから取得する"""
+    query = "SELECT plugin_id, is_enabled FROM plugins"
+    results = execute_query(query, fetch='all')
+    # { 'plugin_id': True, ... } の形式の辞書で返す
+    return {row['plugin_id']: bool(row['is_enabled']) for row in results} if results else {}
+
+
+def upsert_plugin_setting(plugin_id: str, is_enabled: bool):
+    """プラグイン設定を挿入または更新する (UPSERT)"""
+    import time
+    query = """
+        INSERT INTO plugins (plugin_id, is_enabled, created_at, updated_at)
+        VALUES (%s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE is_enabled = VALUES(is_enabled), updated_at = VALUES(updated_at)
+    """
+    current_time = int(time.time())
+    params = (plugin_id, is_enabled, current_time, current_time)
+    return execute_query(query, params) is not None

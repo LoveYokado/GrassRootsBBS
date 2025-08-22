@@ -2666,6 +2666,18 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
             updateTerminalLayout(); // 初期レイアウトを適用
+
+            // --- IME入力確定後に同じ文字が再入力される問題の修正 ---
+            // xterm.jsのテキストエリアで日本語などのIME入力を確定した直後に
+            // 次の文字を入力しようとすると、確定した文字が再度入力されてしまう
+            // 問題を回避するためのワークアラウンド。
+            if (term.textarea) {
+                term.textarea.addEventListener('compositionend', () => {
+                    setTimeout(() => {
+                        if (term.textarea) { term.textarea.value = ''; }
+                    }, 0);
+                });
+            }
         });
 
         // --- モバイルBBSコントロールのイベントリスナー ---

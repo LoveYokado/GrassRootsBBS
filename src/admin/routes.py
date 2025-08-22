@@ -835,5 +835,27 @@ def wipe_all_data():
 @sysop_required
 def plugin_management():
     """プラグイン管理ページ"""
-    loaded_plugins = plugin_manager.get_loaded_plugins()
-    return render_template('admin/plugin_list.html', title='Plugin Management', plugins=loaded_plugins)
+    all_plugins = plugin_manager.get_all_available_plugins()
+    return render_template('admin/plugin_list.html', title='Plugin Management', plugins=all_plugins)
+
+
+@admin_bp.route('/plugins/toggle', methods=['POST'])
+@sysop_required
+def toggle_plugin_status():
+    """プラグインの有効/無効を切り替える"""
+    plugin_id = request.form.get('plugin_id')
+    action = request.form.get('action')
+
+    if not plugin_id or action not in ['enable', 'disable']:
+        flash('Invalid request.', 'danger')
+        return redirect(url_for('admin.plugin_management'))
+
+    is_enabled = True if action == 'enable' else False
+
+    if database.upsert_plugin_setting(plugin_id, is_enabled):
+        flash(
+            f"Plugin '{plugin_id}' has been {action}d. Restart the server to apply changes.", 'success')
+    else:
+        flash(f"Failed to update status for plugin '{plugin_id}'.", 'danger')
+
+    return redirect(url_for('admin.plugin_management'))

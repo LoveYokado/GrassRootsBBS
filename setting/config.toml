@@ -24,8 +24,8 @@ allowed_attachment_extensions = "jpg,jpeg,png,gif,txt" # 許可する拡張子 (
 [webapp]
 # --- WebAppの公開URL設定 ---
 # PasskeyやPush通知など、ブラウザのセキュリティ機能で必要になります。
-ORIGIN = "https://grbbs.midyuki.net/" # BBSにアクセスする際の完全なURL (プロトコル、ホスト、ポートを含む)
-RP_ID = "grbbs.midyuki.net"               # Passkeyで使われるドメイン名 (ポート番号は含めない)
+ORIGIN = "https://localhost:5000" # BBSにアクセスする際の完全なURL (プロトコル、ホスト、ポートを含む)
+RP_ID = "localhost"               # Passkeyで使われるドメイン名 (ポート番号は含めない)
 
 # WEBAPP_KEY_PATH removed from here
 WEBAPP_BIND_PORT = 50000
@@ -46,7 +46,12 @@ ip_restriction_enabled = false # trueで有効化
 allowed_ips = ["127.0.0.1", "::1"]
 
 [push]
-VAPID_PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgzNLzmO8evxiv1ntUc642whcaU2x1PLaCAO/TlxSBnbehRANCAASxRFmjxJKiMVlFNylXMbyCzOQLWxuClDbSOC8Fp8gCL/QLaMjTZhfzuZAEwucwnPY5H+ISeWo3vlzqDT2lJ6V8-----END PRIVATE KEY-----"""
+VAPID_PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgDKStVK5Dp26dVBne
+q1RiwGXyc+BZuhw31P3Tzc2uBomhRANCAASY0ltQ0a2lQeqIGO4dEQ0t2/JZ+DVc
+OQOgCjDs+l2FYrvhyqDXUAv+edsZviGsEqSRPv8ZG/nmMfWjnDybyOsp
+-----END PRIVATE KEY-----
+"""
 VAPID_CLAIMS_EMAIL = "mailto:your-email@example.com" # あなたのメールアドレスに変更
 NOTIFICATION_COOLDOWN_SECONDS = 60 # 同じルームへの入室通知のクールダウン時間（秒）
 
@@ -61,7 +66,7 @@ bbs_sync_config = "setting/bbs.yaml"      # 掲示板同期設定ファイル (B
 
 [scheduler]
 # バックアップの自動スケジューリングを有効にするか (true / false)
-enabled = false
+enabled = true
 
 # スケジュール設定 (cron形式: 分 時 日 月 曜日)
 # 以下の例は、毎日午前3時に実行
