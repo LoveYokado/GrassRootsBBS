@@ -7,5 +7,6 @@ logs/*
 data/bbs.db
 data/attachments/*
 data/backups/*
+data/quarantine/*
 setting/config.toml
 docker-compose.yml

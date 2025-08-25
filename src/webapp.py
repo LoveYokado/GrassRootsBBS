@@ -84,10 +84,16 @@ try:
         'ATTACHMENT_UPLOAD_DIR', 'data/attachments')
     if not os.path.isabs(ATTACHMENT_DIR):
         ATTACHMENT_DIR = os.path.join(PROJECT_ROOT, ATTACHMENT_DIR)
+    # --- 隔離ディレクトリ設定 ---
+    QUARANTINE_DIR = os.path.join(PROJECT_ROOT, 'data', 'quarantine')
 
     if not os.path.exists(ATTACHMENT_DIR):
         os.makedirs(ATTACHMENT_DIR)
         logging.info(f"添付ファイル保存ディレクトリを作成しました: {ATTACHMENT_DIR}")
+
+    if not os.path.exists(QUARANTINE_DIR):
+        os.makedirs(QUARANTINE_DIR)
+        logging.info(f"隔離ディレクトリを作成しました: {QUARANTINE_DIR}")
 
     if not os.path.exists(APP_LOG_DIR):
         os.makedirs(APP_LOG_DIR)
@@ -1418,6 +1424,44 @@ def handle_upload_attachment(data):
         emit('attachment_upload_error', {'message': message})
         return
 
+    menu_mode = handler.user_session.get('menu_mode', '2')
+
+    # --- Virus Scan ---
+    is_safe, scan_message = util.scan_file_with_clamav(file_data)
+
+    if is_safe is False:  # Virus detected
+        # 隔離ディレクトリにファイルを保存
+        quarantine_filename = f"{uuid.uuid4()}-{filename}"
+        quarantine_path = os.path.join(QUARANTINE_DIR, quarantine_filename)
+        try:
+            with open(quarantine_path, 'wb') as f:
+                f.write(file_data)
+            logging.warning(
+                f"ウイルスが検出されたファイルを隔離しました: {filename} -> {quarantine_filename}. 理由: {scan_message}")
+        except Exception as e:
+            logging.error(f"ウイルスファイルの隔離に失敗しました: {e}", exc_info=True)
+
+        error_message = util.get_text_by_key(
+            "bbs.attachment_errors.virus_detected",
+            menu_mode,
+            default_value="ウイルスの疑いが検出されました。"
+        )
+        handler.pending_attachment = {'error': error_message}
+        # ユーザーにエラーを通知
+        emit('attachment_upload_error', {'message': error_message})
+        return
+
+    if is_safe is None:  # Scan error
+        error_message = util.get_text_by_key(
+            "bbs.attachment_errors.scan_failed",
+            menu_mode,
+            default_value="ウイルススキャンでエラーが発生しました。アップロードできません。"
+        )
+        handler.pending_attachment = {'error': error_message}
+        logging.error(
+            f"ファイルスキャンエラーのためアップロードを拒否: {filename}. 理由: {scan_message}")
+        emit('attachment_upload_error', {'message': error_message})
+        return
     # 安全なファイル名とユニークなファイル名を生成
     _, ext = os.path.splitext(filename)
     unique_filename = f"{uuid.uuid4()}{ext}"

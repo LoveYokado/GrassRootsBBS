@@ -10,6 +10,7 @@ import secrets
 import string
 import json
 import base64
+import pyclamd
 from pywebpush import webpush, WebPushException
 from cryptography.hazmat.primitives import serialization
 
@@ -992,3 +993,39 @@ def send_push_notification(subscription_info_json, payload_json):
     except Exception as e:
         logging.error(f"プッシュ通知送信中に予期せぬエラー: {e}", exc_info=True)
         return False
+
+
+def scan_file_with_clamav(file_data: bytes) -> tuple[bool, str]:
+    """
+    指定されたファイルデータをClamAVでスキャンする。
+
+    :param file_data: スキャンするファイルのバイトデータ。
+    :return: (is_safe, message) のタプル。
+             is_safe: Trueなら安全, Falseならウイルス検出, Noneならスキャンエラー。
+             message: スキャン結果のメッセージ。
+    """
+    clamav_config = app_config.get('clamav', {})
+    host = clamav_config.get('host')
+    port = clamav_config.get('port')
+
+    if not host or not port:
+        logging.warning("ClamAVの設定がconfig.tomlにありません。スキャンをスキップします。")
+        return True, "Scan skipped (ClamAV not configured)"
+
+    try:
+        cd = pyclamd.ClamdNetworkSocket(host, port)
+        # サーバーが生きているか確認
+        if not cd.ping():
+            logging.error("ClamAVサーバーにpingが通りません。スキャンをスキップします。")
+            return None, "Scan failed (cannot connect to ClamAV server)"
+
+        scan_result = cd.scan_stream(file_data)
+        if scan_result:
+            virus_name = scan_result['stream'][1]
+            logging.warning(f"ウイルスを検出しました: {virus_name}")
+            return False, f"Virus detected: {virus_name}"
+        else:
+            return True, "Clean"
+    except Exception as e:
+        logging.error(f"ClamAVでのスキャン中にエラーが発生しました: {e}", exc_info=True)
+        return None, f"Scan failed (server error: {e})"

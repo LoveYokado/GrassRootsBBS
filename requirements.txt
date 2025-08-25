@@ -13,3 +13,4 @@ pywebpush==2.0.3
 cryptography==42.0.8
 APScheduler
 psutil
+pyclamd==0.4.0
