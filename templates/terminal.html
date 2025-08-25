@@ -2713,13 +2713,14 @@
             // xterm.jsのテキストエリアで日本語などのIME入力を確定した直後に
             // 次の文字を入力しようとすると、確定した文字が再度入力されてしまう
             // 問題を回避するためのワークアラウンド。
-            // setTimeout(..., 0) は他のイベントに割り込まれる可能性があるため、
-            // 現在のタスク完了直後に実行される queueMicrotask を使用してより確実性を高める。
             if (term.textarea) {
                 term.textarea.addEventListener('compositionend', () => {
-                    queueMicrotask(() => {
+                    // IME確定後、xterm.jsがonDataイベントを発火させるためのごくわずかな時間を与える。
+                    // readOnlyプロパティはモバイルでソフトウェアキーボードを閉じてしまう副作用があるため使用しない。
+                    // 0msのsetTimeoutでも、イベントキューの次のティックで実行されるため、多くの環境で入力の競合を回避できる。
+                    setTimeout(() => {
                         if (term.textarea) { term.textarea.value = ''; }
-                    });
+                    }, 0);
                 });
             }
         });
