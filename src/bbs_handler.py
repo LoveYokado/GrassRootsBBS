@@ -1359,13 +1359,18 @@ class CommandHandler:
 
         # (T/O) の場合は本文を表示しない
         if article['body'] != '(T/O)':
-            body_to_send = article['body'].replace(
-                '\r\n', '\n').replace('\n', '\r\n')
-            # textwrap を使って本文を折り返す
-            wrapped_body_lines = textwrap.wrap(
-                body_to_send, width=78, replace_whitespace=False, drop_whitespace=False)
-            for line in wrapped_body_lines:
-                self.chan.send(line.encode('utf-8') + b'\r\n')
+            # textwrap.wrapは改行文字を正しく扱えないため、先に splitlines() で行に分割し、
+            # 各行を個別にwrapすることで、ユーザーの入力した改行と自動折り返しを両立させる。
+            body_lines = article['body'].splitlines()
+            for line in body_lines:
+                wrapped_lines = textwrap.wrap(
+                    line, width=78, replace_whitespace=False, drop_whitespace=False
+                )
+                if not wrapped_lines:  # 元の行が空行だった場合
+                    self.chan.send(b'\r\n')
+                else:
+                    for wrapped_line in wrapped_lines:
+                        self.chan.send(wrapped_line.encode('utf-8') + b'\r\n')
 
         # --- 添付ファイルダウンロード確認処理 ---
         if article and article.get('attachment_filename') and article.get('attachment_originalname'):
@@ -1435,18 +1440,26 @@ class CommandHandler:
                     except:
                         created_at_str = "----/--/-- --:--:--"
 
-                    # 返信本文の折り返し
-                    reply_body_wrapped = textwrap.wrap(
-                        reply['body'].replace('\r\n', '\n'),
-                        width=78, replace_whitespace=False, drop_whitespace=False
-                    )
-
                     # 返信ヘッダ
                     self.chan.send(
                         f"{i+1}: {reply_sender_name} ({created_at_str})\r\n".encode('utf-8'))
-                    # 返信本文
-                    for line in reply_body_wrapped:
-                        self.chan.send(f"  {line}\r\n".encode('utf-8'))
+
+                    # --- 返信本文の表示 ---
+                    # textwrap.wrapは改行文字を正しく扱えないため、先に splitlines() で行に分割し、
+                    # 各行を個別にwrapすることで、ユーザーの入力した改行と自動折り返しを両立させる。
+                    body_lines = reply['body'].splitlines()
+                    for line in body_lines:
+                        # 各行を76文字で折り返す (先頭のインデント2文字分を考慮)
+                        wrapped_lines = textwrap.wrap(
+                            line, width=76, replace_whitespace=False, drop_whitespace=False
+                        )
+                        if not wrapped_lines:  # 元の行が空行だった場合
+                            self.chan.send(b'  \r\n')
+                        else:
+                            for wrapped_line in wrapped_lines:
+                                self.chan.send(
+                                    f"  {wrapped_line}\r\n".encode('utf-8'))
+
                     self.chan.send(b'\r\n')  # 返信ごとの空行
 
         # --- スレッド形式で、かつ親記事を読んでいる場合、返信を促す ---
