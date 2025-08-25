@@ -540,8 +540,16 @@
             }
 
             .monitor-chassis {
+                position: fixed;
+                /* 位置を固定 */
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                /* JSでキーボードの高さを反映させる */
                 width: 100%;
-                height: 100%;
+                height: auto;
+                /* 高さはtop/bottomで決まるように */
                 max-height: none;
                 padding: 0;
                 border: 0;
@@ -2313,6 +2321,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (userprefMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2334,6 +2343,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (chatMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2355,6 +2365,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (mailMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2376,6 +2387,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (bbsEntryMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2397,6 +2409,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (pluginMenuMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2418,6 +2431,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (topMenuMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2439,6 +2453,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (match[1] === 'h') { // 'h' for show (表示)
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     // コントロールの高さを計算して、ターミナルコンテナのpadding-bottomに設定
                     const controlsHeight = mobileControls.offsetHeight;
@@ -2463,6 +2478,7 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (bodyInputMatch[1] === 'h') { // 'h' for show
+                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2943,30 +2959,28 @@
 
             const handleViewportResize = () => {
                 const isMobile = window.matchMedia("(max-width: 992px)").matches;
+                const chassis = document.querySelector('.monitor-chassis');
+
                 if (!isMobile) {
-                    document.body.style.height = ''; // PC表示では高さをリセット
+                    // PC表示では、モバイル用に設定した可能性のあるbottomスタイルをリセット
+                    chassis.style.bottom = '';
                     return;
                 }
-                // bodyの高さを、キーボードを除いた実際の表示領域(visualViewport)に合わせる。
-                // これにより、ブラウザがズームしてもレイアウトが追従し、画面全体が表示される。
-                document.body.style.height = `${vv.height}px`;
 
+                // キーボードの高さを計算
                 const keyboardHeight = window.innerHeight - vv.height;
-                const isKeyboardVisible = keyboardHeight > 80;
-                const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (isKeyboardVisible) {
-                    // キーボード表示時、ボタンのためのパディングをなくす
-                    monitorScreen.style.paddingBottom = '0px';
-                } else {
-                    // キーボードが非表示になったら、記憶しておいたボタンの高さを復元
-                    const storedHeight = monitorScreen.dataset.controlsHeight;
-                    if (storedHeight) {
-                        monitorScreen.style.paddingBottom = `${storedHeight}px`;
-                    }
-                }
-                // レイアウト変更が適用された後にターミナルをリサイズ
-                setTimeout(() => { try { fitAddon.fit(); } catch (e) { /* ignore */ } }, 100);
+                // .monitor-chassis の bottom をキーボードの高さに設定して、表示領域を上に押し上げる
+                chassis.style.bottom = `${keyboardHeight}px`;
+
+                // レイアウト変更が適用され、キーボードのアニメーションが完了するのを待ってから
+                // ターミナルのリサイズとスクロールを行う
+                setTimeout(() => {
+                    try {
+                        fitAddon.fit();
+                        term.scrollToBottom();
+                    } catch (e) { console.error("fit/scrollToBottom failed:", e); }
+                }, 150);
             };
             vv.addEventListener('resize', handleViewportResize);
         }
