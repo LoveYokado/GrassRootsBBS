@@ -1491,6 +1491,7 @@ class CommandHandler:
         util.send_text_by_key(
             self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
 
+        self.chan.send(b'\x1b[?2024l')  # メインのBBSボタンを非表示
         self.chan.send(b'\x1b[?2034h')  # 本文入力用ボタンを表示
         try:
             body_lines = []
@@ -1520,20 +1521,22 @@ class CommandHandler:
                 util.send_text_by_key(
                     self.chan, "bbs.post_cancel", self.menu_mode)
                 return
+
+            # 投稿者識別子を決定
+            user_identifier = util.get_display_name(
+                self.login_id, self.ip_address) if self.login_id.upper() == 'GUEST' else self.user_id_pk
+
+            # 返信をDBに保存
+            # 返信はタイトルなし(None)、親記事IDを指定してcreate_articleを呼び出す
+            if self.article_manager.create_article(self.current_board['id'], user_identifier, None, body, ip_address=self.ip_address, parent_article_id=parent_article['id']):
+                util.send_text_by_key(
+                    self.chan, "bbs.post_success", self.menu_mode)
+            else:
+                util.send_text_by_key(
+                    self.chan, "bbs.post_failed", self.menu_mode)
         finally:
             self.chan.send(b'\x1b[?2034l')  # 本文入力用ボタンを非表示
-
-        # 投稿者識別子を決定
-        user_identifier = util.get_display_name(
-            self.login_id, self.ip_address) if self.login_id.upper() == 'GUEST' else self.user_id_pk
-
-        # 返信をDBに保存
-        # 返信はタイトルなし(None)、親記事IDを指定してcreate_articleを呼び出す
-        if self.article_manager.create_article(self.current_board['id'], user_identifier, None, body, ip_address=self.ip_address, parent_article_id=parent_article['id']):
-            util.send_text_by_key(
-                self.chan, "bbs.post_success", self.menu_mode)
-        else:
-            util.send_text_by_key(self.chan, "bbs.post_failed", self.menu_mode)
+            self.chan.send(b'\x1b[?2024h')  # メインのBBSボタンを再表示
 
     def write_article(self):
         """記事を新規作成"""

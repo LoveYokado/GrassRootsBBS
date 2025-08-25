@@ -791,6 +791,11 @@
             grid-row: 3;
         }
 
+        #bbs-btn-reply {
+            grid-column: 5;
+            grid-row: 1;
+        }
+
         /* --- テーマごとのボタンのスタイル --- */
         /* デフォルトテーマ */
         #mobile-bbs-controls.theme-default #bbs-btn-read {
@@ -1213,6 +1218,7 @@
         <button class="mobile-btn" id="bbs-btn-help">?</button>
         <button class="mobile-btn" id="bbs-btn-down">↓</button>
         <button class="mobile-btn" id="bbs-btn-exit">E</button>
+        <button class="mobile-btn" id="bbs-btn-reply">R</button>
     </div>
 
     <!-- モバイルチャットコントロール -->
@@ -2810,7 +2816,8 @@
                 'bbs-btn-help': '?',
                 'bbs-btn-exit': 'e',
                 'bbs-btn-y': 'y',
-                'bbs-btn-n': 'n'
+                'bbs-btn-n': 'n',
+                'bbs-btn-reply': 'r'
             };
 
             for (const [id, key] of Object.entries(keyMap)) {
