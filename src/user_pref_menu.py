@@ -555,7 +555,8 @@ def read_server_default_exploration_list(chan, login_id, current_menu_mode, user
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
         return None
 
-    default_exploration_list_str = server_prefs[6]
+    default_exploration_list_str = server_prefs.get(
+        'default_exploration_list', '')
     util.display_exploration_list(chan, default_exploration_list_str)
     return None
 
