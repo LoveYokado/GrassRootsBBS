@@ -1491,31 +1491,37 @@ class CommandHandler:
         util.send_text_by_key(
             self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
 
-        body_lines = []
-        while True:
-            line = self.chan.process_input()
-            if line is None:
-                return  # 切断
-            if line == '^':
-                break
-            body_lines.append(line)
-        body = '\r\n'.join(body_lines)
+        self.chan.send(b'\x1b[?2034h')  # 本文入力用ボタンを表示
+        try:
+            body_lines = []
+            while True:
+                line = self.chan.process_input()
+                if line is None:
+                    return  # 切断
+                if line == '^':
+                    break
+                body_lines.append(line)
+            body = '\r\n'.join(body_lines)
 
-        if len(body) > body_max_len:
-            body = body[:body_max_len]
-            util.send_text_by_key(
-                self.chan, "bbs.body_truncated", self.menu_mode, max_len=body_max_len)
+            if len(body) > body_max_len:
+                body = body[:body_max_len]
+                util.send_text_by_key(
+                    self.chan, "bbs.body_truncated", self.menu_mode, max_len=body_max_len)
 
-        if not body.strip():
-            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
-            return
+            if not body.strip():
+                util.send_text_by_key(
+                    self.chan, "bbs.post_cancel", self.menu_mode)
+                return
 
-        util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
-                              self.menu_mode, add_newline=False)
-        confirm = self.chan.process_input()
-        if confirm is None or confirm.strip().lower() != 'y':
-            util.send_text_by_key(self.chan, "bbs.post_cancel", self.menu_mode)
-            return
+            util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
+                                  self.menu_mode, add_newline=False)
+            confirm = self.chan.process_input()
+            if confirm is None or confirm.strip().lower() != 'y':
+                util.send_text_by_key(
+                    self.chan, "bbs.post_cancel", self.menu_mode)
+                return
+        finally:
+            self.chan.send(b'\x1b[?2034l')  # 本文入力用ボタンを非表示
 
         # 投稿者識別子を決定
         user_identifier = util.get_display_name(
@@ -1593,6 +1599,9 @@ class CommandHandler:
             body_max_len = limits_config.get('bbs_body_max_length', 8192)
             util.send_text_by_key(
                 self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
+
+            self.chan.send(b'\x1b[?2034h')  # 本文入力用ボタンを表示
+
             body_lines = []
             while True:
                 line = self.chan.process_input()
@@ -1699,6 +1708,7 @@ class CommandHandler:
                 return 'failed'
 
         finally:
+            self.chan.send(b'\x1b[?2034l')  # 本文入力用ボタンを非表示
             # 保留中の添付ファイルをクリア
             if hasattr(self.chan, 'handler'):
                 self.chan.handler.pending_attachment = None

@@ -1051,6 +1051,49 @@
             color: #1a1000;
         }
 
+        /* --- モバイル本文入力コントロール --- */
+        #mobile-bbs-body-input-controls {
+            display: none;
+            /* JSで表示を制御 */
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            z-index: 100;
+        }
+
+        #mobile-bbs-body-input-controls.visible {
+            display: grid;
+        }
+
+        /* --- モバイル本文入力コントロールのテーマ --- */
+        #mobile-bbs-body-input-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-bbs-body-input-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-bbs-body-input-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-bbs-body-input-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
         /* --- ディップスイッチ --- */
         #dip-switch-container {
             margin-top: 20px;
@@ -1242,6 +1285,13 @@
         <button class="mobile-btn" id="plugin-btn-0">0</button>
         <button class="mobile-btn" style="visibility: hidden;"></button>
         <button class="mobile-btn" id="plugin-btn-enter">Enter</button>
+    </div>
+
+    <!-- モバイル本文入力コントロール -->
+    <div id="mobile-bbs-body-input-controls">
+        <button class="mobile-btn" id="body-input-btn-y">Y</button>
+        <button class="mobile-btn" id="body-input-btn-end">^</button>
+        <button class="mobile-btn" id="body-input-btn-n">N</button>
     </div>
 
 
@@ -1623,8 +1673,9 @@
             const bbsEntryControls = document.getElementById('mobile-bbs-entry-controls');
             const topMenuControls = document.getElementById('mobile-top-menu-controls');
             const pluginMenuControls = document.getElementById('mobile-plugin-menu-controls');
+            const bodyInputControls = document.getElementById('mobile-bbs-body-input-controls');
 
-            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls, topMenuControls, pluginMenuControls].forEach(controls => {
+            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls, topMenuControls, pluginMenuControls, bodyInputControls].forEach(controls => {
                 if (controls) {
                     controls.classList.remove('theme-default', 'theme-green', 'theme-amber');
                     controls.classList.add(`theme-${themeName}`);
@@ -2226,7 +2277,8 @@
                 document.getElementById('mobile-mail-controls'),
                 document.getElementById('mobile-bbs-entry-controls'),
                 document.getElementById('mobile-top-menu-controls'),
-                document.getElementById('mobile-plugin-menu-controls')
+                document.getElementById('mobile-plugin-menu-controls'),
+                document.getElementById('mobile-bbs-body-input-controls')
             ];
             const monitorScreen = document.querySelector('.monitor-screen');
 
@@ -2395,6 +2447,25 @@
                 // シーケンス自体はターミナルに表示しない
                 data = data.replace(bbsControlPattern, '');
                 // レイアウト変更後にターミナルのサイズを再計算
+                updateTerminalLayout();
+            }
+            // BBS本文入力コントロール表示/非表示シーケンスをチェック
+            const bodyInputControlPattern = /\x1b\[\?2034(h|l)/;
+            const bodyInputMatch = data.match(bodyInputControlPattern);
+            if (bodyInputMatch) {
+                const mobileControls = document.getElementById('mobile-bbs-body-input-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (bodyInputMatch[1] === 'h') { // 'h' for show
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else { // 'l' for hide
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(bodyInputControlPattern, '');
                 updateTerminalLayout();
             }
             // ファイルダウンロードシーケンス
@@ -2840,6 +2911,19 @@
             for (const [id, key] of Object.entries(pluginMenuKeyMap)) {
                 const btn = document.getElementById(id);
                 if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            // --- モバイル本文入力コントロールのイベントリスナー ---
+            const bodyInputKeyMap = {
+                'body-input-btn-y': 'y\r',
+                'body-input-btn-end': '^\r', // ^と改行を送信して入力を完了させる
+                'body-input-btn-n': 'n\r'
+            };
+            for (const [id, key] of Object.entries(bodyInputKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('click', () => { socket.emit('client_input', key); });
+                }
             }
         });
 
