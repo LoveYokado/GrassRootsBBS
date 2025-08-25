@@ -635,7 +635,9 @@ class CommandHandler:
             elif key_input == '\x04' or key_input == "ENTER" or key_input == 'p':
                 if articles and 0 <= current_index < len(articles):
                     self.read_article(
-                        articles[current_index]['article_number'], show_back_prompt=True
+                        articles[current_index]['article_number'],
+                        show_header=True,
+                        show_back_prompt=True
                     )
                     # read_articleから戻ってきたら、リストを再描画
                     # (返信が投稿された可能性を考慮)
@@ -661,7 +663,9 @@ class CommandHandler:
                 elif self.just_displayed_header_from_tail_h:  # 末尾からhでヘッダ表示した直後
                     # この時点で current_index は最終記事を指している
                     self.read_article(
-                        articles[current_index]['article_number'], show_back_prompt=False
+                        articles[current_index]['article_number'],
+                        show_header=False,
+                        show_back_prompt=False
                     )
                     current_index -= 1  # 一つ前の記事へ
                     display_current_article_header()  # 一つ前の記事のヘッダ表示
@@ -669,7 +673,9 @@ class CommandHandler:
                 else:  # 通常の読み戻り (記事ヘッダが表示されている状態から h)
                     if 0 <= current_index < len(articles):  # 有効な記事位置
                         self.read_article(
-                            articles[current_index]['article_number'], show_back_prompt=False
+                            articles[current_index]['article_number'],
+                            show_header=False,
+                            show_back_prompt=False
                         )
                         current_index -= 1  # 一つ前の記事へ (最初の記事を読んだ後は-1になる)
                         display_current_article_header()  # 一つ前の記事のヘッダ or 先頭マーカー表示
@@ -695,8 +701,13 @@ class CommandHandler:
                     display_current_article_header()
                     self.chan.send(b'\r\n')  # ヘッダと本文の間に空行を挿入
 
+                    display_current_article_header()
+                    self.chan.send(b'\r\n')  # ヘッダと本文の間に空行を挿入
+
                     self.read_article(
-                        articles[current_index]['article_number'], show_back_prompt=False
+                        articles[current_index]['article_number'],
+                        show_header=False,  # 本文表示時にはヘッダを表示しない
+                        show_back_prompt=False
                     )
 
                     current_index += 1
@@ -704,7 +715,9 @@ class CommandHandler:
                 elif 0 <= current_index < len(articles):  # 有効な記事位置
                     self.chan.send(b'\r\n')  # ヘッダと本文の間に空行
                     self.read_article(
-                        articles[current_index]['article_number'], show_back_prompt=False
+                        articles[current_index]['article_number'],
+                        show_header=False,
+                        show_back_prompt=False
                     )
                     current_index += 1
                     display_current_article_header()  # 次の記事ヘッダ or 末尾マーカー
@@ -1328,7 +1341,7 @@ class CommandHandler:
         util.send_text_by_key(
             self.chan, "bbs.userlist_updated_success", self.menu_mode)
 
-    def read_article(self, article_number, show_back_prompt=True):
+    def read_article(self, article_number, show_header=True, show_back_prompt=True):
         """記事を読む"""
         if not self.current_board:
             util.send_text_by_key(
@@ -1344,6 +1357,32 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "bbs.article_not_found", self.menu_mode)
             return
+
+        if show_header:
+            # 削除済み記事の場合、ヘッダにマークをつける
+            deleted_mark = "*" if article['is_deleted'] == 1 else ""
+            display_title = article['title'] if article['title'] else "(No Title)"
+
+            if article['is_deleted'] == 1:
+                can_see_deleted_title_header = False
+                if self.userlevel >= 5:  # シスオペ
+                    can_see_deleted_title_header = True
+                else:
+                    try:
+                        if int(article['user_id']) == self.user_id_pk:  # 投稿者本人
+                            can_see_deleted_title_header = True
+                    except ValueError:
+                        pass
+                if not can_see_deleted_title_header:
+                    display_title = ""  # 一般ユーザーには表示しない
+
+            util.send_text_by_key(
+                self.chan, "bbs.article_header", self.menu_mode,
+                article_number=article['article_number'],
+                title=f"{deleted_mark}{display_title}",  # 削除マークと調整済みタイトル
+            )
+            self.chan.send(b'\r\n')
+
         # 削除済み記事の本文表示に関する権限チェック
         if not self.permission_manager.can_view_deleted_article_content(article, self.user_id_pk, self.userlevel):
             # 権限がない場合はメッセージを表示して本文表示をスキップ

@@ -1641,15 +1641,6 @@ bbs:
     mode_1: "このスレッドは返信数の上限に達しているため、返信できません。"
     mode_2: "このスレッドは返信数の上限に達しているため、返信できません。"
     mode_3: "Cannot reply because this thread has reached its reply limit."
-  attachment_errors:
-    virus_detected:
-      mode_1: "ウイルスの疑いが検出されました。"
-      mode_2: "ウイルスの疑いが検出されました。"
-      mode_3: "A suspected virus was detected."
-    scan_failed:
-      mode_1: "ウイルススキャンでエラーが発生しました。アップロードできません。"
-      mode_2: "ウイルススキャンでエラーが発生しました。アップロードできません。"
-      mode_3: "An error occurred during the virus scan. Upload failed."
 
 auto_download:
   start_message:
