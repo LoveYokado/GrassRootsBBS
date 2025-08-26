@@ -2,6 +2,8 @@
 import logging
 import socket
 import textwrap
+import re
+import base64
 import datetime
 import json
 
@@ -769,16 +771,24 @@ class CommandHandler:
                 reload_articles_display(keep_index=True)
                 self.just_displayed_header_from_tail_h = False
 
-            elif key_input == "w":
-                result = self.write_article()
+            elif key_input == "w":  # 書込み
+                parent_article_for_reply = None
+                board_type = self.current_board.get('board_type', 'simple')
+                # シンプル形式で、かつ有効な記事を指している場合のみ返信モード
+                if board_type == 'simple' and articles and 0 <= current_index < len(articles):
+                    parent_article_for_reply = articles[current_index]
+
+                result = self.write_article(
+                    parent_article=parent_article_for_reply)
+
                 if result == 'posted':
                     # 投稿成功時は、記事一覧を抜けて掲示板トップに戻る
                     self.chan.send(b'\x1b[?2024l')  # モバイルボタンを非表示
                     return
                 else:
                     # キャンセルまたはエラーの場合は、記事一覧を再表示
-                    reload_articles_display(keep_index=True)  # カーソル位置を維持して再表示
-                    self.just_displayed_header_from_tail_h = False
+                    reload_articles_display(keep_index=True)
+                self.just_displayed_header_from_tail_h = False
 
             elif key_input == "s":  # シグ看板表示
                 # 看板表示前に現在の記事ヘッダを消す必要はない（看板は別領域に表示される想定）
@@ -1551,7 +1561,28 @@ class CommandHandler:
             self.chan.send(b'\x1b[?2034l')  # 本文入力用ボタンを非表示
             self.chan.send(b'\x1b[?2024h')  # メインのBBSボタンを再表示
 
-    def write_article(self):
+    def _generate_reply_title(self, original_title):
+        """返信用のタイトルを生成する ('Re:', 'Re*2:' など)"""
+        if not original_title:
+            return "Re: (No Title)"
+
+        # 'Re*<n>: ' 形式にマッチ
+        match_numbered = re.match(r'Re\*(\d+):\s*(.*)', original_title)
+        if match_numbered:
+            count = int(match_numbered.group(1))
+            base_title = match_numbered.group(2)
+            return f"Re*{count + 1}: {base_title}"
+
+        # 'Re: ' 形式にマッチ
+        match_simple = re.match(r'Re:\s*(.*)', original_title)
+        if match_simple:
+            base_title = match_simple.group(1)
+            return f"Re*2: {base_title}"
+
+        # どの形式にもマッチしない場合
+        return f"Re: {original_title}"
+
+    def write_article(self, parent_article=None):
         """記事を新規作成"""
         if not self.current_board:
             util.send_text_by_key(
@@ -1593,12 +1624,28 @@ class CommandHandler:
             limits_config = util.app_config.get('limits', {})
             title_max_len = limits_config.get('bbs_title_max_length', 100)
 
-            util.send_text_by_key(self.chan, "bbs.post_subject", self.menu_mode,
-                                  max_len=title_max_len, add_newline=False)
-            title = self.chan.process_input()
-            if title is None:
+            if parent_article:
+                # 返信モード: 1行エディタを呼び出してタイトルを編集させる
+                reply_title = self._generate_reply_title(
+                    parent_article.get('title', ''))
+                prompt_text = f"タイトル ({title_max_len}文字以内)"
+                prompt_b64 = base64.b64encode(
+                    prompt_text.encode('utf-8')).decode('utf-8')
+                initial_value_b64 = base64.b64encode(
+                    reply_title.encode('utf-8')).decode('utf-8')
+                # 1行エディタを呼び出すエスケープシーケンスを送信
+                self.chan.send(
+                    f'\x1b[?LINE_EDIT;{prompt_b64};{initial_value_b64}\x07'.encode('utf-8'))
+                title_input = self.chan.process_input()  # 1行エディタからの入力を待つ
+            else:
+                # 新規投稿モード: 通常のプロンプト
+                util.send_text_by_key(
+                    self.chan, "bbs.post_subject", self.menu_mode, max_len=title_max_len, add_newline=False)
+                title_input = self.chan.process_input()
+
+            if title_input is None:
                 return 'cancelled'  # 切断
-            title = title.strip()
+            title = title_input.strip()
 
             if len(title) > title_max_len:
                 title = title[:title_max_len]
@@ -1606,7 +1653,7 @@ class CommandHandler:
                     self.chan, "bbs.title_truncated", self.menu_mode, max_len=title_max_len)
 
             board_type = self.current_board.get('board_type', 'simple')
-            if not title and board_type == 'thread':
+            if not title and board_type == 'thread' and not parent_article:  # スレッド形式の新規投稿（親記事なし）の場合のみタイトル必須
                 # スレッド形式の場合、新規投稿（スレッド作成）にはタイトルが必須
                 util.send_text_by_key(
                     self.chan, "bbs.title_required", self.menu_mode)

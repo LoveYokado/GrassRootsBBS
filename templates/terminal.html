@@ -2087,14 +2087,6 @@
             closeMultilineEditor();
         });
 
-        function openLineEditor() {
-            lineEditorInput.value = ''; // 以前の入力をクリア
-            historyIndex = lineEditorHistory.length; // 履歴の末尾にインデックスを設定
-            lineEditorOverlay.classList.add('visible');
-            lineEditorWindow.classList.add('visible');
-            lineEditorInput.focus(); // 入力フィールドにフォーカス
-        }
-
         function closeLineEditor() {
             lineEditorOverlay.classList.remove('visible');
             lineEditorWindow.classList.remove('visible');
@@ -2470,6 +2462,22 @@
                 // レイアウト変更後にターミナルのサイズを再計算
                 updateTerminalLayout();
             }
+
+            // 1行エディタ呼び出しシーケンス
+            const lineEditorPattern = /\x1b\[\?LINE_EDIT;(.*?);(.*?)\x07/;
+            const lineEditorMatch = data.match(lineEditorPattern);
+            if (lineEditorMatch) {
+                try {
+                    const promptText = atob(lineEditorMatch[1]); // Base64デコード
+                    const initialValue = atob(lineEditorMatch[2]); // Base64デコード
+                    openLineEditor(promptText, initialValue);
+                } catch (e) {
+                    console.error("Failed to decode line editor data:", e);
+                    openLineEditor(); // デコード失敗時はデフォルトで開く
+                }
+                data = data.replace(lineEditorPattern, '');
+            }
+
             // BBS本文入力コントロール表示/非表示シーケンスをチェック
             const bodyInputControlPattern = /\x1b\[\?2034(h|l)/;
             const bodyInputMatch = data.match(bodyInputControlPattern);
