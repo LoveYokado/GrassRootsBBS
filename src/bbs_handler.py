@@ -1514,25 +1514,42 @@ class CommandHandler:
         util.send_text_by_key(
             self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
 
-        self.chan.send(b'\x1b[?2024l')  # メインのBBSボタンを非表示
-        self.chan.send(b'\x1b[?2034h')  # 本文入力用ボタンを表示
+        use_popup_editor = getattr(
+            self.chan.handler, 'popup_editor_mode', False)
+
         try:
-            body_lines = []
-            while True:
-                line = self.chan.process_input()
-                if line is None:
-                    return  # 切断
-                if line == '^':
-                    break
-                body_lines.append(line)
-            body = '\r\n'.join(body_lines)
+            if use_popup_editor:
+                # --- ポップアップエディタを使用する場合 ---
+                self.chan.send(b'\x1b[?MULTILINE_EDIT\x07')
+                body = self.chan.process_input()
+                if body is None:
+                    return
+            else:
+                # --- 従来のインラインエディタを使用する場合 ---
+                self.chan.send(b'\x1b[?2024l')  # メインのBBSボタンを非表示
+                self.chan.send(b'\x1b[?2034h')  # 本文入力用ボタンを表示
+                body_lines = []
+                while True:
+                    line = self.chan.process_input()
+                    if line is None:
+                        return  # 切断
+                    if line == '^':
+                        break
+                    body_lines.append(line)
+                body = '\r\n'.join(body_lines)
 
             if len(body) > body_max_len:
                 body = body[:body_max_len]
                 util.send_text_by_key(
                     self.chan, "bbs.body_truncated", self.menu_mode, max_len=body_max_len)
 
-            if not body.strip():
+            # ポップアップエディタでキャンセルされた場合、bodyは空文字列になる可能性がある
+            if use_popup_editor and not body:
+                util.send_text_by_key(
+                    self.chan, "bbs.post_cancel", self.menu_mode)
+                return
+            # 従来モードでのキャンセル判定
+            elif not use_popup_editor and not body.strip():
                 util.send_text_by_key(
                     self.chan, "bbs.post_cancel", self.menu_mode)
                 return
@@ -1558,8 +1575,9 @@ class CommandHandler:
                 util.send_text_by_key(
                     self.chan, "bbs.post_failed", self.menu_mode)
         finally:
-            self.chan.send(b'\x1b[?2034l')  # 本文入力用ボタンを非表示
-            self.chan.send(b'\x1b[?2024h')  # メインのBBSボタンを再表示
+            if not use_popup_editor:
+                self.chan.send(b'\x1b[?2034l')  # 本文入力用ボタンを非表示
+                self.chan.send(b'\x1b[?2024h')  # メインのBBSボタンを再表示
 
     def _generate_reply_title(self, original_title):
         """返信用のタイトルを生成する ('Re:', 'Re*2:' など)"""
@@ -1624,24 +1642,37 @@ class CommandHandler:
             limits_config = util.app_config.get('limits', {})
             title_max_len = limits_config.get('bbs_title_max_length', 100)
 
-            if parent_article:
-                # 返信モード: 1行エディタを呼び出してタイトルを編集させる
-                reply_title = self._generate_reply_title(
-                    parent_article.get('title', ''))
+            use_popup_editor = getattr(
+                self.chan.handler, 'popup_editor_mode', False)
+
+            if use_popup_editor:
+                # --- ポップアップエディタを使用する場合 ---
+                initial_title = ""
+                if parent_article:  # 返信モード
+                    initial_title = self._generate_reply_title(
+                        parent_article.get('title', ''))
+
                 prompt_text = f"タイトル ({title_max_len}文字以内)"
                 prompt_b64 = base64.b64encode(
                     prompt_text.encode('utf-8')).decode('utf-8')
                 initial_value_b64 = base64.b64encode(
-                    reply_title.encode('utf-8')).decode('utf-8')
-                # 1行エディタを呼び出すエスケープシーケンスを送信
+                    initial_title.encode('utf-8')).decode('utf-8')
+
+                # 1行エディタを呼び出す
                 self.chan.send(
                     f'\x1b[?LINE_EDIT;{prompt_b64};{initial_value_b64}\x07'.encode('utf-8'))
-                title_input = self.chan.process_input()  # 1行エディタからの入力を待つ
-            else:
-                # 新規投稿モード: 通常のプロンプト
-                util.send_text_by_key(
-                    self.chan, "bbs.post_subject", self.menu_mode, max_len=title_max_len, add_newline=False)
                 title_input = self.chan.process_input()
+            else:
+                # --- 従来のインラインエディタを使用する場合 ---
+                if parent_article:
+                    title = self._generate_reply_title(
+                        parent_article.get('title', ''))
+                    self.chan.send(f"タイトル: {title}\r\n".encode('utf-8'))
+                    title_input = title  # そのまま使う
+                else:
+                    util.send_text_by_key(self.chan, "bbs.post_subject", self.menu_mode,
+                                          max_len=title_max_len, add_newline=False)
+                    title_input = self.chan.process_input()
 
             if title_input is None:
                 return 'cancelled'  # 切断
@@ -1653,7 +1684,8 @@ class CommandHandler:
                     self.chan, "bbs.title_truncated", self.menu_mode, max_len=title_max_len)
 
             board_type = self.current_board.get('board_type', 'simple')
-            if not title and board_type == 'thread' and not parent_article:  # スレッド形式の新規投稿（親記事なし）の場合のみタイトル必須
+            # スレッド形式の新規投稿（親記事なし）の場合のみタイトル必須
+            if not title and board_type == 'thread' and not parent_article:
                 # スレッド形式の場合、新規投稿（スレッド作成）にはタイトルが必須
                 util.send_text_by_key(
                     self.chan, "bbs.title_required", self.menu_mode)
@@ -1663,17 +1695,24 @@ class CommandHandler:
             util.send_text_by_key(
                 self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
 
-            self.chan.send(b'\x1b[?2034h')  # 本文入力用ボタンを表示
-
-            body_lines = []
-            while True:
-                line = self.chan.process_input()
-                if line is None:
-                    return 'cancelled'  # 切断
-                if line == '^':
-                    break
-                body_lines.append(line)
-            body = '\r\n'.join(body_lines)
+            if use_popup_editor:
+                # --- ポップアップエディタを使用する場合 ---
+                self.chan.send(b'\x1b[?MULTILINE_EDIT\x07')
+                body = self.chan.process_input()
+                if body is None:
+                    return 'cancelled'
+            else:
+                # --- 従来のインラインエディタを使用する場合 ---
+                self.chan.send(b'\x1b[?2034h')  # 本文入力用ボタンを表示
+                body_lines = []
+                while True:
+                    line = self.chan.process_input()
+                    if line is None:
+                        return 'cancelled'  # 切断
+                    if line == '^':
+                        break
+                    body_lines.append(line)
+                body = '\r\n'.join(body_lines)
 
             if len(body) > body_max_len:
                 body = body[:body_max_len]
@@ -1771,7 +1810,8 @@ class CommandHandler:
                 return 'failed'
 
         finally:
-            self.chan.send(b'\x1b[?2034l')  # 本文入力用ボタンを非表示
+            if not getattr(self.chan.handler, 'popup_editor_mode', False):
+                self.chan.send(b'\x1b[?2034l')  # 本文入力用ボタンを非表示
             # 保留中の添付ファイルをクリア
             if hasattr(self.chan, 'handler'):
                 self.chan.handler.pending_attachment = None

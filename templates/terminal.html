@@ -160,6 +160,57 @@
             font-size: 2.2em;
             /* ベースフォントサイズに連動させる */
             margin-left: 50px;
+            color: #d3cba0;
+            /* ハンバーガーメニューの色に合わせる */
+        }
+
+        /* --- サイドナビのボタンスタイル --- */
+        .sidenav a:not(.closebtn) {
+            padding: 10px 15px;
+            margin: 8px 15px;
+            text-decoration: none;
+            font-size: 1.1em;
+            display: block;
+            transition: background-color 0.2s, border-color 0.2s;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid;
+        }
+
+        /* テーマごとのスタイル */
+        body.theme-default .sidenav a:not(.closebtn) {
+            background-color: #333;
+            border-color: #555;
+            color: #eee;
+        }
+
+        body.theme-default .sidenav a:not(.closebtn):hover {
+            background-color: #444;
+            border-color: #777;
+        }
+
+        body.theme-green .sidenav a:not(.closebtn) {
+            background-color: #003300;
+            border-color: #008800;
+            color: #00ff00;
+        }
+
+        body.theme-green .sidenav a:not(.closebtn):hover {
+            background-color: #005500;
+            border-color: #00ff00;
+        }
+
+        body.theme-amber .sidenav a:not(.closebtn) {
+            background-color: #3a2000;
+            border-color: #885000;
+            color: #FFB000;
+        }
+
+        body.theme-amber .sidenav a:not(.closebtn):hover {
+            background-color: #5a4000;
+            border-color: #FFB000;
+        }
         }
 
 
@@ -540,16 +591,8 @@
             }
 
             .monitor-chassis {
-                position: fixed;
-                /* 位置を固定 */
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                /* JSでキーボードの高さを反映させる */
                 width: 100%;
-                height: auto;
-                /* 高さはtop/bottomで決まるように */
+                height: 100%;
                 max-height: none;
                 padding: 0;
                 border: 0;
@@ -797,11 +840,6 @@
         #bbs-btn-exit {
             grid-column: 5;
             grid-row: 3;
-        }
-
-        #bbs-btn-reply {
-            grid-column: 5;
-            grid-row: 1;
         }
 
         /* --- テーマごとのボタンのスタイル --- */
@@ -1064,49 +1102,6 @@
             color: #1a1000;
         }
 
-        /* --- モバイル本文入力コントロール --- */
-        #mobile-bbs-body-input-controls {
-            display: none;
-            /* JSで表示を制御 */
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: rgba(20, 20, 20, 0.9);
-            padding: 10px;
-            box-sizing: border-box;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            z-index: 100;
-        }
-
-        #mobile-bbs-body-input-controls.visible {
-            display: grid;
-        }
-
-        /* --- モバイル本文入力コントロールのテーマ --- */
-        #mobile-bbs-body-input-controls.theme-green .mobile-btn {
-            background-color: #000000;
-            border-color: #00FF00;
-            color: #00FF00;
-        }
-
-        #mobile-bbs-body-input-controls.theme-green .mobile-btn:active {
-            background-color: #00FF00;
-            color: #000000;
-        }
-
-        #mobile-bbs-body-input-controls.theme-amber .mobile-btn {
-            background-color: #1a1000;
-            border-color: #FFB000;
-            color: #FFB000;
-        }
-
-        #mobile-bbs-body-input-controls.theme-amber .mobile-btn:active {
-            background-color: #FFB000;
-            color: #1a1000;
-        }
-
         /* --- ディップスイッチ --- */
         #dip-switch-container {
             margin-top: 20px;
@@ -1226,7 +1221,6 @@
         <button class="mobile-btn" id="bbs-btn-help">?</button>
         <button class="mobile-btn" id="bbs-btn-down">↓</button>
         <button class="mobile-btn" id="bbs-btn-exit">E</button>
-        <button class="mobile-btn" id="bbs-btn-reply">R</button>
     </div>
 
     <!-- モバイルチャットコントロール -->
@@ -1241,18 +1235,18 @@
 
     <!-- モバイルユーザー設定コントロール -->
     <div id="mobile-userpref-controls">
-        <button class="mobile-btn" id="userpref-btn-7">7</button>
-        <button class="mobile-btn" id="userpref-btn-8">8</button>
-        <button class="mobile-btn" id="userpref-btn-9">9</button>
-        <button class="mobile-btn" id="userpref-btn-4">4</button>
-        <button class="mobile-btn" id="userpref-btn-5">5</button>
-        <button class="mobile-btn" id="userpref-btn-6">6</button>
         <button class="mobile-btn" id="userpref-btn-1">1</button>
         <button class="mobile-btn" id="userpref-btn-2">2</button>
         <button class="mobile-btn" id="userpref-btn-3">3</button>
-        <button class="mobile-btn" id="userpref-btn-0">0</button>
+        <button class="mobile-btn" id="userpref-btn-4">4</button>
+        <button class="mobile-btn" id="userpref-btn-5">5</button>
+        <button class="mobile-btn" id="userpref-btn-6">6</button>
+        <button class="mobile-btn" id="userpref-btn-7">7</button>
+        <button class="mobile-btn" id="userpref-btn-8">8</button>
+        <button class="mobile-btn" id="userpref-btn-9">9</button>
         <button class="mobile-btn" id="userpref-btn-help">?</button>
-        <button class="mobile-btn" id="userpref-btn-bs">BS</button>
+        <button class="mobile-btn" id="userpref-btn-0">0</button>
+        <button class="mobile-btn" style="visibility: hidden;"></button>
         <button class="mobile-btn" id="userpref-btn-enter">Enter</button>
     </div>
 
@@ -1299,13 +1293,6 @@
         <button class="mobile-btn" id="plugin-btn-0">0</button>
         <button class="mobile-btn" style="visibility: hidden;"></button>
         <button class="mobile-btn" id="plugin-btn-enter">Enter</button>
-    </div>
-
-    <!-- モバイル本文入力コントロール -->
-    <div id="mobile-bbs-body-input-controls">
-        <button class="mobile-btn" id="body-input-btn-y">Y</button>
-        <button class="mobile-btn" id="body-input-btn-end">^</button>
-        <button class="mobile-btn" id="body-input-btn-n">N</button>
     </div>
 
 
@@ -1679,6 +1666,10 @@
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
 
+            // bodyにテーマクラスを適用して、サイドナビなど他の要素も追従できるようにする
+            document.body.classList.remove('theme-default', 'theme-green', 'theme-amber');
+            document.body.classList.add(`theme-${themeName}`);
+
             // モバイル操作パネルのテーマクラスを更新
             const mobileControls = document.getElementById('mobile-bbs-controls');
             const chatControls = document.getElementById('mobile-chat-controls');
@@ -1687,9 +1678,8 @@
             const bbsEntryControls = document.getElementById('mobile-bbs-entry-controls');
             const topMenuControls = document.getElementById('mobile-top-menu-controls');
             const pluginMenuControls = document.getElementById('mobile-plugin-menu-controls');
-            const bodyInputControls = document.getElementById('mobile-bbs-body-input-controls');
 
-            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls, topMenuControls, pluginMenuControls, bodyInputControls].forEach(controls => {
+            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls, topMenuControls, pluginMenuControls].forEach(controls => {
                 if (controls) {
                     controls.classList.remove('theme-default', 'theme-green', 'theme-amber');
                     controls.classList.add(`theme-${themeName}`);
@@ -2087,6 +2077,14 @@
             closeMultilineEditor();
         });
 
+        function openLineEditor() {
+            lineEditorInput.value = ''; // 以前の入力をクリア
+            historyIndex = lineEditorHistory.length; // 履歴の末尾にインデックスを設定
+            lineEditorOverlay.classList.add('visible');
+            lineEditorWindow.classList.add('visible');
+            lineEditorInput.focus(); // 入力フィールドにフォーカス
+        }
+
         function closeLineEditor() {
             lineEditorOverlay.classList.remove('visible');
             lineEditorWindow.classList.remove('visible');
@@ -2283,8 +2281,7 @@
                 document.getElementById('mobile-mail-controls'),
                 document.getElementById('mobile-bbs-entry-controls'),
                 document.getElementById('mobile-top-menu-controls'),
-                document.getElementById('mobile-plugin-menu-controls'),
-                document.getElementById('mobile-bbs-body-input-controls')
+                document.getElementById('mobile-plugin-menu-controls')
             ];
             const monitorScreen = document.querySelector('.monitor-screen');
 
@@ -2313,7 +2310,6 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (userprefMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2335,7 +2331,6 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (chatMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2357,7 +2352,6 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (mailMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2379,7 +2373,6 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (bbsEntryMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2401,7 +2394,6 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (pluginMenuMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2423,7 +2415,6 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (topMenuMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
@@ -2445,7 +2436,6 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (match[1] === 'h') { // 'h' for show (表示)
-                    hideAllMobileControls();
                     mobileControls.classList.add('visible');
                     // コントロールの高さを計算して、ターミナルコンテナのpadding-bottomに設定
                     const controlsHeight = mobileControls.offsetHeight;
@@ -2460,42 +2450,6 @@
                 // シーケンス自体はターミナルに表示しない
                 data = data.replace(bbsControlPattern, '');
                 // レイアウト変更後にターミナルのサイズを再計算
-                updateTerminalLayout();
-            }
-
-            // 1行エディタ呼び出しシーケンス
-            const lineEditorPattern = /\x1b\[\?LINE_EDIT;(.*?);(.*?)\x07/;
-            const lineEditorMatch = data.match(lineEditorPattern);
-            if (lineEditorMatch) {
-                try {
-                    const promptText = atob(lineEditorMatch[1]); // Base64デコード
-                    const initialValue = atob(lineEditorMatch[2]); // Base64デコード
-                    openLineEditor(promptText, initialValue);
-                } catch (e) {
-                    console.error("Failed to decode line editor data:", e);
-                    openLineEditor(); // デコード失敗時はデフォルトで開く
-                }
-                data = data.replace(lineEditorPattern, '');
-            }
-
-            // BBS本文入力コントロール表示/非表示シーケンスをチェック
-            const bodyInputControlPattern = /\x1b\[\?2034(h|l)/;
-            const bodyInputMatch = data.match(bodyInputControlPattern);
-            if (bodyInputMatch) {
-                const mobileControls = document.getElementById('mobile-bbs-body-input-controls');
-                const monitorScreen = document.querySelector('.monitor-screen');
-
-                if (bodyInputMatch[1] === 'h') { // 'h' for show
-                    hideAllMobileControls();
-                    mobileControls.classList.add('visible');
-                    const controlsHeight = mobileControls.offsetHeight;
-                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                    monitorScreen.dataset.controlsHeight = controlsHeight;
-                } else { // 'l' for hide
-                    mobileControls.classList.remove('visible');
-                    monitorScreen.style.paddingBottom = '';
-                }
-                data = data.replace(bodyInputControlPattern, '');
                 updateTerminalLayout();
             }
             // ファイルダウンロードシーケンス
@@ -2613,7 +2567,7 @@
                 f2LogBtn.textContent = 'LOGGING...';
             }
             if (sidenavLogBtn) {
-                sidenavLogBtn.textContent = 'F2: LOGGING...';
+                sidenavLogBtn.textContent = 'LOGGING...';
             }
         });
 
@@ -2625,7 +2579,7 @@
                 f2LogBtn.textContent = 'LOGGING';
             }
             if (sidenavLogBtn) {
-                sidenavLogBtn.textContent = 'F2: LOGGING';
+                sidenavLogBtn.textContent = 'LOGGING';
             }
 
             // ダウンロードをトリガーするための隠しリンクを作成してクリック
@@ -2645,7 +2599,7 @@
                 f2LogBtn.textContent = 'LOGGING';
             }
             if (sidenavLogBtn) {
-                sidenavLogBtn.textContent = 'F2: LOGGING';
+                sidenavLogBtn.textContent = 'LOGGING';
             }
             // ログが空だった場合などのメッセージはターミナルに表示しない
         });
@@ -2816,9 +2770,6 @@
             // 問題を回避するためのワークアラウンド。
             if (term.textarea) {
                 term.textarea.addEventListener('compositionend', () => {
-                    // IME確定後、xterm.jsがonDataイベントを発火させるためのごくわずかな時間を与える。
-                    // readOnlyプロパティはモバイルでソフトウェアキーボードを閉じてしまう副作用があるため使用しない。
-                    // 0msのsetTimeoutでも、イベントキューの次のティックで実行されるため、多くの環境で入力の競合を回避できる。
                     setTimeout(() => {
                         if (term.textarea) { term.textarea.value = ''; }
                     }, 0);
@@ -2840,8 +2791,7 @@
                 'bbs-btn-help': '?',
                 'bbs-btn-exit': 'e',
                 'bbs-btn-y': 'y',
-                'bbs-btn-n': 'n',
-                'bbs-btn-reply': 'r'
+                'bbs-btn-n': 'n'
             };
 
             for (const [id, key] of Object.entries(keyMap)) {
@@ -2877,7 +2827,6 @@
                 'userpref-btn-9': '9',
                 'userpref-btn-0': '0',
                 'userpref-btn-help': '?',
-                'userpref-btn-bs': '\x7f', // Backspace
                 'userpref-btn-enter': '\r',
             };
 
@@ -2944,19 +2893,6 @@
                 const btn = document.getElementById(id);
                 if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
             }
-
-            // --- モバイル本文入力コントロールのイベントリスナー ---
-            const bodyInputKeyMap = {
-                'body-input-btn-y': 'y\r',
-                'body-input-btn-end': '^\r', // ^と改行を送信して入力を完了させる
-                'body-input-btn-n': 'n\r'
-            };
-            for (const [id, key] of Object.entries(bodyInputKeyMap)) {
-                const btn = document.getElementById(id);
-                if (btn) {
-                    btn.addEventListener('click', () => { socket.emit('client_input', key); });
-                }
-            }
         });
 
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
@@ -2968,28 +2904,30 @@
 
             const handleViewportResize = () => {
                 const isMobile = window.matchMedia("(max-width: 992px)").matches;
-                const chassis = document.querySelector('.monitor-chassis');
-
                 if (!isMobile) {
-                    // PC表示では、モバイル用に設定した可能性のあるbottomスタイルをリセット
-                    chassis.style.bottom = '';
+                    document.body.style.height = ''; // PC表示では高さをリセット
                     return;
                 }
+                // bodyの高さを、キーボードを除いた実際の表示領域(visualViewport)に合わせる。
+                // これにより、ブラウザがズームしてもレイアウトが追従し、画面全体が表示される。
+                document.body.style.height = `${vv.height}px`;
 
-                // キーボードの高さを計算
                 const keyboardHeight = window.innerHeight - vv.height;
+                const isKeyboardVisible = keyboardHeight > 80;
+                const monitorScreen = document.querySelector('.monitor-screen');
 
-                // .monitor-chassis の bottom をキーボードの高さに設定して、表示領域を上に押し上げる
-                chassis.style.bottom = `${keyboardHeight}px`;
-
-                // レイアウト変更が適用され、キーボードのアニメーションが完了するのを待ってから
-                // ターミナルのリサイズとスクロールを行う
-                setTimeout(() => {
-                    try {
-                        fitAddon.fit();
-                        term.scrollToBottom();
-                    } catch (e) { console.error("fit/scrollToBottom failed:", e); }
-                }, 150);
+                if (isKeyboardVisible) {
+                    // キーボード表示時、ボタンのためのパディングをなくす
+                    monitorScreen.style.paddingBottom = '0px';
+                } else {
+                    // キーボードが非表示になったら、記憶しておいたボタンの高さを復元
+                    const storedHeight = monitorScreen.dataset.controlsHeight;
+                    if (storedHeight) {
+                        monitorScreen.style.paddingBottom = `${storedHeight}px`;
+                    }
+                }
+                // レイアウト変更が適用された後にターミナルをリサイズ
+                setTimeout(() => { try { fitAddon.fit(); } catch (e) { /* ignore */ } }, 100);
             };
             vv.addEventListener('resize', handleViewportResize);
         }
@@ -3143,8 +3081,8 @@
             for (const fkeyId in fkeyDefinitions) {
                 const definition = fkeyDefinitions[fkeyId];
                 const link = document.createElement('a');
-                link.href = '#'; // ページ遷移を防ぐ
-                link.textContent = `${fkeyId.toUpperCase()}: ${definition.label}`;
+                link.href = 'javascript:void(0)'; // ページ遷移を防ぐ
+                link.textContent = definition.label;
 
                 // アクションに応じてIDを付与
                 if (definition.action === 'toggle_logging') {
