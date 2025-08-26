@@ -42,7 +42,6 @@ def add_message_to_history(room_id: str, display_name: str, message: str, is_sys
     else:
         formatted_message = f"{display_name}: {message}"
     history.append(formatted_message)
-    logging.info(f"ChatHistory[{room_id}]: {formatted_message}")
 
 
 # room_name_for_prompt は実際には使われません

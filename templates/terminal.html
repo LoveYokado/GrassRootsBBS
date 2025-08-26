@@ -36,10 +36,7 @@
         /* iOSの自動ズームを防ぐため、Xterm.jsが内部的に使用する
            非表示のテキストエリアのフォントサイズを16px以上に保つ */
         .xterm-helper-textarea {
-            /* --- モバイルでの強制ズームを抑制するための最終手段 --- */
-            /* 1. フォントサイズを16px以上に保つ */
             font-size: 16px !important;
-            /* 2. ブラウザがフォーカス時にズーム/スクロールしないよう、画面の遥か彼方に配置する */
             position: absolute !important;
             top: 0 !important;
             left: -9999px !important;
@@ -94,7 +91,6 @@
         #hamburger-btn img {
             width: 100%;
             height: 100%;
-            /* CSSで色を付けるためのfilter (元のSVGが黒の場合に有効) */
             filter: invert(83%) sepia(15%) saturate(411%) hue-rotate(359deg) brightness(91%) contrast(88%);
         }
 
@@ -103,8 +99,6 @@
             /* デフォルトでは非表示 */
             position: absolute;
             top: 60px;
-            /* ハンバーガーボタンの下に配置 */
-            /* ハンバーガーボタンの下に配置 */
             right: 15px;
             background: none;
             border: none;
@@ -120,8 +114,7 @@
             width: 100%;
             height: 100%;
             transform: rotate(90deg);
-            /* 90度回転して下向きにする */
-            /* CSSで色を付けるためのfilter */
+            /* 90度回転 */
             filter: invert(83%) sepia(15%) saturate(411%) hue-rotate(359deg) brightness(91%) contrast(88%);
         }
 
@@ -142,7 +135,6 @@
             padding: 10px 15px 10px 32px;
             text-decoration: none;
             font-size: 1.1em;
-            /* ベースフォントサイズに連動させる */
             color: #f1f1f1;
             display: block;
             transition: 0.2s;
@@ -156,12 +148,10 @@
             position: absolute;
             top: 0;
             right: 15px;
-            /* 少し内側に */
             font-size: 2.2em;
             /* ベースフォントサイズに連動させる */
             margin-left: 50px;
             color: #d3cba0;
-            /* ハンバーガーメニューの色に合わせる */
         }
 
         /* --- サイドナビのボタンスタイル --- */
@@ -229,37 +219,27 @@
         .monitor-footer {
             text-align: center;
             padding-top: 15px;
-            /* 画面とロゴの間隔 */
             font-size: 1.2em;
             font-weight: bold;
-            /* 筐体の色に合わせた文字色 */
             color: #706b58;
-            /* 彫り込まれたような文字の効果 */
             text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
         }
 
         .monitor-screen {
             background-color: #000;
             padding: 10px;
-            /* 画面が奥にあるように見せるための影と境界線 */
             box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.9);
             border-style: solid;
             border-width: 2px;
             border-color: #222 #555 #555 #222;
-            /* top, right, bottom, left */
             border-radius: 8px;
-            /* ブラウン管の丸みを少し強く */
             display: flex;
             position: relative;
-            /* 擬似要素の基準点 */
             overflow: hidden;
-            /* はみ出した擬似要素を隠す */
             flex-direction: column;
             flex-grow: 1;
             min-height: 0;
-            /* flexアイテムが縮むように */
             touch-action: none;
-            /* モバイルでのピンチズームなどの意図しない操作を無効化 */
         }
 
         /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
@@ -289,9 +269,7 @@
         #terminal {
             flex-grow: 1;
             min-height: 0;
-            /* flexアイテムが縮むように */
             overflow: hidden;
-            /* xterm自体がスクロールバーを持つため */
         }
 
         #function-keys-container {
@@ -317,11 +295,8 @@
             user-select: none;
             border-radius: 2px;
             white-space: nowrap;
-            /* テキストが折り返さないようにする */
             text-align: center;
-            /* テキストを中央揃え */
             box-sizing: border-box;
-            /* paddingとborderを幅に含める */
         }
 
         /* --- ログビューワーのスタイル調整 --- */
@@ -335,13 +310,11 @@
         .log-viewer-container {
             display: flex;
             height: calc(100% - 50px);
-            /* ヘッダーの高さを引く */
             gap: 15px;
         }
 
         .file-list-pane {
             flex: 0 0 300px;
-            /* 幅を固定 */
             overflow-y: auto;
             border-right: 1px solid #b0a888;
             padding-right: 15px;
@@ -376,7 +349,6 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            /* 筐体のスタイルを適用 */
             background: linear-gradient(145deg, #f0e8c0, #d3cba0);
             border-top: 2px solid #fdf5d5;
             border-left: 2px solid #fdf5d5;
@@ -392,7 +364,6 @@
         #line-editor-window {
             width: 80%;
             max-width: 900px;
-            /* あまりに広くなりすぎないように最大幅も設定 */
         }
 
         .popup-overlay.visible,
@@ -409,9 +380,7 @@
             padding-bottom: 10px;
             margin-bottom: 15px;
             cursor: grab;
-            /* ドラッグ可能なことを示すカーソル */
             user-select: none;
-            /* ドラッグ中のテキスト選択を無効化 */
         }
 
         .popup-header h2 {
@@ -425,7 +394,6 @@
             background: none;
             border: none;
             font-size: 1.5em;
-            /* ベースフォントサイズに連動させる */
             color: #706b58;
             cursor: pointer;
         }
@@ -443,7 +411,6 @@
         }
 
         .popup-content button {
-            /* 筐体の色に合わせたボタン */
             background: linear-gradient(145deg, #e0d8b8, #c8c098);
             border: 1px solid #b0a888;
             border-top-color: #fdf5d5;
@@ -466,13 +433,11 @@
         .log-viewer-container {
             display: flex;
             height: calc(100% - 50px);
-            /* ヘッダーの高さを引く */
             gap: 15px;
         }
 
         .file-list-pane {
             flex: 0 0 300px;
-            /* 幅を固定 */
             overflow-y: auto;
             border-right: 1px solid #b0a888;
 
@@ -556,7 +521,6 @@
             border-radius: 3px;
             font-size: 0.9em;
             font-family: sans-serif;
-            /* 文字色はJSで動的に設定されるため、ここでは指定しない */
         }
 
         /* xterm.jsの点滅(blink)を有効にするためのCSSアニメーション */
@@ -633,7 +597,6 @@
                 display: flex;
                 flex-direction: column;
                 height: calc(100% - 60px);
-                /* ヘッダーとボタンの高さを考慮 */
             }
 
             #multiline-editor-input {
@@ -669,20 +632,15 @@
 
             #popup-window .popup-content h3 {
                 font-size: 1.2em;
-                /* 見出しを大きく */
                 margin-bottom: 0.8em;
             }
 
             #popup-window .popup-content button {
                 display: block;
-                /* ボタンを縦に並べる */
                 width: 100%;
                 padding: 0.8em 1em;
-                /* タップしやすくする */
                 font-size: 1.1em;
-                /* ボタンの文字を大きく */
                 margin: 0.5em 0;
-                /* ボタン間の余白 */
                 box-sizing: border-box;
             }
 
@@ -712,7 +670,6 @@
             #mobile-bbs-entry-controls,
             #mobile-top-menu-controls,
             #mobile-plugin-menu-controls {
-                /* JSで .visible クラスが付与されても、PCでは強制的に非表示にする */
                 display: none !important;
             }
 
@@ -738,7 +695,6 @@
         /* --- モバイルBBSコントロール --- */
         #mobile-bbs-controls {
             display: none;
-            /* JSで表示を制御 */
             position: fixed;
             bottom: 0;
             left: 0;
@@ -770,7 +726,6 @@
             font-family: '"M PLUS 1m", "Courier New", monospace';
             font-weight: bold;
             padding: 0.5em 0;
-            /* ボタンの高さを確保 (約2倍) */
         }
 
         #bbs-btn-y {
@@ -850,7 +805,6 @@
 
         #mobile-bbs-controls.theme-default #bbs-btn-read:active {
             background-color: #c85252;
-            /* 少し明るく */
         }
 
         /* グリーンテーマ */
@@ -925,7 +879,6 @@
         /* --- モバイルチャットコントロール --- */
         #mobile-chat-controls {
             display: none;
-            /* JSで表示を制御 */
             position: fixed;
             bottom: 0;
             left: 0;
@@ -946,7 +899,6 @@
         /* --- モバイルユーザー設定コントロール --- */
         #mobile-userpref-controls {
             display: none;
-            /* JSで表示を制御 */
             position: fixed;
             bottom: 0;
             left: 0;
@@ -966,7 +918,6 @@
 
         #userpref-btn-enter {
             grid-column: 1 / -1;
-            /* Span all columns */
         }
 
         /* --- モバイルユーザー設定コントロールのテーマ --- */
@@ -996,7 +947,6 @@
         #mobile-mail-controls,
         #mobile-bbs-entry-controls {
             display: none;
-            /* JSで表示を制御 */
             position: fixed;
             bottom: 0;
             left: 0;
@@ -1024,7 +974,6 @@
         /* --- モバイルトップメニューコントロール --- */
         #mobile-top-menu-controls {
             display: none;
-            /* JSで表示を制御 */
             position: fixed;
             bottom: 0;
             left: 0;
@@ -1040,7 +989,6 @@
 
         #mobile-plugin-menu-controls {
             display: none;
-            /* JSで表示を制御 */
             position: fixed;
             bottom: 0;
             left: 0;
@@ -1060,7 +1008,6 @@
 
         #plugin-btn-enter {
             grid-column: 1 / -1;
-            /* Span all columns */
         }
 
         #mobile-top-menu-controls.visible {
@@ -1111,11 +1058,9 @@
 
         .dip-switch-panel {
             background-color: #4a4a4a;
-            /* グレーの金属パネル風に変更 */
             border: 2px solid #333333;
             border-radius: 5px;
             padding: 15px 15px 0px 15px;
-            /* 上、左右、下の順。下の余白を少し詰める */
             box-shadow: inset 1px 1px 4px rgba(0, 0, 0, 0.5);
         }
 
@@ -1136,7 +1081,6 @@
             padding: 5px 8px;
             border-radius: 3px;
             background-color: #c0392b;
-            /* 赤い基板の色 */
         }
 
         .dip-switch-unit {
@@ -1144,7 +1088,6 @@
             flex-direction: column;
             align-items: center;
             gap: 2px;
-            /* スイッチと番号の間の隙間 */
         }
 
         .dip-switch-number {
@@ -1298,7 +1241,6 @@
 
     <!-- ハンバーガーメニュー本体 -->
     <div id="sidenav" class="sidenav">
-        <!-- メニュー項目はJSで動的に生成 -->
     </div>
     <!-- １行エディタ用ポップアップ -->
     <div id="line-editor-overlay" class="popup-overlay"></div>
@@ -1576,14 +1518,14 @@
                 fkey_bg: '#FFFFFF',
                 fkey_fg: '#000000',
                 text_shadow_glow: '-1px 0 1px rgba(255,0,0,0.3), 1px 0 1px rgba(0,255,0,0.3), 0 0 3px rgba(255,255,255,0.4)',
-                black: '#000000',      // 標準の黒
-                red: '#FF0000',      // 鮮やかな赤
-                green: '#00FF00',      // 鮮やかな緑
-                yellow: '#FFFF00',      // 鮮やかな黄
-                blue: '#0000FF',      // 鮮やかな青
-                magenta: '#FF00FF',      // 鮮やかなマゼンタ
-                cyan: '#00FFFF',      // 鮮やかなシアン
-                white: '#FFFFFF',      // 真っ白
+                black: '#000000',
+                red: '#FF0000',
+                green: '#00FF00',
+                yellow: '#FFFF00',
+                blue: '#0000FF',
+                magenta: '#FF00FF',
+                cyan: '#00FFFF',
+                white: '#FFFFFF',
                 brightBlack: '#7F7F7F',
                 brightRed: '#FF0000',
                 brightGreen: '#00FF00',
@@ -1715,7 +1657,7 @@
                     ansiColorButtons.style.display = 'block';
                 }
             }
-            localStorage.setItem('terminalTheme', themeName); // 選択を保存
+            localStorage.setItem('terminalTheme', themeName);
             updateThemeButtons(themeName);
             if (!isDipSwitchUpdating) updateDipSwitches('theme', themeName);
         }
@@ -1727,8 +1669,6 @@
             localStorage.setItem('terminalFont', fontName); // フォント名のみを保存
             updateFontButtons(fontName);
             if (!isDipSwitchUpdating) updateDipSwitches('font', fontName);
-
-            // フォントサイズやファミリーの変更はレイアウトに影響するため、再計算をトリガー
             setTimeout(() => updateTerminalLayout(), 0);
         }
 
@@ -1738,7 +1678,6 @@
             // ターミナル本体のフォントサイズを設定
             term.options.fontSize = baseSize;
 
-            // body全体のフォントサイズも変更する。これによりem単位のUI要素が追従する。
             document.body.style.fontSize = `${baseSize}px`;
 
             // PCとモバイルで設定を分けて保存する
@@ -1748,7 +1687,6 @@
 
             updateFontSizeButtons(size);
             if (!isDipSwitchUpdating) updateDipSwitches('fontsize', size);
-            // フォントサイズ変更はレイアウトに影響するため、再計算をトリガーします
             setTimeout(() => updateTerminalLayout(), 0);
         }
 
@@ -1761,7 +1699,7 @@
         function applySpeed(speedName) {
             // サーバに速度設定を通知
             socket.emit('set_speed', speedName);
-            localStorage.setItem('terminalSpeed', speedName); // 選択を保存
+            localStorage.setItem('terminalSpeed', speedName);
             updateSpeedButtons(speedName);
             if (!isDipSwitchUpdating) updateDipSwitches('speed', speedName);
         }
@@ -1800,9 +1738,6 @@
             localStorage.setItem('effectStates', JSON.stringify(effectStates));
             updateEffectButtons();
             if (!isDipSwitchUpdating) updateDipSwitches('effect');
-
-            // ベゼルの表示/非表示はコンテナサイズに影響するため、少し遅延させてから
-            // ターミナルのレイアウトを再計算します。
             setTimeout(updateTerminalLayout, 50);
         }
 
@@ -1867,7 +1802,7 @@
         const isMobileForTermInit = window.matchMedia("(max-width: 992px)").matches;
         const term = new Terminal({
             cursorBlink: true,
-            fontSize: 16, // 固定サイズなので少し見やすく
+            fontSize: 16,
             // モバイルではスクロールバックを有効にし、PCでは無効にする
             scrollback: isMobileForTermInit ? 1000 : 0,
         });
@@ -1890,7 +1825,7 @@
             }
 
             if (isMobile) {
-                // モバイル端末では、コンテナの幅に合わせてターミナルの桁数を自動調整します。
+                // モバイル端末では、コンテナの幅に合わせてターミナルの桁数を自動調整
                 try {
                     fitAddon.fit();
                 } catch (e) {
@@ -1923,7 +1858,7 @@
                     setTimeout(updateTerminalLayout, 50);
                 }
             } else {
-                // デスクトップの通常表示では、伝統的な80x25のサイズに固定します。
+                // デスクトップの通常表示では、伝統的な80x25のサイズに固定
                 term.resize(80, 25);
             }
         }
@@ -1956,7 +1891,7 @@
                 reader.onload = (e) => {
                     socket.emit('upload_attachment', {
                         filename: file.name,
-                        data: e.target.result // ArrayBuffer
+                        data: e.target.result
                     });
                 };
                 reader.onerror = (e) => {
@@ -1976,7 +1911,6 @@
         });
 
         socket.on('attachment_upload_error', (data) => {
-            // エラーメッセージはサーバーからターミナルに直接表示されるので、ここではコンソールに出力するだけ
             console.error(`Upload error: ${data.message}`);
             attachmentInput.value = '';
         });
@@ -2018,7 +1952,7 @@
             if (e.target.tagName === 'BUTTON' && e.target.dataset.sequence) {
                 const sequenceCode = e.target.dataset.sequence;
                 const startSequence = '\x1b' + sequenceCode;
-                const endSequence = '\x1b[0m'; // 基本的にリセットシーケンスで閉じる
+                const endSequence = '\x1b[0m';
                 const textarea = multilineEditorInput;
                 const start = textarea.selectionStart;
                 const end = textarea.selectionEnd;
@@ -2029,7 +1963,6 @@
                 let newStart;
                 let newEnd;
 
-                // リセットボタンの場合は、選択範囲があっても単純挿入
                 if (sequenceCode === '[0m') {
                     newText = text.substring(0, start) + startSequence + text.substring(end);
                     newStart = start + startSequence.length;
@@ -2212,7 +2145,7 @@
         // ボタンにイベントリスナーを設定
         document.getElementById('theme-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
-                applyTheme(e.target.dataset.theme); // ウィンドウは閉じない
+                applyTheme(e.target.dataset.theme);
             }
         });
 
@@ -2225,13 +2158,13 @@
         document.getElementById('font-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 const fontName = e.target.dataset.font;
-                applyFont(fontName); // ウィンドウは閉じない
+                applyFont(fontName);
             }
         });
 
         document.getElementById('speed-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
-                applySpeed(e.target.dataset.speed); // ウィンドウは閉じない
+                applySpeed(e.target.dataset.speed);
             }
         });
 
@@ -2254,7 +2187,7 @@
         term.onData(data => {
             if (isPasswordInputMode) {
                 // パスワード入力モード
-                if (data === '\r') { // Enterキー
+                if (data === '\r') {
                     // サーバーにはEnterキーを送信。改行表示はサーバーからの応答を待つ。
                     socket.emit('client_input', data);
                 } else if (data === '\x7f' || data === '\x08') { // Backspaceキー
@@ -2272,7 +2205,6 @@
             }
         });
 
-        // --- Helper function to hide all mobile control panels ---
         function hideAllMobileControls() {
             const controls = [
                 document.getElementById('mobile-bbs-controls'),
@@ -2298,7 +2230,6 @@
             const passkeyRegisterPattern = /\x1b\[\?2027h/;
             if (passkeyRegisterPattern.test(data)) {
                 registerNewPasskey(); // 登録フローを開始
-                // シーケンス自体はターミナルに表示しない
                 data = data.replace(passkeyRegisterPattern, '');
             }
 
@@ -2315,7 +2246,7 @@
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
                     // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
-                } else { // 'l' for hide
+                } else {
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2330,13 +2261,13 @@
                 const mobileControls = document.getElementById('mobile-chat-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (chatMatch[1] === 'h') { // 'h' for show
+                if (chatMatch[1] === 'h') {
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
                     // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
-                } else { // 'l' for hide
+                } else {
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2351,13 +2282,13 @@
                 const mobileControls = document.getElementById('mobile-mail-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (mailMatch[1] === 'h') { // 'h' for show
+                if (mailMatch[1] === 'h') {
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
                     // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
-                } else { // 'l' for hide
+                } else {
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2372,13 +2303,13 @@
                 const mobileControls = document.getElementById('mobile-bbs-entry-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (bbsEntryMatch[1] === 'h') { // 'h' for show
+                if (bbsEntryMatch[1] === 'h') {
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
                     // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
-                } else { // 'l' for hide
+                } else {
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2393,13 +2324,13 @@
                 const mobileControls = document.getElementById('mobile-plugin-menu-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (pluginMenuMatch[1] === 'h') { // 'h' for show
+                if (pluginMenuMatch[1] === 'h') {
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
                     // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
-                } else { // 'l' for hide
+                } else {
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2414,13 +2345,13 @@
                 const mobileControls = document.getElementById('mobile-top-menu-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (topMenuMatch[1] === 'h') { // 'h' for show
+                if (topMenuMatch[1] === 'h') {
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
                     // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
-                } else { // 'l' for hide
+                } else {
                     mobileControls.classList.remove('visible');
                     monitorScreen.style.paddingBottom = '';
                 }
@@ -2435,21 +2366,18 @@
                 const mobileControls = document.getElementById('mobile-bbs-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (match[1] === 'h') { // 'h' for show (表示)
+                if (match[1] === 'h') {
                     mobileControls.classList.add('visible');
                     // コントロールの高さを計算して、ターミナルコンテナのpadding-bottomに設定
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
                     // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
-                } else { // 'l' for hide (非表示)
+                } else {
                     mobileControls.classList.remove('visible');
-                    // padding-bottomを元に戻す (CSSで定義された値に戻る)
                     monitorScreen.style.paddingBottom = '';
                 }
-                // シーケンス自体はターミナルに表示しない
                 data = data.replace(bbsControlPattern, '');
-                // レイアウト変更後にターミナルのサイズを再計算
                 updateTerminalLayout();
             }
             // ファイルダウンロードシーケンス
@@ -2463,7 +2391,7 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                data = data.replace(downloadPattern, ''); // シーケンスを消費
+                data = data.replace(downloadPattern, '');
             }
 
             // ファイル添付UI表示 & 即時ダイアログ表示シーケンス
@@ -2471,9 +2399,8 @@
             if (attachmentDialogPattern.test(data)) {
                 const attachmentInput = document.getElementById('attachment-input');
 
-                // ファイルダイアログが閉じたことを検知するためのリスナー
                 const onFocus = () => {
-                    window.removeEventListener('focus', onFocus); // 一度きりのため削除
+                    window.removeEventListener('focus', onFocus);
                     // changeイベントが先に処理される時間を確保するため、少し遅延させる
                     setTimeout(() => {
                         // サーバー側の process_input() を進めるための信号を送信
@@ -2483,7 +2410,7 @@
                 window.addEventListener('focus', onFocus);
 
                 attachmentInput.click(); // プログラムでファイル選択ダイアログを開く
-                data = data.replace(attachmentDialogPattern, ''); // シーケンスを消費
+                data = data.replace(attachmentDialogPattern, '');
             }
 
             // ファイル添付UI非表示シーケンス (投稿完了/キャンセル時に呼ばれる)
@@ -2601,7 +2528,6 @@
             if (sidenavLogBtn) {
                 sidenavLogBtn.textContent = 'LOGGING';
             }
-            // ログが空だった場合などのメッセージはターミナルに表示しない
         });
 
         // サーバーからの切断要求を処理
@@ -2625,8 +2551,8 @@
 
             // フォント
             const isMobileForLoad = window.matchMedia("(max-width: 992px)").matches;
-            const defaultFontSize = isMobileForLoad ? '28' : '12'; // モバイルは28px, PCは12pxをデフォルトに
-            const savedFontName = localStorage.getItem('terminalFont') || 'M PLUS 1m'; // フォントはそのまま
+            const defaultFontSize = isMobileForLoad ? '28' : '12';
+            const savedFontName = localStorage.getItem('terminalFont') || 'M PLUS 1m';
             applyFont(savedFontName);
 
             // フォントサイズ
@@ -2764,10 +2690,6 @@
             loadSettings();
             updateTerminalLayout(); // 初期レイアウトを適用
 
-            // --- IME入力確定後に同じ文字が再入力される問題の修正 ---
-            // xterm.jsのテキストエリアで日本語などのIME入力を確定した直後に
-            // 次の文字を入力しようとすると、確定した文字が再度入力されてしまう
-            // 問題を回避するためのワークアラウンド。
             if (term.textarea) {
                 term.textarea.addEventListener('compositionend', () => {
                     setTimeout(() => {
@@ -2898,18 +2820,15 @@
         // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
         window.addEventListener('resize', debounce(updateTerminalLayout, 100));
 
-        // --- モバイルでのキーボード表示と自動ズームに対応する最終手段 ---
         if ('visualViewport' in window) {
             const vv = window.visualViewport;
 
             const handleViewportResize = () => {
                 const isMobile = window.matchMedia("(max-width: 992px)").matches;
                 if (!isMobile) {
-                    document.body.style.height = ''; // PC表示では高さをリセット
+                    document.body.style.height = '';
                     return;
                 }
-                // bodyの高さを、キーボードを除いた実際の表示領域(visualViewport)に合わせる。
-                // これにより、ブラウザがズームしてもレイアウトが追従し、画面全体が表示される。
                 document.body.style.height = `${vv.height}px`;
 
                 const keyboardHeight = window.innerHeight - vv.height;
@@ -2917,16 +2836,13 @@
                 const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (isKeyboardVisible) {
-                    // キーボード表示時、ボタンのためのパディングをなくす
                     monitorScreen.style.paddingBottom = '0px';
                 } else {
-                    // キーボードが非表示になったら、記憶しておいたボタンの高さを復元
                     const storedHeight = monitorScreen.dataset.controlsHeight;
                     if (storedHeight) {
                         monitorScreen.style.paddingBottom = `${storedHeight}px`;
                     }
                 }
-                // レイアウト変更が適用された後にターミナルをリサイズ
                 setTimeout(() => { try { fitAddon.fit(); } catch (e) { /* ignore */ } }, 100);
             };
             vv.addEventListener('resize', handleViewportResize);
@@ -2937,7 +2853,7 @@
         // --- Passkey (WebAuthn) 関連のヘルパー関数 ---
 
         /**
-         * Base64URL文字列をArrayBufferに変換します。
+         * Base64URL文字列をArrayBufferに変換。
          * @param {string} base64urlString
          * @returns {ArrayBuffer}
          */
@@ -2952,7 +2868,7 @@
         }
 
         /**
-         * ArrayBufferをBase64URL文字列に変換します。
+         * ArrayBufferをBase64URL文字列に変換。
          * @param {ArrayBuffer} buffer
          * @returns {string}
          */
@@ -2971,7 +2887,7 @@
         // --- Passkey (WebAuthn) メインロジック ---
 
         /**
-         * 新しいPasskeyの登録フローを開始します。
+         * 新しいPasskeyの登録フローを開始。
          */
         async function registerNewPasskey() {
             // 1. サーバーから登録オプションを取得

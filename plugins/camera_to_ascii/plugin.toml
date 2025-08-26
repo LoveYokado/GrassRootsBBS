@@ -1,0 +1,5 @@
+name = "Camera to ASCII Art"
+description = "Converts live camera feed to ASCII art in the terminal."
+entry_point = "plugins.camera_to_ascii.camera_to_ascii"
+# このプラグインが動作するために必要なライブラリ
+requirements = ["opencv-python-headless", "numpy"]
