@@ -129,12 +129,11 @@ def broadcast_to_room(room_id: str, display_name: str,
                 message_payload = formatted_message.replace(
                     '\n', '\r\n') + '\r\n'
                 try:
-                    target_chan.send(
-                        b"\033[s" +       # カーソル位置保存
-                        b"\r\n" +         # 改行して新しい行へ b"\r" +           # 念のためカーソルを行頭へ
-                        message_payload.encode('utf-8') +  # メッセージ表示
-                        b"\033[u"         # カーソル位置復元
-                    )
+                    # 現在の行をクリアし、メッセージを表示後、プロンプトを再表示する
+                    # これにより、メッセージが上書きされるのを防ぐ
+                    target_chan.send(b"\r\033[2K" +  # 行頭に移動して行全体をクリア
+                                     message_payload.encode('utf-8') +
+                                     b"> ")
                     # 他のユーザーからのメッセージ受信後にも電報チェック
                     # util.telegram_recieve は未読がなければ何も表示しない
                     util.telegram_recieve(
