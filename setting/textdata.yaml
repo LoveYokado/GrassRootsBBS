@@ -1845,16 +1845,19 @@ new_article_headlines:
 
 # --- ログオフ関連 ---
 logoff:
-  message: # ログオフメッセージ (util.show_textsfile で使われている想定)
+  message:
     mode_1: |
-      ログオフしました。またのご利用をお待ちしております。
-      さようなら！
+      ログオフしました。
+      またのご利用をお待ちしております。
     mode_2: |
-      ログオフしました。またのご利用をお待ちしております。
-      さようなら！
+      ログオフしました。
+      またのご利用をお待ちしております。
     mode_3: |
       Logged off. We look forward to seeing you again.
-      Goodbye!
+  prompt:
+    mode_1: "Press any key to return to the login screen..."
+    mode_2: "Press any key to return to the login screen..."
+    mode_3: "Press any key to return to the login screen..."
 # --- ショートカット関連 ---
 shortcut:
   not_found:
@@ -2467,3 +2470,6 @@ mobile_button_layouts:
       - { label: "0", command: "0" }
       - { label: "", command: "", style: "visibility: hidden;" }
       - { label: "Enter", command: "\r", gridArea: "5 / 1 / 6 / 4" }
+
+
+

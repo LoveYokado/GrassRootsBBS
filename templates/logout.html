@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 
+
 <head>
     <meta charset="UTF-8">
     <title>Logged Out - GR-BBS</title>
@@ -46,9 +47,7 @@
 </head>
 
 <body>
-    <pre>ログオフしました。
-またのご利用をお待ちしております。
-<div class="prompt">Press any key to return to the login screen...</div></pre>
+    <pre>{{ util.get_text_by_key('logoff.message', menu_mode) }}<div class="prompt">{{ util.get_text_by_key('logoff.prompt', menu_mode) }}</div></pre>
     <script>
         function redirectToLogin() { window.location.href = "{{ url_for('login') }}"; }
         document.addEventListener('keydown', redirectToLogin, { once: true });

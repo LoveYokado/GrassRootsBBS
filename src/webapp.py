@@ -178,6 +178,12 @@ try:
     sess = Session()
     sess.init_app(app)
 
+    # --- テンプレートグローバル ---
+    @app.context_processor
+    def inject_util():
+        """Jinja2テンプレートに共通の変数や関数を注入する"""
+        return dict(util=util)
+
     # --- ブループリントの登録 ---
     app.register_blueprint(admin_bp)
 
@@ -887,8 +893,12 @@ def login():
 @app.route('/logout')
 def logout():
     """ログアウト処理"""
+    # テンプレートで使う menu_mode をセッションクリア前に取得
+    # ログアウト後はセッションがないため、デフォルト値を '2' に設定
+    menu_mode = session.get('menu_mode', '2')
     session.clear()
-    return render_template('logout.html')
+    # 取得した menu_mode をテンプレートに渡す
+    return render_template('logout.html', menu_mode=menu_mode)
 
 
 @app.route('/passkey/register-options', methods=['POST'])
