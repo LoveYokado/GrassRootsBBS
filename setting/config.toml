@@ -93,3 +93,11 @@ archive_name_format = "grbbs_backup_{timestamp}.tar.gz"
 
 # アーカイブ内のルートディレクトリ名フォーマット
 archive_root_dir_format = "backup_{timestamp}"
+
+[bbs]
+# 掲示板のコマンドループ中のソケットタイムアウト秒数
+socket_timeout_seconds = 25
+# 記事本文の折り返し幅
+article_wrap_width = 78
+# 返信本文の折り返し幅 (インデントを考慮)
+reply_wrap_width = 76

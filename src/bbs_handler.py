@@ -124,13 +124,16 @@ class CommandHandler:
         # モバイル用の操作ボタンを表示
         self.chan.send(b'\x1b[?2030h')
         try:
+            bbs_config = util.app_config.get('bbs', {})
+            socket_timeout = bbs_config.get('socket_timeout_seconds', 25.0)
+
             while True:
                 # メニュー表示
                 util.send_text_by_key(
                     self.chan, "prompt.bbs_wrdate", self.menu_mode, add_newline=False
                 )
                 try:
-                    self.chan.settimeout(25.0)
+                    self.chan.settimeout(socket_timeout)
                     choice = self.chan.process_input()
                 except socket.timeout:
                     continue  # タイムアウトしたらループを継続
@@ -311,7 +314,9 @@ class CommandHandler:
                     else:
                         title_short = ""  # 権限がない場合は表示しない
                 else:
-                    to_marker = "(T/O)" if article['body'] == '(T/O)' else ""
+                    turn_over_marker = util.get_text_by_key(
+                        "bbs.turn_over_marker", self.menu_mode, default_value="(T/O)")
+                    to_marker = turn_over_marker if article['body'] == turn_over_marker else ""
                     if board_type == 'thread':
                         # 返信数と(T/O)マークを表示するスペースを確保
                         title_part = util.shorten_text_by_slicing(
@@ -889,7 +894,9 @@ class CommandHandler:
                         else:
                             title_short = ""
                     else:
-                        to_marker_list = "(T/O)" if article['body'] == '(T/O)' else ""
+                        turn_over_marker = util.get_text_by_key(
+                            "bbs.turn_over_marker", self.menu_mode, default_value="(T/O)")
+                        to_marker_list = turn_over_marker if article['body'] == turn_over_marker else ""
                         if board_type == 'thread':
                             title_part = util.shorten_text_by_slicing(
                                 title, width=24 - len(to_marker_list))
@@ -1367,14 +1374,19 @@ class CommandHandler:
             # show_back_prompt が True の場合でも、この後のプロンプトループは実行されない
             return
 
-        # (T/O) の場合は本文を表示しない
-        if article['body'] != '(T/O)':
+        turn_over_marker = util.get_text_by_key(
+            "bbs.turn_over_marker", self.menu_mode, default_value="(T/O)")
+        # (T/O)マーカーの場合は本文を表示しない
+        if article['body'] != turn_over_marker:
             # textwrap.wrapは改行文字を正しく扱えないため、先に splitlines() で行に分割し、
             # 各行を個別にwrapすることで、ユーザーの入力した改行と自動折り返しを両立させる。
+            bbs_config = util.app_config.get('bbs', {})
+            article_wrap_width = bbs_config.get('article_wrap_width', 78)
+
             body_lines = article['body'].splitlines()
             for line in body_lines:
                 wrapped_lines = textwrap.wrap(
-                    line, width=78, replace_whitespace=False, drop_whitespace=False
+                    line, width=article_wrap_width, replace_whitespace=False, drop_whitespace=False
                 )
                 if not wrapped_lines:  # 元の行が空行だった場合
                     self.chan.send(b'\r\n')
@@ -1435,6 +1447,9 @@ class CommandHandler:
                 )
                 for i, reply in enumerate(replies):
                     # 返信の表示
+                    bbs_config = util.app_config.get('bbs', {})
+                    reply_wrap_width = bbs_config.get('reply_wrap_width', 76)
+
                     reply_sender_name = ""
                     try:
                         user_id_int = int(reply['user_id'])
@@ -1461,7 +1476,7 @@ class CommandHandler:
                     for line in body_lines:
                         # 各行を76文字で折り返す (先頭のインデント2文字分を考慮)
                         wrapped_lines = textwrap.wrap(
-                            line, width=76, replace_whitespace=False, drop_whitespace=False
+                            line, width=reply_wrap_width, replace_whitespace=False, drop_whitespace=False
                         )
                         if not wrapped_lines:  # 元の行が空行だった場合
                             self.chan.send(b'  \r\n')
@@ -1581,24 +1596,32 @@ class CommandHandler:
 
     def _generate_reply_title(self, original_title):
         """返信用のタイトルを生成する ('Re:', 'Re*2:' など)"""
+        no_title_reply_format = util.get_text_by_key(
+            "bbs.reply_no_title_format", self.menu_mode, default_value="Re: (No Title)")
         if not original_title:
-            return "Re: (No Title)"
+            return no_title_reply_format
 
-        # 'Re*<n>: ' 形式にマッチ
-        match_numbered = re.match(r'Re\*(\d+):\s*(.*)', original_title)
+        reply_prefix_numbered_format = util.get_text_by_key(
+            "bbs.reply_prefix_numbered", self.menu_mode, default_value="Re*{count}: ")
+        reply_prefix_simple = util.get_text_by_key(
+            "bbs.reply_prefix", self.menu_mode, default_value="Re: ")
+
+        # 'Re*<n>: ' 形式にマッチ (大文字小文字を無視)
+        match_numbered = re.match(
+            r'Re\*(\d+):\s*(.*)', original_title, re.IGNORECASE)
         if match_numbered:
             count = int(match_numbered.group(1))
             base_title = match_numbered.group(2)
-            return f"Re*{count + 1}: {base_title}"
+            return reply_prefix_numbered_format.format(count=count + 1) + base_title
 
-        # 'Re: ' 形式にマッチ
-        match_simple = re.match(r'Re:\s*(.*)', original_title)
-        if match_simple:
-            base_title = match_simple.group(1)
-            return f"Re*2: {base_title}"
+        # 'Re: ' 形式にマッチ (大文字小文字を無視)
+        if original_title.lower().startswith(reply_prefix_simple.lower()):
+            base_title = original_title[len(reply_prefix_simple):]
+            # Re: の次は Re*2:
+            return reply_prefix_numbered_format.format(count=2) + base_title
 
         # どの形式にもマッチしない場合
-        return f"Re: {original_title}"
+        return reply_prefix_simple + original_title
 
     def write_article(self, parent_article=None):
         """記事を新規作成"""
@@ -1724,7 +1747,9 @@ class CommandHandler:
                     self.chan, "bbs.post_cancel", self.menu_mode)
                 return 'cancelled'
             elif not body.strip():
-                body = '(T/O)'
+                turn_over_marker = util.get_text_by_key(
+                    "bbs.turn_over_marker", self.menu_mode, default_value="(T/O)")
+                body = turn_over_marker
 
             util.send_text_by_key(self.chan, "bbs.confirm_post_yn",
                                   self.menu_mode, add_newline=False)

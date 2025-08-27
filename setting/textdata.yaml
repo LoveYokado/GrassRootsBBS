@@ -1641,6 +1641,22 @@ bbs:
     mode_1: "このスレッドは返信数の上限に達しているため、返信できません。"
     mode_2: "このスレッドは返信数の上限に達しているため、返信できません。"
     mode_3: "Cannot reply because this thread has reached its reply limit."
+  turn_over_marker:
+    mode_1: "(T/O)"
+    mode_2: "(T/O)"
+    mode_3: "(T/O)"
+  reply_prefix:
+    mode_1: "Re: "
+    mode_2: "Re: "
+    mode_3: "Re: "
+  reply_prefix_numbered:
+    mode_1: "Re*{count}: "
+    mode_2: "Re*{count}: "
+    mode_3: "Re*{count}: "
+  reply_no_title_format:
+    mode_1: "Re: (No Title)"
+    mode_2: "Re: (No Title)"
+    mode_3: "Re: (No Title)"
 
 auto_download:
   start_message:
