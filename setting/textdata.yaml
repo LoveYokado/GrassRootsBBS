@@ -1810,6 +1810,10 @@ online_signup:
 
       Message:
       {message_to_sysop}
+  default_comment:
+    mode_1: "オンラインサインアップユーザー"
+    mode_2: "オンラインサインアップユーザー"
+    mode_3: "Online Signup User"
 explore_new_articles:
   start_message:
     mode_1: ""

@@ -26,18 +26,19 @@ def who_menu(chan, online_members_dict, current_menu_mode):
         if not display_name or not login_id:
             continue  # 必要なデータがなければスキップ
 
-        # 掲示板のユーザ名表示(14文字)と合わせる
+        # who_menu.header の NAME 列の幅に合わせる
         display_name_short = util.shorten_text_by_slicing(
-            display_name, width=14)
+            display_name, width=22)
 
-        menu_mode = member_data.get("menu_mode", "?")
         # コメントはDBから取得する必要がある
         user_db_data = database.get_user_auth_info(login_id)  # 正しいlogin_idを使用
         comment = user_db_data['comment'] if user_db_data and user_db_data['comment'] is not None else ''
+        # コメントも長すぎるとレイアウトが崩れるため短縮
+        comment_short = util.shorten_text_by_slicing(comment, width=50)
 
-        # ヘッダーのCOMMENT列(17桁目開始)と合わせるため、14桁にパディング後、スペースを2つ追加
+        # ヘッダーのフォーマットに合わせて表示
         chan.send(
-            f"{display_name_short:<14}  mode{menu_mode} {comment}\r\n".encode('utf-8'))
+            f"{display_name_short:<22} {comment_short}\r\n".encode('utf-8'))
     util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)
 
 
@@ -119,7 +120,8 @@ def handle_online_signup(chan, menu_mode):
         logging.warning(f"仮パスワードの長さが制限外( {len(temp_password)} )です。")
 
     salt_hex, hashed_password = util.hash_password(temp_password)
-    comment = "Online Signup User"  # 仮コメ
+    comment = util.get_text_by_key(
+        "online_signup.default_comment", menu_mode, default_value="Online Signup User")
 
     # ユーザレベル1、パス認証のみ、メニューモードは2
     if database.register_user(new_id, hashed_password, salt_hex, comment, level=1, menu_mode='2',
