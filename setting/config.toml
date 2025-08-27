@@ -75,3 +75,21 @@ schedule = "0 3 * * *"
 # 保持するバックアップの最大数 (0は無制限)
 # これを超えた最も古いバックアップは自動的に削除されます
 max_backups = 7
+
+[backup]
+# バックアップ関連のパス設定
+# パスはプロジェクトルートからの相対パスで指定します
+backup_directory = "data/backups"
+temp_directory_prefix = "temp_"
+
+# バックアップ対象のディレクトリ (プロジェクトルートからの相対パス)
+source_directories = ["data/attachments", "setting"]
+
+# データベースダンプファイル名
+db_dump_filename = "dump_{db_name}.sql"
+
+# アーカイブファイル名のフォーマット
+archive_name_format = "grbbs_backup_{timestamp}.tar.gz"
+
+# アーカイブ内のルートディレクトリ名フォーマット
+archive_root_dir_format = "backup_{timestamp}"

@@ -17,12 +17,25 @@ def create_backup():
     データベース、添付ファイル、設定ファイルをまとめてバックアップする。
     :return: 作成されたバックアップファイル名。失敗した場合はNone。
     """
+    # --- 設定ファイルからバックアップ設定を読み込む ---
+    backup_config = util.app_config.get('backup', {})
+    backup_dir_rel = backup_config.get('backup_directory', 'data/backups')
+    temp_dir_prefix = backup_config.get('temp_directory_prefix', 'temp_')
+    source_dirs = backup_config.get(
+        'source_directories', ['data/attachments', 'setting'])
+    db_dump_filename_format = backup_config.get(
+        'db_dump_filename', 'dump_{db_name}.sql')
+    archive_name_format = backup_config.get(
+        'archive_name_format', 'grbbs_backup_{timestamp}.tar.gz')
+    archive_root_dir_format = backup_config.get(
+        'archive_root_dir_format', 'backup_{timestamp}')
+
     # バックアップディレクトリ
-    backup_dir = os.path.join(PROJECT_ROOT, 'data', 'backups')
+    backup_dir = os.path.join(PROJECT_ROOT, backup_dir_rel)
     os.makedirs(backup_dir, exist_ok=True)
 
     # 一時作業ディレクトリ
-    temp_backup_dir = os.path.join(backup_dir, 'temp_backup')
+    temp_backup_dir = os.path.join(backup_dir, f'{temp_dir_prefix}backup')
     if os.path.exists(temp_backup_dir):
         # 既存のものをクリーンアップ
         shutil.rmtree(temp_backup_dir)
@@ -36,7 +49,7 @@ def create_backup():
         db_password = os.getenv('DB_PASSWORD', db_config.get('password'))
         db_host = os.getenv('DB_HOST', db_config.get('host'))
 
-        dump_filename = f"dump_{db_name}.sql"
+        dump_filename = db_dump_filename_format.format(db_name=db_name)
         dump_filepath = os.path.join(temp_backup_dir, dump_filename)
 
         # mysqldumpコマンドの実行
@@ -58,23 +71,23 @@ def create_backup():
                 logging.error(f"mysqldump failed: {process.stderr}")
                 return None
 
-        # 2. 添付ファイルと設定ファイルのコピー
-        attachments_path = os.path.join(PROJECT_ROOT, 'data', 'attachments')
-        settings_path = os.path.join(PROJECT_ROOT, 'setting')
-
-        if os.path.exists(attachments_path):
-            subprocess.run(['cp', '-a', attachments_path, temp_backup_dir])
-        if os.path.exists(settings_path):
-            subprocess.run(['cp', '-a', settings_path, temp_backup_dir])
+        # 2. 設定ファイルで指定されたディレクトリのコピー
+        for src_rel_path in source_dirs:
+            src_abs_path = os.path.join(PROJECT_ROOT, src_rel_path)
+            if os.path.exists(src_abs_path):
+                # cp -a の挙動を模倣し、ディレクトリ名を維持してコピー
+                dest_path = os.path.join(
+                    temp_backup_dir, os.path.basename(src_rel_path))
+                shutil.copytree(src_abs_path, dest_path)
 
         # 3. tar.gzにアーカイブ
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        archive_filename = f"grbbs_backup_{timestamp}.tar.gz"
+        archive_filename = archive_name_format.format(timestamp=timestamp)
         archive_filepath = os.path.join(backup_dir, archive_filename)
+        archive_root_dir = archive_root_dir_format.format(timestamp=timestamp)
 
         with tarfile.open(archive_filepath, "w:gz") as tar:
-            tar.add(temp_backup_dir, arcname=os.path.basename(
-                f"backup_{timestamp}"))
+            tar.add(temp_backup_dir, arcname=archive_root_dir)
 
         return archive_filename
     finally:
@@ -89,7 +102,16 @@ def restore_from_backup(filename):
     :param filename: リストアするバックアップファイル名 (e.g., 'grbbs_backup_20250101_120000.tar.gz')
     :return: 成功した場合はTrue、失敗した場合はFalse。
     """
-    backup_dir = os.path.join(PROJECT_ROOT, 'data', 'backups')
+    # --- 設定ファイルからバックアップ設定を読み込む ---
+    backup_config = util.app_config.get('backup', {})
+    backup_dir_rel = backup_config.get('backup_directory', 'data/backups')
+    temp_dir_prefix = backup_config.get('temp_directory_prefix', 'temp_')
+    source_dirs = backup_config.get(
+        'source_directories', ['data/attachments', 'setting'])
+    db_dump_filename_format = backup_config.get(
+        'db_dump_filename', 'dump_{db_name}.sql')
+
+    backup_dir = os.path.join(PROJECT_ROOT, backup_dir_rel)
     archive_filepath = os.path.join(backup_dir, filename)
 
     if not os.path.exists(archive_filepath):
@@ -97,7 +119,7 @@ def restore_from_backup(filename):
         return False
 
     # 一時展開ディレクトリ
-    temp_restore_dir = os.path.join(backup_dir, 'temp_restore')
+    temp_restore_dir = os.path.join(backup_dir, f'{temp_dir_prefix}restore')
     if os.path.exists(temp_restore_dir):
         shutil.rmtree(temp_restore_dir)
     os.makedirs(temp_restore_dir)
@@ -123,7 +145,7 @@ def restore_from_backup(filename):
         db_password = os.getenv('DB_PASSWORD', db_config.get('password'))
         db_host = os.getenv('DB_HOST', db_config.get('host'))
 
-        dump_filename = f"dump_{db_name}.sql"
+        dump_filename = db_dump_filename_format.format(db_name=db_name)
         dump_filepath = os.path.join(content_dir, dump_filename)
 
         if not os.path.exists(dump_filepath):
@@ -142,24 +164,19 @@ def restore_from_backup(filename):
                 return False
         logging.info("データベースのリストアが完了しました。")
 
-        # 3. 添付ファイルと設定ファイルのリストア
-        # まず既存のものを削除
-        attachments_path = os.path.join(PROJECT_ROOT, 'data', 'attachments')
-        settings_path = os.path.join(PROJECT_ROOT, 'setting')
-        if os.path.exists(attachments_path):
-            shutil.rmtree(attachments_path)
-        if os.path.exists(settings_path):
-            shutil.rmtree(settings_path)
+        # 3. 設定ファイルで指定されたディレクトリのリストア
+        for src_rel_path in source_dirs:
+            # まず既存のものを削除
+            dest_abs_path = os.path.join(PROJECT_ROOT, src_rel_path)
+            if os.path.exists(dest_abs_path):
+                shutil.rmtree(dest_abs_path)
 
-        # バックアップからコピー
-        backup_attachments_path = os.path.join(content_dir, 'attachments')
-        backup_settings_path = os.path.join(content_dir, 'setting')
-        if os.path.exists(backup_attachments_path):
-            shutil.copytree(backup_attachments_path, attachments_path)
-            logging.info("添付ファイルをリストアしました。")
-        if os.path.exists(backup_settings_path):
-            shutil.copytree(backup_settings_path, settings_path)
-            logging.info("設定ファイルをリストアしました。")
+            # バックアップからコピー
+            backup_src_path = os.path.join(
+                content_dir, os.path.basename(src_rel_path))
+            if os.path.exists(backup_src_path):
+                shutil.copytree(backup_src_path, dest_abs_path)
+                logging.info(f"'{src_rel_path}' をリストアしました。")
 
         return True
 
@@ -181,13 +198,17 @@ def wipe_all_data():
     :return: 成功した場合はTrue、失敗した場合はFalse。
     """
     try:
-        # 1. 添付ファイルの削除
-        attachments_path = os.path.join(PROJECT_ROOT, 'data', 'attachments')
-        if os.path.exists(attachments_path):
-            logging.info("Deleting all attachments...")
-            shutil.rmtree(attachments_path)
-            os.makedirs(attachments_path)  # Recreate empty directory
-            logging.info("All attachments deleted.")
+        # --- 設定ファイルからパスを読み込む ---
+        backup_config = util.app_config.get('backup', {})
+        # wipe対象はバックアップ対象と同じディレクトリとする
+        dirs_to_wipe = backup_config.get(
+            'source_directories', ['data/attachments', 'setting'])
+
+        # 1. 対象ディレクトリを削除
+        for dir_rel_path in dirs_to_wipe:
+            abs_path = os.path.join(PROJECT_ROOT, dir_rel_path)
+            if os.path.exists(abs_path):
+                shutil.rmtree(abs_path)
 
         # 2. データベースの全テーブルを削除
         db_config = util.app_config.get('database', {})
@@ -248,7 +269,10 @@ def cleanup_old_backups():
         logging.info("バックアップの自動クリーンアップは無効です (max_backups <= 0)。")
         return
 
-    backup_dir = os.path.join(PROJECT_ROOT, 'data', 'backups')
+    backup_config = util.app_config.get('backup', {})
+    backup_dir_rel = backup_config.get('backup_directory', 'data/backups')
+    backup_dir = os.path.join(PROJECT_ROOT, backup_dir_rel)
+
     if not os.path.isdir(backup_dir):
         return
 
@@ -256,7 +280,7 @@ def cleanup_old_backups():
         # バックアップファイル一覧を取得し、更新日時でソート
         backups = [
             f for f in os.listdir(backup_dir)
-            if f.endswith('.tar.gz') and os.path.isfile(os.path.join(backup_dir, f))
+            if f.endswith('.tar.gz') and os.path.isfile(os.path.join(backup_dir, f))  # noqa
         ]
         backups.sort(key=lambda f: os.path.getmtime(
             os.path.join(backup_dir, f)), reverse=True)

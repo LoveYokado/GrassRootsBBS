@@ -695,6 +695,7 @@ def service_worker():
 @login_required
 def index():
     """ターミナルページを表示"""
+    menu_mode = session.get('menu_mode', '2')
     # url_forはリクエストコンテキスト内で呼び出す必要がある
     fkey_definitions = {
         "f1": {"label": "SETTING", "action": "open_popup"},
@@ -703,7 +704,7 @@ def index():
         "f4": {"label": "NoFunction", "action": "none"},  # 予約
         "f5": {"label": "Line Edit", "action": "open_line_editor"},
         "f6": {"label": "M-Line Edit", "action": "open_multiline_editor"},
-        "f7": {"label": "Admin", "action": "redirect", "value": url_for('admin.dashboard')},
+        "f7": {"label": "BBS LIST", "action": "none"},  # 他のBBSへの接続メニュー（未実装）
         "f8": {"label": "ReConnect", "action": "redirect", "value": url_for('login')},
     }
     # limits設定をテンプレートに渡す
@@ -745,7 +746,7 @@ def index():
         error = None
 
         # GUESTアカウントはロックアウト対象外
-    return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits, vapid_public_key=vapid_public_key_for_js, mobile_button_layouts=mobile_button_layouts)
+    return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits, vapid_public_key=vapid_public_key_for_js, mobile_button_layouts=mobile_button_layouts, menu_mode=menu_mode)
 
 
 @app.route('/login', methods=['GET', 'POST'])

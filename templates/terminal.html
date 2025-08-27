@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>GR-BBS Web Terminal</title>
+    <title>{{ util.get_text_by_key('terminal_ui.title', menu_mode) }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
     <!-- Favicon -->
@@ -1146,7 +1146,7 @@
             </div>
         </div>
         <div class="monitor-footer">
-            GR-BBS
+            {{ util.get_text_by_key('terminal_ui.footer_brand', menu_mode) }}
         </div>
     </div>
 
@@ -1246,14 +1246,16 @@
     <div id="line-editor-overlay" class="popup-overlay"></div>
     <div id="line-editor-window" class="popup-window">
         <div class="popup-header">
-            <h2>Line Editor</h2>
+            <h2>{{ util.get_text_by_key('terminal_ui.line_editor_popup.title', menu_mode) }}</h2>
             <button id="line-editor-close-btn" class="popup-close-btn">&times;</button>
         </div>
         <div class="popup-content">
             <input type="text" id="line-editor-input" maxlength="256">
             <div>
-                <button id="line-editor-insert-btn">Insert</button>
-                <button id="line-editor-cancel-btn">Cancel</button>
+                <button id="line-editor-insert-btn">{{
+                    util.get_text_by_key('terminal_ui.line_editor_popup.insert_button', menu_mode) }}</button>
+                <button id="line-editor-cancel-btn">{{
+                    util.get_text_by_key('terminal_ui.line_editor_popup.cancel_button', menu_mode) }}</button>
             </div>
         </div>
     </div>
@@ -1262,36 +1264,51 @@
     <div id="multiline-editor-overlay" class="popup-overlay"></div>
     <div id="multiline-editor-window" class="popup-window">
         <div class="popup-header">
-            <h2>Editor</h2>
+            <h2>{{ util.get_text_by_key('terminal_ui.multiline_editor_popup.title', menu_mode) }}</h2>
             <button id="multiline-editor-close-btn" class="popup-close-btn">&times;</button>
         </div>
         <div class="popup-content">
 
             <div id="ansi-controls">
                 <div class="control-group">
-                    <button class="ansi-btn" data-sequence="[1m">Bold</button>
-                    <button class="ansi-btn" data-sequence="[5m">Blink</button>
-                    <button class="ansi-btn" data-sequence="[4m">Underline</button>
-                    <button class="ansi-btn" data-sequence="[7m">Reverse</button>
-                    <button class="ansi-btn" data-sequence="[0m">Reset</button>
+                    <button class="ansi-btn" data-sequence="[1m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.bold_button', menu_mode) }}</button>
+                    <button class="ansi-btn" data-sequence="[5m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.blink_button', menu_mode) }}</button>
+                    <button class="ansi-btn" data-sequence="[4m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.underline_button', menu_mode)
+                        }}</button>
+                    <button class="ansi-btn" data-sequence="[7m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.reverse_button', menu_mode) }}</button>
+                    <button class="ansi-btn" data-sequence="[0m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.reset_button', menu_mode) }}</button>
                 </div>
                 <div class="control-group" id="ansi-color-buttons">
                     <button class="ansi-btn" data-sequence="[30m" data-ansi-color-name="black"
                         style="color: #000000;">Black</button>
                     <button class="ansi-btn" data-sequence="[31m" data-ansi-color-name="red">Red</button>
+                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[32m" data-ansi-color-name="green">Green</button>
+                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[33m" data-ansi-color-name="yellow">Yellow</button>
+                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[34m" data-ansi-color-name="blue">Blue</button>
+                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[35m" data-ansi-color-name="magenta">Magenta</button>
+                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[36m" data-ansi-color-name="cyan">Cyan</button>
+                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[37m" data-ansi-color-name="white">White</button>
+                    <!-- TODO: 多言語化 -->
                 </div>
             </div>
             <textarea id="multiline-editor-input" class="popup-window-textarea" cols="80"></textarea>
 
             <div>
-                <button id="multiline-editor-insert-btn">Insert</button>
-                <button id="multiline-editor-cancel-btn">Cancel</button>
+                <button id="multiline-editor-insert-btn">{{
+                    util.get_text_by_key('terminal_ui.multiline_editor_popup.insert_button', menu_mode) }}</button>
+                <button id="multiline-editor-cancel-btn">{{
+                    util.get_text_by_key('terminal_ui.multiline_editor_popup.cancel_button', menu_mode) }}</button>
             </div>
         </div>
     </div>
@@ -1300,12 +1317,12 @@
     <div id="log-viewer-overlay" class="popup-overlay"></div>
     <div id="log-viewer-window" class="popup-window">
         <div class="popup-header">
-            <h2>ログビューワー</h2>
+            <h2>{{ util.get_text_by_key('terminal_ui.log_viewer_popup.title', menu_mode) }}</h2>
             <button id="log-viewer-close-btn" class="popup-close-btn">&times;</button>
         </div>
         <div class="popup-content log-viewer-container">
             <div class="file-list-pane">
-                <h3>ログファイル一覧</h3>
+                <h3>{{ util.get_text_by_key('terminal_ui.log_viewer_popup.list_header', menu_mode) }}</h3>
                 <ul id="log-files-list" style="list-style-type: none; padding: 0;"></ul>
             </div>
             <div class="content-pane">
@@ -1317,32 +1334,36 @@
     <div id="popup-overlay" class="popup-overlay"></div>
     <div id="popup-window" class="popup-window">
         <div class="popup-header">
-            <h2>Settings</h2>
+            <h2>{{ util.get_text_by_key('terminal_ui.settings_popup.title', menu_mode) }}</h2>
             <button id="popup-close-btn" class="popup-close-btn">&times;</button>
         </div>
         <div class="popup-content">
             <div id="theme-selector">
-                <h3>Theme</h3>
-                <button data-theme="default">Default</button>
-                <button data-theme="green">Green</button>
-                <button data-theme="amber">Amber</button>
+                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.theme_header', menu_mode) }}</h3>
+                <button data-theme="default">Default</button> <!-- TODO: 多言語化 -->
+                <button data-theme="green">Green</button> <!-- TODO: 多言語化 -->
+                <button data-theme="amber">Amber</button> <!-- TODO: 多言語化 -->
             </div>
             <div id="font-selector">
-                <h3>Font</h3>
+                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.font_header', menu_mode) }}</h3>
                 <button data-font="M PLUS 1m">M PLUS 1m</button>
                 <button data-font="M PLUS 1 Code">M PLUS 1 Code</button>
                 <button data-font="IBM Plex Mono">IBM Plex Mono</button>
                 <button data-font="DotGothic16">DotGothic16</button>
             </div>
             <div id="fontsize-selector">
-                <h3>Font Size</h3>
-                <button data-size="12">Small</button>
-                <button data-size="16">Medium</button>
-                <button data-size="20">Large</button>
-                <button data-size="24">Extra Large</button>
+                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_header', menu_mode) }}</h3>
+                <button data-size="12">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_small', menu_mode)
+                    }}</button>
+                <button data-size="16">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_medium', menu_mode)
+                    }}</button>
+                <button data-size="20">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_large', menu_mode)
+                    }}</button>
+                <button data-size="24">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_xlarge', menu_mode)
+                    }}</button>
             </div>
             <div id="speed-selector">
-                <h3>Speed</h3>
+                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.speed_header', menu_mode) }}</h3>
                 <button data-speed="full">Full</button>
                 <button data-speed="9600">9600bps</button>
                 <button data-speed="4800">4800bps</button>
@@ -1350,18 +1371,22 @@
                 <button data-speed="300">300bps</button>
             </div>
             <div id="effect-selector">
-                <h3>Screen Effects</h3>
-                <button class="effect-btn" data-effect="bezel">Bezel</button>
-                <button class="effect-btn" data-effect="blur">Glow</button>
-                <button class="effect-btn" data-effect="scanline">Scanline</button>
+                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.effects_header', menu_mode) }}</h3>
+                <button class="effect-btn" data-effect="bezel">{{
+                    util.get_text_by_key('terminal_ui.settings_popup.effect_bezel', menu_mode) }}</button>
+                <button class="effect-btn" data-effect="blur">{{
+                    util.get_text_by_key('terminal_ui.settings_popup.effect_glow', menu_mode) }}</button>
+                <button class="effect-btn" data-effect="scanline">{{
+                    util.get_text_by_key('terminal_ui.settings_popup.effect_scanline', menu_mode) }}</button>
             </div>
             <div id="push-notification-settings">
-                <h3>Push Notifications</h3>
-                <button id="enable-push-btn">Enable Notifications</button>
+                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.push_header', menu_mode) }}</h3>
+                <button id="enable-push-btn">{{ util.get_text_by_key('terminal_ui.settings_popup.push_enable_button',
+                    menu_mode) }}</button>
                 <p id="push-status" style="font-size: 0.8em; margin-top: 5px; color: #504b38;"></p>
             </div>
             <div id="dip-switch-container">
-                <h3>DIP Switches</h3>
+                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.dip_switch_header', menu_mode) }}</h3>
                 <div class="dip-switch-panel">
 
                     <div class="dip-switch-bank">
@@ -1496,6 +1521,17 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
     <script>
+        const textData = {
+            push_enable: "{{ util.get_text_by_key('terminal_ui.settings_popup.push_enable_button', menu_mode) }}",
+            push_disable: "{{ util.get_text_by_key('terminal_ui.settings_popup.push_disable_button', menu_mode) }}",
+            push_denied: "{{ util.get_text_by_key('terminal_ui.settings_popup.push_denied_message', menu_mode) }}",
+            push_failed: "{{ util.get_text_by_key('terminal_ui.settings_popup.push_failed_message', menu_mode) }}",
+            log_logging_now: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.logging_now', menu_mode) }}",
+            log_loading_current: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.loading_log', menu_mode) }}",
+            log_loading_file: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.loading_file', menu_mode) }}",
+            log_no_files: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.no_log_files', menu_mode) }}"
+        };
+
         // --- Service Workerの登録 ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -2435,14 +2471,14 @@
             if (isLogging) {
                 const li = document.createElement('li');
                 const button = document.createElement('button');
-                button.textContent = '🔴 (記録中のログ)';
+                button.textContent = textData.log_logging_now;
                 button.style.color = '#ff4444';
                 button.style.fontWeight = 'bold';
                 button.style.width = '100%';
                 button.style.textAlign = 'left';
                 button.style.marginBottom = '5px';
                 button.addEventListener('click', () => {
-                    logContentDisplay.value = '記録中のログを読み込んでいます...';
+                    logContentDisplay.value = textData.log_loading_current;
                     socket.emit('get_current_log_buffer');
                 });
                 li.appendChild(button);
@@ -2460,7 +2496,7 @@
                     button.style.textAlign = 'left';
                     button.style.marginBottom = '5px';
                     button.addEventListener('click', () => {
-                        logContentDisplay.value = `ログファイル「${file.filename}」を読み込んでいます...`;
+                        logContentDisplay.value = textData.log_loading_file.replace('{filename}', file.filename);
                         socket.emit('get_log_content', { filename: file.filename });
                     });
                     li.appendChild(button);
@@ -2468,7 +2504,7 @@
                 });
             } else if (!isLogging) {
                 const li = document.createElement('li');
-                li.textContent = '保存されているログファイルはありません。';
+                li.textContent = textData.log_no_files;
                 logFilesList.appendChild(li);
             }
         });
@@ -3074,11 +3110,11 @@
 
                 } catch (err) {
                     console.error('Failed to subscribe the user: ', err);
-                    let errorMessage = 'Failed to enable push notifications.';
+                    let errorMessage = textData.push_failed;
                     if (Notification.permission === 'denied') {
-                        errorMessage = 'ブラウザの通知がブロックされています。設定を確認してください。';
+                        errorMessage = textData.push_denied;
                     } else if (err.name === 'NotAllowedError') {
-                        errorMessage = '通知の許可が得られませんでした。';
+                        errorMessage = textData.push_failed; // NotAllowedErrorも失敗の一種
                     } else if (err.message) {
                         // より詳細なエラー情報を表示
                         errorMessage += ` (${err.name}: ${err.message})`;
@@ -3117,11 +3153,11 @@
 
                 if (subscription) {
                     pushStatus.textContent = 'Push notifications are enabled.';
-                    enablePushButton.textContent = 'Disable Notifications';
+                    enablePushButton.textContent = textData.push_disable;
                     enablePushButton.addEventListener('click', unsubscribeUser);
                 } else {
                     pushStatus.textContent = '';
-                    enablePushButton.textContent = 'Enable Notifications';
+                    enablePushButton.textContent = textData.push_enable;
                     enablePushButton.addEventListener('click', subscribeUser);
                 }
                 enablePushButton.disabled = false;

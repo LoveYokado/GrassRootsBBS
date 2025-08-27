@@ -2471,5 +2471,161 @@ mobile_button_layouts:
       - { label: "", command: "", style: "visibility: hidden;" }
       - { label: "Enter", command: "\r", gridArea: "5 / 1 / 6 / 4" }
 
-
-
+# --- WebターミナルUI関連 ---
+terminal_ui:
+  title:
+    mode_1: "GR-BBS Web Terminal"
+    mode_2: "GR-BBS Web Terminal"
+    mode_3: "GR-BBS Web Terminal"
+  footer_brand:
+    mode_1: "GR-BBS"
+    mode_2: "GR-BBS"
+    mode_3: "GR-BBS"
+  settings_popup:
+    title:
+      mode_1: "設定"
+      mode_2: "設定"
+      mode_3: "Settings"
+    theme_header:
+      mode_1: "テーマ"
+      mode_2: "テーマ"
+      mode_3: "Theme"
+    font_header:
+      mode_1: "フォント"
+      mode_2: "フォント"
+      mode_3: "Font"
+    fontsize_header:
+      mode_1: "フォントサイズ"
+      mode_2: "フォントサイズ"
+      mode_3: "Font Size"
+    fontsize_small:
+      mode_1: "小"
+      mode_2: "小"
+      mode_3: "Small"
+    fontsize_medium:
+      mode_1: "中"
+      mode_2: "中"
+      mode_3: "Medium"
+    fontsize_large:
+      mode_1: "大"
+      mode_2: "大"
+      mode_3: "Large"
+    fontsize_xlarge:
+      mode_1: "特大"
+      mode_2: "特大"
+      mode_3: "Extra Large"
+    speed_header:
+      mode_1: "通信速度"
+      mode_2: "通信速度"
+      mode_3: "Speed"
+    effects_header:
+      mode_1: "画面効果"
+      mode_2: "画面効果"
+      mode_3: "Screen Effects"
+    effect_bezel:
+      mode_1: "ベゼル"
+      mode_2: "ベゼル"
+      mode_3: "Bezel"
+    effect_glow:
+      mode_1: "にじみ"
+      mode_2: "にじみ"
+      mode_3: "Glow"
+    effect_scanline:
+      mode_1: "走査線"
+      mode_2: "走査線"
+      mode_3: "Scanline"
+    push_header:
+      mode_1: "プッシュ通知"
+      mode_2: "プッシュ通知"
+      mode_3: "Push Notifications"
+    push_enable_button:
+      mode_1: "通知を有効化"
+      mode_2: "通知を有効化"
+      mode_3: "Enable Notifications"
+    push_disable_button:
+      mode_1: "通知を無効化"
+      mode_2: "通知を無効化"
+      mode_3: "Disable Notifications"
+    push_denied_message:
+      mode_1: "ブラウザの通知がブロックされています。設定を確認してください。"
+      mode_2: "ブラウザの通知がブロックされています。設定を確認してください。"
+      mode_3: "Browser notifications are blocked. Please check your settings."
+    push_failed_message:
+      mode_1: "通知の有効化に失敗しました。"
+      mode_2: "通知の有効化に失敗しました。"
+      mode_3: "Failed to enable notifications."
+    dip_switch_header:
+      mode_1: "DIPスイッチ"
+      mode_2: "DIPスイッチ"
+      mode_3: "DIP Switches"
+  line_editor_popup:
+    title:
+      mode_1: "一行エディタ"
+      mode_2: "一行エディタ"
+      mode_3: "Line Editor"
+    insert_button:
+      mode_1: "挿入"
+      mode_2: "挿入"
+      mode_3: "Insert"
+    cancel_button:
+      mode_1: "キャンセル"
+      mode_2: "キャンセル"
+      mode_3: "Cancel"
+  multiline_editor_popup:
+    title:
+      mode_1: "エディタ"
+      mode_2: "エディタ"
+      mode_3: "Editor"
+    bold_button:
+      mode_1: "太字"
+      mode_2: "太字"
+      mode_3: "Bold"
+    blink_button:
+      mode_1: "点滅"
+      mode_2: "点滅"
+      mode_3: "Blink"
+    underline_button:
+      mode_1: "下線"
+      mode_2: "下線"
+      mode_3: "Underline"
+    reverse_button:
+      mode_1: "反転"
+      mode_2: "反転"
+      mode_3: "Reverse"
+    reset_button:
+      mode_1: "リセット"
+      mode_2: "リセット"
+      mode_3: "Reset"
+    insert_button:
+      mode_1: "挿入"
+      mode_2: "挿入"
+      mode_3: "Insert"
+    cancel_button:
+      mode_1: "キャンセル"
+      mode_2: "キャンセル"
+      mode_3: "Cancel"
+  log_viewer_popup:
+    title:
+      mode_1: "ログビューワー"
+      mode_2: "ログビューワー"
+      mode_3: "Log Viewer"
+    list_header:
+      mode_1: "ログファイル一覧"
+      mode_2: "ログファイル一覧"
+      mode_3: "Log File List"
+    logging_now:
+      mode_1: "🔴 (記録中のログ)"
+      mode_2: "🔴 (記録中のログ)"
+      mode_3: "🔴 (Logging...)"
+    loading_log:
+      mode_1: "記録中のログを読み込んでいます..."
+      mode_2: "記録中のログを読み込んでいます..."
+      mode_3: "Loading current log..."
+    loading_file:
+      mode_1: "ログファイル「{filename}」を読み込んでいます..."
+      mode_2: "ログファイル「{filename}」を読み込んでいます..."
+      mode_3: "Loading log file '{filename}'..."
+    no_log_files:
+      mode_1: "保存されているログファイルはありません。"
+      mode_2: "保存されているログファイルはありません。"
+      mode_3: "No saved log files."
