@@ -527,10 +527,10 @@ sysop_menu:
       ■[blist] 掲示板一覧                      [chulv]  ユーザーレベル変更       □
       □[bdel]  掲示板削除                      [udel]   会員抹消                 ■
       ■[bmod]  掲示板総合設定変更              [uadd]   会員登録                 □
-      □[TREE] 階層構造マップ(未実装)                                             ■
-      ■[mcnf]  トップメニューの会員レベル設定  [SYMW]   シンボルテーブルを書く   □
+      □[osign] オンラインサインアップ設定      [SYMW]   シンボルテーブルを書く   ■
+      ■[mcnf]  トップメニューの会員レベル設定                                    □
       □[cshow] 設定一覧表示                    [lgmc]   ログインメッセージ変更   ■
-      ■[halt]  システム強制終了                [LETR]   アンケート処理           □
+      ■[halt]  システム強制終了                                                  □
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ====================================================
@@ -547,6 +547,7 @@ sysop_menu:
       [uadd]  会員登録
       [udel]  会員抹消
       [chulv] ユーザーレベル変更
+      [osign] オンラインサインアップ設定
       [ulist] 会員一覧表示
       [cshow] 設定一覧表示
       [mcnf]  トップメニューの会員レベル設定
@@ -568,6 +569,7 @@ sysop_menu:
       | uadd    | Register User: Add new member             |
       | udel    | Delete User: Remove member account        |
       | chulv   | Change User Level: Adjust user perms      |
+      | osign   | Toggle Online Signup: Enable/disable      |
       | ulist   | List Users: Show all members              |
       | cshow   | View Settings: Display system config      |
       | mcnf    | Set Menu Perms: Configure top menu access |
@@ -866,6 +868,15 @@ sysop_menu:
       mode_1: "掲示板 '{shortcut_id}' の設定を更新しました。\r\n"
       mode_2: "掲示板 '{shortcut_id}' の設定を更新しました。\r\n"
       mode_3: "Successfully updated settings for board '{shortcut_id}'.\r\n"
+  toggle_online_signup:
+    confirm:
+      mode_1: "オンラインサインアップは現在「{current_status}」です。「{new_status}」に変更しますか？ (y/N): "
+      mode_2: "オンラインサインアップは現在「{current_status}」です。「{new_status}」に変更しますか？ (y/N): "
+      mode_3: "Online signup is currently '{current_status}'. Change to '{new_status}'? (y/N): "
+    success:
+      mode_1: "オンラインサインアップを「{status}」に設定しました。"
+      mode_2: "オンラインサインアップを「{status}」に設定しました。"
+      mode_3: "Online signup has been set to '{status}'."
   change_user_password:
     header:
       mode_1: "--- パスワード変更 ---"

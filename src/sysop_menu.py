@@ -11,6 +11,7 @@ def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
     # コマンドと対応する関数のディスパッチテーブル
     command_dispatch = {
         'sswr': read_default_exploration_list,
+        'osign': toggle_online_signup,
         'ssww': write_default_exploration_list,
         'ulist': user_list,
         'badd': make_board,
@@ -124,6 +125,42 @@ def change_login_message(chan, _sysop_login_id, current_menu_mode):
         util.send_text_by_key(
             chan, "common_messages.database_update_error", current_menu_mode)
         logging.error(f"ログインメッセージ更新中に予期せぬエラー: {e}")
+
+    return None
+
+
+def toggle_online_signup(chan, _sysop_login_id, current_menu_mode):
+    """オンラインサインアップの有効/無効を切り替える"""
+    server_prefs_dict = database.read_server_pref()
+    if not server_prefs_dict:
+        util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
+        return None
+
+    current_status = server_prefs_dict.get('online_signup_enabled', False)
+    new_status = not current_status
+    new_status_text = "有効" if new_status else "無効"
+
+    util.send_text_by_key(
+        chan, "sysop_menu.toggle_online_signup.confirm", current_menu_mode,
+        current_status="有効" if current_status else "無効",
+        new_status=new_status_text,
+        add_newline=False
+    )
+
+    confirm = chan.process_input()
+    if confirm is None or confirm.strip().lower() != 'y':
+        util.send_text_by_key(
+            chan, "common_messages.cancel", current_menu_mode)
+        return None
+
+    if database.update_online_signup_status(new_status):
+        util.send_text_by_key(
+            chan, "sysop_menu.toggle_online_signup.success", current_menu_mode,
+            status=new_status_text
+        )
+    else:
+        util.send_text_by_key(
+            chan, "common_messages.database_update_error", current_menu_mode)
 
     return None
 

@@ -247,8 +247,9 @@ def dispatch_command(command, context):
         required_level = server_pref_dict.get(command_info['level_key'], 2)
 
     if command_info.get('guest_only', False):
-        online_signup_enabled = util.app_config.get(
-            'webapp', {}).get('ONLINE_SIGNUP', False)
+        # config.tomlからDBのserver_prefテーブルを参照するように変更
+        online_signup_enabled = server_pref_dict.get(
+            'online_signup_enabled', False)
         if not online_signup_enabled or user_level != 1:
             util.send_text_by_key(
                 context['chan'], "common_messages.invalid_command", context['menu_mode'])
