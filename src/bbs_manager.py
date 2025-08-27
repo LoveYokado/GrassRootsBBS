@@ -199,6 +199,30 @@ class PermissionManager:
         # dbname は不要になったため削除
         pass
 
+    def _check_generic_permission(self, board_info, user_id_pk, user_level, level_key):
+        """
+        汎用的な権限チェックロジック。
+        1. Sysop (level >= 5) は常に許可。
+        2. ユーザー固有の deny/allow 設定をチェック。
+        3. 掲示板の指定されたレベルキー (read_level/write_level) とユーザーレベルを比較。
+        """
+        if user_level >= 5:
+            return True
+
+        board_id_pk = board_info.get("id")
+        required_level = board_info.get(level_key, 1)  # デフォルトはレベル1
+
+        user_specific_perm = database.get_user_permission_for_board(
+            board_id_pk, str(user_id_pk))
+
+        # 優先順位: 1. deny, 2. allow, 3. level check
+        if user_specific_perm == "deny":
+            return False
+        if user_specific_perm == "allow":
+            return True
+
+        return user_level >= required_level
+
     def check_permission(self, board_id, user_id, action):
         """
         指定されたアクションの実行権限があるかチェックする
@@ -209,51 +233,21 @@ class PermissionManager:
 
     def can_view_board(self, board_info, user_id_pk, user_level):
         """指定された掲示板の閲覧権限があるかチェックする"""
-        if user_level >= 5:
-            return True
-
-        board_id_pk = board_info.get("id")
-        read_level = board_info.get('read_level', 1)  # デフォルトはレベル1
-
-        user_specific_perm = database.get_user_permission_for_board(
-            board_id_pk, str(user_id_pk))
-
-        # 優先順位: 1. deny, 2. allow, 3. level check
-        if user_specific_perm == "deny":
-            return False
-        if user_specific_perm == "allow":
-            return True
-
-        return user_level >= read_level
+        return self._check_generic_permission(board_info, user_id_pk, user_level, 'read_level')
 
     def can_write_to_board(self, board_info, user_id_pk, user_level):
         """指定された掲示板の書き込み権限があるかチェックする"""
-        if user_level >= 5:
-            return True
-
-        board_id_pk = board_info.get("id")
-        write_level = board_info.get('write_level', 1)  # デフォルトはレベル1
-
-        user_specific_perm = database.get_user_permission_for_board(
-            board_id_pk, str(user_id_pk))
-
-        # シグオペかをチェック
+        # シグオペは汎用チェックの前に特別に許可する
         try:
-            operator_ids_json = board_info['operators'] if 'operators' in board_info.keys(
-            ) else '[]'
+            operator_ids_json = board_info.get('operators', '[]')
             operator_ids = json.loads(operator_ids_json)
             if user_id_pk in operator_ids:
-                return True  # シグオペならOK
+                return True
         except (json.JSONDecodeError, TypeError):
             pass  # エラー対策
 
-        # 優先順位: 1. deny, 2. allow, 3. level check
-        if user_specific_perm == "deny":
-            return False
-        if user_specific_perm == "allow":
-            return True
-
-        return user_level >= write_level
+        # 汎用チェックを呼び出す
+        return self._check_generic_permission(board_info, user_id_pk, user_level, 'write_level')
 
     def can_delete_article(self, article_data, user_id_pk, user_level):
         """指定された記事の削除/復元権限があるかチェックする"""

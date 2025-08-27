@@ -10,21 +10,21 @@ def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
     """シスオペメニュー"""
     # コマンドと対応する関数のディスパッチテーブル
     command_dispatch = {
-        'allr': read_default_exploration_list,
-        'allw': write_default_exploration_list,
-        'usrl': user_list,
-        'mkbd': make_board,
-        'lsbd': list_boards,
-        'dlbd': delete_board,
-        'chbd': change_board_full_settings,
-        'delu': user_delete,
-        'regs': user_register,
-        'pasc': change_user_password_by_sysop,
-        'chgu': change_user_level,
-        'vset': view_settings,
-        'mnpm': change_top_menu_permission,
-        'lgmg': change_login_message,  # ログインメッセージ
-        'exit': system_quit,
+        'sswr': read_default_exploration_list,
+        'ssww': write_default_exploration_list,
+        'ulist': user_list,
+        'badd': make_board,
+        'blist': list_boards,
+        'bdel': delete_board,
+        'bmod': change_board_full_settings,
+        'udel': user_delete,
+        'uadd': user_register,
+        'passwd': change_user_password_by_sysop,
+        'chulv': change_user_level,
+        'cshow': view_settings,
+        'mcnf': change_top_menu_permission,
+        'lgmc': change_login_message,
+        'halt': system_quit,
         '': lambda *args: "back_to_top",  # 空入力でメニュー終了
     }
 
@@ -54,13 +54,14 @@ def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
 
 def read_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
     """共通探索リストを読む"""
-    server_prefs = database.read_server_pref()
-    if not server_prefs or len(server_prefs) <= 6:
-        logging.error("サーバ設定の読み込みに失敗したか、共通探索リストの項目がありません。")
+    server_prefs_dict = database.read_server_pref()
+    if not server_prefs_dict:
+        logging.error("サーバ設定の読み込みに失敗しました。")
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
         return None
 
-    default_exploration_list_str = server_prefs[6]
+    default_exploration_list_str = server_prefs_dict.get(
+        'default_exploration_list', '')
     util.display_exploration_list(chan, default_exploration_list_str)
     return None
 
@@ -83,9 +84,9 @@ def change_login_message(chan, _sysop_login_id, current_menu_mode):
         chan, "sysop_menu.change_login_message.header", current_menu_mode)
 
     # 現在のログインメッセージを表示
-    server_prefs = database.read_server_pref()
-    if server_prefs and len(server_prefs) > 8:
-        current_login_message = server_prefs[8]
+    server_prefs_dict = database.read_server_pref()
+    if server_prefs_dict:
+        current_login_message = server_prefs_dict.get('login_message')
         util.send_text_by_key(chan, "sysop_menu.change_login_message.current", current_menu_mode,
                               message=current_login_message if current_login_message else "(設定されていません)")
     else:
@@ -304,12 +305,9 @@ def user_delete(chan, sysop_login_id, current_menu_mode):
 
 def view_settings(chan, _sysop_login_id, current_menu_mode):
     """設定一覧表示"""
-    server_prefs_list = database.read_server_pref()
-    if server_prefs_list:
-        # sqlite_tools.read_server_pref が返すリストの順序と一致させる必要がある
-        all_pref_names = ['bbs', 'chat', 'mail', 'telegram',
-                          'userpref', 'who', 'default_exploration_list', 'hamlet']
-        server_prefs_dict = dict(zip(all_pref_names, server_prefs_list))
+    server_prefs_dict = database.read_server_pref()
+    if server_prefs_dict:
+        # server_prefテーブルから読み込んだ辞書を直接使用する
 
         # vset で表示する項目
         display_pref_names = ['bbs', 'chat', 'mail',

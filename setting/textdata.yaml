@@ -521,59 +521,58 @@ sysop_menu:
   menu:
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      □[ALLR] 探索リストを読む                [USRL] 会員一覧表示                ■
-      ■[ALLW] 探索リストを書く                                                  □
-      □[MKBD] 掲示板作成                      [PASC] パスワード再発行           ■
-      ■[LSBD] 掲示板一覧                      [CHGU] ユーザーレベル変更          □
-      □[DLBD] 掲示板削除                      [DELU] 会員抹消                    ■
-      ■[CHBD] 掲示板総合設定変更              [REGS] 会員登録                    □
-      □[TREE] 階層構造マップ(未実装)                                            ■
-      ■[MNPM] トップメニューの会員レベル設定  [SYMW] シンボルテーブルを書く      □
-      □[VSET] 設定一覧表示                    [LGMG] ログインメッセージ変更      ■
-      ■[EXIT] システム強制終了                [LETR] アンケート処理              □
+      □[sswr]  探索リストを読む                [ulist]  会員一覧表示             ■
+      ■[ssww]  探索リストを書く                                                  □
+      □[badd]  掲示板作成                      [passwd] パスワード再発行         ■
+      ■[blist] 掲示板一覧                      [chulv]  ユーザーレベル変更       □
+      □[bdel]  掲示板削除                      [udel]   会員抹消                 ■
+      ■[bmod]  掲示板総合設定変更              [uadd]   会員登録                 □
+      □[TREE] 階層構造マップ(未実装)                                             ■
+      ■[mcnf]  トップメニューの会員レベル設定  [SYMW]   シンボルテーブルを書く   □
+      □[cshow] 設定一覧表示                    [lgmc]   ログインメッセージ変更   ■
+      ■[halt]  システム強制終了                [LETR]   アンケート処理           □
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     mode_2: |
       ====================================================
       シスオペメニュー
       ----------------------------------------------------
-      [ALLR] 探索リストを読む
-      [ALLW] 探索リストを書く
-      [LETR] アンケート処理(未実装)
-      [PASC] パスワード再発行
-      [MKBD] 掲示板作成
-      [LSBD] 掲示板一覧
-      [CHBD] 掲示板総合設定変更
-      [DLBD] 掲示板削除
-      [REGS] 会員登録
-      [DELU] 会員抹消
-      [CHGU] ユーザーレベル変更
-      [USRL] 会員一覧表示
-      [VSET] 設定一覧表示
-      [MNPM] トップメニューの会員レベル設定
-      [VSET] 設定一覧表示
-      [LGMG] ログインメッセージ変更
-      [EXIT] システム強制終了
+      [sswr]  探索リストを読む
+      [ssww]  探索リストを書く
+      [LETR]  アンケート処理(未実装)
+      [passwd]パスワード再発行
+      [badd]  掲示板作成
+      [blist] 掲示板一覧
+      [bmod]  掲示板総合設定変更
+      [bdel]  掲示板削除
+      [uadd]  会員登録
+      [udel]  会員抹消
+      [chulv] ユーザーレベル変更
+      [ulist] 会員一覧表示
+      [cshow] 設定一覧表示
+      [mcnf]  トップメニューの会員レベル設定
+      [lgmc]  ログインメッセージ変更
+      [halt]  システム強制終了
       ====================================================
     mode_3: |
       +---------+-------------------------------------------+
       | Command | Description                               |
       +---------+-------------------------------------------+
-      | ALLR    | Read Search List: Load search paths       |
-      | ALLW    | Write Search List: Save search paths      |
+      | sswr    | Read Search List: Load search paths       |
+      | ssww    | Write Search List: Save search paths      |
       | LETR    | Process Survey: Manage polls (TBD)        |
-      | PASC    | Reissue Password: Reset user password     |
-      | MKBD    | Create Board: Make new bulletin board     |
-      | LSBD    | List Boards: View all boards              |
-      | CHBD    | Change Board Settings: Full board config  |
-      | DLBD    | Delete Board: Remove bulletin board       |
-      | REGS    | Register User: Add new member             |
-      | DELU    | Delete User: Remove member account        |
-      | CHGU    | Change User Level: Adjust user perms      |
-      | USRL    | List Users: Show all members              |
-      | VSET    | View Settings: Display system config      |
-      | MNPM    | Set Menu Perms: Configure top menu access |
-      | LGMG    | Change Login Message: Update login msg    |
-      | EXIT    | Force Shutdown: Terminate system          |
+      | passwd  | Reissue Password: Reset user password     |
+      | badd    | Create Board: Make new bulletin board     |
+      | blist   | List Boards: View all boards              |
+      | bmod    | Change Board Settings: Full board config  |
+      | bdel    | Delete Board: Remove bulletin board       |
+      | uadd    | Register User: Add new member             |
+      | udel    | Delete User: Remove member account        |
+      | chulv   | Change User Level: Adjust user perms      |
+      | ulist   | List Users: Show all members              |
+      | cshow   | View Settings: Display system config      |
+      | mcnf    | Set Menu Perms: Configure top menu access |
+      | lgmc    | Change Login Message: Update login msg    |
+      | halt    | Force Shutdown: Terminate system          |
       +---------+-------------------------------------------+
   system_quit:
     header:
