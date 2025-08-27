@@ -133,20 +133,21 @@ def user_list(chan, _sysop_login_id, current_menu_mode):
     try:
         users = database.get_all_users()
         if users:
+            # util.send_text_by_key がヘッダーと上の区切り線を出力するため、冗長な区切り線送信を削除
             util.send_text_by_key(
                 chan, "sysop_menu.user_list.header", current_menu_mode)
-            chan.send(
-                "------------------------------------------------------------------------------------------\r\n")
             for user in users:
                 regdt_str = util.format_timestamp(user['registdate'])
                 lastlogin_str = util.format_timestamp(user['lastlogin'])
 
                 comment_str = user['comment'] if user['comment'] else ''
                 email_str = user['email'] if user['email'] else ''
-                chan.send(
-                    f"{user['id']:<4} {user['name']:<12} {str(user['level']):<6} {regdt_str:<20} {lastlogin_str:<20} {comment_str:<12} {email_str:<12}\r\n")
+                # chan.send にはバイト列を渡す必要があるため、文字列をエンコードする
+                line = f"{user['id']:<4} {user['name']:<12} {str(user['level']):<6} {regdt_str:<20} {lastlogin_str:<20} {comment_str:<12} {email_str:<12}\r\n"
+                chan.send(line.encode('utf-8'))
+            # 下の区切り線を追加
             chan.send(
-                "------------------------------------------------------------------------------------------\r\n")
+                b"------------------------------------------------------------------------------------------\r\n")
         else:
             util.send_text_by_key(
                 chan, "sysop_menu.user_list.no_users", current_menu_mode)
