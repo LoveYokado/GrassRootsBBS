@@ -6,10 +6,8 @@
     <title>{{ util.get_text_by_key('terminal_ui.title', menu_mode) }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
-    <!-- Favicon -->
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
 
-    <!-- PWA化のための追加 -->
     <link rel="manifest" href="{{ url_for('manifest') }}">
     <meta name="theme-color" content="#282c34">
     <meta name="mobile-web-app-capable" content="yes">
@@ -46,29 +44,24 @@
         }
 
         body {
-            /* デスクトップでは中央寄せ */
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .monitor-chassis {
-            /* 立体感を出すためのグラデーション背景 */
             background: linear-gradient(145deg, #f0e8c0, #d3cba0);
-            /* 枠線の立体感 */
             border-top: 2px solid #fdf5d5;
             border-left: 2px solid #fdf5d5;
             border-bottom: 2px solid #b0a888;
             border-right: 2px solid #b0a888;
             border-radius: 15px;
             padding: 25px;
-            /* 複数の影を重ねて立体感を強調 */
             box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), inset 3px 3px 5px rgba(255, 255, 255, 0.6), inset -3px -3px 5px rgba(0, 0, 0, 0.2);
             position: relative;
             display: flex;
             flex-direction: column;
             max-height: 95vh;
-            /* 画面からはみ出ないように */
         }
 
         /* --- ハンバーガーメニュー --- */
@@ -114,7 +107,7 @@
             width: 100%;
             height: 100%;
             transform: rotate(90deg);
-            /* 90度回転 */
+            /* 矢印アイコンを90度回転 */
             filter: invert(83%) sepia(15%) saturate(411%) hue-rotate(359deg) brightness(91%) contrast(88%);
         }
 
@@ -211,7 +204,7 @@
             box-shadow: none;
         }
 
-        /* ベゼルオフのときはフッターロゴも非表示にする */
+        /* ベゼルがオフのときはフッターロゴも非表示にする */
         .monitor-chassis.bezel-off .monitor-footer {
             display: none;
         }
@@ -242,7 +235,7 @@
             touch-action: none;
         }
 
-        /* にじみ効果 (JSのapplyThemeからも設定されるが、クラスでトグルできるようにする) */
+        /* にじみ効果 (JSのapplyThemeからも設定されますが、クラスでトグルできるようにします) */
         #terminal.blur-effect,
         .mobile-btn.blur-effect {
             text-shadow: var(--glow-text-shadow, none);
@@ -262,7 +255,7 @@
         }
 
         .mobile-btn {
-            /* デフォルトではボタンににじみ効果はつけない */
+            /* デフォルトではボタンににじみ効果はつけません */
             transition: text-shadow 0.3s;
         }
 
@@ -375,7 +368,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            /* 筐体の影の色に合わせる */
             border-bottom: 1px solid #b0a888;
             padding-bottom: 10px;
             margin-bottom: 15px;
@@ -385,7 +377,6 @@
 
         .popup-header h2 {
             margin: 0;
-            /* 彫り込み文字風 */
             color: #706b58;
             text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
         }
@@ -401,7 +392,6 @@
         .popup-content h3 {
             margin-top: 0;
             margin-bottom: 10px;
-            /* 彫り込み文字風 */
             color: #706b58;
             text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
         }
@@ -462,7 +452,6 @@
             width: 95%;
             padding: 8px;
             margin-bottom: 15px;
-            /* ターミナル風の入力欄 */
             background-color: #000;
             color: #eee;
             border-style: solid;
@@ -490,7 +479,6 @@
             height: 250px;
             padding: 8px;
             margin-bottom: 15px;
-            /* ターミナル風の入力欄 */
             background-color: #000;
             color: #eee;
             border-style: solid;
@@ -523,7 +511,7 @@
             font-family: sans-serif;
         }
 
-        /* xterm.jsの点滅(blink)を有効にするためのCSSアニメーション */
+        /* xterm.jsの点滅(blink)を有効にするためのアニメーション */
         .xterm .xterm-screen .blinking {
             animation: xterm-blink 1s steps(1, start) infinite;
         }
@@ -536,10 +524,10 @@
 
 
         #terminal {
-            /* サイズはxterm.jsが管理するため、CSSでの指定は不要 */
+            /* サイズはxterm.jsが管理するため、CSSでの指定は不要です */
         }
 
-        /* Xterm.jsが内部で生成するスクロールバーを非表示にする */
+        /* Xterm.jsが内部で生成するスクロールバーを非表示にします */
         .xterm-viewport {
             -ms-overflow-style: none;
             /* IE and Edge */
@@ -550,7 +538,6 @@
         /* --- レスポンシブ対応 --- */
         @media screen and (max-width: 992px) {
             body {
-                /* モバイルでは中央寄せをやめる */
                 display: block;
             }
 
@@ -644,7 +631,7 @@
                 box-sizing: border-box;
             }
 
-            /* モバイルでの画面効果を強化 */
+            /* --- モバイルでの画面効果 --- */
             #terminal.blur-effect,
             .mobile-btn.blur-effect {
                 text-shadow: var(--glow-text-shadow-mobile, none);
@@ -655,7 +642,6 @@
             }
 
             .mobile-btn {
-                /* テーマごとのグローを適用 */
                 text-shadow: var(--glow-text-shadow-mobile, none);
             }
         }
@@ -673,7 +659,7 @@
                 display: none !important;
             }
 
-            /* デスクトップでは設定ボタンを非表示にし、DIPスイッチのみにする */
+            /* デスクトップでは設定ボタンを非表示にし、DIPスイッチのみにします */
             #theme-selector,
             #font-selector,
             #fontsize-selector,
@@ -742,7 +728,6 @@
             background-color: #666;
         }
 
-        /* グリッドレイアウトでの位置指定 */
         #bbs-btn-end-write {
             grid-column: 1;
             grid-row: 1;
@@ -1124,14 +1109,14 @@
             box-shadow: inset 0 2px 2px rgba(0, 0, 0, 0.5);
         }
 
-        /* OFF (下) */
         .dip-switch input[type="checkbox"]+label {
             top: 22px;
+            /* OFF (下) */
         }
 
-        /* ON (上) */
         .dip-switch input[type="checkbox"]:checked+label {
             top: 1px;
+            /* ON (上) */
         }
     </style>
 </head>
@@ -1150,7 +1135,6 @@
         </div>
     </div>
 
-    <!-- モバイルBBSコントロール -->
     <div id="mobile-bbs-controls">
         <button class="mobile-btn" id="bbs-btn-end-write">^</button>
         <button class="mobile-btn" id="bbs-btn-write">W</button>
@@ -1166,7 +1150,6 @@
         <button class="mobile-btn" id="bbs-btn-exit">E</button>
     </div>
 
-    <!-- モバイルチャットコントロール -->
     <div id="mobile-chat-controls">
         <button class="mobile-btn" id="chat-btn-exit">Exit</button>
         <button class="mobile-btn" id="chat-btn-telegram">Telegram</button>
@@ -1176,7 +1159,6 @@
         <button class="mobile-btn" id="chat-btn-roominfo">RoomInfo</button>
     </div>
 
-    <!-- モバイルユーザー設定コントロール -->
     <div id="mobile-userpref-controls">
         <button class="mobile-btn" id="userpref-btn-1">1</button>
         <button class="mobile-btn" id="userpref-btn-2">2</button>
@@ -1193,7 +1175,6 @@
         <button class="mobile-btn" id="userpref-btn-enter">Enter</button>
     </div>
 
-    <!-- モバイルメールメニューコントロール -->
     <div id="mobile-mail-controls">
         <button class="mobile-btn" id="mail-btn-write">Write</button>
         <button class="mobile-btn" id="mail-btn-read">Read</button>
@@ -1201,14 +1182,12 @@
         <button class="mobile-btn" id="mail-btn-exit">Exit</button>
     </div>
 
-    <!-- モバイル掲示板入口コントロール -->
     <div id="mobile-bbs-entry-controls">
         <button class="mobile-btn" id="bbs-entry-btn-write">Write</button>
         <button class="mobile-btn" id="bbs-entry-btn-read">Read</button>
         <button class="mobile-btn" id="bbs-entry-btn-exit">Exit</button>
     </div>
 
-    <!-- モバイルトップメニューコントロール -->
     <div id="mobile-top-menu-controls">
         <button class="mobile-btn" id="top-btn-bbs">BBS</button>
         <button class="mobile-btn" id="top-btn-chat">Chat</button>
@@ -1221,7 +1200,6 @@
         <button class="mobile-btn" id="top-btn-logoff">Logoff</button>
     </div>
 
-    <!-- モバイルプラグインメニューコントロール -->
     <div id="mobile-plugin-menu-controls">
         <button class="mobile-btn" id="plugin-btn-1">1</button>
         <button class="mobile-btn" id="plugin-btn-2">2</button>
@@ -1239,10 +1217,8 @@
     </div>
 
 
-    <!-- ハンバーガーメニュー本体 -->
     <div id="sidenav" class="sidenav">
     </div>
-    <!-- １行エディタ用ポップアップ -->
     <div id="line-editor-overlay" class="popup-overlay"></div>
     <div id="line-editor-window" class="popup-window">
         <div class="popup-header">
@@ -1260,7 +1236,6 @@
         </div>
     </div>
 
-    <!-- マルチラインエディタ用ポップアップ -->
     <div id="multiline-editor-overlay" class="popup-overlay"></div>
     <div id="multiline-editor-window" class="popup-window">
         <div class="popup-header">
@@ -1287,19 +1262,12 @@
                     <button class="ansi-btn" data-sequence="[30m" data-ansi-color-name="black"
                         style="color: #000000;">Black</button>
                     <button class="ansi-btn" data-sequence="[31m" data-ansi-color-name="red">Red</button>
-                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[32m" data-ansi-color-name="green">Green</button>
-                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[33m" data-ansi-color-name="yellow">Yellow</button>
-                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[34m" data-ansi-color-name="blue">Blue</button>
-                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[35m" data-ansi-color-name="magenta">Magenta</button>
-                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[36m" data-ansi-color-name="cyan">Cyan</button>
-                    <!-- TODO: 多言語化 -->
                     <button class="ansi-btn" data-sequence="[37m" data-ansi-color-name="white">White</button>
-                    <!-- TODO: 多言語化 -->
                 </div>
             </div>
             <textarea id="multiline-editor-input" class="popup-window-textarea" cols="80"></textarea>
@@ -1313,7 +1281,6 @@
         </div>
     </div>
 
-    <!-- ログビューワー用ポップアップ -->
     <div id="log-viewer-overlay" class="popup-overlay"></div>
     <div id="log-viewer-window" class="popup-window">
         <div class="popup-header">
@@ -1340,9 +1307,9 @@
         <div class="popup-content">
             <div id="theme-selector">
                 <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.theme_header', menu_mode) }}</h3>
-                <button data-theme="default">Default</button> <!-- TODO: 多言語化 -->
-                <button data-theme="green">Green</button> <!-- TODO: 多言語化 -->
-                <button data-theme="amber">Amber</button> <!-- TODO: 多言語化 -->
+                <button data-theme="default">Default</button>
+                <button data-theme="green">Green</button>
+                <button data-theme="amber">Amber</button>
             </div>
             <div id="font-selector">
                 <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.font_header', menu_mode) }}</h3>
@@ -1510,7 +1477,6 @@
         </div>
     </div>
 
-    <!-- ファイル添付用の非表示input要素 -->
     <input type="file" id="attachment-input" style="display: none;">
 
     <button id="hamburger-btn"><img src="{{ url_for('static', filename='icons/hmbg.svg') }}" alt="Menu"></button>
@@ -1532,7 +1498,7 @@
             log_no_files: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.no_log_files', menu_mode) }}"
         };
 
-        // --- Service Workerの登録 ---
+        // Service Workerの登録
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register("{{ url_for('service_worker') }}")
@@ -1544,7 +1510,6 @@
                     });
             });
         }
-        // --- ここまで ---
 
         const themes = {
             default: {
@@ -1622,7 +1587,7 @@
                 brightWhite: '#FFB000'
             }
         };
-        // --- DIPスイッチ関連 ---
+
         const themeMap = { 'default': 0, 'green': 1, 'amber': 2 };
         const fontMap = { 'M PLUS 1m': 0, 'M PLUS 1 Code': 1, 'IBM Plex Mono': 2, 'DotGothic16': 3 };
         const speedMap = { 'full': 0, '9600': 1, '4800': 2, '2400': 3, '300': 4 };
@@ -1635,16 +1600,14 @@
         const speedMapReverse = Object.fromEntries(Object.entries(speedMap).map(([k, v]) => [v, k]));
         const fontsizeMapReverse = Object.fromEntries(Object.entries(fontsizeMap).map(([k, v]) => [v, k]));
 
-        let isDipSwitchUpdating = false; // スイッチ操作による再帰呼び出しを防ぐフラグ
+        let isDipSwitchUpdating = false; // DIPスイッチ操作による再帰呼び出しを防ぐフラグ
 
-        // にじみ効果のスタイルを動的に更新する
         const dynamicGlowStyle = document.getElementById('dynamic-glow-style');
 
         function applyTheme(themeName) {
             const theme = themes[themeName] || themes.default;
             term.options.theme = theme;
 
-            // bodyにテーマクラスを適用して、サイドナビなど他の要素も追従できるようにする
             document.body.classList.remove('theme-default', 'theme-green', 'theme-amber');
             document.body.classList.add(`theme-${themeName}`);
 
@@ -1664,11 +1627,10 @@
                 }
             });
 
-            // 動的スタイルシートを更新して、テーマに合わせたにじみ効果を適用
             if (dynamicGlowStyle) {
                 dynamicGlowStyle.innerHTML = `#terminal.blur-effect { text-shadow: ${theme.text_shadow_glow || 'none'}; }`;
             }
-            // ファンクションキーのスタイルを更新
+
             const fkeys = document.querySelectorAll('.f-key');
             fkeys.forEach(key => {
                 key.style.backgroundColor = theme.fkey_bg;
@@ -1684,7 +1646,7 @@
                 }
             });
 
-            // テーマに応じてANSIカラーボタンの表示/非表示を切り替える
+            // ANSIカラーボタンの表示/非表示をテーマに応じて切り替えます
             const ansiColorButtons = document.getElementById('ansi-color-buttons');
             if (ansiColorButtons) {
                 if (themeName === 'green' || themeName === 'amber') {
@@ -1699,10 +1661,10 @@
         }
 
         function applyFont(fontName) {
-            const fontFamily = `"${fontName}", "Courier New", monospace`; // フォント名を引用符で囲む
+            const fontFamily = `"${fontName}", "Courier New", monospace`;
             term.options.fontFamily = fontFamily;
 
-            localStorage.setItem('terminalFont', fontName); // フォント名のみを保存
+            localStorage.setItem('terminalFont', fontName);
             updateFontButtons(fontName);
             if (!isDipSwitchUpdating) updateDipSwitches('font', fontName);
             setTimeout(() => updateTerminalLayout(), 0);
@@ -1711,12 +1673,10 @@
         function applyFontSize(size) {
             const baseSize = parseInt(size, 10);
 
-            // ターミナル本体のフォントサイズを設定
             term.options.fontSize = baseSize;
 
             document.body.style.fontSize = `${baseSize}px`;
 
-            // PCとモバイルで設定を分けて保存する
             const isMobile = window.matchMedia("(max-width: 992px)").matches;
             const storageKey = isMobile ? 'terminalFontSizeMobile' : 'terminalFontSizePC';
             localStorage.setItem(storageKey, size);
@@ -1733,14 +1693,12 @@
         }
 
         function applySpeed(speedName) {
-            // サーバに速度設定を通知
             socket.emit('set_speed', speedName);
             localStorage.setItem('terminalSpeed', speedName);
             updateSpeedButtons(speedName);
             if (!isDipSwitchUpdating) updateDipSwitches('speed', speedName);
         }
 
-        // --- 画面効果の管理 ---
         const effectStates = {
             bezel: true,
             blur: false,
@@ -1766,11 +1724,8 @@
         }
 
         function toggleEffect(effectName) {
-            // 状態を反転
             effectStates[effectName] = !effectStates[effectName];
-            // 画面に適用
             applyEffect(effectName, effectStates[effectName]);
-            // localStorageに保存
             localStorage.setItem('effectStates', JSON.stringify(effectStates));
             updateEffectButtons();
             if (!isDipSwitchUpdating) updateDipSwitches('effect');
@@ -1805,7 +1760,6 @@
             document.querySelector(`#speed-selector button[data-speed="${speedName}"]`).classList.add('active');
         }
 
-        // DIPスイッチの状態を更新するヘルパー関数
         function updateDipSwitches(groupName, value) {
             let numericValue;
             if (groupName === 'theme') {
@@ -1817,7 +1771,7 @@
             } else if (groupName === 'fontsize') {
                 numericValue = fontsizeMap[value];
             } else if (groupName === 'effect') {
-                // エフェクトはビットごとのON/OFFなので特別扱い
+                // エフェクトはビットごとのON/OFFなので特別に扱います
                 const switches = document.querySelectorAll(`.dip-switch-group[data-group="effect"] input[type="checkbox"]`);
                 switches.forEach(sw => {
                     const effectName = Object.keys(effectMap).find(key => effectMap[key] === parseInt(sw.dataset.bit));
@@ -1839,7 +1793,7 @@
         const term = new Terminal({
             cursorBlink: true,
             fontSize: 16,
-            // モバイルではスクロールバックを有効にし、PCでは無効にする
+            // モバイルではスクロールバックを有効にし、PCでは無効にします
             scrollback: isMobileForTermInit ? 1000 : 0,
         });
         const fitAddon = new FitAddon.FitAddon();
@@ -1847,7 +1801,6 @@
 
         term.open(document.getElementById('terminal'));
 
-        // ターミナルのレイアウトを更新する関数
         function updateTerminalLayout() {
             const chassis = document.querySelector('.monitor-chassis');
             const screenContainer = document.querySelector('.monitor-screen');
@@ -1855,25 +1808,21 @@
             const isMobile = window.matchMedia("(max-width: 992px)").matches;
             const isFullscreen = chassis.classList.contains('fullscreen');
 
-            // フルスクリーンでない場合は、コンテナの幅をリセットして通常表示に戻す
             if (!isFullscreen) {
                 screenContainer.style.width = '';
             }
 
             if (isMobile) {
-                // モバイル端末では、コンテナの幅に合わせてターミナルの桁数を自動調整
                 try {
                     fitAddon.fit();
                 } catch (e) {
                     console.error("fitAddon.fit() failed:", e);
                 }
             } else if (isFullscreen) {
-                // デスクトップのフルスクリーンモード
                 if (term.renderer && term.renderer.dimensions && term.renderer.dimensions.actualCellHeight > 0) {
                     const cellHeight = term.renderer.dimensions.actualCellHeight;
                     const cellWidth = term.renderer.dimensions.actualCellWidth;
 
-                    // 1. ターミナルの高さを計算
                     const fkeys = document.getElementById('function-keys-container');
                     const fkeysHeight = fkeys.offsetHeight;
                     const fkeysMargin = parseFloat(window.getComputedStyle(fkeys).marginTop);
@@ -1882,19 +1831,15 @@
                     const availableHeightForTerm = window.innerHeight - fkeysHeight - fkeysMargin - screenPaddingVertical;
                     const newRows = Math.floor(availableHeightForTerm / cellHeight);
 
-                    // 2. ターミナルの幅を計算してコンテナに設定
                     const termWidth = 80 * cellWidth;
                     const screenPaddingHorizontal = parseFloat(screenStyle.paddingLeft) + parseFloat(screenStyle.paddingRight);
                     screenContainer.style.width = `${termWidth + screenPaddingHorizontal}px`;
 
-                    // 3. xtermをリサイズ
                     term.resize(80, newRows);
                 } else {
-                    // レンダラが準備できていない場合、少し待ってから再試行
                     setTimeout(updateTerminalLayout, 50);
                 }
             } else {
-                // デスクトップの通常表示では、伝統的な80x25のサイズに固定
                 term.resize(80, 25);
             }
         }
@@ -1914,15 +1859,12 @@
 
         const socket = io();
 
-        // --- ファイル添付UIの制御 ---
         const attachmentInput = document.getElementById('attachment-input');
 
-        // ファイルが選択されたときの処理
         attachmentInput.addEventListener('change', () => {
             if (attachmentInput.files.length > 0) {
                 const file = attachmentInput.files[0];
 
-                // ファイルを読み込んでサーバーに送信
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     socket.emit('upload_attachment', {
@@ -1936,13 +1878,11 @@
                 reader.readAsArrayBuffer(file);
 
             } else {
-                socket.emit('clear_pending_attachment'); // ファイル選択がキャンセルされた場合もクリア
+                socket.emit('clear_pending_attachment'); // ファイル選択がキャンセルされた場合もクリアします
             }
         });
 
-        // サーバーからのアップロード結果を受け取る
         socket.on('attachment_upload_success', (data) => {
-            // 成功したことはコンソールで確認
             console.log(`Upload complete: ${data.original_filename}`);
         });
 
@@ -1951,12 +1891,10 @@
             attachmentInput.value = '';
         });
 
-        // --- ポップアップ処理 ---
         const popupOverlay = document.getElementById('popup-overlay');
         const popupWindow = document.getElementById('popup-window');
         const popupCloseBtn = document.getElementById('popup-close-btn');
 
-        // --- １行エディタ用ポップアップ ---
         const lineEditorOverlay = document.getElementById('line-editor-overlay');
         const lineEditorWindow = document.getElementById('line-editor-window');
         const lineEditorCloseBtn = document.getElementById('line-editor-close-btn');
@@ -1966,7 +1904,6 @@
         const lineEditorHistory = [];
         let historyIndex = -1;
 
-        // --- マルチラインエディタ用ポップアップ ---
         const multilineEditorOverlay = document.getElementById('multiline-editor-overlay');
         const multilineEditorWindow = document.getElementById('multiline-editor-window');
         const multilineEditorCloseBtn = document.getElementById('multiline-editor-close-btn');
@@ -1975,15 +1912,12 @@
         const multilineEditorCancelBtn = document.getElementById('multiline-editor-cancel-btn');
         const ansiControls = document.getElementById('ansi-controls');
 
-        // ログビューワー用ポップアップの要素を取得
         const logViewerOverlay = document.getElementById('log-viewer-overlay');
         const logViewerWindow = document.getElementById('log-viewer-window');
         const logViewerCloseBtn = document.getElementById('log-viewer-close-btn');
         const logContentDisplay = document.getElementById('log-content-display');
         const logFilesList = document.getElementById('log-files-list');
 
-
-        // ANSIコード挿入処理
         ansiControls.addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON' && e.target.dataset.sequence) {
                 const sequenceCode = e.target.dataset.sequence;
@@ -2004,13 +1938,11 @@
                     newStart = start + startSequence.length;
                     newEnd = newStart;
                 } else if (selectedText) {
-                    // テキストが選択されている場合、選択範囲を囲む
                     const replacement = startSequence + selectedText + endSequence;
                     newText = text.substring(0, start) + replacement + text.substring(end);
-                    newStart = start; // 変更後の選択範囲の開始位置
-                    newEnd = start + replacement.length; // 変更後の選択範囲の終了位置
+                    newStart = start;
+                    newEnd = start + replacement.length;
                 } else {
-                    // テキストが選択されていない場合（カーソル位置に挿入）
                     newText = text.substring(0, start) + startSequence + text.substring(end);
                     newStart = start + startSequence.length;
                     newEnd = newStart;
@@ -2024,10 +1956,10 @@
         });
 
         function openMultilineEditor() {
-            multilineEditorInput.value = ''; // 以前の入力をクリア
+            multilineEditorInput.value = '';
             multilineEditorOverlay.classList.add('visible');
             multilineEditorWindow.classList.add('visible');
-            multilineEditorInput.focus(); // 入力フィールドにフォーカス
+            multilineEditorInput.focus();
         }
 
         function closeMultilineEditor() {
@@ -2047,11 +1979,11 @@
         });
 
         function openLineEditor() {
-            lineEditorInput.value = ''; // 以前の入力をクリア
-            historyIndex = lineEditorHistory.length; // 履歴の末尾にインデックスを設定
+            lineEditorInput.value = '';
+            historyIndex = lineEditorHistory.length;
             lineEditorOverlay.classList.add('visible');
             lineEditorWindow.classList.add('visible');
-            lineEditorInput.focus(); // 入力フィールドにフォーカス
+            lineEditorInput.focus();
         }
 
         function closeLineEditor() {
@@ -2062,11 +1994,9 @@
         lineEditorInsertBtn.addEventListener('click', () => {
             const textToInsert = lineEditorInput.value;
             if (textToInsert) {
-                // 履歴に追加（最後の履歴と重複しない場合）
                 if (lineEditorHistory.length === 0 || lineEditorHistory[lineEditorHistory.length - 1] !== textToInsert) {
                     lineEditorHistory.push(textToInsert);
                 }
-                // サーバーの入力バッファに送る
                 socket.emit('client_input', textToInsert);
             }
             closeLineEditor();
@@ -2074,7 +2004,7 @@
 
         lineEditorInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                e.preventDefault(); // フォームの送信を防ぐ
+                e.preventDefault();
                 lineEditorInsertBtn.click();
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
@@ -2089,7 +2019,7 @@
                     lineEditorInput.value = lineEditorHistory[historyIndex];
                 } else if (historyIndex === lineEditorHistory.length - 1) {
                     historyIndex++;
-                    lineEditorInput.value = ''; // 履歴の末尾の次は新しい入力
+                    lineEditorInput.value = '';
                 }
             }
         });
@@ -2107,7 +2037,6 @@
         function openLogViewer() {
             logFilesList.innerHTML = ''; // リストをクリア
             logContentDisplay.value = ''; // 内容をクリア
-            // サーバーにログファイル一覧を要求
             socket.emit('get_log_files');
             logViewerOverlay.classList.add('visible');
             logViewerWindow.classList.add('visible');
@@ -2118,7 +2047,6 @@
             logViewerWindow.classList.remove('visible');
         }
 
-        // --- ファンクションキー生成 ---
         const fkeysLeftContainer = document.getElementById('f-keys-left');
         const fkeysRightContainer = document.getElementById('f-keys-right');
         var fkeyDefinitions = {{ fkey_definitions | tojson }};
@@ -2134,16 +2062,13 @@
                 if (definition.action === 'open_popup') {
                     key.addEventListener('click', openPopup);
                 } else if (definition.action === 'send_command') {
-                    key.addEventListener('click', () => {
-                        // コマンドを送信し、Enterキーも送信する
-                        socket.emit('client_input', definition.value + '\r');
-                    });
+                    key.addEventListener('click', () => socket.emit('client_input', definition.value + '\r'));
                 } else if (definition.action === 'open_multiline_editor') {
                     key.addEventListener('click', openMultilineEditor);
                 } else if (definition.action === 'open_line_editor') {
                     key.addEventListener('click', openLineEditor);
                 } else if (definition.action === 'toggle_logging') {
-                    key.id = 'f2-log-btn'; // スタイル変更のためにIDを付与
+                    key.id = 'f2-log-btn';
                     key.addEventListener('click', () => {
                         socket.emit('toggle_logging');
                     });
@@ -2178,7 +2103,6 @@
         logViewerOverlay.addEventListener('click', closeLogViewer);
 
 
-        // ボタンにイベントリスナーを設定
         document.getElementById('theme-selector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 applyTheme(e.target.dataset.theme);
@@ -2222,21 +2146,16 @@
 
         term.onData(data => {
             if (isPasswordInputMode) {
-                // パスワード入力モード
                 if (data === '\r') {
-                    // サーバーにはEnterキーを送信。改行表示はサーバーからの応答を待つ。
                     socket.emit('client_input', data);
                 } else if (data === '\x7f' || data === '\x08') { // Backspaceキー
-                    // サーバーにはBackspaceを送信し、ターミナルから1文字削除
                     socket.emit('client_input', data);
                     term.write('\b \b');
                 } else {
-                    // その他の文字はサーバーに送信し、ターミナルには '*' を表示
                     socket.emit('client_input', data);
                     term.write('*');
                 }
             } else {
-                // 通常モードでは、そのままサーバーに送信 (エコーバックはサーバーに任せる)
                 socket.emit('client_input', data);
             }
         });
@@ -2262,25 +2181,22 @@
         }
 
         socket.on('server_output', data => {
-            // Passkey登録フロー開始シーケンスをチェック
             const passkeyRegisterPattern = /\x1b\[\?2027h/;
             if (passkeyRegisterPattern.test(data)) {
-                registerNewPasskey(); // 登録フローを開始
+                registerNewPasskey();
                 data = data.replace(passkeyRegisterPattern, '');
             }
 
-            // UserPrefコントロール表示/非表示シーケンスをチェック
             const userprefControlPattern = /\x1b\[\?2028(h|l)/;
             const userprefMatch = data.match(userprefControlPattern);
             if (userprefMatch) {
                 const mobileControls = document.getElementById('mobile-userpref-controls');
                 const monitorScreen = document.querySelector('.monitor-screen');
 
-                if (userprefMatch[1] === 'h') { // 'h' for show
+                if (userprefMatch[1] === 'h') {
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                    // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else {
                     mobileControls.classList.remove('visible');
@@ -2290,7 +2206,6 @@
                 updateTerminalLayout();
             }
 
-            // チャットコントロール表示/非表示シーケンスをチェック
             const chatControlPattern = /\x1b\[\?2026(h|l)/;
             const chatMatch = data.match(chatControlPattern);
             if (chatMatch) {
@@ -2301,7 +2216,6 @@
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                    // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else {
                     mobileControls.classList.remove('visible');
@@ -2311,7 +2225,6 @@
                 updateTerminalLayout();
             }
 
-            // Mailメニューコントロール表示/非表示シーケンスをチェック
             const mailControlPattern = /\x1b\[\?2029(h|l)/;
             const mailMatch = data.match(mailControlPattern);
             if (mailMatch) {
@@ -2322,7 +2235,6 @@
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                    // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else {
                     mobileControls.classList.remove('visible');
@@ -2332,7 +2244,6 @@
                 updateTerminalLayout();
             }
 
-            // BBS入口コントロール表示/非表示シーケンスをチェック
             const bbsEntryControlPattern = /\x1b\[\?2030(h|l)/;
             const bbsEntryMatch = data.match(bbsEntryControlPattern);
             if (bbsEntryMatch) {
@@ -2343,7 +2254,6 @@
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                    // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else {
                     mobileControls.classList.remove('visible');
@@ -2353,7 +2263,6 @@
                 updateTerminalLayout();
             }
 
-            // Plugin Menuコントロール表示/非表示シーケンスをチェック
             const pluginMenuControlPattern = /\x1b\[\?2032(h|l)/;
             const pluginMenuMatch = data.match(pluginMenuControlPattern);
             if (pluginMenuMatch) {
@@ -2364,7 +2273,6 @@
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                    // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else {
                     mobileControls.classList.remove('visible');
@@ -2374,7 +2282,6 @@
                 updateTerminalLayout();
             }
 
-            // Top Menuコントロール表示/非表示シーケンスをチェック
             const topMenuControlPattern = /\x1b\[\?2031(h|l)/;
             const topMenuMatch = data.match(topMenuControlPattern);
             if (topMenuMatch) {
@@ -2385,7 +2292,6 @@
                     mobileControls.classList.add('visible');
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                    // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else {
                     mobileControls.classList.remove('visible');
@@ -2395,7 +2301,6 @@
                 updateTerminalLayout();
             }
 
-            // BBSコントロール表示/非表示シーケンスをチェック
             const bbsControlPattern = /\x1b\[\?2024(h|l)/;
             const match = data.match(bbsControlPattern);
             if (match) {
@@ -2404,10 +2309,8 @@
 
                 if (match[1] === 'h') {
                     mobileControls.classList.add('visible');
-                    // コントロールの高さを計算して、ターミナルコンテナのpadding-bottomに設定
                     const controlsHeight = mobileControls.offsetHeight;
                     monitorScreen.style.paddingBottom = `${controlsHeight}px`;
-                    // キーボード表示時に復元できるよう、高さを記憶しておく
                     monitorScreen.dataset.controlsHeight = controlsHeight;
                 } else {
                     mobileControls.classList.remove('visible');
@@ -2416,7 +2319,7 @@
                 data = data.replace(bbsControlPattern, '');
                 updateTerminalLayout();
             }
-            // ファイルダウンロードシーケンス
+
             const downloadPattern = /\x1b_GRBBS_DOWNLOAD;(.*?)\x1b\\/;
             const downloadMatch = data.match(downloadPattern);
             if (downloadMatch) {
@@ -2430,32 +2333,26 @@
                 data = data.replace(downloadPattern, '');
             }
 
-            // ファイル添付UI表示 & 即時ダイアログ表示シーケンス
             const attachmentDialogPattern = /\x1b\[\?2033h/;
             if (attachmentDialogPattern.test(data)) {
                 const attachmentInput = document.getElementById('attachment-input');
 
                 const onFocus = () => {
                     window.removeEventListener('focus', onFocus);
-                    // changeイベントが先に処理される時間を確保するため、少し遅延させる
                     setTimeout(() => {
-                        // サーバー側の process_input() を進めるための信号を送信
                         socket.emit('client_input', '\r');
                     }, 150);
                 };
                 window.addEventListener('focus', onFocus);
 
-                attachmentInput.click(); // プログラムでファイル選択ダイアログを開く
+                attachmentInput.click();
                 data = data.replace(attachmentDialogPattern, '');
             }
 
-            // ファイル添付UI非表示シーケンス (投稿完了/キャンセル時に呼ばれる)
             const attachmentUiHidePattern = /\x1b\[\?2032l/;
             if (attachmentUiHidePattern.test(data)) {
-                // UIを非表示にするときは、選択状態もリセット
                 const attachmentInput = document.getElementById('attachment-input');
                 attachmentInput.value = '';
-                // サーバー側の保留情報もクリアする
                 socket.emit('clear_pending_attachment');
                 data = data.replace(attachmentUiHidePattern, '');
 
@@ -2463,11 +2360,9 @@
             term.write(data);
         });
 
-        // サーバーからログファイル一覧を受け取ったときの処理
         socket.on('log_files_list', (data) => {
             logFilesList.innerHTML = ''; // 既存のリストをクリア
 
-            // ロギング中であれば、特別な項目をリストの先頭に追加
             if (isLogging) {
                 const li = document.createElement('li');
                 const button = document.createElement('button');
@@ -2509,7 +2404,6 @@
             }
         });
 
-        // サーバーからログの内容を受け取ったときの処理
         socket.on('log_content', (data) => {
             logContentDisplay.value = data.content;
         });
@@ -2521,7 +2415,6 @@
 
         let isLogging = false;
 
-        // --- ログ記録関連のイベントリスナー ---
         socket.on('logging_started', () => {
             const f2LogBtn = document.getElementById('f2-log-btn');
             const sidenavLogBtn = document.getElementById('sidenav-log-btn');
@@ -2545,7 +2438,6 @@
                 sidenavLogBtn.textContent = 'LOGGING';
             }
 
-            // ダウンロードをトリガーするための隠しリンクを作成してクリック
             const link = document.createElement('a');
             link.href = data.url;
             link.download = data.filename;
@@ -2566,17 +2458,14 @@
             }
         });
 
-        // サーバーからの切断要求を処理
         socket.on('force_disconnect', (data) => {
             const message = (data && data.message) ? data.message : '[Connection closed by server]';
             term.writeln('\r\n\n' + message);
             term.writeln('\r\nPress any key to return to the login screen...');
             socket.disconnect();
-            // ログアウトメッセージを表示後、/logout にリダイレクトしてセッションを完全にクリアする
             const redirectToLogout = () => {
                 window.location.href = "{{ url_for('logout') }}"
             };
-            // キー入力かマウスクリックを一度だけ待ってからリダイレクト
             document.addEventListener('keydown', redirectToLogout, { once: true });
             document.addEventListener('mousedown', redirectToLogout, { once: true });
         });
@@ -2616,17 +2505,15 @@
             updateDipSwitches('effect');
         }
 
-        // --- DIPスイッチのイベントリスナー ---
         document.querySelector('.dip-switch-panel').addEventListener('change', (e) => {
             if (e.target.type !== 'checkbox') return;
 
-            isDipSwitchUpdating = true; // ボタンの更新処理からの再帰呼び出しを防ぐ
+            isDipSwitchUpdating = true;
 
             const groupElement = e.target.closest('.dip-switch-group');
             const groupName = groupElement.dataset.group;
 
-            if (groupName === 'effect') {
-                // エフェクトはビットごとのON/OFFなので特別扱い
+            if (groupName === 'effect') { // エフェクトはビットごとのON/OFFなので特別扱い
                 const effectBit = parseInt(e.target.dataset.bit);
                 const effectName = Object.keys(effectMap).find(key => effectMap[key] === effectBit);
                 if (effectName) {
@@ -2648,32 +2535,25 @@
                 else if (groupName === 'fontsize') { const size = fontsizeMapReverse[numericValue]; if (size) applyFontSize(size); }
             }
 
-            setTimeout(() => { isDipSwitchUpdating = false; }, 50); // フラグを戻す
+            setTimeout(() => { isDipSwitchUpdating = false; }, 50);
         });
 
         socket.on('connect', () => {
-            // 接続が確立したら、保存されている設定をサーバに送信
             loadSettings();
 
-            // URLからショートカットパラメータを読み取って実行
             const urlParams = new URLSearchParams(window.location.search);
             const shortcut = urlParams.get('shortcut');
             if (shortcut) {
-                // サーバーがコマンドとして認識できるように、';'プレフィックスと改行を追加
                 const command = `;${shortcut}\r`;
-                // 少し待ってからコマンドを送信
                 setTimeout(() => {
                     socket.emit('client_input', command);
-                    // URLからクエリパラメータを削除して見た目をクリーンにする
                     window.history.replaceState({}, document.title, "/");
-                }, 500); // 500ms待機
+                }, 500);
             }
         });
 
-        // --- Service Workerからのメッセージを処理 ---
         navigator.serviceWorker.addEventListener('message', event => {
             if (event.data && event.data.type === 'execute_shortcut') {
-                // メッセージからURLを取得し、ショートカットコマンドを組み立てる
                 const url = new URL(event.data.url, window.location.origin);
                 const shortcut = url.searchParams.get('shortcut');
                 if (shortcut) {
@@ -2683,7 +2563,6 @@
             }
         });
 
-        // --- ポップアップのドラッグ機能 ---
         function makePopupDraggable(popup) {
             const header = popup.querySelector('.popup-header');
             if (!header) return;
@@ -2692,12 +2571,10 @@
             let offsetX, offsetY;
 
             header.addEventListener('mousedown', (e) => {
-                // クリックされたのがボタン(閉じるボタンなど)でない場合のみドラッグ開始
                 if (e.target.tagName.toLowerCase() === 'button') {
                     return;
                 }
                 isDragging = true;
-                // ポップアップの左上隅からマウスポインタまでのオフセットを計算
                 offsetX = e.clientX - popup.offsetLeft;
                 offsetY = e.clientY - popup.offsetTop;
                 header.style.cursor = 'grabbing';
@@ -2705,7 +2582,6 @@
 
             document.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
-                // マウスの位置からオフセットを引いて、ポップアップの新しい位置を計算
                 popup.style.left = `${e.clientX - offsetX}px`;
                 popup.style.top = `${e.clientY - offsetY}px`;
             });
@@ -2717,14 +2593,12 @@
                 }
             });
         }
-        // すべてのポップアップをドラッグ可能にする
         document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
         makePopupDraggable(logViewerWindow);
 
-        // ページ読み込み時に設定を適用
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
-            updateTerminalLayout(); // 初期レイアウトを適用
+            updateTerminalLayout();
 
             if (term.textarea) {
                 term.textarea.addEventListener('compositionend', () => {
@@ -2735,7 +2609,6 @@
             }
         });
 
-        // --- モバイルBBSコントロールのイベントリスナー ---
         document.addEventListener('DOMContentLoaded', () => {
             const keyMap = {
                 'bbs-btn-end-write': '^',
@@ -2743,7 +2616,7 @@
                 'bbs-btn-down': 'j',
                 'bbs-btn-left': 'h',
                 'bbs-btn-right': 'l',
-                'bbs-btn-read': '\r', // Enter
+                'bbs-btn-read': '\r',
                 'bbs-btn-write': 'w',
                 'bbs-btn-delete': '*',
                 'bbs-btn-help': '?',
@@ -2845,7 +2718,7 @@
                 'plugin-btn-9': '9',
                 'plugin-btn-0': '0',
                 'plugin-btn-help': '?',
-                'plugin-btn-enter': '\r', // 決定
+                'plugin-btn-enter': '\r',
             };
             for (const [id, key] of Object.entries(pluginMenuKeyMap)) {
                 const btn = document.getElementById(id);
@@ -2853,7 +2726,6 @@
             }
         });
 
-        // ウィンドウリサイズ時にターミナルをフィットさせる（デバウンス付き）
         window.addEventListener('resize', debounce(updateTerminalLayout, 100));
 
         if ('visualViewport' in window) {
@@ -2886,8 +2758,6 @@
     </script>
 
     <script>
-        // --- Passkey (WebAuthn) 関連のヘルパー関数 ---
-
         /**
          * Base64URL文字列をArrayBufferに変換。
          * @param {string} base64urlString
@@ -2920,13 +2790,10 @@
     </script>
 
     <script>
-        // --- Passkey (WebAuthn) メインロジック ---
-
         /**
          * 新しいPasskeyの登録フローを開始。
          */
         async function registerNewPasskey() {
-            // 1. サーバーから登録オプションを取得
             let options;
             try {
                 const resp = await fetch('/passkey/register-options', {
@@ -2939,7 +2806,6 @@
                 return;
             }
 
-            // 2. サーバーから受け取ったBase64URL文字列をArrayBufferに変換
             options.challenge = base64urlToBuffer(options.challenge);
             options.user.id = base64urlToBuffer(options.user.id);
             if (options.excludeCredentials) {
@@ -2948,7 +2814,6 @@
                 }
             }
 
-            // 3. ブラウザのAPIを呼び出して、生体認証などを要求
             let credential;
             try {
                 credential = await navigator.credentials.create({
@@ -2965,14 +2830,12 @@
                 return;
             }
 
-            // 4. ユーザーにこのキーのニックネームを尋ねる
             const nickname = prompt("このPasskeyのニックネームを入力してください (例: 私のiPhone, 仕事用PCなど):", "My Passkey");
             if (!nickname) {
                 alert("登録をキャンセルしました。");
                 return;
             }
 
-            // 5. サーバーに送るために、ArrayBufferをBase64URL文字列に戻す
             const attestationResponse = {
                 id: credential.id,
                 rawId: bufferToBase64url(credential.rawId),
@@ -2983,7 +2846,6 @@
                 type: credential.type,
             };
 
-            // 6. サーバーに検証をリクエスト
             try {
                 const verificationResp = await fetch('/passkey/verify-registration', {
                     method: 'POST',
@@ -3006,7 +2868,6 @@
     </script>
 
     <script>
-        // --- ハンバーガーメニューのロジック ---
         function openNav() {
             document.getElementById("sidenav").style.width = "250px";
         }
@@ -3029,21 +2890,18 @@
             closeBtn.onclick = closeNav;
             sidenav.appendChild(closeBtn);
 
-            // fkey_definitions を使ってサイドナビゲーションのメニュー項目を動的に生成
             for (const fkeyId in fkeyDefinitions) {
                 const definition = fkeyDefinitions[fkeyId];
                 const link = document.createElement('a');
-                link.href = 'javascript:void(0)'; // ページ遷移を防ぐ
+                link.href = 'javascript:void(0)';
                 link.textContent = definition.label;
 
-                // アクションに応じてIDを付与
                 if (definition.action === 'toggle_logging') {
                     link.id = 'sidenav-log-btn';
                 }
 
                 link.addEventListener('click', (e) => {
-                    e.preventDefault(); // ページ遷移を防ぐ
-                    // ファンクションキーの定義に基づいてアクションを実行
+                    e.preventDefault();
                     if (definition.action === 'open_popup') { openPopup(); }
                     else if (definition.action === 'toggle_logging') { socket.emit('toggle_logging'); }
                     else if (definition.action === 'open_line_editor') { openLineEditor(); }
@@ -3051,7 +2909,7 @@
                     else if (definition.action === 'open_log_viewer') { openLogViewer(); }
                     else if (definition.action === 'redirect') { window.location.href = definition.value; }
 
-                    closeNav(); // メニュー項目をクリックしたらメニューを閉じる
+                    closeNav();
                 });
                 sidenav.appendChild(link);
             }
@@ -3066,7 +2924,6 @@
         });
     </script>
     <script>
-        // --- Push Notification Logic ---
         document.addEventListener('DOMContentLoaded', () => {
             const vapidPublicKey = '{{ vapid_public_key }}';
             const enablePushButton = document.getElementById('enable-push-btn');
@@ -3101,7 +2958,6 @@
                         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
                     });
 
-                    // 宛先情報をバックエンドに送信
                     await fetch('/push/subscribe', {
                         method: 'POST',
                         body: JSON.stringify(subscription),
@@ -3114,9 +2970,8 @@
                     if (Notification.permission === 'denied') {
                         errorMessage = textData.push_denied;
                     } else if (err.name === 'NotAllowedError') {
-                        errorMessage = textData.push_failed; // NotAllowedErrorも失敗の一種
+                        errorMessage = textData.push_failed;
                     } else if (err.message) {
-                        // より詳細なエラー情報を表示
                         errorMessage += ` (${err.name}: ${err.message})`;
                     }
                     pushStatus.textContent = errorMessage;
@@ -3129,7 +2984,6 @@
                     const registration = await navigator.serviceWorker.ready;
                     const subscription = await registration.pushManager.getSubscription();
                     if (subscription) {
-                        // サーバーに購読解除を通知
                         await fetch('/push/unsubscribe', {
                             method: 'POST',
                             body: JSON.stringify({ endpoint: subscription.endpoint }),

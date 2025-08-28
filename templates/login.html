@@ -6,11 +6,7 @@
     <title>{{ page_title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-
-    <!-- Favicon -->
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
-
-    <!-- PWA化のための追加 -->
     <link rel="manifest" href="{{ url_for('manifest') }}">
     <meta name="theme-color" content="#282c34">
     <meta name="mobile-web-app-capable" content="yes">
@@ -42,18 +38,14 @@
             align-items: center;
             justify-content: center;
             color: #00cc00;
-            /* 基本の文字色 */
         }
 
         .login-container {
             background-color: rgba(0, 20, 0, 0.75);
-            /* 半透明の暗い緑 */
             border: 1px solid rgba(0, 255, 0, 0.3);
-            /* 半透明の明るい緑の枠線 */
             border-radius: 10px;
             width: 350px;
             text-align: center;
-            /* 浮遊感を出すための影と、背景をぼかす効果 */
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             backdrop-filter: blur(5px);
             -webkit-backdrop-filter: blur(5px);
@@ -82,10 +74,8 @@
 
         .error {
             background-color: #330000;
-            /* 暗い赤の背景 */
             border: 1px solid #880000;
             color: #ff4444;
-            /* 鮮やかな赤文字 */
             padding: 10px;
             border-radius: 3px;
             word-wrap: break-word;
@@ -156,7 +146,6 @@
                 display: block;
                 /* flexboxによる中央寄せを解除 */
                 padding: 2rem 1rem;
-                /* 上下に余白を持たせる */
             }
 
             .login-container {
@@ -214,7 +203,6 @@
         </form>
     </div>
     <script>
-        // --- Service Workerの登録 ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register("{{ url_for('service_worker') }}")
@@ -228,8 +216,6 @@
         }
     </script>
     <script>
-        // --- Passkey (WebAuthn) 関連 ---
-
         function base64urlToBuffer(base64urlString) {
             const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
             const rawData = window.atob(base64);
@@ -259,7 +245,7 @@
                 return;
             }
 
-            // 1. サーバーから認証オプションを取得
+            // サーバーから認証オプションを取得
             let options;
             try {
                 const resp = await fetch('/passkey/auth-options', {
@@ -277,7 +263,7 @@
                 return;
             }
 
-            // 2. サーバーから受け取ったデータをブラウザAPI用に変換
+            // データをブラウザAPI用に変換
             options.challenge = base64urlToBuffer(options.challenge);
             if (options.allowCredentials) {
                 for (let cred of options.allowCredentials) {
@@ -285,7 +271,7 @@
                 }
             }
 
-            // 3. ブラウザのAPIを呼び出して認証
+            // ブラウザAPIを呼び出して認証
             let credential;
             try {
                 credential = await navigator.credentials.get({ publicKey: options });
@@ -294,7 +280,7 @@
                 return;
             }
 
-            // 4. サーバーに送るためにデータを変換
+            // サーバー送信用にデータを変換
             const authenticationResponse = {
                 id: credential.id,
                 rawId: bufferToBase64url(credential.rawId),
@@ -307,7 +293,7 @@
                 type: credential.type,
             };
 
-            // 5. サーバーに検証をリクエスト
+            // サーバーに検証をリクエスト
             try {
                 const verificationResp = await fetch('/passkey/verify-auth', {
                     method: 'POST',

@@ -103,8 +103,6 @@
                     <a href="/board/{{ item.id }}">{{ item.name }}</a>
                     <p>{{ item.description }}</p>
                 </li>
-                {% elif item.type == 'child' %}
-                {# サブカテゴリの表示も可能にするならここを実装 #}
                 {% endif %}
                 {% endfor %}
             </ul>
