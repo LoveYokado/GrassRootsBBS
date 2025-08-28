@@ -135,7 +135,7 @@ try:
 
     # --- データベース初期化チェック ---
     # アプリケーション起動時にテーブルの存在を確認し、なければ作成する
-    if not util.check_database_initialized():
+    if not database.initializer.check_initialized():
         logging.info("データベースが初期化されていません。初期セットアップを実行します。")
         sysop_id = os.getenv('GRASSROOTSBBS_SYSOP_ID')
         sysop_password = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
@@ -144,9 +144,9 @@ try:
         if not (sysop_id and sysop_password and sysop_email):
             logging.critical(
                 "初回起動には環境変数 GRASSROOTSBBS_SYSOP_ID, GRASSROOTSBBS_SYSOP_PASSWORD, GRASSROOTSBBS_SYSOP_EMAIL が必要です。")
-        else:
+        elif sysop_id and sysop_password and sysop_email:
             try:
-                util.initialize_database_and_sysop(
+                database.initializer.initialize_and_sysop(
                     sysop_id, sysop_password, sysop_email
                 )
                 logging.info(f"データベースとシスオペ '{sysop_id}' の初期化が完了しました。")
