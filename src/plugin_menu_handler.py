@@ -34,6 +34,9 @@ def handle_plugin_menu(chan, context):
                 chan.send(f"[{i+1}] {plugin['name']}\r\n".encode('utf-8'))
                 chan.send(f"{description}\r\n".encode('utf-8'))
 
+            # 新着メール/電報の通知 (他のメニューとの一貫性のため)
+            util.prompt_handler(chan, context.get('login_id'), menu_mode)
+
             util.send_text_by_key(
                 chan, "plugin_menu.select_prompt", menu_mode, add_newline=False)
             choice = chan.process_input()
