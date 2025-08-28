@@ -63,10 +63,11 @@ app.secret_key = secrets.token_hex(16)
 # WebSocketのためのSocketIOラッパー。Gunicornのgeventワーカーと連携するためにasync_modeを指定。
 allowed_origins_str = os.getenv(
     'SOCKETIO_ALLOWED_ORIGINS', 'https://localhost')
-allowed_origins = allowed_origins_str.split(',') if allowed_origins_str else []
+app.config['ALLOWED_ORIGINS'] = allowed_origins_str.split(
+    ',') if allowed_origins_str else []
 
 socketio = SocketIO(
-    app, cors_allowed_origins=allowed_origins, async_mode='gevent')
+    app, cors_allowed_origins=app.config['ALLOWED_ORIGINS'], async_mode='gevent')
 
 # --- アプリケーションモジュールのインポート ---
 # app と socketio の初期化後にインポートすることで、循環インポートを避ける
@@ -78,9 +79,13 @@ try:
     config_path = os.path.join(PROJECT_ROOT, 'setting', 'config.toml')
     util.load_app_config_from_path(config_path)
 
-    # --- 添付ファイルディレクトリ設定 ---
-    webapp_config = util.app_config.get('webapp', {})
-    ATTACHMENT_DIR = webapp_config.get(
+    # --- Flask App Config に設定をロード ---
+    # tomlのキーは小文字なので、Flaskの慣例に合わせて大文字に変換する
+    uppercase_config = {key.upper(): value for key,
+                        value in util.app_config.items()}
+    app.config.from_mapping(uppercase_config)
+
+    ATTACHMENT_DIR = app.config.get('WEBAPP', {}).get(
         'ATTACHMENT_UPLOAD_DIR', 'data/attachments')
     if not os.path.isabs(ATTACHMENT_DIR):
         ATTACHMENT_DIR = os.path.join(PROJECT_ROOT, ATTACHMENT_DIR)
@@ -117,11 +122,12 @@ try:
     logging.getLogger().setLevel(logging.INFO)
 
     # --- MariaDB 接続設定 ---
+    db_config_from_file = app.config.get('DATABASE', {})
     db_config = {
-        'host': os.getenv('DB_HOST', 'localhost'),
-        'user': os.getenv('DB_USER', 'grbbs_user'),
-        'password': os.getenv('DB_PASSWORD', 'password'),
-        'database': os.getenv('DB_NAME', 'grbbs'),
+        'host': os.getenv('DB_HOST', db_config_from_file.get('host', 'localhost')),
+        'user': os.getenv('DB_USER', db_config_from_file.get('user', 'grbbs_user')),
+        'password': os.getenv('DB_PASSWORD', db_config_from_file.get('password', 'password')),
+        'database': os.getenv('DB_NAME', db_config_from_file.get('name', 'grbbs')),
         'charset': 'utf8mb4',
         'collation': 'utf8mb4_general_ci',
         'autocommit': False  # 明示的にcommit/rollbackを管理
@@ -168,11 +174,9 @@ try:
     app.config['SESSION_USE_SIGNER'] = True  # セッションデータの改ざん防止
     app.config['SESSION_KEY_PREFIX'] = 'grbbs_'
 
-    # セキュリティ設定をFlaskのコンフィグに読み込む
-    security_config = util.app_config.get('security', {})
-    app.config['MAX_LOGIN_ATTEMPTS'] = security_config.get(
+    app.config['MAX_LOGIN_ATTEMPTS'] = app.config.get('SECURITY', {}).get(
         'MAX_PASSWORD_ATTEMPTS', 3)
-    app.config['LOCKOUT_TIME'] = security_config.get(
+    app.config['LOCKOUT_TIME_SECONDS'] = app.config.get('SECURITY', {}).get(
         'LOCKOUT_TIME_SECONDS', 300)
 
     sess = Session()
@@ -215,8 +219,8 @@ def add_security_headers(response):
     特にContent-Security-Policy (CSP) を設定し、外部リソースの読み込みを制御する。
     """
     # CSPの設定
-    webapp_config = util.app_config.get('webapp', {})
-    origin = webapp_config.get('ORIGIN', 'http://localhost:5000')
+    origin = app.config.get('WEBAPP', {}).get(
+        'ORIGIN', 'http://localhost:5000')
     # http:// or https:// を ws:// or wss:// に置換してWebSocketの接続元を許可
     ws_origin = origin.replace('http', 'ws', 1)
 
@@ -265,14 +269,14 @@ def restrict_admin_access_by_ip():
     """
     # /admin パスへのリクエストの場合のみチェック
     if request.path.startswith('/admin'):
-        admin_config = util.app_config.get('admin', {})
+        admin_config = app.config.get('ADMIN', {})
 
         # 設定が有効かチェック
         if not admin_config.get('ip_restriction_enabled', False):
             return  # 設定が無効なら何もしない
 
         # 許可IPリストを取得
-        allowed_ips_str = admin_config.get('allowed_ips', ['127.0.0.1', '::1'])
+        allowed_ips_str = admin_config.get('ALLOWED_IPS', ['127.0.0.1', '::1'])
         remote_ip_str = request.remote_addr
 
         if not remote_ip_str:
@@ -707,14 +711,14 @@ def index():
         "f8": {"label": "ReConnect", "action": "redirect", "value": url_for('login')},
     }
     # limits設定をテンプレートに渡す
-    limits_config = util.app_config.get('limits', {})
+    limits_config = app.config.get('LIMITS', {})
     attachment_limits = {
         'max_size_mb': limits_config.get('attachment_max_size_mb', 10),
         'allowed_extensions': limits_config.get('allowed_attachment_extensions', 'jpg,jpeg,png,gif,txt')
     }
 
     # Push通知用のVAPID公開鍵をテンプレートに渡す
-    push_config = util.app_config.get('push', {})
+    push_config = app.config.get('PUSH', {})
     vapid_public_key_for_js = ''
     public_key_path = '/app/public_key.pem'  # コンテナ内の絶対パス
 
@@ -738,20 +742,13 @@ def index():
     all_text_data = util.load_master_text_data()
     mobile_button_layouts = all_text_data.get("mobile_button_layouts", {})
 
-    if request.method == 'POST':
-        # ユーザーIDは大文字に統一して扱う
-        username = request.form.get('username', '').upper()
-        password = request.form.get('password')
-        error = None
-
-        # GUESTアカウントはロックアウト対象外
     return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits, vapid_public_key=vapid_public_key_for_js, mobile_button_layouts=mobile_button_layouts, menu_mode=menu_mode)
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """ログインページ"""
-    webapp_config = util.app_config.get('webapp', {})
+    webapp_config = app.config.get('WEBAPP', {})
     page_title = webapp_config.get('LOGIN_PAGE_TITLE', 'Login')
     logo_path = webapp_config.get('LOGIN_PAGE_LOGO_PATH')
     message = webapp_config.get('LOGIN_PAGE_MESSAGE', 'Welcome.')
@@ -794,14 +791,14 @@ def login():
                 for sid, handler in client_states.copy().items():
                     # ユーザー名は既に大文字に統一されている
                     if handler.user_session.get('username') == username:
+                        logging.warning(
+                            f"ログイン試行成功後のマルチログイン検出: {username} (既存セッションSID: {sid})")
                         error = util.get_text_by_key(
                             "auth.already_logged_in",
                             handler.user_session.get(
                                 'menu_mode', '2'),  # 切断される側のモードでメッセージ取得
                             default_value="This ID is already in use."
                         ).replace('\r\n', '')
-                        logging.warning(
-                            f"ログイン試行成功後のマルチログイン検出: {username}")
                         # データベースにログイン失敗イベントを記録
                         database.log_access_event(
                             ip_address=request.remote_addr,
@@ -850,9 +847,9 @@ def login():
                 logging.warning(
                     f"ログイン試行失敗: {username} ({session['login_attempts']} 回目)")
                 if session['login_attempts'] >= app.config['MAX_LOGIN_ATTEMPTS']:
-                    session['lockout_expiration'] = time.time() + \
-                        app.config['LOCKOUT_TIME']
-                    lockout_minutes = app.config['LOCKOUT_TIME'] / 60
+                    session['lockout_expiration'] = time.time(
+                    ) + app.config['LOCKOUT_TIME_SECONDS']
+                    lockout_minutes = app.config['LOCKOUT_TIME_SECONDS'] / 60
                     error = util.get_text_by_key(
                         "auth.account_locked_permanent",
                         session.get('menu_mode', '2'),
@@ -950,8 +947,8 @@ def passkey_verify_registration():
     credential_json = json.dumps(data['credential'])
     nickname = data['nickname']
 
-    webapp_config = util.app_config.get('webapp', {})
-    expected_origin = webapp_config.get('ORIGIN', 'http://localhost:5000')
+    expected_origin = app.config.get('WEBAPP', {}).get(
+        'ORIGIN', 'http://localhost:5000')
 
     success = passkey_handler.verify_registration_for_user(
         user_id=user_id, credential=credential_json, expected_challenge=challenge_bytes, expected_origin=expected_origin, nickname=nickname
@@ -975,7 +972,7 @@ def passkey_auth_options():
         options_json_str = passkey_handler.generate_authentication_options_for_user(
             username)
         if not options_json_str:
-            return jsonify({"error": "User not found or no passkeys registered"}), 404
+            return jsonify({"error": "User not found or no passkeys registered"}), 400
 
         # 検証のためにチャレンジをセッションに保存
         options_dict = json.loads(options_json_str)
@@ -1002,8 +999,8 @@ def passkey_verify_auth():
         return jsonify({"error": "Invalid request body"}), 400
 
     credential_json = json.dumps(data['credential'])
-    webapp_config = util.app_config.get('webapp', {})
-    expected_origin = webapp_config.get('ORIGIN', 'http://localhost:5000')
+    expected_origin = app.config.get('WEBAPP', {}).get(
+        'ORIGIN', 'http://localhost:5000')
 
     user_data = passkey_handler.verify_authentication_for_user(
         credential=credential_json, expected_challenge=challenge_bytes, expected_origin=expected_origin)
@@ -1116,8 +1113,9 @@ def handle_connect(auth=None):
     # --- 接続数チェック ---
     global current_webapp_clients
     with current_webapp_clients_lock:
-        max_clients = util.app_config.get(
-            'webapp', {}).get('MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
+        max_clients_config = app.config.get('WEBAPP', {})
+        max_clients = max_clients_config.get(
+            'MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
         if max_clients > 0 and current_webapp_clients >= max_clients:
             logging.warning(
                 f"WebUI connection limit ({max_clients}) reached. Rejecting new connection from {request.remote_addr}")
@@ -1398,7 +1396,7 @@ def handle_upload_attachment(data):
 
     # --- 制限設定の読み込み (掲示板個別設定 -> グローバル設定) ---
     board_config = getattr(handler, 'current_board_for_upload', {}) or {}
-    global_limits_config = util.app_config.get('limits', {})
+    global_limits_config = app.config.get('LIMITS', {})
 
     # ファイルサイズの制限
     max_size_mb = board_config.get('max_attachment_size_mb')
