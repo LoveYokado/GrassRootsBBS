@@ -1,6 +1,38 @@
-# chatrooms.yml
+# ==============================================================================
+# Chat Room Menu Configuration
+#
+# This file defines the hierarchical structure of the chat menu.
+# The system reads this file to dynamically generate the menu that users
+# navigate to enter chat rooms.
+#
+# Structure:
+#   categories:
+#     - A list of top-level categories.
+#   global:
+#     - A list of rooms that appear at the top level, outside of categories.
+#
+# Item Attributes:
+#   - id: Unique identifier for the category or room.
+#   - number: Display order within the same level.
+#   - name: Display name for the item.
+#   - description: (Optional) A short description.
+#   - type: "child" for a sub-category, or "room" for an enterable chat room.
+#   - push: (Optional, for rooms) If `True`, sends a push notification to
+#           subscribed users when someone enters this room. Defaults to `False`.
+#   - items: (Only for type: "child") A list of sub-items.
+# ==============================================================================
+#
+# ==============================================================================
+# チャットルームメニュー設定
+#
+# このファイルは、チャットメニューの階層構造を定義します。
+# システムはこのファイルを読み込み、ユーザーがチャットルームに入るための
+# メニューを動的に生成します。
+#
+# ==============================================================================
 
-# 階層の最上位に位置するチャットルームのカテゴリー定義
+# --- Categories / カテゴリ階層 ---
+# `categories`キーの下に、トップレベルのカテゴリをリスト形式で定義します。
 categories:
   - id: "chat_free"
     number: 1 # 親階層での表示順
@@ -10,14 +42,14 @@ categories:
       初心者の方からベテランまで、どなたでもお気軽にご参加ください。
     type: "child"
 
-    # フリーチャットルーム直下のチャットルーム
+    # `items`キーで、このカテゴリ直下のルームやサブカテゴリを定義します。
     items:
       - id: "chat_free1"
         number: 1 # このカテゴリ内での表示順
         name: "フリールーム１"
         description: "どなたでもどうぞ！"
         type: "room"
-        push: False
+        push: False # このルームに入室してもPush通知は送信されません
       - id: "chat_free2"
         number: 2
         name: "フリールーム２"
@@ -29,7 +61,7 @@ categories:
         name: "淋しいやつのための部屋"
         description: "プッシュ通知を許可してる人に通知が送られます。きっと誰か来てくれる。と思う。"
         type: "room"
-        push: True
+        push: True # このルームに入室するとPush通知が送信されます
       - id: "chat_deep_dive"
         number: 4
         name: "フリー深堀りトピック"
@@ -63,7 +95,7 @@ categories:
       専門的な知識や情報交換にご利用ください。
     type: "child"
 
-    items: # 専門カテゴリ直下のルーム
+    items:
       - id: "chat_military"
         number: 1
         name: "軍事ルーム"
@@ -75,7 +107,7 @@ categories:
           パソコンに関する様々な話題を扱うカテゴリです。
           ハードウェアからソフトウェアまで。
         type: "child"
-        items: # パソコン関連直下のルーム
+        items:
           - id: "chat_pc_gen"
             number: 1
             name: "パソコン全般ルーム"
@@ -103,7 +135,8 @@ categories:
                 name: "Windowsルーム"
                 type: "room"
 
-# カテゴリに属さない、独立したショートカットや特別なルーム
+# --- Global Rooms / グローバルルーム ---
+# カテゴリに属さず、メニューのトップレベルに表示される独立したルームです。
 # 例: 規約違反の報告先、イベント告知専用など
 global:
   - id: "chat_fight"

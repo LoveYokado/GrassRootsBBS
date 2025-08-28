@@ -1,14 +1,42 @@
+# ==============================================================================
+# BBS Menu Configuration (for Mode 2 & 3)
+#
+# This file defines the hierarchical structure of the BBS menu for
+# "Mode 2" and "Mode 3". The system reads this file to dynamically
+# generate the menu that users navigate.
+#
+# Structure:
+#   categories:
+#     - id: Unique identifier for the category or board.
+#       number: Display order within the same level.
+#       name: (Optional) Display name. If omitted, it's fetched from the DB.
+#       description: (Optional) Description. If omitted, it's fetched from the DB.
+#       type: "child" for a sub-category, or "board" for a link to a BBS.
+#       items: (Only for type: "child") A list of sub-items.
+# ==============================================================================
+#
+# ==============================================================================
+# 掲示板メニュー設定 (モード2 & 3用)
+#
+# このファイルは、「モード2」および「モード3」で表示される掲示板メニューの
+# 階層構造を定義します。システムはこのファイルを読み込み、ユーザーが
+# ナビゲートするメニューを動的に生成します。
+#
+# ==============================================================================
+
 categories:
+  # --- General Category / 総合カテゴリ ---
   - id: "bbs_general"
     number: 1
     name: "総合掲示板"
     description: "自由な話題で盛り上がりましょう！"
-    type: "child"
-    items: # items の name も同様に修正
+    type: "child" # This is a category containing other items.
+    items:
       - id: "bbs_free"
         number: 1
-        type: "board"
+        type: "board" # This links directly to a BBS board.
 
+  # --- Hobby Category / 趣味カテゴリ ---
   - id: "bbs_hobby"
     number: 2
     name: "趣味"
@@ -21,10 +49,10 @@ categories:
       - id: "bbs_hobby_anime"
         number: 2
         type: "board"
-      - id: "bbs_hobby_music_create" # サブカテゴリの例
+      - id: "bbs_hobby_music_create"
         number: 3
         name: "音楽制作"
-        type: "child" # サブカテゴリなので type: "child"
+        type: "child"
         items:
           - id: "bbs_dtm_general"
             number: 1
@@ -33,6 +61,8 @@ categories:
             number: 2
             description: "ボーカロイドに関する話題"
             type: "board"
+
+  # --- Local Category / 地域カテゴリ ---
   - id: "bbs_local"
     number: 3
     name: "地域"

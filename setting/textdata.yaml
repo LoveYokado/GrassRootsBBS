@@ -1,20 +1,28 @@
-##
-## GrassRootsBBS テキストデータファイル
-## このファイルには、各メニューモードに対応した表示テキストが格納されています。
-##
-## 構造:
-## feature_name: # 例: user_pref_menu, sysop_menu, common_messages
-##   element_name: # 例: header, prompt, options, messages
-##     mode_1: "モード1のテキスト"
-##     mode_2: "モード2のテキスト"
-##     mode_3: "モード3のテキスト"
-##     # 複数行の場合は | または > を使用
-##     mode_2: |
-##       複数行のテキスト
-##       です。
-##
+# ==============================================================================
+# GrassRootsBBS Text Data File
+#
+# This file contains all display texts for the application, supporting multiple
+# language/display modes.
+#
+# Structure:
+#   feature_name:
+#     element_name:
+#       mode_1: "Text for Mode 1 (e.g., Big-Model Style)"
+#       mode_2: "Text for Mode 2 (e.g., GR-BBS Japanese)"
+#       mode_3: "Text for Mode 3 (e.g., GR-BBS English)"
+#
+# For multi-line text, use the pipe `|` character.
+# ==============================================================================
+#
+# ==============================================================================
+# GrassRootsBBS テキストデータファイル
+#
+# このファイルは、アプリケーションで表示される全てのテキストを格納し、
+# 複数の言語・表示モードに対応します。
+#
+# ==============================================================================
 
-# --- トップメニュー関連 ---
+# --- 1. Top Menu / トップメニュー関連 ---
 top_menu:
   menu:
     mode_1: |
@@ -195,7 +203,7 @@ top_menu:
       | X       | Full SIG Search: Scan all corners automatically             |
       | Z       | Hamlet Game: Play 2D 4-way adventure                        |
       +---------+-------------------------------------------------------------+
-# --- ユーザー設定メニュー関連 ---
+# --- 2. User Preferences / ユーザー設定メニュー関連 ---
 common_menu_names:
   chat:
     mode_1: "チャット"
@@ -206,7 +214,7 @@ common_menu_names:
     mode_2: "掲示板"
     mode_3: "掲示板"
 user_pref_menu:
-  header: # メニュー本体の表示
+  header: # Menu body display / メニュー本体の表示
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       ○[1] メニューモード変更 [5] 最終ログイン日時仮設定  [9]  電報受信制限       ●
@@ -295,7 +303,7 @@ user_pref_menu:
       [10] Edit Blacklist: Manage a list of users to block from sending telegrams. 
       [11] Change Email: Update your registered email address. 
       [12] Manage Passkeys: Manage passwordless login credentials.
-  mode_selection:
+  mode_selection: # Mode selection options / モード選択肢の表示
     header: # モード選択肢の表示
       mode_1: |
         メニューモードを選択してください:
@@ -315,7 +323,7 @@ user_pref_menu:
         [2] Mode 2 (GR-BBS)
         [3] Mode 3 (GR-BBS English)
         [E] Cancel
-    confirm_changed: # 変更成功メッセージ (フォーマット文字列)
+    confirm_changed: # Success message (format string) / 変更成功メッセージ (フォーマット文字列)
       mode_1: "メニューモードを {mode} に変更しました。\r\n"
       mode_2: "メニューモードを {mode} に変更しました。\r\n"
       mode_3: "Menu mode changed to {mode}.\r\n"
@@ -497,7 +505,7 @@ user_pref_menu:
       mode_1: "メールアドレスを更新しました。\r\n"
       mode_2: "メールアドレスを更新しました。\r\n"
       mode_3: "Email address updated.\r\n"
-# --- Passkey管理サブメニュー ---
+# --- 2.1. Passkey Management Submenu / Passkey管理サブメニュー ---
   passkey_management:
     header:
       mode_1: |
@@ -558,7 +566,7 @@ user_pref_menu:
       mode_1: "無効な選択です。"
       mode_2: "無効な選択です。"
       mode_3: "Invalid selection."
-# --- WHOメニュー関連 ---
+# --- 3. Who's Online Menu / WHOメニュー関連 ---
 who_menu:
   header:
     mode_1: |
@@ -580,7 +588,7 @@ who_menu:
       -------------------------------------------------------------------
     mode_3: |
       -------------------------------------------------------------------
-# --- シスオペメニュー関連 ---
+# --- 4. SysOp Menu / シスオペメニュー関連 ---
 sysop_menu:
   menu:
     mode_1: |
@@ -649,7 +657,7 @@ sysop_menu:
       mode_1: "** システム停止を要求しました **\r\n"
       mode_2: "** システム停止を要求しました **\r\n"
       mode_3: "** System down requested **\r\n"
-  user_list:
+  user_list: # Header for user list display / ユーザー一覧表示時のヘッダー
     header: # ユーザー一覧表示時のヘッダー
       mode_1: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
       mode_2: "ID   NAME         LEVEL  REGIST DATE          LAST LOGIN           COMMENT      MAIL\r\n------------------------------------------------------------------------------------------"
@@ -662,7 +670,7 @@ sysop_menu:
       mode_1: "ユーザ一覧表示中にエラーが発生しました。\r\n"
       mode_2: "ユーザ一覧表示中にエラーが発生しました。\r\n"
       mode_3: "An error occurred while displaying user list.\r\n"
-  view_settings:
+  view_settings: # Header for settings display / 設定一覧表示時のヘッダー
     header: # 設定一覧表示時のヘッダー
       mode_1: |
         ------------------------------------
@@ -984,6 +992,7 @@ sysop_menu:
       mode_1: "現在のログインメッセージ: {message}\r\n"
       mode_2: "現在のログインメッセージ: {message}\r\n"
       mode_3: "Current login message: {message}\r\n"
+# --- 5. Mail Handler / メール関連 ---
 mail_handler:
   main_prompt:
     mode_1: "選択してください([W]送信 [R]受信 [L]一覧形式受信): "
@@ -993,12 +1002,12 @@ mail_handler:
     mode_1: "送り先のIDを入力してください: "
     mode_2: "送り先のIDを入力してください: "
     mode_3: "Enter recipient ID: "
-  sender_header: # 受信箱ヘッダー
+  sender_header: # Inbox header / 受信箱ヘッダー
     mode_1: "-NUM-  -R.DATE- -R.TIME-  -SENDER-               -MAIL-\r\n"
     mode_2: "-NUM-  -R.DATE- -R.TIME-  -SENDER-               -MAIL-\r\n"
     mode_3: "-NUM-  -R.DATE- -R.TIME-  -SENDER-               -MAIL-\r\n"
 
-  recipient_header: # 送信箱ヘッダー
+  recipient_header: # Sent mail header / 送信箱ヘッダー
     mode_1: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
     mode_2: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
     mode_3: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
@@ -1155,23 +1164,23 @@ mail_handler:
     mode_1: "** 手紙が届いております (総数:{total_mail_count} 未読:{unread_mail_count}) **"
     mode_2: "新着メールが {unread_mail_count} 件届いてます。"
     mode_3: "New mail {unread_mail_count} Mails."
-  no_unread_mails_at_start: # R選択直後、未読メールがない場合
+  no_unread_mails_at_start: # When 'R' is selected and there are no unread mails / R選択直後、未読メールがない場合
     mode_1: "未読メールはありません。\r\n"
     mode_2: "未読メールはありません。\r\n"
     mode_3: "No unread mails.\r\n"
-  no_more_unread_mails: # 連続読み込み中、これ以上未読メールがない場合
+  no_more_unread_mails: # When there are no more unread mails during continuous reading / 連続読み込み中、これ以上未読メールがない場合
     mode_1: "これ以上未読メールはありません。\r\n"
     mode_2: "これ以上未読メールはありません。\r\n"
     mode_3: "No more unread mails.\r\n"
-  confirm_read_body_yn: # 本文を読むかの確認
+  confirm_read_body_yn: # Confirmation to read the body / 本文を読むかの確認
     mode_1: "内容を読みますか？(Y/N): "
     mode_2: "内容を読みますか？(Y/N): "
     mode_3: "Read body? (Y/N): "
-  confirm_delete_after_read_yn: # 読んだ後に削除するかの確認
+  confirm_delete_after_read_yn: # Confirmation to delete after reading / 読んだ後に削除するかの確認
     mode_1: "削除しますか？（Y/N）: "
     mode_2: "削除しますか？（Y/N）: "
     mode_3: "Delete after reading? (Y/N): "
-  mail_deleted_after_read_success: # 読んだ後に削除成功
+  mail_deleted_after_read_success: # Successfully deleted after reading / 読んだ後に削除成功
     mode_1: "メールを削除しました。\r\n"
     mode_2: "メールを削除しました。\r\n"
     mode_3: "Mail deleted.\r\n"
@@ -1211,7 +1220,7 @@ chat:
        !U[RETURN]             Unlock
        !W[RETURN]             Current access status
       ----------------------------------------------
-  room_locked: # 入室しようとした部屋がロックされている場合 (他人によって)
+  room_locked: # When trying to enter a room locked by another user / 入室しようとした部屋がロックされている場合 (他人によって)
     mode_1: "ルーム「{room_name}」は {owner} によってロックされています。入室できません。\r\n"
     mode_2: "ルーム「{room_name}」は {owner} によってロックされています。入室できません。\r\n"
     mode_3: "Room '{room_name}' is locked by {owner}. You cannot enter.\r\n"
@@ -1276,7 +1285,7 @@ chat:
     mode_2: "{sender}: {message}"
     mode_3: "{sender}: {message}"
 
-# --- 電報関連 ---
+# --- 6. Telegram / 電報関連 ---
 telegram:
   send_message:
     mode_1: "電報を送信します (オンラインメンバーのみ)\r\n"
@@ -1330,8 +1339,9 @@ telegram:
     mode_1: "自分自身に電報を送信することはできません。\r\n"
     mode_2: "自分自身に電報を送信することはできません。\r\n"
     mode_3: "You cannot send a telegram to yourself.\r\n"
+# --- 7. BBS / 掲示板関連 ---
 bbs:
-  rw_prompt: # 看板表示後のプロンプト
+  rw_prompt: # Prompt after displaying kanban / 看板表示後のプロンプト
     mode_1: "[W]書く [R]読む : "
     mode_2: "[W]書く [R]読む : "
     mode_3: "[W]Write [R]Read : "
@@ -1371,7 +1381,7 @@ bbs:
     mode_1: "** 登録しました **\r\n"
     mode_2: "** 登録しました **\r\n"
     mode_3: "** Article posted **\r\n"
-  post_cancel: # 記事投稿をキャンセルした場合
+  post_cancel: # When article posting is cancelled / 記事投稿をキャンセルした場合
     mode_1: "** 登録をとりやめました **\r\n"
     mode_2: "** 登録をとりやめました **\r\n"
     mode_3: "Article posting cancelled.\r\n"
@@ -1403,11 +1413,11 @@ bbs:
     mode_1: "新規スレッドにはタイトルが必須です。\r\n"
     mode_2: "新規スレッドにはタイトルが必須です。\r\n"
     mode_3: "New threads require a title.\r\n"
-  thread_list_header: # スレッド一覧のヘッダー
+  thread_list_header: # Thread list header / スレッド一覧のヘッダー
     mode_1: "-NUM- -R.DATE- -R.TIME- -SENDER-         -TITLE (REPLIES)-\r\n"
     mode_2: "-NUM- -R.DATE- -R.TIME- -SENDER-         -TITLE (REPLIES)-\r\n"
     mode_3: "-NUM- -R.DATE- -R.TIME- -SENDER-         -TITLE (REPLIES)-\r\n"
-  read_replies_header: # 返信一覧表示時のヘッダー
+  read_replies_header: # Reply list header / 返信一覧表示時のヘッダー
     mode_1: "\r\n--- 記事 {parent_article_number} への返信一覧 ---\r\n"
     mode_2: "\r\n--- 記事 {parent_article_number} への返信一覧 ---\r\n"
     mode_3: "\r\n--- Replies to Article {parent_article_number} ---\r\n"
@@ -1426,7 +1436,7 @@ bbs:
       --------------
     mode_2: "  [?] 説明 (総数: {total_count} 未読:{unread_count})"
     mode_3: "  [?] Explanation (Total: {total_count} Unread: {unread_count})"
-  article_list_header: # 記事一覧のヘッダー
+  article_list_header: # Article list header / 記事一覧のヘッダー
     mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -CONTENTS-\r\n"
     mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -CONTENTS-\r\n"
     mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-         -CONTENTS-\r\n"
@@ -1434,11 +1444,11 @@ bbs:
     mode_1: "この記事はありません。\r\n"
     mode_2: "この記事はありません。\r\n"
     mode_3: "There are no articles on this board.\r\n"
-  read_article_header: # 個別記事表示時のヘッダー
+  read_article_header: # Individual article display header / 個別記事表示時のヘッダー
     mode_1: "\r\n--- 記事 {article_number} ({title}) ---\r\n"
     mode_2: "\r\n--- 記事 {article_number} ({title}) ---\r\n"
     mode_3: "\r\n--- Article {article_number} ({title}) ---\r\n"
-  article_list_help: # 記事一覧でのヘルプ
+  article_list_help: # Help in article list / 記事一覧でのヘルプ
     mode_1: |
       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       電子掲示板の使い方
@@ -1519,7 +1529,7 @@ bbs:
       | 'Keyword + ENTER   | Full-Text Search: Search post content   |
       | ;Target + ENTER    | SIG Jump: Switch between SIGs           |
       +--------------------+-----------------------------------------+
-  back_to_list_prompt: # 記事閲覧後、一覧に戻るかのプロンプト
+  back_to_list_prompt: # Prompt to return to list after reading article / 記事閲覧後、一覧に戻るかのプロンプト
     mode_1: "選択してください ( [?] ヘルプ ) : "
     mode_2: "[BBS]選択してください: "
     mode_3: "[BBS]Select( [?] HELP ) > "
@@ -1543,7 +1553,7 @@ bbs:
     mode_1: "この掲示板を閲覧する権限がありません。\r\n"
     mode_2: "この掲示板を閲覧する権限がありません。\r\n"
     mode_3: "You do not have permission to view this board.\r\n"
-  article_deleted_body: # 削除済み記事の本文（シスオペ以外）
+  article_deleted_body: # Body of deleted article (for non-sysops) / 削除済み記事の本文（シスオペ以外）
     mode_1: "** この記事は削除されています **\r\n"
     mode_2: "** この記事は削除されています **\r\n"
     mode_3: "** This article has been deleted **\r\n"
@@ -1627,7 +1637,7 @@ bbs:
     mode_1: "看板を保存しました。\r\n"
     mode_2: "看板を保存しました。\r\n"
     mode_3: "Kanban saved successfully.\r\n"
-  edit_userlist_header: # bbs_handler.py側のキー名と合わせる
+  edit_userlist_header: # Key name matches bbs_handler.py / bbs_handler.py側のキー名と合わせる
     mode_1: "== 掲示板ユーザーリスト編集 ==\r\n"
     mode_2: "== 掲示板ユーザーリスト編集 ==\r\n"
     mode_3: "== Edit Board User List ==\r\n"
@@ -1732,6 +1742,7 @@ bbs:
     mode_2: "Re: (No Title)"
     mode_3: "Re: (No Title)"
 
+# --- 8. Auto Download / 自動ダウンロード関連 ---
 auto_download:
   start_message:
     mode_1: ""
@@ -1741,24 +1752,24 @@ auto_download:
     mode_1: ""
     mode_2: "探索リストが設定されていません。"
     mode_3: "Exploration list is not set."
-  board_header_format: # {board_name}
+  board_header_format: # {board_name} - Used in auto_download
     mode_1: "\";{shortcut_id}\"\r\n"
     mode_2: "\";{shortcut_id}\"\r\n"
     mode_3: "\";{shortcut_id}\"\r\n"
-  article_list_header: # 記事一覧の共通ヘッダ
+  article_list_header: # Common header for article list / 記事一覧の共通ヘッダ
     mode_1: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
     mode_2: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
     mode_3: "-NUM-  -R.DATE- -R.TIME- -SENDER-  -CONTENTS-"
-  article_info_format: # {article_number_str}, {r_date_str}, {r_time_str}, {sender_name_short}, {title_short}
+  article_info_format: # {article_number_str}, {r_date_str}, {r_time_str}, {sender_name_short}, {title_short} - Used in auto_download
     mode_1: "{article_number_str}  {r_date_str} {r_time_str} {sender_name_short:<14}   {title_short}"
     mode_2: "{article_number_str}  {r_date_str} {r_time_str} {sender_name_short:<14}   {title_short}"
     mode_3: "{article_number_str}  {r_date_str} {r_time_str} {sender_name_short:<14}   {title_short}"
 
-  article_header_format: # {article_number}, {title}, {sender_name}, {created_at_str}
+  article_header_format: # {article_number}, {title}, {sender_name}, {created_at_str} - Used in auto_download
     mode_1: ""
     mode_2: "記事番号: {article_number}\r\nタイトル: {title}\r\n投稿者: {sender_name}\r\n投稿日時: {created_at_str}\r\n"
     mode_3: "Article No: {article_number}\r\nTitle: {title}\r\nSender: {sender_name}\r\nDate: {created_at_str}\r\n"
-  article_body_prefix: # 本文表示前の改行
+  article_body_prefix: # Newline before body display / 本文表示前の改行
     mode_1: "\r\n"
     mode_2: "\r\n"
     mode_3: "\r\n"
@@ -1782,6 +1793,7 @@ auto_download:
     mode_1: ""
     mode_2: "掲示板「{board_name}」の閲覧権限がありません。\r\n"
     mode_3: "Permission denied to view board '{board_name}'.\r\n"
+# --- 9. Online Signup / オンラインサインアップ関連 ---
 online_signup:
   guidance:
     mode_1: |
@@ -1889,6 +1901,7 @@ online_signup:
     mode_1: "オンラインサインアップユーザー"
     mode_2: "オンラインサインアップユーザー"
     mode_3: "Online Signup User"
+# --- 10. Article Exploration / 記事探索関連 ---
 explore_new_articles:
   start_message:
     mode_1: ""
@@ -1937,7 +1950,7 @@ new_article_headlines:
     mode_2: "  {title}"
     mode_3: "  {title}"
 
-# --- ログオフ関連 ---
+# --- 11. Logoff / ログオフ関連 ---
 logoff:
   message:
     mode_1: |
@@ -1952,7 +1965,7 @@ logoff:
     mode_1: "Press any key to return to the login screen..."
     mode_2: "Press any key to return to the login screen..."
     mode_3: "Press any key to return to the login screen..."
-# --- ショートカット関連 ---
+# --- 12. Shortcuts / ショートカット関連 ---
 shortcut:
   not_found:
     mode_1: "ショートカット '{shortcut_id}' が見つかりません。\r\n"
@@ -1966,6 +1979,7 @@ shortcut:
     mode_1: "掲示板「{board_name}」へ移動します...\r\n"
     mode_2: "掲示板「{board_name}」へ移動します...\r\n"
     mode_3: "Jumping to BBS: {board_name}...\r\n"
+# --- 13. Prompts / プロンプト関連 ---
 prompt:
   topmenu:
     mode_1: "選択してください ( [?] ヘルプ ) :  "
@@ -1983,7 +1997,7 @@ prompt:
     mode_1: "選択してください ( [W] 書く [R] 読む [yy-mm-dd] 日付 ) : "
     mode_2: "選択してください([W]書く [R]読む [yy-mm-dd]日付) : " 
     mode_3: "Select( [W] WRITE [R] READ [yy-mm-dd] DATE ) > "
-# --- 共通メッセージ ---
+# --- 14. Common Messages / 共通メッセージ ---
 common_messages:
   select_prompt: # 選択プロンプト
     mode_1: "選択してください: "
@@ -2031,7 +2045,7 @@ common_messages:
     mode_2: "権限がありません。\r\n"
     mode_3: "Permission denied.\r\n"
 
-# --- ハムレットゲーム関連 ---
+# --- 15. Hamlet Game / ハムレットゲーム関連 ---
 hamlet_game:
   title:
     mode_1: |
@@ -2139,7 +2153,7 @@ hamlet_game:
     mode_2: "ゲームを中断しました。\r\n"
     mode_3: "Game aborted.\r\n"
 
-# --- 認証関連 ---
+# --- 16. Authentication / 認証関連 ---
 auth:
   connect_message:
     mode_1: "** Connect **\r\n\n"
@@ -2194,7 +2208,7 @@ auth:
     mode_2: "システムオペレーターによって接続が切断されました。"
     mode_3: "Your connection was terminated by the System Operator."
 
-admin:
+# --- 17. Admin Panel / 管理画面関連 ---
   nav:
     dashboard:
       mode_1: "ダッシュボード"
@@ -2349,10 +2363,123 @@ admin:
       mode_1: "サーバーを再起動しています... ページをリロードして再接続してください。"
       mode_2: "サーバーを再起動しています... ページをリロードして再接続してください。"
       mode_3: "Server is restarting... Please reload the page to reconnect."
+  edit_board:
+    title:
+      mode_1: "掲示板編集"
+      mode_2: "掲示板編集"
+      mode_3: "Edit Board"
+    shortcut_id_label:
+      mode_1: "ショートカットID (読み取り専用)"
+      mode_2: "ショートカットID (読み取り専用)"
+      mode_3: "Shortcut ID (read-only)"
+    name_label:
+      mode_1: "掲示板名"
+      mode_2: "掲示板名"
+      mode_3: "Board Name"
+    description_label:
+      mode_1: "説明"
+      mode_2: "説明"
+      mode_3: "Description"
+    kanban_label:
+      mode_1: "看板"
+      mode_2: "看板"
+      mode_3: "Kanban (Signboard)"
+    kanban_help:
+      mode_1: "ユーザーが掲示板に入室した際に表示されるメッセージです。複数行のテキストに対応しています。"
+      mode_2: "ユーザーが掲示板に入室した際に表示されるメッセージです。複数行のテキストに対応しています。"
+      mode_3: "This message is displayed when a user enters the board. Supports multi-line text."
+    type_label:
+      mode_1: "掲示板タイプ"
+      mode_2: "掲示板タイプ"
+      mode_3: "Board Type"
+    type_simple:
+      mode_1: "シンプル (レスなし)"
+      mode_2: "シンプル (レスなし)"
+      mode_3: "Simple (No replies)"
+    type_thread:
+      mode_1: "スレッド (レスあり)"
+      mode_2: "スレッド (レスあり)"
+      mode_3: "Thread (With replies)"
+    permission_label:
+      mode_1: "デフォルトパーミッション"
+      mode_2: "デフォルトパーミッション"
+      mode_3: "Default Permission"
+    permission_open:
+      mode_1: "オープン (誰でも読み書き可)"
+      mode_2: "オープン (誰でも読み書き可)"
+      mode_3: "Open (Anyone can read/write)"
+    permission_close:
+      mode_1: "クローズ (リスト内のユーザーのみ)"
+      mode_2: "クローズ (リスト内のユーザーのみ)"
+      mode_3: "Close (Only users in the list)"
+    permission_readonly:
+      mode_1: "読み取り専用 (誰でも読めるが、書込みはリスト内のユーザーのみ)"
+      mode_2: "読み取り専用 (誰でも読めるが、書込みはリスト内のユーザーのみ)"
+      mode_3: "Read-Only (Anyone can read, only users in the list can write)"
+    read_level_label:
+      mode_1: "読み込みレベル (0-5)"
+      mode_2: "読み込みレベル (0-5)"
+      mode_3: "Read Level (0-5)"
+    write_level_label:
+      mode_1: "書き込みレベル (0-5)"
+      mode_2: "書き込みレベル (0-5)"
+      mode_3: "Write Level (0-5)"
+    allow_attachments_label:
+      mode_1: "ファイル添付を許可"
+      mode_2: "ファイル添付を許可"
+      mode_3: "Allow File Attachments"
+    allowed_extensions_label:
+      mode_1: "許可する拡張子 (例: jpg,png,gif / 空欄でグローバル設定)"
+      mode_2: "許可する拡張子 (例: jpg,png,gif / 空欄でグローバル設定)"
+      mode_3: "Allowed Extensions (e.g., jpg,png,gif / blank for global setting)"
+    max_size_label:
+      mode_1: "最大ファイルサイズ (MB) (空欄でグローバル設定)"
+      mode_2: "最大ファイルサイズ (MB) (空欄でグローバル設定)"
+      mode_3: "Max File Size (MB) (blank for global setting)"
+    max_threads_label:
+      mode_1: "最大スレッド/記事数 (1-99999)"
+      mode_2: "最大スレッド/記事数 (1-99999)"
+      mode_3: "Max Threads/Articles (1-99999)"
+    max_replies_label:
+      mode_1: "最大返信数 (1-999)"
+      mode_2: "最大返信数 (1-999)"
+      mode_3: "Max Replies (1-999)"
+    operators_label:
+      mode_1: "オペレーター (カンマ区切り)"
+      mode_2: "オペレーター (カンマ区切り)"
+      mode_3: "Operators (comma-separated)"
+    operators_help:
+      mode_1: "ユーザーIDをカンマで区切って入力してください。掲示板を作成したユーザーは自動的に追加されます。"
+      mode_2: "ユーザーIDをカンマで区切って入力してください。掲示板を作成したユーザーは自動的に追加されます。"
+      mode_3: "Enter user IDs separated by commas. The user who creates the board is automatically added."
+    bw_list_label:
+      mode_1: "B/Wリスト (ユーザー名をカンマ区切り)"
+      mode_2: "B/Wリスト (ユーザー名をカンマ区切り)"
+      mode_3: "B/W List (comma-separated usernames)"
+    bw_list_help_header:
+      mode_1: "このリストの動作は「デフォルトパーミッション」設定に依存します:"
+      mode_2: "このリストの動作は「デフォルトパーミッション」設定に依存します:"
+      mode_3: "How this list works depends on the 'Default Permission' setting:"
+    bw_list_help_open:
+      mode_1: "- <b>オープン:</b> これは<u>ブラックリスト</u>です。リスト内のユーザーはアクセスを拒否されます。"
+      mode_2: "- <b>オープン:</b> これは<u>ブラックリスト</u>です。リスト内のユーザーはアクセスを拒否されます。"
+      mode_3: "- <b>Open:</b> This is a <u>blacklist</u>. Listed users are denied access."
+    bw_list_help_close:
+      mode_1: "- <b>クローズ / 読み取り専用:</b> これは<u>ホワイトリスト</u>です。リスト内のユーザーのみがアクセス/書き込みを許可されます。"
+      mode_2: "- <b>クローズ / 読み取り専用:</b> これは<u>ホワイトリスト</u>です。リスト内のユーザーのみがアクセス/書き込みを許可されます。"
+      mode_3: "- <b>Close / Read-Only:</b> This is a <u>whitelist</u>. Only listed users are granted access/write permission."
+    save_button:
+      mode_1: "変更を保存"
+      mode_2: "変更を保存"
+      mode_3: "Save Changes"
+    cancel_button:
+      mode_1: "キャンセル"
+      mode_2: "キャンセル"
+      mode_3: "Cancel"
 
 
 
-# --- ログイン後処理関連 ---
+# --- 18. Post-Login Processing / ログイン後処理関連 ---
 login:
   welcome_message_webapp:
     mode_1: |
@@ -2449,7 +2576,7 @@ login:
     mode_2: "** \x1b[36m今日の一言\x1b[0m **\r\n\x1b[33m{message}\x1b[0m\r\n" 
     mode_3: "** \x1b[36mDaily message\x1b[0m **\r\n\x1b[33m{message}\x1b[0m\r\n"
 
-# --- プラグインメニュー関連 ---
+# --- 19. Plugin Menu / プラグインメニュー関連 ---
 plugin_menu:
   header:
     mode_1: |
@@ -2481,7 +2608,7 @@ plugin_menu:
     mode_2: "\r\n--- プラグインメニューに戻ります ---\r\n"
     mode_3: "\r\n--- Returning to Plugin Menu ---\r\n"
 
-# --- モバイルボタンレイアウト定義 ---
+# --- 20. Mobile Button Layouts / モバイルボタンレイアウト定義 ---
 mobile_button_layouts:
   top_menu:
     grid: { columns: 3, rows: 3 }
@@ -2566,6 +2693,7 @@ mobile_button_layouts:
       - { label: "Enter", command: "\r", gridArea: "5 / 1 / 6 / 4" }
 
 # --- WebターミナルUI関連 ---
+# --- 21. Web Terminal UI / WebターミナルUI関連 ---
 terminal_ui:
   title:
     mode_1: "GR-BBS Web Terminal"
@@ -2698,6 +2826,1329 @@ terminal_ui:
       mode_1: "キャンセル"
       mode_2: "キャンセル"
       mode_3: "Cancel"
+  new_board:
+    title:
+      mode_1: "新規掲示板作成"
+      mode_2: "新規掲示板作成"
+      mode_3: "Add New Board"
+    shortcut_id_label:
+      mode_1: "ショートカットID (例: 'news', '雑談')"
+      mode_2: "ショートカットID (例: 'news', '雑談')"
+      mode_3: "Shortcut ID (e.g., 'news', '雑談')"
+    create_button:
+      mode_1: "掲示板を作成"
+      mode_2: "掲示板を作成"
+      mode_3: "Create Board"
+  edit_user:
+    title:
+      mode_1: "ユーザー編集"
+      mode_2: "ユーザー編集"
+      mode_3: "Edit User"
+    username_label:
+      mode_1: "ユーザー名 (読み取り専用)"
+      mode_2: "ユーザー名 (読み取り専用)"
+      mode_3: "Username (read-only)"
+    level_label:
+      mode_1: "レベル (0-5)"
+      mode_2: "レベル (0-5)"
+      mode_3: "Level (0-5)"
+    email_label:
+      mode_1: "メールアドレス"
+      mode_2: "メールアドレス"
+      mode_3: "Email"
+    comment_label:
+      mode_1: "コメント"
+      mode_2: "コメント"
+      mode_3: "Comment"
+    password_label:
+      mode_1: "新しいパスワード (空欄で変更なし)"
+      mode_2: "新しいパスワード (空欄で変更なし)"
+      mode_3: "New Password (leave blank to keep current)"
+    save_button:
+      mode_1: "変更を保存"
+      mode_2: "変更を保存"
+      mode_3: "Save Changes"
+    cancel_button:
+      mode_1: "キャンセル"
+      mode_2: "キャンセル"
+      mode_3: "Cancel"
+  new_user:
+    title:
+      mode_1: "新規ユーザー作成"
+      mode_2: "新規ユーザー作成"
+      mode_3: "Add New User"
+    username_label:
+      mode_1: "ユーザー名"
+      mode_2: "ユーザー名"
+      mode_3: "Username"
+    password_label:
+      mode_1: "パスワード"
+      mode_2: "パスワード"
+      mode_3: "Password"
+    create_button:
+      mode_1: "ユーザーを作成"
+      mode_2: "ユーザーを作成"
+      mode_3: "Create User"
+    cancel_button:
+      mode_1: "キャンセル"
+      mode_2: "キャンセル"
+      mode_3: "Cancel"
+  system_settings:
+    title:
+      mode_1: "システム設定"
+      mode_2: "システム設定"
+      mode_3: "System Settings"
+    description:
+      mode_1: "ここではトップメニューコマンドの最低アクセスレベルや、その他のサーバー全体の設定を変更できます。"
+      mode_2: "ここではトップメニューコマンドの最低アクセスレベルや、その他のサーバー全体の設定を変更できます。"
+      mode_3: "Here you can change the minimum access levels for top menu commands and other server-wide settings."
+    access_level_header:
+      mode_1: "コマンドアクセスレベル (0-5)"
+      mode_2: "コマンドアクセスレベル (0-5)"
+      mode_3: "Command Access Levels (0-5)"
+    text_settings_header:
+      mode_1: "テキスト設定"
+      mode_2: "テキスト設定"
+      mode_3: "Text Settings"
+    login_message_label:
+      mode_1: "ログインメッセージ"
+      mode_2: "ログインメッセージ"
+      mode_3: "Login Message"
+    exploration_list_label:
+      mode_1: "デフォルト探索リスト (カンマ区切り)"
+      mode_2: "デフォルト探索リスト (カンマ区切り)"
+      mode_3: "Default Exploration List (comma-separated)"
+    save_button:
+      mode_1: "変更を保存"
+      mode_2: "変更を保存"
+      mode_3: "Save Changes"
+  backup:
+    title:
+      mode_1: "バックアップ管理"
+      mode_2: "バックアップ管理"
+      mode_3: "Backup Management"
+    description:
+      mode_1: "データベース、添付ファイル、設定ファイルを含む完全なバックアップを作成・管理します。"
+      mode_2: "データベース、添付ファイル、設定ファイルを含む完全なバックアップを作成・管理します。"
+      mode_3: "Create and manage full backups, including the database, attachments, and configuration files."
+    schedule_header:
+      mode_1: "スケジュール設定"
+      mode_2: "スケジュール設定"
+      mode_3: "Schedule Settings"
+    enable_auto_backup:
+      mode_1: "自動バックアップを有効化"
+      mode_2: "自動バックアップを有効化"
+      mode_3: "Enable Automatic Backups"
+    cron_label:
+      mode_1: "Cronスケジュール"
+      mode_2: "Cronスケジュール"
+      mode_3: "Cron Schedule"
+    cron_help:
+      mode_1: "標準のcron形式を使用します。ヘルプは crontab.guru を参照してください。"
+      mode_2: "標準のcron形式を使用します。ヘルプは crontab.guru を参照してください。"
+      mode_3: "Uses standard cron format. See crontab.guru for help."
+    save_schedule_button:
+      mode_1: "スケジュールを保存"
+      mode_2: "スケジュールを保存"
+      mode_3: "Save Schedule"
+    create_backup_button:
+      mode_1: "新規バックアップを作成"
+      mode_2: "新規バックアップを作成"
+      mode_3: "Create New Backup"
+    existing_backups_header:
+      mode_1: "既存のバックアップ"
+      mode_2: "既存のバックアップ"
+      mode_3: "Existing Backups"
+    table_filename:
+      mode_1: "ファイル名"
+      mode_2: "ファイル名"
+      mode_3: "Filename"
+    table_created_at:
+      mode_1: "作成日時"
+      mode_2: "作成日時"
+      mode_3: "Created At"
+    table_size:
+      mode_1: "サイズ"
+      mode_2: "サイズ"
+      mode_3: "Size"
+    table_actions:
+      mode_1: "操作"
+      mode_2: "操作"
+      mode_3: "Actions"
+    action_download:
+      mode_1: "ダウンロード"
+      mode_2: "ダウンロード"
+      mode_3: "Download"
+    action_delete:
+      mode_1: "削除"
+      mode_2: "削除"
+      mode_3: "Delete"
+    action_restore:
+      mode_1: "リストア"
+      mode_2: "リストア"
+      mode_3: "Restore"
+    no_backups:
+      mode_1: "利用可能なバックアップはありません。"
+      mode_2: "利用可能なバックアップはありません。"
+      mode_3: "No backups available."
+    danger_zone_header:
+      mode_1: "危険地帯"
+      mode_2: "危険地帯"
+      mode_3: "Danger Zone"
+    danger_zone_description:
+      mode_1: "この操作は元に戻せません。すべてのユーザー、掲示板、記事、添付ファイルが完全に削除されます。実行する前に絶対に確認してください。"
+      mode_2: "この操作は元に戻せません。すべてのユーザー、掲示板、記事、添付ファイルが完全に削除されます。実行する前に絶対に確認してください。"
+      mode_3: "This action is irreversible and will permanently delete ALL users, boards, articles, and attachments. Please be absolutely sure before proceeding."
+    wipe_data_button:
+      mode_1: "全データを消去"
+      mode_2: "全データを消去"
+      mode_3: "Wipe All Data"
+  article_search:
+    title:
+      mode_1: "記事管理"
+      mode_2: "記事管理"
+      mode_3: "Article Management"
+    keyword_label:
+      mode_1: "キーワードで検索 (タイトル/本文)"
+      mode_2: "キーワードで検索 (タイトル/本文)"
+      mode_3: "Search by Keyword (Title/Body)"
+    author_label:
+      mode_1: "投稿者で検索"
+      mode_2: "投稿者で検索"
+      mode_3: "Search by Author"
+    search_button:
+      mode_1: "検索"
+      mode_2: "検索"
+      mode_3: "Search"
+    results_header:
+      mode_1: "検索結果"
+      mode_2: "検索結果"
+      mode_3: "Search Results"
+    delete_selected_button:
+      mode_1: "選択項目を削除"
+      mode_2: "選択項目を削除"
+      mode_3: "Delete Selected"
+    restore_selected_button:
+      mode_1: "選択項目を復元"
+      mode_2: "選択項目を復元"
+      mode_3: "Restore Selected"
+    table_board:
+      mode_1: "掲示板"
+      mode_2: "掲示板"
+      mode_3: "Board"
+    table_no:
+      mode_1: "番号"
+      mode_2: "番号"
+      mode_3: "No."
+    table_author:
+      mode_1: "投稿者"
+      mode_2: "投稿者"
+      mode_3: "Author"
+    table_title:
+      mode_1: "タイトル"
+      mode_2: "タイトル"
+      mode_3: "Title"
+    table_body:
+      mode_1: "本文 (抜粋)"
+      mode_2: "本文 (抜粋)"
+      mode_3: "Body (Snippet)"
+    table_posted_at:
+      mode_1: "投稿日時"
+      mode_2: "投稿日時"
+      mode_3: "Posted At"
+    action_undelete:
+      mode_1: "復元"
+      mode_2: "復元"
+      mode_3: "Undelete"
+    no_results:
+      mode_1: "検索条件に一致する記事は見つかりませんでした。"
+      mode_2: "検索条件に一致する記事は見つかりませんでした。"
+      mode_3: "No articles found for your search criteria."
+  board_list:
+    title:
+      mode_1: "掲示板管理"
+      mode_2: "掲示板管理"
+      mode_3: "Board Management"
+    add_button:
+      mode_1: "+ 新規掲示板を追加"
+      mode_2: "+ 新規掲示板を追加"
+      mode_3: "+ Add New Board"
+    search_placeholder:
+      mode_1: "IDまたは名前で検索..."
+      mode_2: "IDまたは名前で検索..."
+      mode_3: "Search by ID or Name..."
+    table_id:
+      mode_1: "ID"
+      mode_2: "ID"
+      mode_3: "ID"
+    table_name:
+      mode_1: "名前"
+      mode_2: "名前"
+      mode_3: "Name"
+    table_type:
+      mode_1: "タイプ"
+      mode_2: "タイプ"
+      mode_3: "Type"
+    table_operators:
+      mode_1: "オペレーター"
+      mode_2: "オペレーター"
+      mode_3: "Operators"
+    table_perm:
+      mode_1: "デフォルト権限"
+      mode_2: "デフォルト権限"
+      mode_3: "Default Perm"
+    table_rw:
+      mode_1: "R/W"
+      mode_2: "R/W"
+      mode_3: "R/W"
+    table_status:
+      mode_1: "状態"
+      mode_2: "状態"
+      mode_3: "Status"
+    table_attachments:
+      mode_1: "添付"
+      mode_2: "添付"
+      mode_3: "Attachments"
+    table_posts:
+      mode_1: "投稿数"
+      mode_2: "投稿数"
+      mode_3: "Posts"
+    table_last_post:
+      mode_1: "最終投稿"
+      mode_2: "最終投稿"
+      mode_3: "Last Post"
+    action_edit:
+      mode_1: "編集"
+      mode_2: "編集"
+      mode_3: "Edit"
+    no_boards:
+      mode_1: "掲示板が見つかりません。"
+      mode_2: "掲示板が見つかりません。"
+      mode_3: "No boards found."
+  user_list:
+    title:
+      mode_1: "ユーザー管理"
+      mode_2: "ユーザー管理"
+      mode_3: "User Management"
+    add_button:
+      mode_1: "+ 新規ユーザーを追加"
+      mode_2: "+ 新規ユーザーを追加"
+      mode_3: "+ Add New User"
+    search_placeholder:
+      mode_1: "名前またはメールで検索..."
+      mode_2: "名前またはメールで検索..."
+      mode_3: "Search by Name or Email..."
+    table_level:
+      mode_1: "レベル"
+      mode_2: "レベル"
+      mode_3: "Level"
+    table_last_login:
+      mode_1: "最終ログイン"
+      mode_2: "最終ログイン"
+      mode_3: "Last Login"
+    never:
+      mode_1: "なし"
+      mode_2: "なし"
+      mode_3: "Never"
+    no_users:
+      mode_1: "ユーザーが見つかりません。"
+      mode_2: "ユーザーが見つかりません。"
+      mode_3: "No users found."
+  plugin_list:
+    title:
+      mode_1: "プラグイン管理"
+      mode_2: "プラグイン管理"
+      mode_3: "Plugin Management"
+    description:
+      mode_1: "ロードされた全てのプラグインの状態を表示します。"
+      mode_2: "ロードされた全てのプラグインの状態を表示します。"
+      mode_3: "View the status of all loaded plugins."
+    header:
+      mode_1: "ロード済みプラグイン"
+      mode_2: "ロード済みプラグイン"
+      mode_3: "Loaded Plugins"
+    table_description:
+      mode_1: "説明"
+      mode_2: "説明"
+      mode_3: "Description"
+    status_enabled:
+      mode_1: "有効"
+      mode_2: "有効"
+      mode_3: "Enabled"
+    status_disabled:
+      mode_1: "無効"
+      mode_2: "無効"
+      mode_3: "Disabled"
+    action_enable:
+      mode_1: "有効化"
+      mode_2: "有効化"
+      mode_3: "Enable"
+    action_disable:
+      mode_1: "無効化"
+      mode_2: "無効化"
+      mode_3: "Disable"
+    no_plugins:
+      mode_1: "利用可能なプラグインはありません。"
+      mode_2: "利用可能なプラグインはありません。"
+      mode_3: "No plugins are currently available."
+  who_online:
+    title:
+      mode_1: "オンラインユーザー"
+      mode_2: "オンラインユーザー"
+      mode_3: "Who's Online"
+    description:
+      mode_1: "現在接続中のユーザー一覧です。カラムヘッダーでソートしたり、ユーザーセッションをキックできます。"
+      mode_2: "現在接続中のユーザー一覧です。カラムヘッダーでソートしたり、ユーザーセッションをキックできます。"
+      mode_3: "List of currently connected users. You can sort by column headers or kick a user's session."
+    table_ip:
+      mode_1: "IPアドレス"
+      mode_2: "IPアドレス"
+      mode_3: "IP Address"
+    table_mode:
+      mode_1: "モード"
+      mode_2: "モード"
+      mode_3: "Mode"
+    table_connect_time:
+      mode_1: "接続時刻"
+      mode_2: "接続時刻"
+      mode_3: "Connect Time"
+    table_duration:
+      mode_1: "接続時間"
+      mode_2: "接続時間"
+      mode_3: "Duration"
+    action_kick:
+      mode_1: "キック"
+      mode_2: "キック"
+      mode_3: "Kick"
+    no_users_online:
+      mode_1: "現在オンラインのユーザーはいません。"
+      mode_2: "現在オンラインのユーザーはいません。"
+      mode_3: "No users are currently online."
+  log_viewer:
+    title:
+      mode_1: "アクセスログビューワー"
+      mode_2: "アクセスログビューワー"
+      mode_3: "Access Log Viewer"
+    ip_label:
+      mode_1: "IPアドレス"
+      mode_2: "IPアドレス"
+      mode_3: "IP Address"
+    user_label:
+      mode_1: "ユーザー名"
+      mode_2: "ユーザー名"
+      mode_3: "Username"
+    event_label:
+      mode_1: "イベントタイプ"
+      mode_2: "イベントタイプ"
+      mode_3: "Event Type"
+    clear_button:
+      mode_1: "クリア"
+      mode_2: "クリア"
+      mode_3: "Clear"
+    table_timestamp:
+      mode_1: "タイムスタンプ"
+      mode_2: "タイムスタンプ"
+      mode_3: "Timestamp"
+    table_message:
+      mode_1: "メッセージ"
+      mode_2: "メッセージ"
+      mode_3: "Message"
+    no_logs:
+      mode_1: "アクセスログが見つかりません。"
+      mode_2: "アクセスログが見つかりません。"
+      mode_3: "No access logs found."
+    new_board:
+      title:
+        mode_1: "新規掲示板作成"
+        mode_2: "新規掲示板作成"
+        mode_3: "Add New Board"
+      shortcut_id_label:
+        mode_1: "ショートカットID (例: 'news', '雑談')"
+        mode_2: "ショートカットID (例: 'news', '雑談')"
+        mode_3: "Shortcut ID (e.g., 'news', '雑談')"
+      create_button:
+        mode_1: "掲示板を作成"
+        mode_2: "掲示板を作成"
+        mode_3: "Create Board"
+    edit_user:
+      title:
+        mode_1: "ユーザー編集"
+        mode_2: "ユーザー編集"
+        mode_3: "Edit User"
+      username_label:
+        mode_1: "ユーザー名 (読み取り専用)"
+        mode_2: "ユーザー名 (読み取り専用)"
+        mode_3: "Username (read-only)"
+      level_label:
+        mode_1: "レベル (0-5)"
+        mode_2: "レベル (0-5)"
+        mode_3: "Level (0-5)"
+      email_label:
+        mode_1: "メールアドレス"
+        mode_2: "メールアドレス"
+        mode_3: "Email"
+      comment_label:
+        mode_1: "コメント"
+        mode_2: "コメント"
+        mode_3: "Comment"
+      password_label:
+        mode_1: "新しいパスワード (空欄で変更なし)"
+        mode_2: "新しいパスワード (空欄で変更なし)"
+        mode_3: "New Password (leave blank to keep current)"
+      save_button:
+        mode_1: "変更を保存"
+        mode_2: "変更を保存"
+        mode_3: "Save Changes"
+      cancel_button:
+        mode_1: "キャンセル"
+        mode_2: "キャンセル"
+        mode_3: "Cancel"
+    new_user:
+      title:
+        mode_1: "新規ユーザー作成"
+        mode_2: "新規ユーザー作成"
+        mode_3: "Add New User"
+      username_label:
+        mode_1: "ユーザー名"
+        mode_2: "ユーザー名"
+        mode_3: "Username"
+      password_label:
+        mode_1: "パスワード"
+        mode_2: "パスワード"
+        mode_3: "Password"
+      create_button:
+        mode_1: "ユーザーを作成"
+        mode_2: "ユーザーを作成"
+        mode_3: "Create User"
+      cancel_button:
+        mode_1: "キャンセル"
+        mode_2: "キャンセル"
+        mode_3: "Cancel"
+    system_settings:
+      title:
+        mode_1: "システム設定"
+        mode_2: "システム設定"
+        mode_3: "System Settings"
+      description:
+        mode_1: "ここではトップメニューコマンドの最低アクセスレベルや、その他のサーバー全体の設定を変更できます。"
+        mode_2: "ここではトップメニューコマンドの最低アクセスレベルや、その他のサーバー全体の設定を変更できます。"
+        mode_3: "Here you can change the minimum access levels for top menu commands and other server-wide settings."
+      access_level_header:
+        mode_1: "コマンドアクセスレベル (0-5)"
+        mode_2: "コマンドアクセスレベル (0-5)"
+        mode_3: "Command Access Levels (0-5)"
+      text_settings_header:
+        mode_1: "テキスト設定"
+        mode_2: "テキスト設定"
+        mode_3: "Text Settings"
+      login_message_label:
+        mode_1: "ログインメッセージ"
+        mode_2: "ログインメッセージ"
+        mode_3: "Login Message"
+      exploration_list_label:
+        mode_1: "デフォルト探索リスト (カンマ区切り)"
+        mode_2: "デフォルト探索リスト (カンマ区切り)"
+        mode_3: "Default Exploration List (comma-separated)"
+      save_button:
+        mode_1: "変更を保存"
+        mode_2: "変更を保存"
+        mode_3: "Save Changes"
+    dashboard:
+      recent_activity_header:
+        mode_1: "最近のアクティビティ (過去7日間)"
+        mode_2: "最近のアクティビティ (過去7日間)"
+        mode_3: "Recent Activity (Last 7 Days)"
+      stats_header:
+        mode_1: "統計"
+        mode_2: "統計"
+        mode_3: "Statistics"
+      health_header:
+        mode_1: "システムヘルス"
+        mode_2: "システムヘルス"
+        mode_3: "System Health"
+      cpu_usage:
+        mode_1: "CPU使用率"
+        mode_2: "CPU使用率"
+        mode_3: "CPU Usage"
+      memory_usage:
+        mode_1: "メモリ使用率"
+        mode_2: "メモリ使用率"
+        mode_3: "Memory Usage"
+      disk_usage:
+        mode_1: "ディスク使用率"
+        mode_2: "ディスク使用率"
+        mode_3: "Disk Usage"
+      chart_new_users:
+        mode_1: "新規ユーザー"
+        mode_2: "新規ユーザー"
+        mode_3: "New Users"
+      chart_new_articles:
+        mode_1: "新規記事"
+        mode_2: "新規記事"
+        mode_3: "New Articles"
+    backup:
+      title:
+        mode_1: "バックアップ管理"
+        mode_2: "バックアップ管理"
+        mode_3: "Backup Management"
+      description:
+        mode_1: "データベース、添付ファイル、設定ファイルを含む完全なバックアップを作成・管理します。"
+        mode_2: "データベース、添付ファイル、設定ファイルを含む完全なバックアップを作成・管理します。"
+        mode_3: "Create and manage full backups, including the database, attachments, and configuration files."
+      schedule_header:
+        mode_1: "スケジュール設定"
+        mode_2: "スケジュール設定"
+        mode_3: "Schedule Settings"
+      enable_auto_backup:
+        mode_1: "自動バックアップを有効化"
+        mode_2: "自動バックアップを有効化"
+        mode_3: "Enable Automatic Backups"
+      cron_label:
+        mode_1: "Cronスケジュール"
+        mode_2: "Cronスケジュール"
+        mode_3: "Cron Schedule"
+      cron_help:
+        mode_1: "標準のcron形式を使用します。ヘルプは crontab.guru を参照してください。"
+        mode_2: "標準のcron形式を使用します。ヘルプは crontab.guru を参照してください。"
+        mode_3: "Uses standard cron format. See crontab.guru for help."
+      save_schedule_button:
+        mode_1: "スケジュールを保存"
+        mode_2: "スケジュールを保存"
+        mode_3: "Save Schedule"
+      create_backup_button:
+        mode_1: "新規バックアップを作成"
+        mode_2: "新規バックアップを作成"
+        mode_3: "Create New Backup"
+      existing_backups_header:
+        mode_1: "既存のバックアップ"
+        mode_2: "既存のバックアップ"
+        mode_3: "Existing Backups"
+      table_filename:
+        mode_1: "ファイル名"
+        mode_2: "ファイル名"
+        mode_3: "Filename"
+      table_created_at:
+        mode_1: "作成日時"
+        mode_2: "作成日時"
+        mode_3: "Created At"
+      table_size:
+        mode_1: "サイズ"
+        mode_2: "サイズ"
+        mode_3: "Size"
+      table_actions:
+        mode_1: "操作"
+        mode_2: "操作"
+        mode_3: "Actions"
+      action_download:
+        mode_1: "ダウンロード"
+        mode_2: "ダウンロード"
+        mode_3: "Download"
+      action_delete:
+        mode_1: "削除"
+        mode_2: "削除"
+        mode_3: "Delete"
+      action_restore:
+        mode_1: "リストア"
+        mode_2: "リストア"
+        mode_3: "Restore"
+      no_backups:
+        mode_1: "利用可能なバックアップはありません。"
+        mode_2: "利用可能なバックアップはありません。"
+        mode_3: "No backups available."
+      danger_zone_header:
+        mode_1: "危険地帯"
+        mode_2: "危険地帯"
+        mode_3: "Danger Zone"
+      danger_zone_description:
+        mode_1: "この操作は元に戻せません。すべてのユーザー、掲示板、記事、添付ファイルが完全に削除されます。実行する前に絶対に確認してください。"
+        mode_2: "この操作は元に戻せません。すべてのユーザー、掲示板、記事、添付ファイルが完全に削除されます。実行する前に絶対に確認してください。"
+        mode_3: "This action is irreversible and will permanently delete ALL users, boards, articles, and attachments. Please be absolutely sure before proceeding."
+      wipe_data_button:
+        mode_1: "全データを消去"
+        mode_2: "全データを消去"
+        mode_3: "Wipe All Data"
+    article_search:
+      title:
+        mode_1: "記事管理"
+        mode_2: "記事管理"
+        mode_3: "Article Management"
+      keyword_label:
+        mode_1: "キーワードで検索 (タイトル/本文)"
+        mode_2: "キーワードで検索 (タイトル/本文)"
+        mode_3: "Search by Keyword (Title/Body)"
+      author_label:
+        mode_1: "投稿者で検索"
+        mode_2: "投稿者で検索"
+        mode_3: "Search by Author"
+      search_button:
+        mode_1: "検索"
+        mode_2: "検索"
+        mode_3: "Search"
+      results_header:
+        mode_1: "検索結果"
+        mode_2: "検索結果"
+        mode_3: "Search Results"
+      delete_selected_button:
+        mode_1: "選択項目を削除"
+        mode_2: "選択項目を削除"
+        mode_3: "Delete Selected"
+      restore_selected_button:
+        mode_1: "選択項目を復元"
+        mode_2: "選択項目を復元"
+        mode_3: "Restore Selected"
+      table_board:
+        mode_1: "掲示板"
+        mode_2: "掲示板"
+        mode_3: "Board"
+      table_no:
+        mode_1: "番号"
+        mode_2: "番号"
+        mode_3: "No."
+      table_author:
+        mode_1: "投稿者"
+        mode_2: "投稿者"
+        mode_3: "Author"
+      table_title:
+        mode_1: "タイトル"
+        mode_2: "タイトル"
+        mode_3: "Title"
+      table_body:
+        mode_1: "本文 (抜粋)"
+        mode_2: "本文 (抜粋)"
+        mode_3: "Body (Snippet)"
+      table_posted_at:
+        mode_1: "投稿日時"
+        mode_2: "投稿日時"
+        mode_3: "Posted At"
+      action_undelete:
+        mode_1: "復元"
+        mode_2: "復元"
+        mode_3: "Undelete"
+      no_results:
+        mode_1: "検索条件に一致する記事は見つかりませんでした。"
+        mode_2: "検索条件に一致する記事は見つかりませんでした。"
+        mode_3: "No articles found for your search criteria."
+    board_list:
+      title:
+        mode_1: "掲示板管理"
+        mode_2: "掲示板管理"
+        mode_3: "Board Management"
+      add_button:
+        mode_1: "+ 新規掲示板を追加"
+        mode_2: "+ 新規掲示板を追加"
+        mode_3: "+ Add New Board"
+      search_placeholder:
+        mode_1: "IDまたは名前で検索..."
+        mode_2: "IDまたは名前で検索..."
+        mode_3: "Search by ID or Name..."
+      table_id:
+        mode_1: "ID"
+        mode_2: "ID"
+        mode_3: "ID"
+      table_name:
+        mode_1: "名前"
+        mode_2: "名前"
+        mode_3: "Name"
+      table_type:
+        mode_1: "タイプ"
+        mode_2: "タイプ"
+        mode_3: "Type"
+      table_operators:
+        mode_1: "オペレーター"
+        mode_2: "オペレーター"
+        mode_3: "Operators"
+      table_perm:
+        mode_1: "デフォルト権限"
+        mode_2: "デフォルト権限"
+        mode_3: "Default Perm"
+      table_rw:
+        mode_1: "R/W"
+        mode_2: "R/W"
+        mode_3: "R/W"
+      table_status:
+        mode_1: "状態"
+        mode_2: "状態"
+        mode_3: "Status"
+      table_attachments:
+        mode_1: "添付"
+        mode_2: "添付"
+        mode_3: "Attachments"
+      table_posts:
+        mode_1: "投稿数"
+        mode_2: "投稿数"
+        mode_3: "Posts"
+      table_last_post:
+        mode_1: "最終投稿"
+        mode_2: "最終投稿"
+        mode_3: "Last Post"
+      action_edit:
+        mode_1: "編集"
+        mode_2: "編集"
+        mode_3: "Edit"
+      no_boards:
+        mode_1: "掲示板が見つかりません。"
+        mode_2: "掲示板が見つかりません。"
+        mode_3: "No boards found."
+    user_list:
+      title:
+        mode_1: "ユーザー管理"
+        mode_2: "ユーザー管理"
+        mode_3: "User Management"
+      add_button:
+        mode_1: "+ 新規ユーザーを追加"
+        mode_2: "+ 新規ユーザーを追加"
+        mode_3: "+ Add New User"
+      search_placeholder:
+        mode_1: "名前またはメールで検索..."
+        mode_2: "名前またはメールで検索..."
+        mode_3: "Search by Name or Email..."
+      table_level:
+        mode_1: "レベル"
+        mode_2: "レベル"
+        mode_3: "Level"
+      table_last_login:
+        mode_1: "最終ログイン"
+        mode_2: "最終ログイン"
+        mode_3: "Last Login"
+      never:
+        mode_1: "なし"
+        mode_2: "なし"
+        mode_3: "Never"
+      no_users:
+        mode_1: "ユーザーが見つかりません。"
+        mode_2: "ユーザーが見つかりません。"
+        mode_3: "No users found."
+    plugin_list:
+      title:
+        mode_1: "プラグイン管理"
+        mode_2: "プラグイン管理"
+        mode_3: "Plugin Management"
+      description:
+        mode_1: "ロードされた全てのプラグインの状態を表示します。"
+        mode_2: "ロードされた全てのプラグインの状態を表示します。"
+        mode_3: "View the status of all loaded plugins."
+      header:
+        mode_1: "ロード済みプラグイン"
+        mode_2: "ロード済みプラグイン"
+        mode_3: "Loaded Plugins"
+      table_description:
+        mode_1: "説明"
+        mode_2: "説明"
+        mode_3: "Description"
+      status_enabled:
+        mode_1: "有効"
+        mode_2: "有効"
+        mode_3: "Enabled"
+      status_disabled:
+        mode_1: "無効"
+        mode_2: "無効"
+        mode_3: "Disabled"
+      action_enable:
+        mode_1: "有効化"
+        mode_2: "有効化"
+        mode_3: "Enable"
+      action_disable:
+        mode_1: "無効化"
+        mode_2: "無効化"
+        mode_3: "Disable"
+      no_plugins:
+        mode_1: "利用可能なプラグインはありません。"
+        mode_2: "利用可能なプラグインはありません。"
+        mode_3: "No plugins are currently available."
+    who_online:
+      title:
+        mode_1: "オンラインユーザー"
+        mode_2: "オンラインユーザー"
+        mode_3: "Who's Online"
+      description:
+        mode_1: "現在接続中のユーザー一覧です。カラムヘッダーでソートしたり、ユーザーセッションをキックできます。"
+        mode_2: "現在接続中のユーザー一覧です。カラムヘッダーでソートしたり、ユーザーセッションをキックできます。"
+        mode_3: "List of currently connected users. You can sort by column headers or kick a user's session."
+      table_ip:
+        mode_1: "IPアドレス"
+        mode_2: "IPアドレス"
+        mode_3: "IP Address"
+      table_mode:
+        mode_1: "モード"
+        mode_2: "モード"
+        mode_3: "Mode"
+      table_connect_time:
+        mode_1: "接続時刻"
+        mode_2: "接続時刻"
+        mode_3: "Connect Time"
+      table_duration:
+        mode_1: "接続時間"
+        mode_2: "接続時間"
+        mode_3: "Duration"
+      action_kick:
+        mode_1: "キック"
+        mode_2: "キック"
+        mode_3: "Kick"
+      no_users_online:
+        mode_1: "現在オンラインのユーザーはいません。"
+        mode_2: "現在オンラインのユーザーはいません。"
+        mode_3: "No users are currently online."
+    log_viewer:
+      title:
+        mode_1: "アクセスログビューワー"
+        mode_2: "アクセスログビューワー"
+        mode_3: "Access Log Viewer"
+      ip_label:
+        mode_1: "IPアドレス"
+        mode_2: "IPアドレス"
+        mode_3: "IP Address"
+      user_label:
+        mode_1: "ユーザー名"
+        mode_2: "ユーザー名"
+        mode_3: "Username"
+      event_label:
+        mode_1: "イベントタイプ"
+        mode_2: "イベントタイプ"
+        mode_3: "Event Type"
+      clear_button:
+        mode_1: "クリア"
+        mode_2: "クリア"
+        mode_3: "Clear"
+      table_timestamp:
+        mode_1: "タイムスタンプ"
+        mode_2: "タイムスタンプ"
+        mode_3: "Timestamp"
+      table_message:
+        mode_1: "メッセージ"
+        mode_2: "メッセージ"
+        mode_3: "Message"
+      no_logs:
+        mode_1: "アクセスログが見つかりません。"
+        mode_2: "アクセスログが見つかりません。"
+        mode_3: "No access logs found."
+  new_board:
+    title:
+      mode_1: "新規掲示板作成"
+      mode_2: "新規掲示板作成"
+      mode_3: "Add New Board"
+    shortcut_id_label:
+      mode_1: "ショートカットID (例: 'news', '雑談')"
+      mode_2: "ショートカットID (例: 'news', '雑談')"
+      mode_3: "Shortcut ID (e.g., 'news', '雑談')"
+    create_button:
+      mode_1: "掲示板を作成"
+      mode_2: "掲示板を作成"
+      mode_3: "Create Board"
+  edit_user:
+    title:
+      mode_1: "ユーザー編集"
+      mode_2: "ユーザー編集"
+      mode_3: "Edit User"
+    username_label:
+      mode_1: "ユーザー名 (読み取り専用)"
+      mode_2: "ユーザー名 (読み取り専用)"
+      mode_3: "Username (read-only)"
+    level_label:
+      mode_1: "レベル (0-5)"
+      mode_2: "レベル (0-5)"
+      mode_3: "Level (0-5)"
+    email_label:
+      mode_1: "メールアドレス"
+      mode_2: "メールアドレス"
+      mode_3: "Email"
+    comment_label:
+      mode_1: "コメント"
+      mode_2: "コメント"
+      mode_3: "Comment"
+    password_label:
+      mode_1: "新しいパスワード (空欄で変更なし)"
+      mode_2: "新しいパスワード (空欄で変更なし)"
+      mode_3: "New Password (leave blank to keep current)"
+  new_user:
+    title:
+      mode_1: "新規ユーザー作成"
+      mode_2: "新規ユーザー作成"
+      mode_3: "Add New User"
+    username_label:
+      mode_1: "ユーザー名"
+      mode_2: "ユーザー名"
+      mode_3: "Username"
+    password_label:
+      mode_1: "パスワード"
+      mode_2: "パスワード"
+      mode_3: "Password"
+    create_button:
+      mode_1: "ユーザーを作成"
+      mode_2: "ユーザーを作成"
+      mode_3: "Create User"
+  system_settings:
+    title:
+      mode_1: "システム設定"
+      mode_2: "システム設定"
+      mode_3: "System Settings"
+    description:
+      mode_1: "ここではトップメニューコマンドの最低アクセスレベルや、その他のサーバー全体の設定を変更できます。"
+      mode_2: "ここではトップメニューコマンドの最低アクセスレベルや、その他のサーバー全体の設定を変更できます。"
+      mode_3: "Here you can change the minimum access levels for top menu commands and other server-wide settings."
+    access_level_header:
+      mode_1: "コマンドアクセスレベル (0-5)"
+      mode_2: "コマンドアクセスレベル (0-5)"
+      mode_3: "Command Access Levels (0-5)"
+    text_settings_header:
+      mode_1: "テキスト設定"
+      mode_2: "テキスト設定"
+      mode_3: "Text Settings"
+    login_message_label:
+      mode_1: "ログインメッセージ"
+      mode_2: "ログインメッセージ"
+      mode_3: "Login Message"
+    exploration_list_label:
+      mode_1: "デフォルト探索リスト (カンマ区切り)"
+      mode_2: "デフォルト探索リスト (カンマ区切り)"
+      mode_3: "Default Exploration List (comma-separated)"
+  dashboard:
+    recent_activity_header:
+      mode_1: "最近のアクティビティ (過去7日間)"
+      mode_2: "最近のアクティビティ (過去7日間)"
+      mode_3: "Recent Activity (Last 7 Days)"
+    stats_header:
+      mode_1: "統計"
+      mode_2: "統計"
+      mode_3: "Statistics"
+    health_header:
+      mode_1: "システムヘルス"
+      mode_2: "システムヘルス"
+      mode_3: "System Health"
+    cpu_usage:
+      mode_1: "CPU使用率"
+      mode_2: "CPU使用率"
+      mode_3: "CPU Usage"
+    memory_usage:
+      mode_1: "メモリ使用率"
+      mode_2: "メモリ使用率"
+      mode_3: "Memory Usage"
+    disk_usage:
+      mode_1: "ディスク使用率"
+      mode_2: "ディスク使用率"
+      mode_3: "Disk Usage"
+    chart_new_users:
+      mode_1: "新規ユーザー"
+      mode_2: "新規ユーザー"
+      mode_3: "New Users"
+    chart_new_articles:
+      mode_1: "新規記事"
+      mode_2: "新規記事"
+      mode_3: "New Articles"
+  backup:
+    title:
+      mode_1: "バックアップ管理"
+      mode_2: "バックアップ管理"
+      mode_3: "Backup Management"
+    description:
+      mode_1: "データベース、添付ファイル、設定ファイルを含む完全なバックアップを作成・管理します。"
+      mode_2: "データベース、添付ファイル、設定ファイルを含む完全なバックアップを作成・管理します。"
+      mode_3: "Create and manage full backups, including the database, attachments, and configuration files."
+    schedule_header:
+      mode_1: "スケジュール設定"
+      mode_2: "スケジュール設定"
+      mode_3: "Schedule Settings"
+    enable_auto_backup:
+      mode_1: "自動バックアップを有効化"
+      mode_2: "自動バックアップを有効化"
+      mode_3: "Enable Automatic Backups"
+    cron_label:
+      mode_1: "Cronスケジュール"
+      mode_2: "Cronスケジュール"
+      mode_3: "Cron Schedule"
+    cron_help:
+      mode_1: "標準のcron形式を使用します。ヘルプは crontab.guru を参照してください。"
+      mode_2: "標準のcron形式を使用します。ヘルプは crontab.guru を参照してください。"
+      mode_3: "Uses standard cron format. See crontab.guru for help."
+    save_schedule_button:
+      mode_1: "スケジュールを保存"
+      mode_2: "スケジュールを保存"
+      mode_3: "Save Schedule"
+    create_backup_button:
+      mode_1: "新規バックアップを作成"
+      mode_2: "新規バックアップを作成"
+      mode_3: "Create New Backup"
+    existing_backups_header:
+      mode_1: "既存のバックアップ"
+      mode_2: "既存のバックアップ"
+      mode_3: "Existing Backups"
+    table_filename:
+      mode_1: "ファイル名"
+      mode_2: "ファイル名"
+      mode_3: "Filename"
+    table_created_at:
+      mode_1: "作成日時"
+      mode_2: "作成日時"
+      mode_3: "Created At"
+    table_size:
+      mode_1: "サイズ"
+      mode_2: "サイズ"
+      mode_3: "Size"
+    table_actions:
+      mode_1: "操作"
+      mode_2: "操作"
+      mode_3: "Actions"
+    action_download:
+      mode_1: "ダウンロード"
+      mode_2: "ダウンロード"
+      mode_3: "Download"
+    action_delete:
+      mode_1: "削除"
+      mode_2: "削除"
+      mode_3: "Delete"
+    action_restore:
+      mode_1: "リストア"
+      mode_2: "リストア"
+      mode_3: "Restore"
+    no_backups:
+      mode_1: "利用可能なバックアップはありません。"
+      mode_2: "利用可能なバックアップはありません。"
+      mode_3: "No backups available."
+    danger_zone_header:
+      mode_1: "危険地帯"
+      mode_2: "危険地帯"
+      mode_3: "Danger Zone"
+    danger_zone_description:
+      mode_1: "この操作は元に戻せません。すべてのユーザー、掲示板、記事、添付ファイルが完全に削除されます。実行する前に絶対に確認してください。"
+      mode_2: "この操作は元に戻せません。すべてのユーザー、掲示板、記事、添付ファイルが完全に削除されます。実行する前に絶対に確認してください。"
+      mode_3: "This action is irreversible and will permanently delete ALL users, boards, articles, and attachments. Please be absolutely sure before proceeding."
+    wipe_data_button:
+      mode_1: "全データを消去"
+      mode_2: "全データを消去"
+      mode_3: "Wipe All Data"
+  article_search:
+    keyword_label:
+      mode_1: "キーワードで検索 (タイトル/本文)"
+      mode_2: "キーワードで検索 (タイトル/本文)"
+      mode_3: "Search by Keyword (Title/Body)"
+    author_label:
+      mode_1: "投稿者で検索"
+      mode_2: "投稿者で検索"
+      mode_3: "Search by Author"
+    search_button:
+      mode_1: "検索"
+      mode_2: "検索"
+      mode_3: "Search"
+    results_header:
+      mode_1: "検索結果"
+      mode_2: "検索結果"
+      mode_3: "Search Results"
+    delete_selected_button:
+      mode_1: "選択項目を削除"
+      mode_2: "選択項目を削除"
+      mode_3: "Delete Selected"
+    restore_selected_button:
+      mode_1: "選択項目を復元"
+      mode_2: "選択項目を復元"
+      mode_3: "Restore Selected"
+    table_board:
+      mode_1: "掲示板"
+      mode_2: "掲示板"
+      mode_3: "Board"
+    table_no:
+      mode_1: "番号"
+      mode_2: "番号"
+      mode_3: "No."
+    table_author:
+      mode_1: "投稿者"
+      mode_2: "投稿者"
+      mode_3: "Author"
+    table_title:
+      mode_1: "タイトル"
+      mode_2: "タイトル"
+      mode_3: "Title"
+    table_body:
+      mode_1: "本文 (抜粋)"
+      mode_2: "本文 (抜粋)"
+      mode_3: "Body (Snippet)"
+    table_posted_at:
+      mode_1: "投稿日時"
+      mode_2: "投稿日時"
+      mode_3: "Posted At"
+    action_undelete:
+      mode_1: "復元"
+      mode_2: "復元"
+      mode_3: "Undelete"
+    no_results:
+      mode_1: "検索条件に一致する記事は見つかりませんでした。"
+      mode_2: "検索条件に一致する記事は見つかりませんでした。"
+      mode_3: "No articles found for your search criteria."
+  board_list:
+    add_button:
+      mode_1: "+ 新規掲示板を追加"
+      mode_2: "+ 新規掲示板を追加"
+      mode_3: "+ Add New Board"
+    search_placeholder:
+      mode_1: "IDまたは名前で検索..."
+      mode_2: "IDまたは名前で検索..."
+      mode_3: "Search by ID or Name..."
+    table_id:
+      mode_1: "ID"
+      mode_2: "ID"
+      mode_3: "ID"
+    table_name:
+      mode_1: "名前"
+      mode_2: "名前"
+      mode_3: "Name"
+    table_type:
+      mode_1: "タイプ"
+      mode_2: "タイプ"
+      mode_3: "Type"
+    table_operators:
+      mode_1: "オペレーター"
+      mode_2: "オペレーター"
+      mode_3: "Operators"
+    table_perm:
+      mode_1: "デフォルト権限"
+      mode_2: "デフォルト権限"
+      mode_3: "Default Perm"
+    table_rw:
+      mode_1: "R/W"
+      mode_2: "R/W"
+      mode_3: "R/W"
+    table_status:
+      mode_1: "状態"
+      mode_2: "状態"
+      mode_3: "Status"
+    table_attachments:
+      mode_1: "添付"
+      mode_2: "添付"
+      mode_3: "Attachments"
+    table_posts:
+      mode_1: "投稿数"
+      mode_2: "投稿数"
+      mode_3: "Posts"
+    table_last_post:
+      mode_1: "最終投稿"
+      mode_2: "最終投稿"
+      mode_3: "Last Post"
+    action_edit:
+      mode_1: "編集"
+      mode_2: "編集"
+      mode_3: "Edit"
+    no_boards:
+      mode_1: "掲示板が見つかりません。"
+      mode_2: "掲示板が見つかりません。"
+      mode_3: "No boards found."
+  user_list:
+    add_button:
+      mode_1: "+ 新規ユーザーを追加"
+      mode_2: "+ 新規ユーザーを追加"
+      mode_3: "+ Add New User"
+    search_placeholder:
+      mode_1: "名前またはメールで検索..."
+      mode_2: "名前またはメールで検索..."
+      mode_3: "Search by Name or Email..."
+    table_level:
+      mode_1: "レベル"
+      mode_2: "レベル"
+      mode_3: "Level"
+    table_last_login:
+      mode_1: "最終ログイン"
+      mode_2: "最終ログイン"
+      mode_3: "Last Login"
+    never:
+      mode_1: "なし"
+      mode_2: "なし"
+      mode_3: "Never"
+    no_users:
+      mode_1: "ユーザーが見つかりません。"
+      mode_2: "ユーザーが見つかりません。"
+      mode_3: "No users found."
+  plugin_list:
+    title:
+      mode_1: "プラグイン管理"
+      mode_2: "プラグイン管理"
+      mode_3: "Plugin Management"
+    description:
+      mode_1: "ロードされた全てのプラグインの状態を表示します。"
+      mode_2: "ロードされた全てのプラグインの状態を表示します。"
+      mode_3: "View the status of all loaded plugins."
+    header:
+      mode_1: "ロード済みプラグイン"
+      mode_2: "ロード済みプラグイン"
+      mode_3: "Loaded Plugins"
+    table_description:
+      mode_1: "説明"
+      mode_2: "説明"
+      mode_3: "Description"
+    status_enabled:
+      mode_1: "有効"
+      mode_2: "有効"
+      mode_3: "Enabled"
+    status_disabled:
+      mode_1: "無効"
+      mode_2: "無効"
+      mode_3: "Disabled"
+    action_enable:
+      mode_1: "有効化"
+      mode_2: "有効化"
+      mode_3: "Enable"
+    action_disable:
+      mode_1: "無効化"
+      mode_2: "無効化"
+      mode_3: "Disable"
+    no_plugins:
+      mode_1: "利用可能なプラグインはありません。"
+      mode_2: "利用可能なプラグインはありません。"
+      mode_3: "No plugins are currently available."
+  who_online:
+    description:
+      mode_1: "現在接続中のユーザー一覧です。カラムヘッダーでソートしたり、ユーザーセッションをキックできます。"
+      mode_2: "現在接続中のユーザー一覧です。カラムヘッダーでソートしたり、ユーザーセッションをキックできます。"
+      mode_3: "List of currently connected users. You can sort by column headers or kick a user's session."
+    table_ip:
+      mode_1: "IPアドレス"
+      mode_2: "IPアドレス"
+      mode_3: "IP Address"
+    table_mode:
+      mode_1: "モード"
+      mode_2: "モード"
+      mode_3: "Mode"
+    table_connect_time:
+      mode_1: "接続時刻"
+      mode_2: "接続時刻"
+      mode_3: "Connect Time"
+    table_duration:
+      mode_1: "接続時間"
+      mode_2: "接続時間"
+      mode_3: "Duration"
+    action_kick:
+      mode_1: "キック"
+      mode_2: "キック"
+      mode_3: "Kick"
+    no_users_online:
+      mode_1: "現在オンラインのユーザーはいません。"
+      mode_2: "現在オンラインのユーザーはいません。"
+      mode_3: "No users are currently online."
+  log_viewer:
+    ip_label:
+      mode_1: "IPアドレス"
+      mode_2: "IPアドレス"
+      mode_3: "IP Address"
+    user_label:
+      mode_1: "ユーザー名"
+      mode_2: "ユーザー名"
+      mode_3: "Username"
+    event_label:
+      mode_1: "イベントタイプ"
+      mode_2: "イベントタイプ"
+      mode_3: "Event Type"
+    clear_button:
+      mode_1: "クリア"
+      mode_2: "クリア"
+      mode_3: "Clear"
+    table_timestamp:
+      mode_1: "タイムスタンプ"
+      mode_2: "タイムスタンプ"
+      mode_3: "Timestamp"
+    table_message:
+      mode_1: "メッセージ"
+      mode_2: "メッセージ"
+      mode_3: "Message"
+    no_logs:
+      mode_1: "アクセスログが見つかりません。"
+      mode_2: "アクセスログが見つかりません。"
+      mode_3: "No access logs found."
   log_viewer_popup:
     title:
       mode_1: "ログビューワー"
