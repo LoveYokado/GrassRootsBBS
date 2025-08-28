@@ -251,6 +251,50 @@ user_pref_menu:
       | H, ?    | Help: Display this help menu                   |
       +---------+------------------------------------------------+
   # --- メニューモード変更サブメニュー ---
+  help:
+    mode_1: |
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      [1] メニューモード変更: BBSの表示スタイルを変更します。
+      [2] パスワード変更: ログインパスワードを変更します。
+      [3] プロフィール変更: 会員リストに表示されるコメントを変更します。
+      [4] 会員リスト: 登録されている会員の一覧を表示します。
+      [5] 最終ログイン日時仮設定: 新着記事の判定基準となる日時を設定します。
+      [6] 探索リスト登録: 掲示板を巡回する順序を自分で設定します。
+      [7] 探索リスト読み出し: 登録した探索リストを表示します。
+      [8] 元探索リスト読み出し: システムデフォルトの探索リストを表示します。
+      [9] 電報受信制限: 特定のユーザーからの電報受信を制限します。
+      [10] ブラックリスト編集: 特定のユーザーからの電報を拒否するリストを編集します。
+      [11] メールアドレス変更: 登録されているメールアドレスを変更します。
+      [12] Passkey管理: パスワードなしでログインするためのPasskeyを管理します。
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    mode_2: |
+      --- ユーザー設定ヘルプ ---
+      [1] メニューモード変更: BBSの表示スタイルを変更します。
+      [2] パスワード変更: ログインパスワードを変更します。
+      [3] プロフィール変更: 会員リストに表示されるコメントを変更します。
+      [4] 会員リスト: 登録されている会員の一覧を表示します。
+      [5] 最終ログイン日時仮設定: 新着記事の判定基準となる日時を設定します。
+      [6] 探索リスト登録: 掲示板を巡回する順序を自分で設定します。
+      [7] 探索リスト読み出し: 登録した探索リストを表示します。
+      [8] 元探索リスト読み出し: システムデフォルトの探索リストを表示します。
+      [9] 電報受信制限: 特定のユーザーからの電報受信を制限します。
+      [10] ブラックリスト編集: 特定のユーザーからの電報を拒否するリストを編集します。
+      [11] メールアドレス変更: 登録されているメールアドレスを変更します。
+      [12] Passkey管理: パスワードなしでログインするためのPasskeyを管理します。
+    mode_3: |
+      --- User Preferences Help ---
+      [1] Switch Menu Mode: Change the display style of the BBS. 
+      [2] Change Password: Update your login password. 
+      [3] Edit Profile: Modify the comment displayed in the member list. 
+      [4] Member List: View a list of registered members. 
+      [5] Set Last Login: Manually set the date for new article checks. 
+      [6] Register Search List: Customize the order of boards to visit. 
+      [7] Load Search List: Display your custom exploration list.
+      [8] Load Default Search: Display the system's default exploration list. 
+      [9] Telegram Restrictions: Set restrictions on receiving telegrams. 
+      [10] Edit Blacklist: Manage a list of users to block from sending telegrams. 
+      [11] Change Email: Update your registered email address. 
+      [12] Manage Passkeys: Manage passwordless login credentials.
   mode_selection:
     header: # モード選択肢の表示
       mode_1: |
@@ -285,6 +329,10 @@ user_pref_menu:
       mode_1: "検索ワードを入力してください (未入力で全件表示): "
       mode_2: "検索ワードを入力してください (未入力で全件表示): "
       mode_3: "Enter search term (leave blank for all): "
+    notfound:
+      mode_1: "該当する会員は見つかりませんでした。\r\n"
+      mode_2: "該当する会員は見つかりませんでした。\r\n"
+      mode_3: "No matching members found.\r\n"
   set_lastlogin:
     current_lastlogin:
       mode_1: "設定されている最終ログイン日時は {lastlogin}です。"
@@ -311,6 +359,22 @@ user_pref_menu:
       mode_1: "選択してください([1]全電報を受信 [2]会員からのみ受信 [3]全電報を拒否 [4]ブラックリストからの電報を拒否): "
       mode_2: "選択してください([1]全電報を受信 [2]会員からのみ受信 [3]全電報を拒否 [4]ブラックリストからの電報を拒否): "
       mode_3: "Select ([1]All telegrams [2]Only from members [3]Reject all telegrams [4]Reject telegrams from blacklist): "
+    recieve_all:
+      mode_1: "全電報を受信します。"
+      mode_2: "全電報を受信します。"
+      mode_3: "Receiving all telegrams."
+    members_only:
+      mode_1: "会員からのみ電報を受信します。"
+      mode_2: "会員からのみ電報を受信します。"
+      mode_3: "Receiving telegrams from members only."
+    reject_all:
+      mode_1: "全電報を拒否します。"
+      mode_2: "全電報を拒否します。"
+      mode_3: "Rejecting all telegrams."
+    reject_black_list:
+      mode_1: "ブラックリストからの電報を拒否します。"
+      mode_2: "ブラックリストからの電報を拒否します。"
+      mode_3: "Rejecting telegrams from blacklist."
   blacklist_edit:
     header:
       mode_1: "--- ブラックリスト編集 ---"

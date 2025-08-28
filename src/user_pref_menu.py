@@ -114,12 +114,20 @@ def show_member_list(chan, login_id, current_menu_mode, user_data):
     search_word = chan.process_input()
     member_list = database.get_memberlist(search_word)
     if member_list:
+        # ヘッダーを追加して見やすくする
+        header = f"{'NAME':<20} {'COMMENT'}\r\n"
+        separator = f"{'-'*20} {'-'*50}\r\n"
+        chan.send(b'\r\n' + header.encode('utf-8') + separator.encode('utf-8'))
         for member in member_list:
-            chan.send(
-                f"{member.get('name', 'N/A')} {member.get('comment', 'N/A')}\r\n".encode('utf-8'))
+            name = member.get('name', 'N/A')
+            comment = member.get('comment', '')
+            name_short = util.shorten_text_by_slicing(name, 18)
+            comment_short = util.shorten_text_by_slicing(comment, 50)
+            chan.send(f"{name_short:<20} {comment_short}\r\n".encode('utf-8'))
+        chan.send(separator.encode('utf-8'))
     else:
-        util.send_text_by_key(chan, "user_pref_menu.member_list.notfound",
-                              current_menu_mode)
+        util.send_text_by_key(
+            chan, "user_pref_menu.member_list.notfound", current_menu_mode)
     return None
 
 
@@ -388,40 +396,32 @@ def set_lastlogin_datetime(chan, login_id, current_menu_mode, user_data):
 def set_telegram_restriction(chan, login_id, current_menu_mode, user_data):
     """電報受信制限設定"""
     user_id = user_data.get('id')
+    restriction_options = {
+        '1': {'level': 0, 'key': "user_pref_menu.telegram_restriction.recieve_all"},
+        '2': {'level': 1, 'key': "user_pref_menu.telegram_restriction.members_only"},
+        '3': {'level': 2, 'key': "user_pref_menu.telegram_restriction.reject_all"},
+        '4': {'level': 3, 'key': "user_pref_menu.telegram_restriction.reject_black_list"},
+    }
 
-    while True:
+    util.send_text_by_key(
+        chan, "user_pref_menu.telegram_restriction.prompt", current_menu_mode, add_newline=False)
+    choice = chan.process_input()
+
+    if choice is None or choice not in restriction_options:
+        return None  # キャンセルまたは無効な入力
+
+    selected_option = restriction_options[choice]
+    new_restriction_level = selected_option['level']
+    new_restriction_label_text = util.get_text_by_key(
+        selected_option['key'], current_menu_mode)
+
+    if database.update_record('users', {'telegram_restriction': new_restriction_level}, {'id': user_id}):
+        chan.send((new_restriction_label_text + "\r\n").encode('utf-8'))
+    else:
+        logging.error(f"電報受信制限更新時にエラーが発生しました。{login_id}")
         util.send_text_by_key(
-            chan, "user_pref_menu.telegram_restriction.prompt", current_menu_mode, add_newline=False)
-        choice = chan.process_input()
-        new_restriction_level = -1
-        new_restridtion_lebel_text = ""
-        if choice == '1':
-            new_restriction_level = 0
-            new_restridtion_lebel_text = util.get_text_by_key(
-                "user_pref_menu.telegram_restriction.recieve_all", current_menu_mode)
-        elif choice == '2':
-            new_restriction_level = 1
-            new_restridtion_lebel_text = util.get_text_by_key(
-                "user_pref_menu.telegram_restriction.members_only", current_menu_mode)
-        elif choice == '3':
-            new_restriction_level = 2
-            new_restridtion_lebel_text = util.get_text_by_key(
-                "user_pref_menu.telegram_restriction.reject_all", current_menu_mode)
-        elif choice == '4':
-            new_restriction_level = 3
-            new_restridtion_lebel_text = util.get_text_by_key(
-                "user_pref_menu.telegram_restriction.reject_black_list", current_menu_mode)
-        else:
-            return None
-
-        if database.update_record('users', {'telegram_restriction': new_restriction_level}, {'id': user_id}):
-            chan.send((new_restridtion_lebel_text + "\r\n").encode('utf-8'))
-            return None
-        else:
-            logging.error(f"電報受信制限更新時にエラーが発生しました。{login_id}")
-            util.send_text_by_key(
-                chan, "common_messages.db_update_error", current_menu_mode)
-            return None
+            chan, "common_messages.db_update_error", current_menu_mode)
+    return None
 
 
 def edit_blacklist(chan, login_id, current_menu_mode, user_data):
