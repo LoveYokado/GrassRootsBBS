@@ -288,8 +288,12 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
                 # 電報をチャット内から送信
                 if ONLINE_MEMBERS_FUNC:
                     online_members_dict = ONLINE_MEMBERS_FUNC()
-                    util.telegram_send(chan, display_name, list(
-                        online_members_dict.keys()), menu_mode)
+                    # SIDのリストではなく、ユーザー名のリストを渡すように修正
+                    online_user_logins = [
+                        member_data.get('username') for member_data in online_members_dict.values() if member_data.get('username')
+                    ]
+                    util.telegram_send(chan, display_name,
+                                       online_user_logins, menu_mode)
                 else:
                     util.send_text_by_key(
                         chan, "common_messages.error", menu_mode)
