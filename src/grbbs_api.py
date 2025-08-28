@@ -19,9 +19,9 @@ class GrbbsApi:
     def get_input(self, echo=True):
         """クライアントからの入力を一行受け取る"""
         if echo:
-            return self.hide_input()
-        else:
             return self._chan.process_input()
+        else:
+            return self.hide_input()
 
     def hide_input(self):
         """エコーバックなしでクライアントからの入力を一行受け取る"""

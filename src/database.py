@@ -1649,6 +1649,24 @@ def delete_passkey_by_id_and_user_id(passkey_id: int, user_id: int) -> bool:
     return passkeys.delete_by_id_and_user_id(passkey_id, user_id)
 
 
+def get_user_read_progress(user_id):
+    """ユーザの掲示板読み込み進捗を取得"""
+    return users.get_read_progress(user_id)
+
+
+def update_user_read_progress(user_id, read_progress_dict):
+    """ユーザの掲示板読み込み進捗を更新"""
+    return users.update_read_progress(user_id, read_progress_dict)
+
+
+def get_user_exploration_list(user_id):
+    return users.get_exploration_list(user_id)
+
+
+def set_user_exploration_list(user_id, exploration_list_str):
+    return users.set_exploration_list(user_id, exploration_list_str)
+
+
 def check_database_initialized():
     return initializer.check_initialized()
 

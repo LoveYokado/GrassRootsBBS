@@ -101,3 +101,7 @@ socket_timeout_seconds = 25
 article_wrap_width = 78
 # 返信本文の折り返し幅 (インデントを考慮)
 reply_wrap_width = 76
+
+[plugins]
+# プラグイン実行のタイムアウト時間（秒）
+execution_timeout = 60

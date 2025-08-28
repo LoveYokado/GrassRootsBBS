@@ -8,7 +8,7 @@ import logging
 import toml
 
 from .grbbs_api import GrbbsApi
-from . import database
+from . import database, util
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
@@ -118,8 +118,9 @@ def run_plugin(plugin_id, context):
     """
     指定されたIDのプラグインを実行する。
     """
-    # プラグインの実行時間にタイムアウトを設定 (例: 60秒)
-    TIMEOUT_SECONDS = 60
+    # config.tomlからタイムアウト値を取得、なければデフォルト60秒
+    plugins_config = util.app_config.get('plugins', {})
+    timeout_seconds = plugins_config.get('execution_timeout', 60)
 
     plugin_data = _loaded_plugins.get(plugin_id)
     if not plugin_data:
@@ -127,7 +128,7 @@ def run_plugin(plugin_id, context):
         return False
 
     logging.info(
-        f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {TIMEOUT_SECONDS}秒)...")
+        f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {timeout_seconds}秒)...")
 
     # プラグインに渡すコンテキストを再構築し、安全なAPIのみを公開する
     api = GrbbsApi(context['chan'])
@@ -140,14 +141,14 @@ def run_plugin(plugin_id, context):
     }
 
     try:
-        with Timeout(TIMEOUT_SECONDS):
+        with Timeout(timeout_seconds):
             plugin_data['module'].run(safe_context)
         logging.info(f"プラグイン '{plugin_data['name']}' の実行が完了しました。")
         return True
     except Timeout:
         logging.error(f"プラグイン '{plugin_data['name']}' がタイムアウトしました。実行を強制終了します。")
         api.send(
-            f"\r\nエラー: プログラムが時間内に応答しませんでした。({TIMEOUT_SECONDS}秒)\r\n".encode('utf-8'))
+            f"\r\nエラー: プログラムが時間内に応答しませんでした。({timeout_seconds}秒)\r\n".encode('utf-8'))
         return False
 
 

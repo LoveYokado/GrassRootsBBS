@@ -27,11 +27,17 @@ from . import database, util
 # 各関数内で設定を読み込むように変更します。
 
 
+def _get_rp_info():
+    """Relying Party (RP) のIDと名前を config.toml から取得するヘルパー関数"""
+    webapp_config = util.app_config.get('webapp', {})
+    rp_id = webapp_config.get('RP_ID', 'localhost')
+    rp_name = webapp_config.get('BBS_NAME', 'GR-BBS')
+    return rp_id, rp_name
+
+
 def generate_registration_options_for_user(user_id, username):
     """指定されたユーザーのPasskey登録オプションを生成する"""
-    webapp_config = util.app_config.get('webapp', {})
-    RP_ID = webapp_config.get('RP_ID', 'localhost')
-    RP_NAME = webapp_config.get('BBS_NAME', 'GR-BBS')
+    rp_id, rp_name = _get_rp_info()
 
     logging.info(
         f"ユーザー '{username}' (ID: {user_id}) のPasskey登録オプションを生成します。")
@@ -43,8 +49,8 @@ def generate_registration_options_for_user(user_id, username):
     ]
 
     options = generate_registration_options(
-        rp_id=RP_ID,
-        rp_name=RP_NAME,
+        rp_id=rp_id,
+        rp_name=rp_name,
         user_id=str(user_id).encode('utf-8'),
         user_name=username,
         user_display_name=username,
@@ -61,8 +67,7 @@ def generate_registration_options_for_user(user_id, username):
 
 def verify_registration_for_user(user_id, credential, expected_challenge, expected_origin, nickname):
     """ユーザーからの登録レスポンスを検証し、成功すればDBに保存する"""
-    webapp_config = util.app_config.get('webapp', {})
-    RP_ID = webapp_config.get('RP_ID', 'localhost')
+    rp_id, _ = _get_rp_info()
 
     # 末尾のスラッシュを削除してオリジンを正規化
     normalized_origin = expected_origin.rstrip('/')
@@ -78,7 +83,7 @@ def verify_registration_for_user(user_id, credential, expected_challenge, expect
             credential=webauthn_credential,
             expected_challenge=expected_challenge,
             expected_origin=normalized_origin,
-            expected_rp_id=RP_ID,
+            expected_rp_id=rp_id,
             require_user_verification=False,  # PREFERREDなので必須ではない
         )
 
@@ -107,8 +112,7 @@ def verify_registration_for_user(user_id, credential, expected_challenge, expect
 
 def generate_authentication_options_for_user(username):
     """指定されたユーザーのPasskey認証オプションを生成する"""
-    webapp_config = util.app_config.get('webapp', {})
-    RP_ID = webapp_config.get('RP_ID', 'localhost')
+    rp_id, _ = _get_rp_info()
 
     user = database.get_user_auth_info(username)
     if not user:
@@ -119,7 +123,7 @@ def generate_authentication_options_for_user(username):
         return None
 
     options = generate_authentication_options(
-        rp_id=RP_ID,
+        rp_id=rp_id,
         allow_credentials=[
             PublicKeyCredentialDescriptor(
                 type=PublicKeyCredentialType.PUBLIC_KEY, id=pk["credential_id"])
@@ -133,8 +137,7 @@ def generate_authentication_options_for_user(username):
 
 def verify_authentication_for_user(credential, expected_challenge, expected_origin):
     """ユーザーからの認証レスポンスを検証し、成功すればユーザー情報を返す"""
-    webapp_config = util.app_config.get('webapp', {})
-    RP_ID = webapp_config.get('RP_ID', 'localhost')
+    rp_id, _ = _get_rp_info()
 
     # 末尾のスラッシュを削除してオリジンを正規化
     normalized_origin = expected_origin.rstrip('/')
@@ -154,7 +157,7 @@ def verify_authentication_for_user(credential, expected_challenge, expected_orig
             credential=auth_credential,
             expected_challenge=expected_challenge,
             expected_origin=normalized_origin,
-            expected_rp_id=RP_ID,
+            expected_rp_id=rp_id,
             credential_public_key=db_passkey['public_key'],
             credential_current_sign_count=db_passkey['sign_count'],
             require_user_verification=False,
