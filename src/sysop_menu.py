@@ -29,12 +29,11 @@ def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
         '': lambda *args: "back_to_top",  # 空入力でメニュー終了
     }
 
-    mail_notified_flag = False  # シスオペメニュー内での通知状態を管理
     while True:
         util.send_text_by_key(chan, "sysop_menu.menu", current_menu_mode)
         # プロンプト前の定型処理。通知フラグを渡して、更新されたフラグを受け取る
-        _, mail_notified_flag = util.prompt_handler(
-            chan, sysop_login_id, current_menu_mode, mail_notified_flag)
+        util.prompt_handler(
+            chan, sysop_login_id, current_menu_mode)
         util.send_text_by_key(chan, "common_messages.select_prompt",
                               current_menu_mode, add_newline=False)  # プロンプト表示
         input_buffer = chan.process_input()
@@ -210,7 +209,7 @@ def user_register(chan, _sysop_login_id, current_menu_mode):
             return None
 
         user_id = user_id_input.strip().upper()
-        chan.send(f"\"{user_id_input}\"\r\n")
+        chan.send(f"\"{user_id_input}\"\r\n".encode('utf-8'))
         util.send_text_by_key(
             chan, "sysop_menu.user_register.confirm_yn", current_menu_mode, add_newline=False)
         confirm_id = chan.process_input()
@@ -261,7 +260,7 @@ def user_register(chan, _sysop_login_id, current_menu_mode):
         if prof_input is None:
             return None
         profile = prof_input.strip()
-        chan.send(f"\"{profile}\"\r\n")
+        chan.send(f"\"{profile}\"\r\n".encode('utf-8'))
 
         util.send_text_by_key(
             chan, "sysop_menu.user_register.confirm_yn", current_menu_mode, add_newline=False)
@@ -777,7 +776,7 @@ def delete_board(chan, _sysop_login_id, current_menu_mode):
         board_name_to_display = board_db_entry['name'] if board_db_entry and 'name' in board_db_entry.keys(
         ) else shortcut_id_to_delete
         chan.send(
-            f"\"{board_name_to_display}\" (ID: {shortcut_id_to_delete})\r\n")
+            f"\"{board_name_to_display}\" (ID: {shortcut_id_to_delete})\r\n".encode('utf-8'))
         util.send_text_by_key(chan, "sysop_menu.delete_board.confirm_yn", current_menu_mode,
                               board_name=board_name_to_display, add_newline=False)
         confirm_choice = chan.process_input()

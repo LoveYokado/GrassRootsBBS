@@ -584,7 +584,7 @@ def display_mail_header(chan, mail_data, view_mode='inbox', mail_id_width=5):
     """指定されたメールのヘッダ情報（1行）を表示する"""
     header_line = format_mail_header_str(mail_data, view_mode, mail_id_width)
     if header_line:
-        chan.send(header_line + "\r\n")
+        chan.send((header_line + "\r\n").encode('utf-8'))
 
 
 def display_mail_content(chan, mail_data, recipient_user_id_pk, view_mode='inbox', menu_mode='2'):
@@ -659,7 +659,7 @@ def _get_recipients(chan, menu_mode):
         current_recipient_comment = userdata[
             'comment'] if userdata['comment'] else "(No comment)"
 
-        chan.send(f"\"{current_recipient_comment}\"\r\n")
+        chan.send(f"\"{current_recipient_comment}\"\r\n".encode('utf-8'))
         util.send_text_by_key(
             chan, "mail_handler.recipient_yn", menu_mode, add_newline=False
         )
@@ -756,8 +756,8 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
     util.send_text_by_key(chan, "mail_handler.subject",
                           menu_mode, subject=subject)
     util.send_text_by_key(chan, "mail_handler.body", menu_mode)
-    for line in body.split('\r\n'):
-        chan.send(f"{line}\r\n")
+    for line in body.splitlines():
+        chan.send(f"{line}\r\n".encode('utf-8'))
 
     util.send_text_by_key(
         chan, "mail_handler.confirm_send_yn", menu_mode, add_newline=False)

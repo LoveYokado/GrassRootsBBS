@@ -29,14 +29,14 @@ def _display_manual_menu(chan, menu_data, current_menu_mode):
 
         if isinstance(display_text_source, dict):
             mode_key = f"mode_{current_menu_mode}"
-            if mode_key in display_text_source:
-                actual_display_text = display_text_source[mode_key]
-            else:  # 対象モードのテキストがない場合はmode1のテキストを表示
-                actual_display_text = display_text_source.get(
-                    "mode_1", f"mode{current_menu_mode}のテキストが見つからないので、mode1のテキストを表示します。")
-                if actual_display_text.startswith("Error:"):
+            # 現在のモードのテキストを取得。なければmode_1にフォールバック。
+            actual_display_text = display_text_source.get(mode_key)
+            if actual_display_text is None:
+                actual_display_text = display_text_source.get("mode_1", "")
+                if not actual_display_text:
                     logging.warning(
-                        f"Menu display text for mode '{current_menu_mode}' not found. Falling back or error.")
+                        f"Menu display text not found for mode '{current_menu_mode}' or '1'.")
+                    actual_display_text = "Menu text not found."
         elif isinstance(display_text_source, str):
             actual_display_text = display_text_source
         else:
@@ -45,6 +45,9 @@ def _display_manual_menu(chan, menu_data, current_menu_mode):
             util.send_text_by_key(
                 chan, "common_messages.error", current_menu_mode)
             return
+
+        if actual_display_text is None:
+            actual_display_text = ""
 
         processed_text = actual_display_text.replace(
             '\r\n', '\n').replace('\n', '\r\n')
@@ -146,7 +149,6 @@ def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: s
                 if menu_stack:
                     current_menu_id = menu_stack.pop()
                 else:
-                    # スタック画からの場合
                     if menu_type == "bbs":
                         return "exit_bbs_menu"
                     elif menu_type == "chat":
@@ -159,8 +161,6 @@ def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: s
                 return "exit_chat_menu"
             elif action_type == "exit_to_top":
                 return "back_to_top"
-            # 追加はここに
-            # 未定義のアクション
             else:
                 logging.error(
                     f"未定義または未定義のアクションタイプ({action_type})が指定されました: {current_menu_id}")

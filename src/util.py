@@ -439,12 +439,21 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
         return False
 
 
-def prompt_handler(chan, login_id, menu_mode='2', mail_notified_flag=False):
+def prompt_handler(chan, login_id, menu_mode='2'):
     """ 定型実行のまとめ """
     from . import database
-    # dbname引数は互換性のために残すが、使用しない
+
+    # 通知状態をセッションハンドラから取得
+    mail_notified_flag = getattr(
+        chan.handler, 'mail_notified_this_session', False)
+
     updated_mail_notified_flag = check_new_mail(
         chan, login_id, menu_mode, mail_notified_flag)
+
+    # 更新された通知状態をセッションハンドラに保存
+    if hasattr(chan.handler, 'mail_notified_this_session'):
+        chan.handler.mail_notified_this_session = updated_mail_notified_flag
+
     telegram_recieve(chan, login_id, menu_mode)
     server_prefs = database.read_server_pref()
     return server_prefs, updated_mail_notified_flag
@@ -622,8 +631,8 @@ def check_new_mail(chan, username, current_menu_mode, notified_in_session):
         if notification_message_format:
             message_payload = notification_message_format.format(
                 total_mail_count=total_mail_count, unread_mail_count=unread_count)
-            chan.send(b"\033[s\r\n\r" + message_payload.replace('\n',
-                      '\r\n').encode('utf-8') + b"\r\n\033[u")
+            chan.send(message_payload.replace(
+                '\n', '\r\n').encode('utf-8') + b'\r\n')
             return True  # 通知したのでフラグをオン(True)にする
         else:
             logging.warning(

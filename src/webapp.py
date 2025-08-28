@@ -586,10 +586,9 @@ class WebTerminalHandler:
 
             while self.main_thread_active:
                 # プロンプト前の定型処理 (メール/電報通知)
-                _, self.mail_notified_this_session = util.prompt_handler(
+                server_pref_dict, _ = util.prompt_handler(
                     self.channel, self.user_session.get('username'),
-                    self.user_session.get(
-                        'menu_mode', '2'), self.mail_notified_this_session
+                    self.user_session.get('menu_mode', '2')
                 )
 
                 context = {
