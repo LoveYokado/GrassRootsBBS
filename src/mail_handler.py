@@ -287,7 +287,6 @@ class MailViewer:
             return
 
         selected_mail_data = self.mails[self.current_index]
-        selected_mail_id = selected_mail_data['id']
 
         is_deleted = False
         try:
@@ -305,7 +304,7 @@ class MailViewer:
         else:
             # 本文表示
             success, _ = display_mail_content(
-                self.chan, selected_mail_id, self.user_id, self.view_mode, self.menu_mode)
+                self.chan, selected_mail_data, self.user_id, self.view_mode, self.menu_mode)
             if not success:
                 util.send_text_by_key(
                     self.chan, "common_messages.error", self.menu_mode)
@@ -541,7 +540,7 @@ def mail(chan, login_id, menu_mode):
                     if read_choice == 'y':
                         # 本文表示と既読化
                         success, _ = display_mail_content(
-                            chan, oldest_unread_mail['id'], user_id, 'inbox', menu_mode)
+                            chan, oldest_unread_mail, user_id, 'inbox', menu_mode)
                         if not success:
                             util.send_text_by_key(
                                 chan, "common_messages.error", menu_mode)
@@ -588,18 +587,16 @@ def display_mail_header(chan, mail_data, view_mode='inbox', mail_id_width=5):
         chan.send(header_line + "\r\n")
 
 
-def display_mail_content(chan, mail_id, recipient_user_id_pk, view_mode='inbox', menu_mode='2'):
+def display_mail_content(chan, mail_data, recipient_user_id_pk, view_mode='inbox', menu_mode='2'):
     """メールの内容を表示し、既読にする。成功/失敗(bool)と既読変更(bool)を返す"""
     try:
-        # mail_results はリストではなく辞書(1件)を期待
-        mail_data = database.execute_query(
-            "SELECT * FROM mails WHERE id = %s", (mail_id,), fetch='one')
         if not mail_data:
             util.send_text_by_key(
                 chan, "mail_handler.no_mails", menu_mode
             )  # メールが見つかりません
             return False, False
 
+        mail_id = mail_data['id']  # Get mail_id from the data
         body = mail_data['body'] if mail_data['body'] else "(本文なし)"
 
         # ユーザーが入力した改行を維持しつつ、長い行を折り返す
@@ -627,7 +624,7 @@ def display_mail_content(chan, mail_id, recipient_user_id_pk, view_mode='inbox',
         return True, marked_as_read
 
     except Exception as e:
-        logging.error(f"メール内容表示中にエラー (ID: {mail_id}): {e}")
+        logging.error(f"メール内容表示中にエラー (ID: {mail_data.get('id', 'N/A')}): {e}")
         return False, False
 
 
