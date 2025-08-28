@@ -1,4 +1,21 @@
 # ./config.toml
+# ==============================================================================
+# GrassRootsBBS Main Configuration File
+#
+# This file contains the primary settings for the GrassRootsBBS application.
+# Settings are organized into sections (e.g., [webapp], [security]).
+# Changes to this file often require a server restart to take effect.
+#
+# ==============================================================================
+#
+# ==============================================================================
+# GrassRootsBBS メイン設定ファイル
+#
+# このファイルは、GrassRootsBBSアプリケーションの主要な設定を格納します。
+# 設定はセクション（例: [webapp], [security]）ごとに整理されています。
+# このファイルを変更した場合、多くはサーバーの再起動が必要です。
+#
+# ==============================================================================
 
 title = "BicliModel Configuration"
 

@@ -1,3 +1,19 @@
+# ==============================================================================
+# Admin Panel Routes
+#
+# This file defines all the web routes for the GrassRootsBBS administration
+# panel. It uses a Flask Blueprint to organize these routes into a distinct
+# group, which is then registered with the main Flask application.
+# ==============================================================================
+#
+# ==============================================================================
+# 管理画面ルート定義
+#
+# このファイルは、GrassRootsBBS管理画面の全てのWebルートを定義します。
+# Flaskのブループリント機能を使用してこれらのルートをグループ化し、
+# メインのFlaskアプリケーションに登録します。
+# ==============================================================================
+
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g
 from ..decorators import sysop_required
 import json
@@ -10,13 +26,14 @@ import psutil
 import toml
 import shutil
 
-# ブループリントを作成
-# 'admin' はブループリントの名前
-# __name__ はPythonのおまじない
+# --- Blueprint Definition / ブループリントの定義 ---
+# 'admin' という名前のブループリントを作成します。これにより、管理画面のルートをモジュール化できます。
+# All routes defined in this file will be prefixed with /admin.
+# このファイルで定義される全てのルートは /admin プレフィックスが付きます。
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
-# バックアップディレクトリの設定
+# --- Backup Directory Configuration / バックアップディレクトリ設定 ---
 BACKUP_DIR = os.path.abspath(os.path.join(
     os.path.dirname(__file__), '..', '..', 'data', 'backups'))
 os.makedirs(BACKUP_DIR, exist_ok=True)
@@ -24,8 +41,10 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 
 def _process_texts_for_mode(node, menu_mode):
     """
-    YAMLから読み込んだ辞書を再帰的に処理し、指定されたmenu_modeのテキストだけを抽出する。
-    これにより、テンプレート側では g.texts.dashboard.title のようにシンプルにアクセスできる。
+    YAMLから読み込んだ辞書を再帰的に処理し、指定されたmenu_modeのテキストだけを抽出します。
+    これにより、テンプレート側では g.texts.dashboard.title のようにシンプルにアクセスできます。
+
+    Recursively processes a dictionary loaded from YAML to extract text for the specified menu_mode.
     """
     if isinstance(node, dict):
         # 'mode1', 'mode2', 'mode3' のようなキーを持つ末端の辞書かチェック
@@ -40,16 +59,23 @@ def _process_texts_for_mode(node, menu_mode):
 
 @admin_bp.before_request
 def load_admin_texts():
-    """管理画面へのリクエストの前に、ユーザーの言語設定に応じたテキストをロードする"""
+    """
+    管理画面への各リクエストの前に、ユーザーの言語設定に応じたテキストをロードします。
+    ロードされたテキストは、リクエスト中のみ有効なグローバル変数 `g.texts` に格納されます。
+
+    Before each request to the admin panel, load texts corresponding to the user's language setting.
+    The loaded texts are stored in `g.texts`, a global variable available only during the request.
+    """
     menu_mode = session.get('menu_mode', '3')  # デフォルトは英語モード
-    all_admin_texts = util.load_master_text_data().get('admin', {})
-    g.texts = _process_texts_for_mode(all_admin_texts, menu_mode)
+    # adminセクションのテキストをロードし、指定されたmenu_modeのテキストを抽出
+    g.texts = _process_texts_for_mode(
+        util.load_master_text_data().get('admin', {}), menu_mode)
 
 
 @admin_bp.route('/')
 @sysop_required
 def dashboard():
-    """管理画面のダッシュボード"""
+    """管理画面のダッシュボードを表示します。"""
     # 循環参照を避けるため、関数内でインポートします
     from .. import webapp
     # オンラインメンバーの数を取得
@@ -111,7 +137,7 @@ def dashboard():
 @admin_bp.route('/who')
 @sysop_required
 def who_online():
-    """オンラインユーザーの詳細一覧ページ"""
+    """オンラインユーザーの詳細一覧ページを表示します。"""
     # 循環参照を避けるため、関数内でwebappをインポートします
     from .. import webapp
     online_members_raw = webapp.get_webapp_online_members()
@@ -156,7 +182,7 @@ def who_online():
 @admin_bp.route('/who/kick/<sid>', methods=['POST'])
 @sysop_required
 def kick_user(sid):
-    """指定されたSIDのユーザーをキックする"""
+    """指定されたSIDのユーザーセッションを強制的に切断します。"""
     # webappモジュールからキック関数を呼び出す
     from .. import webapp
 
@@ -177,7 +203,7 @@ def kick_user(sid):
 @admin_bp.route('/users')
 @sysop_required
 def user_list():
-    """ユーザー一覧ページ"""
+    """ユーザー一覧ページを表示します。"""
     # クエリパラメータからソート順と検索語を取得
     sort_by = request.args.get('sort_by', 'id')
     order = request.args.get('order', 'asc')
@@ -196,7 +222,7 @@ def user_list():
 @admin_bp.route('/users/new', methods=['GET', 'POST'])
 @sysop_required
 def new_user():
-    """新規ユーザー作成ページ"""
+    """新規ユーザー作成ページを表示し、作成処理を行います。"""
     if request.method == 'POST':
         username = request.form.get('name', '').strip().upper()
         password = request.form.get('password')
@@ -232,7 +258,7 @@ def new_user():
 @admin_bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_user(user_id):
-    """ユーザー編集ページ"""
+    """ユーザー編集ページを表示し、更新処理を行います。"""
     user = database.get_user_by_id(user_id)
     if not user:
         flash(f"User with ID {user_id} not found.", 'danger')
@@ -267,7 +293,7 @@ def edit_user(user_id):
 @admin_bp.route('/users/delete/<int:user_id>', methods=['POST'])
 @sysop_required
 def delete_user(user_id):
-    """ユーザーを削除する"""
+    """指定されたユーザーをデータベースから削除します。"""
     user_to_delete = database.get_user_by_id(user_id)
 
     if not user_to_delete:
@@ -296,7 +322,7 @@ def delete_user(user_id):
 @admin_bp.route('/boards')
 @sysop_required
 def board_list():
-    """掲示板一覧ページ"""
+    """掲示板一覧ページを表示します。"""
     # クエリパラメータからソート順と検索語を取得
     sort_by = request.args.get('sort_by', 'shortcut_id')
     order = request.args.get('order', 'asc')
@@ -351,7 +377,7 @@ def board_list():
 @admin_bp.route('/boards/new', methods=['GET', 'POST'])
 @sysop_required
 def new_board():
-    """新規掲示板作成ページ"""
+    """新規掲示板作成ページを表示し、作成処理を行います。"""
     if request.method == 'POST':
         # フォームからデータを取得
         shortcut_id = request.form.get('shortcut_id', '').strip()
@@ -407,7 +433,7 @@ def new_board():
 @admin_bp.route('/boards/edit/<int:board_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_board(board_id):
-    """掲示板編集ページ"""
+    """掲示板編集ページを表示し、更新処理を行います。"""
     board = database.get_board_by_id(board_id)
     if not board:
         flash(f"Board with ID {board_id} not found.", 'danger')
@@ -539,7 +565,7 @@ def edit_board(board_id):
 @admin_bp.route('/boards/delete/<int:board_id>', methods=['POST'])
 @sysop_required
 def delete_board(board_id):
-    """掲示板を削除する"""
+    """指定された掲示板と関連するすべての記事を削除します。"""
     board_to_delete = database.get_board_by_id(board_id)
 
     if not board_to_delete:
@@ -558,7 +584,7 @@ def delete_board(board_id):
 @admin_bp.route('/articles', methods=['GET'])
 @sysop_required
 def article_search():
-    """記事検索ページ"""
+    """記事検索ページを表示し、検索結果を返します。"""
     keyword = request.args.get('q', '')
     author_name = request.args.get('author', '')
 
@@ -605,7 +631,7 @@ def article_search():
 @admin_bp.route('/articles/delete/<int:article_id>', methods=['POST'])
 @sysop_required
 def delete_article(article_id):
-    """記事を削除する（論理削除）"""
+    """記事の削除フラグをトグルします（論理削除/復元）。"""
     article = database.get_article_by_id(article_id)
     if not article:
         flash(f"Article ID {article_id} not found.", 'danger')
@@ -629,7 +655,7 @@ def delete_article(article_id):
 @admin_bp.route('/articles/bulk-action', methods=['POST'])
 @sysop_required
 def bulk_action_articles():
-    """記事の一括操作（削除/復元）"""
+    """選択された複数の記事を一括で論理削除または復元します。"""
     action = request.form.get('action')
     selected_ids_str = request.form.getlist('selected_articles')
 
@@ -661,7 +687,7 @@ def bulk_action_articles():
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @sysop_required
 def system_settings():
-    """システム設定ページ"""
+    """システム全体のアクセスレベルなどの設定ページを表示し、更新処理を行います。"""
     pref_names = ['bbs', 'chat', 'mail', 'telegram', 'userpref',
                   'who', 'default_exploration_list', 'hamlet', 'login_message']
 
@@ -703,7 +729,7 @@ def system_settings():
 @admin_bp.route('/backup', methods=['GET', 'POST'])
 @sysop_required
 def backup_management():
-    """バックアップ管理ページを表示する"""
+    """バックアップの管理ページを表示し、スケジュールの保存も処理します。"""
     if request.method == 'POST':
         # スケジュール保存リクエストを処理
         if request.form.get('action') == 'save_schedule':
@@ -743,7 +769,7 @@ def backup_management():
 @admin_bp.route('/backup/create', methods=['POST'])
 @sysop_required
 def create_backup_route():
-    """新しいバックアップを作成する"""
+    """手動で新しいバックアップを作成するルートです。"""
     try:
         # バックアップ作成処理を呼び出す
         filename = backup_util.create_backup()
@@ -761,7 +787,7 @@ def create_backup_route():
 @admin_bp.route('/backup/download/<path:filename>')
 @sysop_required
 def download_backup(filename):
-    """バックアップファイルをダウンロードする"""
+    """指定されたバックアップファイルをダウンロードさせます。"""
     # send_from_directory はディレクトリトラバーサル攻撃から保護してくれます
     return send_from_directory(BACKUP_DIR, filename, as_attachment=True)
 
@@ -769,7 +795,7 @@ def download_backup(filename):
 @admin_bp.route('/backup/delete/<path:filename>', methods=['POST'])
 @sysop_required
 def delete_backup(filename):
-    """バックアップファイルを削除する"""
+    """指定されたバックアップファイルをサーバーから削除します。"""
     try:
         filepath = os.path.join(BACKUP_DIR, filename)
         # パストラバーサル攻撃のチェック
@@ -791,7 +817,7 @@ def delete_backup(filename):
 @admin_bp.route('/backup/restore/<path:filename>', methods=['POST'])
 @sysop_required
 def restore_from_backup(filename):
-    """バックアップファイルからリストアを実行する"""
+    """指定されたバックアップファイルからデータをリストアし、サーバーを再起動します。"""
     try:
         # リストア処理を呼び出す
         success = backup_util.restore_from_backup(filename)
@@ -818,7 +844,7 @@ def restore_from_backup(filename):
 @admin_bp.route('/wipe-data', methods=['POST'])
 @sysop_required
 def wipe_all_data():
-    """すべてのBBSデータを削除し、初期状態に戻す"""
+    """すべてのBBSデータを削除し、データベースを再初期化してサーバーを再起動します。"""
     try:
         # 重要な操作なので、セッションのユーザーが本当にシスオペか再確認
         if session.get('userlevel', 0) < 5:
@@ -848,7 +874,7 @@ def wipe_all_data():
 @admin_bp.route('/plugins')
 @sysop_required
 def plugin_management():
-    """プラグイン管理ページ"""
+    """インストールされているプラグインの一覧と状態を表示します。"""
     all_plugins = plugin_manager.get_all_available_plugins()
     return render_template('admin/plugin_list.html', title='Plugin Management', plugins=all_plugins)
 
@@ -856,7 +882,7 @@ def plugin_management():
 @admin_bp.route('/plugins/toggle', methods=['POST'])
 @sysop_required
 def toggle_plugin_status():
-    """プラグインの有効/無効を切り替える"""
+    """指定されたプラグインの有効/無効状態をデータベースに保存します。"""
     plugin_id = request.form.get('plugin_id')
     action = request.form.get('action')
 
@@ -878,7 +904,7 @@ def toggle_plugin_status():
 @admin_bp.route('/config-editor', methods=['GET', 'POST'])
 @sysop_required
 def config_editor():
-    """設定ファイル(config.toml)エディタ"""
+    """config.tomlファイルをWeb UIから直接編集・保存する機能を提供します。"""
     config_path = os.path.join(
         backup_util.PROJECT_ROOT, 'setting', 'config.toml')
 
@@ -920,7 +946,7 @@ def config_editor():
 @admin_bp.route('/broadcast', methods=['POST'])
 @sysop_required
 def broadcast():
-    """オンラインユーザーにブロードキャストメッセージを送信する"""
+    """オンライン中の全ユーザーに電報機能を使ってメッセージを一斉送信します。"""
     message = request.form.get('message', '').strip()
 
     if not message:
@@ -960,7 +986,7 @@ def broadcast():
 @admin_bp.route('/restart', methods=['POST'])
 @sysop_required
 def restart_server():
-    """サーバーを再起動する"""
+    """Gunicornワーカープロセスを終了させ、Dockerによる再起動を促します。"""
     flash_message = g.texts.get('system_actions', {}).get(
         'flash_restarting', 'Server is restarting... Please reload the page to reconnect.')
     flash(flash_message, 'warning')
@@ -982,7 +1008,7 @@ def restart_server():
 @admin_bp.route('/access-log')
 @sysop_required
 def access_log_viewer():
-    """アクセスログをデータベースから取得して表示する"""
+    """データベースに記録されたアクセスログを検索・表示します。"""
     # 検索フォームからのパラメータを取得
     search_ip = request.args.get('ip', '')
     search_user = request.args.get('user', '')
