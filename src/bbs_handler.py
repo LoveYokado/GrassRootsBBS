@@ -1,13 +1,13 @@
 # bbs_handler.py (骨格)
 import logging
 import socket
+import datetime
+import json
 import textwrap
 import re
 import base64
-import datetime
-import json
 
-from . import util, hierarchical_menu, bbs_manager, database
+from . import util, hierarchical_menu, bbs_manager, database, manual_menu_handler
 
 # CommandHandler: ユーザー入力に応じたコマンド処理
 
@@ -1869,30 +1869,46 @@ def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_add
             util.send_text_by_key(
                 chan, "bbs.board_not_found", menu_mode, shortcut_id=shortcut_id)
     else:
-        # 指定がなければ、カテゴリ選択 or 掲示板一覧表示からの遷移
-        # hierarchical_menu を使って掲示板を選択させる
-        paths_config = util.app_config.get('paths', {})
-        # server.py の bbs コマンド処理と合わせ、mode3用のyamlを参照する
-        bbs_config_path = paths_config.get('bbs_mode3_yaml')
-        logging.info(
-            f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
-        # モバイル用の操作ボタンを表示
-        chan.send(b'\x1b[?2028h')
-        try:
-            selected_item = hierarchical_menu.handle_hierarchical_menu(
-                chan, bbs_config_path, menu_mode, menu_type="BBS", enrich_boards=True
-            )
-            logging.info(
-                f"bbs_handler: hierarchical_menu.handle_hierarchical_menu returned: {selected_item}")
-        finally:
-            # メニューを抜けたら必ずボタンを非表示にする
-            chan.send(b'\x1b[?2028l')
+        # ショートカットIDがない場合、メニューモードに応じて分岐
+        if menu_mode == '1':
+            # モード1の場合は手書きメニューを呼び出す
+            paths_config = util.app_config.get('paths', {})
+            manual_bbs_config_path = paths_config.get('bbs_mode1_yaml')
+            if not manual_bbs_config_path:
+                logging.error("bbs_mode1.yaml のパスが設定されていません。")
+                util.send_text_by_key(chan, "common_messages.error", menu_mode)
+                return "back_to_top"
 
-        if selected_item and selected_item.get("type") == "board":
-            shortcut_id_selected = selected_item.get("id")
-            # 再度 handle_bbs_menu を呼び出すか、直接 CommandHandler の処理を続ける
-            # ショートカット時と同様に、IPアドレスも渡す
-            return handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id_selected, ip_address)
-        # else: 選択されなかったか、boardタイプではなかった場合。handle_hierarchical_menu内でメッセージ表示済みのはず。
-        # hierarchical_menu から戻ってきた場合は、通常トップメニュー表示で問題ない想定
-        return "back_to_top"
+            # manual_menu_handler を呼び出す
+            selected_board_id = manual_menu_handler.process_manual_menu(
+                chan, login_id, menu_mode, manual_bbs_config_path, "main_bbs_menu", "bbs"
+            )
+
+            if selected_board_id and selected_board_id not in ["exit_bbs_menu", "back_to_top", None]:
+                # ボードIDが返ってきたら、そのボードに移動
+                return handle_bbs_menu(chan, login_id, display_name, menu_mode, selected_board_id, ip_address)
+            else:
+                # メニュー終了または切断
+                return "back_to_top"
+        else:  # モード2, 3 の場合
+            # 既存の階層メニュー処理
+            paths_config = util.app_config.get('paths', {})
+            bbs_config_path = paths_config.get('bbs_mode3_yaml')
+            logging.info(
+                f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
+            # モバイル用の操作ボタンを表示
+            chan.send(b'\x1b[?2028h')
+            try:
+                selected_item = hierarchical_menu.handle_hierarchical_menu(
+                    chan, bbs_config_path, menu_mode, menu_type="BBS", enrich_boards=True
+                )
+                logging.info(
+                    f"bbs_handler: hierarchical_menu.handle_hierarchical_menu returned: {selected_item}")
+            finally:
+                # メニューを抜けたら必ずボタンを非表示にする
+                chan.send(b'\x1b[?2028l')
+
+            if selected_item and selected_item.get("type") == "board":
+                shortcut_id_selected = selected_item.get("id")
+                return handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id_selected, ip_address)
+            return "back_to_top"

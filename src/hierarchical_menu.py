@@ -4,7 +4,7 @@ import yaml
 from . import util, database
 
 
-class HierarchicalMenu:
+class MenuEngine:
     def __init__(self, chan, config_path, menu_mode, menu_type, enrich_boards=False):
         self.chan = chan
         self.config_path = config_path
@@ -54,14 +54,14 @@ class HierarchicalMenu:
 
     def _display_menu(self, items):
         """現在のメニュー項目を表示する"""
-        for item in items:
+        for i, item in enumerate(items):
             item_name = item.get('name', 'No name')
             item_description = item.get('description', '')
             display_description = item_description if item_description else ''
             description_lines = display_description.splitlines()
 
             self.chan.send(
-                f"{item['number']}: {item_name}\r\n".encode('utf-8'))
+                f"[{i+1}] {item_name}\r\n".encode('utf-8'))
 
             if description_lines:
                 indent_spaces = " " * 6
@@ -98,12 +98,12 @@ class HierarchicalMenu:
             return "back"
 
         try:
-            choice = int(user_input)
-            for item in items:
-                if item.get("number") == choice:
-                    return item
-            self.chan.send("選択された項目は存在しません。\r\n".encode('utf-8'))
-            return "continue"
+            choice_index = int(user_input) - 1
+            if 0 <= choice_index < len(items):
+                return items[choice_index]
+            else:
+                self.chan.send("選択された項目は存在しません。\r\n".encode('utf-8'))
+                return "continue"
         except ValueError:
             self.chan.send("入力された値は数値でありません。\r\n".encode('utf-8'))
             return "continue"
@@ -153,6 +153,6 @@ class HierarchicalMenu:
 
 def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, menu_type: str, enrich_boards: bool = False):
     """階層メニューを処理するためのラッパー関数"""
-    menu = HierarchicalMenu(chan, config_path, menu_mode,
-                            menu_type, enrich_boards)
+    menu = MenuEngine(chan, config_path, menu_mode,
+                      menu_type, enrich_boards)
     return menu.run()
