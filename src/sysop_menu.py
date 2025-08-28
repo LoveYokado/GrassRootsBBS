@@ -2,6 +2,7 @@ import logging
 import datetime
 import os
 import secrets
+import json
 
 from . import util, database
 
@@ -821,6 +822,16 @@ def list_boards(chan, _sysop_login_id, current_menu_mode):
         name_str = board['name']
         name_str = (name_str[:15] + "...") if len(name_str) > 16 else name_str
         operators_str = board['operators']
+        # オペレーターIDのJSON文字列をパースし、ユーザー名に変換して表示
+        display_operators = ""
+        try:
+            operator_ids = json.loads(operators_str)
+            operator_names_map = database.get_user_names_from_user_ids(
+                operator_ids)
+            display_operators = ", ".join(
+                [operator_names_map.get(uid, f"ID:{uid}") for uid in operator_ids])
+        except (json.JSONDecodeError, TypeError):
+            display_operators = "(Parse Error)"
         default_permission_str = board['default_permission']
         status_str = board['status']
         read_level_str = str(board['read_level']
@@ -836,7 +847,7 @@ def list_boards(chan, _sysop_login_id, current_menu_mode):
                     last_posted_ts).strftime('%Y-%m-%d %H:%M')
             except (ValueError, OSError, TypeError):
                 last_posted_str = 'Invalid Date'
-        board_list_details += f"{shortcut_id_str:<15} {name_str:<18} {default_permission_str:<8} {read_level_str}/{write_level_str:<3} {status_str:<8} {last_posted_str:<16} {operators_str}\r\n"
+        board_list_details += f"{shortcut_id_str:<15} {name_str:<18} {default_permission_str:<8} {read_level_str}/{write_level_str:<3} {status_str:<8} {last_posted_str:<16} {display_operators}\r\n"
     chan.send(board_list_details.encode('utf-8'))
     chan.send(separator_line.encode('utf-8'))
     return None
