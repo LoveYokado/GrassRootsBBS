@@ -8,7 +8,7 @@
 
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
 
-    <link rel="manifest" href="{{ url_for('manifest') }}">
+    <link rel="manifest" href="{{ url_for('web.manifest') }}">
     <meta name="theme-color" content="#282c34">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1501,7 +1501,7 @@
         // Service Workerの登録
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register("{{ url_for('service_worker') }}")
+                navigator.serviceWorker.register("{{ url_for('web.service_worker') }}")
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -2461,10 +2461,10 @@
         socket.on('force_disconnect', (data) => {
             const message = (data && data.message) ? data.message : '[Connection closed by server]';
             term.writeln('\r\n\n' + message);
-            term.writeln('\r\nPress any key to return to the login screen...');
-            socket.disconnect();
+            term.writeln('\r\nPress any key or click to return to the login screen...');
+            socket.disconnect(); // サーバーとの接続を切る
             const redirectToLogout = () => {
-                window.location.href = "{{ url_for('logout') }}"
+                window.location.href = "{{ url_for('web.logout') }}"
             };
             document.addEventListener('keydown', redirectToLogout, { once: true });
             document.addEventListener('mousedown', redirectToLogout, { once: true });

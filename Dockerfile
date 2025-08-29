@@ -24,4 +24,4 @@ EXPOSE 5000
 # Gunicornを使ってWebアプリケーションを起動
 # geventワーカーはFlask-SocketIOと互換性がある
 
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "src.webapp:app"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "src.app:app"]

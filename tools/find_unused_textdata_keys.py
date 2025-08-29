@@ -106,13 +106,11 @@ def find_files_using_key(directory, key_to_find):
 def find_used_keys_in_directory(directory):
     """指定されたディレクトリ内の全Pythonファイルで使用されているtextdataキーを検索する"""
     all_used_keys = set()
-    # この関数はキー検索専用なので、ここでは使わない
-    for root, _, files in os.walk(directory):  # ディレクトリを再帰的に探索
+    for root, _, files in os.walk(directory):
         for file_name in files:
             if file_name.endswith(".py"):
                 file_path = os.path.join(root, file_name)
-                all_used_keys.update(find_used_keys_in_py_file(
-                    file_path))  # 各ファイルから使用キーを収集
+                all_used_keys.update(find_used_keys_in_py_file(file_path))
     return all_used_keys
 
 

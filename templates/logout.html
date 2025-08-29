@@ -49,7 +49,7 @@
 <body>
     <pre>{{ util.get_text_by_key('logoff.message', menu_mode) }}<div class="prompt">{{ util.get_text_by_key('logoff.prompt', menu_mode) }}</div></pre>
     <script>
-        function redirectToLogin() { window.location.href = "{{ url_for('login') }}"; }
+        function redirectToLogin() { window.location.href = "{{ url_for('web.login') }}"; }
         document.addEventListener('keydown', redirectToLogin, { once: true });
         document.addEventListener('mousedown', redirectToLogin, { once: true });
     </script>
