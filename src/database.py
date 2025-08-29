@@ -1807,3 +1807,37 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
 
 def apply_migrations():
     return initializer.apply_migrations()
+
+
+def init_app(app):
+    """
+    Flaskアプリケーションインスタンスを使用してデータベースを初期化します。
+    コネクションプールの設定、マイグレーションの適用、初回セットアップが含まれます。
+
+    Initializes the database using the Flask application instance.
+    This includes setting up the connection pool, applying migrations,
+    and performing initial setup.
+    """
+    # 1. 設定の読み込み (Load configuration)
+    db_config_from_file = app.config.get('DATABASE', {})
+    db_config = {
+        'host': os.getenv('DB_HOST', db_config_from_file.get('host', 'localhost')),
+        'user': os.getenv('DB_USER', db_config_from_file.get('user', 'grbbs_user')),
+        'password': os.getenv('DB_PASSWORD', db_config_from_file.get('password', 'password')),
+        'database': os.getenv('DB_NAME', db_config_from_file.get('name', 'grbbs')),
+        'charset': 'utf8mb4',
+        'collation': 'utf8mb4_general_ci',
+        'autocommit': False
+    }
+
+    # 2. コネクションプールの初期化 (Initialize connection pool)
+    init_connection_pool(pool_name="grbbs_pool",
+                         pool_size=5, db_config=db_config)
+
+    # 3. マイグレーションの適用 (Apply migrations)
+    apply_migrations()
+
+    # 4. 初回セットアップの確認と実行 (Check and run initial setup)
+    if not check_database_initialized():
+        from . import util  # 循環インポートを避ける
+        util.initialize_database_and_sysop()

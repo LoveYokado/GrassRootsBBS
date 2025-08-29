@@ -2796,7 +2796,7 @@
         async function registerNewPasskey() {
             let options;
             try {
-                const resp = await fetch('/passkey/register-options', {
+                const resp = await fetch("{{ url_for('web.passkey_register_options') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                 });
@@ -2847,7 +2847,7 @@
             };
 
             try {
-                const verificationResp = await fetch('/passkey/verify-registration', {
+                const verificationResp = await fetch("{{ url_for('web.passkey_verify_registration') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

@@ -248,7 +248,7 @@
             // サーバーから認証オプションを取得
             let options;
             try {
-                const resp = await fetch('/passkey/auth-options', {
+                const resp = await fetch("{{ url_for('web.passkey_auth_options') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: username }),
@@ -295,7 +295,7 @@
 
             // サーバーに検証をリクエスト
             try {
-                const verificationResp = await fetch('/passkey/verify-auth', {
+                const verificationResp = await fetch("{{ url_for('web.passkey_verify_auth') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ credential: authenticationResponse }),

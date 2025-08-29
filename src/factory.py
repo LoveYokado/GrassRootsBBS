@@ -61,7 +61,11 @@ def create_app():
     app.config.from_mapping(uppercase_config)
     app.config['PROJECT_ROOT'] = PROJECT_ROOT
 
-    # --- Middleware and Basic Config ---
+    # --- Middleware and Basic Configuration ---
+    # Apply ProxyFix to correctly handle headers from a reverse proxy (e.g., Nginx).
+    # This is crucial for getting the correct client IP address, protocol (http/https), etc.
+    # リバースプロキシ（例: Nginx）からのヘッダーを正しく処理するためにProxyFixを適用します。
+    # これにより、正しいクライアントIPアドレスやプロトコル（http/https）などを取得できます。
     app.wsgi_app = ProxyFix(
         app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     app.secret_key = secrets.token_hex(16)
@@ -97,34 +101,9 @@ def create_app():
     logging.getLogger().addHandler(error_handler)
     logging.getLogger().setLevel(logging.INFO)
 
-    # --- Database Initialization ---
-    db_config_from_file = app.config.get('DATABASE', {})
-    db_config = {
-        'host': os.getenv('DB_HOST', db_config_from_file.get('host', 'localhost')),
-        'user': os.getenv('DB_USER', db_config_from_file.get('user', 'grbbs_user')),
-        'password': os.getenv('DB_PASSWORD', db_config_from_file.get('password', 'password')),
-        'database': os.getenv('DB_NAME', db_config_from_file.get('name', 'grbbs')),
-        'charset': 'utf8mb4',
-        'collation': 'utf8mb4_general_ci',
-        'autocommit': False
-    }
-    database.init_connection_pool(
-        pool_name="grbbs_pool", pool_size=5, db_config=db_config)
-
-    if not database.initializer.check_initialized():
-        logging.info("Database not initialized. Running initial setup.")
-        sysop_id = os.getenv('GRASSROOTSBBS_SYSOP_ID')
-        sysop_password = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
-        sysop_email = os.getenv('GRASSROOTSBBS_SYSOP_EMAIL')
-
-        if not (sysop_id and sysop_password and sysop_email):
-            logging.critical(
-                "Initial startup requires GRASSROOTSBBS_SYSOP_ID, GRASSROOTSBBS_SYSOP_PASSWORD, and GRASSROOTSBBS_SYSOP_EMAIL environment variables.")
-        elif sysop_id and sysop_password and sysop_email:
-            database.initializer.initialize_and_sysop(
-                sysop_id, sysop_password, sysop_email)
-
-    database.apply_migrations()
+    # --- Database Initialization (encapsulated in database.init_app) ---
+    # データベース初期化（database.init_appにカプセル化）
+    database.init_app(app)
 
     # --- Initialize Other Extensions ---
     plugin_manager.load_plugins()

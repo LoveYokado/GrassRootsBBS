@@ -732,6 +732,32 @@ def prompt_and_save_exploration_list(chan, menu_mode: str, save_callback: callab
     return True
 
 
+def initialize_database_and_sysop():
+    """
+    Performs the initial database setup if it hasn't been done.
+    This includes creating tables and the initial SysOp user.
+    This function is called only when the database is detected as uninitialized.
+    データベースが未初期化の場合に、テーブル作成や初期シスオペユーザー作成などの
+    初回セットアップを実行します。
+    """
+    logging.info("Database not initialized. Running initial setup.")
+    sysop_id = os.getenv('GRASSROOTSBBS_SYSOP_ID')
+    sysop_password = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
+    sysop_email = os.getenv('GRASSROOTSBBS_SYSOP_EMAIL')
+
+    if not (sysop_id and sysop_password and sysop_email):
+        logging.critical(
+            "Initial startup requires GRASSROOTSBBS_SYSOP_ID, "
+            "GRASSROOTSBBS_SYSOP_PASSWORD, and GRASSROOTSBBS_SYSOP_EMAIL "
+            "environment variables. Server startup will be incomplete."
+        )
+    else:
+        # Import here to avoid circular dependency
+        from . import database
+        database.initializer.initialize_and_sysop(
+            sysop_id, sysop_password, sysop_email)
+
+
 def format_timestamp(timestamp, default_str='N/A', date_format='%Y-%m-%d %H:%M'):
     """
     Safely formats a UNIX timestamp into a human-readable date string.
