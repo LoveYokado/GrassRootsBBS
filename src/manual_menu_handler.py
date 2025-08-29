@@ -1,3 +1,24 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# Manual Menu Handler
+#
+# This module processes the manually defined, text-based menus, primarily
+# used for "Mode 1". It reads a YAML configuration file to build and navigate
+# a series of nested menus, ultimately leading to a specific action, such as
+# entering a BBS board.
+# ==============================================================================
+#
+# ==============================================================================
+# 手書きメニューハンドラ
+#
+# このモジュールは、主に「モード1」で使用される、手動で定義された
+# テキストベースのメニューを処理します。YAML設定ファイルを読み込んで、
+# 入れ子になった一連のメニューを構築・ナビゲートし、最終的にBBS掲示板への
+# 入室などの特定のアクションに繋げます。
+# ==============================================================================
+
 import yaml
 import logging
 
@@ -5,7 +26,7 @@ from . import util
 
 
 def _load_manual_menu_config(config_path: str):
-    """手書きメニュー設定を読み込む"""
+    """手書きメニューのYAML設定ファイルを読み込み、パースします。"""
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
@@ -22,7 +43,7 @@ def _load_manual_menu_config(config_path: str):
 
 
 def _display_manual_menu(chan, menu_data, current_menu_mode):
-    """display_text表示"""
+    """指定されたメニューデータの `display_text` をクライアントに送信します。"""
     if "display_text" in menu_data:
         display_text_source = menu_data["display_text"]
         actual_display_text = ""
@@ -62,12 +83,13 @@ def _display_manual_menu(chan, menu_data, current_menu_mode):
 
 def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: str, initial_menu_id: str, menu_type: str):
     """
-    手書きメニューを処理するメイン関数。
-    menu_type: "bbs" または "chat" など、最終的なアクションの種類を示す。
-    戻り値:
-        - BBSの場合: 選択された board_id (文字列)
-        - Chatの場合: 選択された room の action dict (例: {"type": "room", "room_id": "id", "room_name": "name"})
-        - メニュー終了の場合: "exit_bbs_menu", "exit_chat_menu" などの特別な文字列
+    手書きメニューを処理するメイン関数です。
+
+    :param menu_type: "bbs" または "chat" など、最終的なアクションの種類を示します。
+    :return:
+        - BBSの場合: 選択された `board_id` (文字列)
+        - Chatの場合: 選択された room の `action` dict
+        - メニュー終了の場合: "exit_bbs_menu" などの特別な文字列
         - トップメニューへ戻る場合: "back_to_top"
         - 切断された場合: None
     """
@@ -80,6 +102,7 @@ def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: s
     menu_stack = []
 
     while True:
+        # 現在のメニューIDが設定ファイルに存在するかチェック
         if current_menu_id not in menu_config:
             logging.error(f"定義されていないメニューIDが指定されました{current_menu_id}")
             util.send_text_by_key(chan, "common_messages.error", menu_mode)
@@ -88,10 +111,11 @@ def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: s
                 continue
             return "back_to_top"  # 読めないときはトップに戻る(安全策)
 
+        # メニュー表示とプロンプト
         current_menu_data = menu_config[current_menu_id]
         _display_manual_menu(chan, current_menu_data, menu_mode)
 
-        # YAMLで定義されたプロンプトキーを使用、なければデフォルト
+        # YAMLで定義されたプロンプトキーを使用し、なければデフォルトのプロンプトを表示
         prompt_key = current_menu_data.get(
             "prompt_key", "common_messages.select_prompt")
         # 新着チェックを追加
@@ -105,13 +129,14 @@ def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: s
 
         user_input = user_input_raw.strip().lower()
 
-        # 入力に対応するアクションを取得 (空入力 "" もキーとして扱える)
+        # ユーザー入力に対応するアクションを取得 (空入力 "" もキーとして扱えます)
         actions = current_menu_data.get("actions", {})
         action_to_take = actions.get(user_input)
 
         if action_to_take:
             action_type = action_to_take.get("type")
 
+            # --- アクションタイプに応じた処理の分岐 ---
             if action_type == "submenu":
                 target_menu_id = action_to_take.get("target_menu_id")
                 if target_menu_id:
@@ -122,6 +147,7 @@ def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: s
                         f"submenuアクションにtarget_menu_idがありません:{action_to_take}")
                     util.send_text_by_key(
                         chan, "common_messages.error", menu_mode)
+
             elif action_type == "board":
                 if menu_type == "bbs":
                     board_id = action_to_take.get("board_id")
@@ -132,6 +158,7 @@ def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: s
                             f"boardアクションにboard_idがありません:{action_to_take}")
                         util.send_text_by_key(
                             chan, "common_messages.error", menu_mode)
+
             elif action_type == "room":
                 if menu_type == "chat":
                     if action_to_take.get("room_id"):
@@ -155,6 +182,7 @@ def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: s
                         return "exit_chat_menu"
                     else:
                         return "back_to_top"
+
             elif action_type == "exit_bbs_menu":
                 return "exit_bbs_menu"
             elif action_type == "exit_chat_menu":
@@ -162,7 +190,7 @@ def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: s
             elif action_type == "exit_to_top":
                 return "back_to_top"
             else:
-                logging.error(
+                logging.warning(
                     f"未定義または未定義のアクションタイプ({action_type})が指定されました: {current_menu_id}")
                 util.send_text_by_key(chan, "common_messages.error", menu_mode)
         else:

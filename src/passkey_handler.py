@@ -1,3 +1,23 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# Passkey (WebAuthn) Handler
+#
+# This module handles the backend logic for Passkey (WebAuthn) authentication.
+# It is responsible for generating registration and authentication options,
+# and for verifying the responses from the client's authenticator (e.g.,
+# fingerprint scanner, security key).
+# ==============================================================================
+#
+# ==============================================================================
+# Passkey (WebAuthn) ハンドラ
+#
+# このモジュールは、Passkey (WebAuthn) 認証のバックエンドロジックを扱います。
+# 登録および認証オプションの生成と、クライアントの認証器（例：指紋スキャナ、
+# セキュリティキー）からのレスポンスの検証を担当します。
+# ==============================================================================
+
 import logging
 from webauthn import (
     generate_registration_options,
@@ -19,16 +39,11 @@ from webauthn.helpers.exceptions import WebAuthnException
 
 from . import database, util
 
-# このファイルは、Passkey（WebAuthn）関連のバックエンドロジックを扱います。
-# 今後のステップで、登録・認証のオプション生成や検証処理をここに追加していきます。
-
-# Relying Party (RP) の情報を定義
-# モジュール読み込み時点では util.app_config が未初期化のため、
-# 各関数内で設定を読み込むように変更します。
-
 
 def _get_rp_info():
-    """Relying Party (RP) のIDと名前を config.toml から取得するヘルパー関数"""
+    """Relying Party (RP) のIDと名前を config.toml から取得するヘルパー関数。
+    RPは、WebAuthn認証を要求するウェブサイトやアプリケーション（このBBS）を指します。
+    """
     webapp_config = util.app_config.get('webapp', {})
     rp_id = webapp_config.get('RP_ID', 'localhost')
     rp_name = webapp_config.get('BBS_NAME', 'GR-BBS')
@@ -36,13 +51,13 @@ def _get_rp_info():
 
 
 def generate_registration_options_for_user(user_id, username):
-    """指定されたユーザーのPasskey登録オプションを生成する"""
+    """指定されたユーザーのPasskey登録オプションを生成します。"""
     rp_id, rp_name = _get_rp_info()
 
     logging.info(
         f"ユーザー '{username}' (ID: {user_id}) のPasskey登録オプションを生成します。")
 
-    # 既存のキーを重複登録しないように除外リストを作成
+    # このユーザーが既に登録しているキーを、重複登録しないように除外リストとして渡します。
     existing_keys = database.get_passkeys_by_user(user_id)
     exclude_credentials = [
         {"type": "public-key", "id": key["credential_id"]} for key in existing_keys
@@ -66,16 +81,16 @@ def generate_registration_options_for_user(user_id, username):
 
 
 def verify_registration_for_user(user_id, credential, expected_challenge, expected_origin, nickname):
-    """ユーザーからの登録レスポンスを検証し、成功すればDBに保存する"""
+    """ユーザーからの登録レスポンスを検証し、成功すればDBに保存します。"""
     rp_id, _ = _get_rp_info()
 
-    # 末尾のスラッシュを削除してオリジンを正規化
+    # オリジンを正規化（末尾のスラッシュを削除）
     normalized_origin = expected_origin.rstrip('/')
 
     logging.info(f"ユーザーID {user_id} のPasskey登録を検証します。")
 
     try:
-        # フロントエンドから受け取ったJSONをライブラリのヘルパー関数で安全にパース
+        # --- 1. フロントエンドから受け取ったJSONをライブラリが扱える形式にパース ---
         webauthn_credential = parse_registration_credential_json(credential)
 
         # 検証実行
@@ -90,7 +105,7 @@ def verify_registration_for_user(user_id, credential, expected_challenge, expect
         logging.info(
             f"Passkey検証成功: Credential ID: {verification.credential_id.hex()}")
 
-        # DBに保存
+        # --- 3. 検証成功後、データベースにPasskey情報を保存 ---
         success = database.save_passkey(
             user_id=user_id,
             credential_id=verification.credential_id,
@@ -111,7 +126,7 @@ def verify_registration_for_user(user_id, credential, expected_challenge, expect
 
 
 def generate_authentication_options_for_user(username):
-    """指定されたユーザーのPasskey認証オプションを生成する"""
+    """指定されたユーザーのPasskey認証オプションを生成します。"""
     rp_id, _ = _get_rp_info()
 
     user = database.get_user_auth_info(username)
@@ -136,14 +151,14 @@ def generate_authentication_options_for_user(username):
 
 
 def verify_authentication_for_user(credential, expected_challenge, expected_origin):
-    """ユーザーからの認証レスポンスを検証し、成功すればユーザー情報を返す"""
+    """ユーザーからの認証レスポンスを検証し、成功すればユーザー情報を返します。"""
     rp_id, _ = _get_rp_info()
 
-    # 末尾のスラッシュを削除してオリジンを正規化
+    # オリジンを正規化（末尾のスラッシュを削除）
     normalized_origin = expected_origin.rstrip('/')
 
     try:
-        # フロントエンドから受け取ったJSONをライブラリが扱える形式に変換
+        # --- 1. フロントエンドから受け取ったJSONをライブラリが扱える形式にパース ---
         auth_credential = parse_authentication_credential_json(credential)
 
         # DBから対応するPasskey情報を取得
@@ -152,7 +167,7 @@ def verify_authentication_for_user(credential, expected_challenge, expected_orig
         if not db_passkey:
             raise WebAuthnException("Credential not found in database")
 
-        # 検証実行
+        # --- 2. 認証レスポンスを検証 ---
         verification = verify_authentication_response(
             credential=auth_credential,
             expected_challenge=expected_challenge,
@@ -163,12 +178,13 @@ def verify_authentication_for_user(credential, expected_challenge, expected_orig
             require_user_verification=False,
         )
 
-        # 署名カウントを更新
+        # --- 3. 署名カウントを更新（リプレイ攻撃対策） ---
         database.update_passkey_sign_count(
             credential_id=verification.credential_id,
             new_sign_count=verification.new_sign_count
         )
 
+        # --- 4. 認証成功。ユーザー情報を返す ---
         return database.get_user_by_id(db_passkey['user_id'])
     except WebAuthnException as e:
         logging.error(f"Passkey認証検証エラー: {e}")

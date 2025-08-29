@@ -1,3 +1,26 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# Chat Handler
+#
+# This module manages the server-side logic for real-time chat rooms.
+# It handles user entry/exit, message broadcasting, history management,
+# and special commands within a chat room (e.g., locking, status checks).
+#
+# Global dictionaries are used to maintain the state of active rooms and users.
+# ==============================================================================
+#
+# ==============================================================================
+# チャットハンドラ
+#
+# このモジュールは、リアルタイムチャットルームのサーバーサイドロジックを管理します。
+# ユーザーの入退室、メッセージのブロードキャスト、履歴管理、チャットルーム内の
+# 特別なコマンド（ロック、状況確認など）を処理します。
+#
+# グローバルな辞書を使用して、アクティブなルームとユーザーの状態を保持します。
+# ==============================================================================
+
 import logging
 import collections
 import threading
@@ -6,27 +29,33 @@ import json
 
 from . import util, bbsmenu
 
-# チャットルームごとのメッセージ履歴
-# {room_id:collections.deque()}
+# --- Global State Management / グローバル状態管理 ---
+
+# {room_id: collections.deque()}
+# 各チャットルームのメッセージ履歴を保持します。
 chat_room_histories = {}
 MAX_HISTORY_MESSAGES = 100
 
-active_chat_rooms = {}
 # {room_id: {"users": {login_id: {"chan": chan, "menu_mode": "2", "user_id": 1}}, "locked_by": "owner_login_id" or None}}
+# 現在アクティブなチャットルームと、それに参加しているユーザーの情報を保持します。
+active_chat_rooms = {}
 
-# 通知のクールダウンタイムスタンプを管理する辞書
-# この辞書はルームが空になっても維持される
-chat_room_notification_timestamps = {}
 # {room_id: 1678886400.0}
+# Push通知のクールダウンタイムスタンプを管理します。ルームが空になっても維持されます。
+chat_room_notification_timestamps = {}
 
+# グローバルな状態変数を保護するためのロックオブジェクト。
 chat_rooms_lock = threading.Lock()
 
-ONLINE_MEMBERS_FUNC = None
 # server.py から get_online_members_list をセットするためのグローバル変数
+ONLINE_MEMBERS_FUNC = None
 
 
 def get_room_history(room_id: str) -> collections.deque:
-    """指定されたルームIDのメッセージ履歴を取得・作成"""
+    """
+    指定されたルームIDのメッセージ履歴を取得または新規作成します。
+    スレッドセーフな操作のためにロックを使用します。
+    """
     with chat_rooms_lock:
         if room_id not in chat_room_histories:
             chat_room_histories[room_id] = collections.deque(
@@ -35,7 +64,7 @@ def get_room_history(room_id: str) -> collections.deque:
 
 
 def add_message_to_history(room_id: str, display_name: str, message: str, is_system_message=False):
-    """指定された部屋の履歴にメッセージを追加"""
+    """指定されたルームの履歴にメッセージを追加します。"""
     history = get_room_history(room_id)
     if is_system_message:
         formatted_message = f"System: {message}"
@@ -44,14 +73,12 @@ def add_message_to_history(room_id: str, display_name: str, message: str, is_sys
     history.append(formatted_message)
 
 
-# room_name_for_prompt は実際には使われません
 def broadcast_to_room(room_id: str, display_name: str,
                       message_body: str, is_system_message: bool,
                       exclude_login_id: str = None,
                       message_key_for_system: str = None,
                       format_args_for_system: dict = None):
-    """
-    ルーム内のすべてのユーザーにメッセージをブロードキャスト。
+    """ルーム内のすべてのユーザーにメッセージをブロードキャストします。
     各ユーザーの menu_mode に応じたフォーマットで送信する。
     """
     with chat_rooms_lock:
@@ -143,12 +170,15 @@ def broadcast_to_room(room_id: str, display_name: str,
 
 
 def set_online_members_function_for_chat(func):
+    """外部モジュールからオンラインメンバーリスト取得関数をセットします。"""
     global ONLINE_MEMBERS_FUNC
     ONLINE_MEMBERS_FUNC = func
 
 
 def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_name: str, menu_mode: str, user_id: int):
-    """ユーザーがルームに入室したときに呼び出される"""
+    """ユーザーがルームに入室した際の処理を行います。
+    アクティブユーザーリストに追加し、入室通知をブロードキャストし、必要に応じてPush通知を送信します。
+    """
     with chat_rooms_lock:
         if room_id not in active_chat_rooms:
             active_chat_rooms[room_id] = {"users": {}, "locked_by": None}
@@ -211,7 +241,9 @@ def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_n
 
 
 def user_leaves_room(room_id: str, login_id: str, display_name: str, room_name: str):
-    """ユーザーがルームから退室したときに呼び出される"""
+    """ユーザーがルームから退室した際の処理を行います。
+    アクティブユーザーリストから削除し、退室通知をブロードキャストします。オーナーが退室した場合はルームをアンロックします。
+    """
     chan_left = None
     user_was_in_room = False
     with chat_rooms_lock:
@@ -249,9 +281,7 @@ def user_leaves_room(room_id: str, login_id: str, display_name: str, room_name: 
 
 
 def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, user_id: int, room_id: str, room_name: str):
-    """
-    チャットルーム本体
-    """
+    """チャットルームのメインループ。ユーザーからの入力を受け付け、コマンド処理やメッセージ送信を行います。"""
     # モバイル用の操作ボタンを表示
     chan.send(b'\x1b[?2026h')
 
@@ -297,6 +327,7 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
                 else:
                     util.send_text_by_key(
                         chan, "common_messages.error", menu_mode)
+
             elif user_input.lower() == "!w":
                 # WHOをチャット内から参照
                 if ONLINE_MEMBERS_FUNC:
@@ -305,6 +336,7 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
                 else:
                     util.send_text_by_key(
                         chan, "common_messages.error", menu_mode)
+
             elif user_input.lower() == "!r":
                 # チャットルーム状況表示
                 if not active_chat_rooms:  # この状態でチャットルームなしはありえないけど一応
@@ -326,6 +358,7 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
                     util.send_text_by_key(
                         chan, "chat.room_status_footer", menu_mode)
 
+            # --- ルームロック機能 ---
             elif user_input.lower() == "!l":
                 # 部屋をロック。途中入室は今のところ未実装。一瞬鍵を開けてから入室することにする。
                 message_for_log_and_broadcast_body = None
@@ -354,6 +387,8 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
                         is_system_message=True,
                         message_key_for_system="chat.room_locked_broadcast",
                         format_args_for_system={"room_name": room_name, "owner": login_id})
+
+            # --- ルームアンロック機能 ---
             elif user_input.lower() == "!u":
                 # 部屋をアンロック。
                 message_to_log_and_broadcast_unlock = None
@@ -388,11 +423,14 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
                         message_key_for_system="chat.room_unlocked_broadcast",
                         format_args_for_system={"room_name": room_name, "owner": login_id})
 
+            # --- 退出コマンド ---
             elif user_input.lower() in ("^"):
                 # ユーザーがチャットルームから退出する
                 util.send_text_by_key(
                     chan, "chat.leaving_room", menu_mode, room_name=room_name)
                 return "back_one_level"  # ループを抜けて finally で user_leaves_room が呼ばれる
+
+            # --- 通常メッセージ送信 ---
             else:
                 # 自分の画面に表示するメッセージ (menu_mode 対応)
                 base_my_message_format = util.get_text_by_key(
@@ -453,7 +491,7 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
 
 
 def handle_chat_menu(chan, login_id, display_name, menu_mode, user_id, online_members_func):
-    """チャットの階層メニューを表示し、選択されたルームに入る"""
+    """チャットの階層メニューを表示し、選択されたルームへの入室を処理します。"""
     paths_config = util.app_config.get('paths', {})
     chatroom_config_path = paths_config.get('chatroom_yaml')
     if not chatroom_config_path:

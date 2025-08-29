@@ -1,3 +1,23 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# System Operator (SysOp) Menu Handler
+#
+# This module provides the user interface and logic for the SysOp menu,
+# which contains administrative functions for managing the BBS.
+# It includes user management, board creation/deletion, system-wide
+# settings, and other high-level administrative tasks.
+# ==============================================================================
+#
+# ==============================================================================
+# シスオペメニューハンドラ
+#
+# このモジュールは、BBSを管理するための管理者機能を含むシスオペメニューの
+# ユーザーインターフェースとロジックを提供します。ユーザー管理、掲示板の作成・削除、
+# システム全体の設定、その他の高度な管理タスクが含まれます。
+# ==============================================================================
+
 import logging
 import datetime
 import os
@@ -8,8 +28,11 @@ from . import util, database
 
 
 def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
-    """シスオペメニュー"""
-    # コマンドと対応する関数のディスパッチテーブル
+    """
+    Displays the SysOp menu and dispatches commands based on user input.
+    シスオペメニューを表示し、ユーザー入力に基づいてコマンドをディスパッチします。
+    """
+    # --- Command Dispatch Table / コマンドディスパッチテーブル ---
     command_dispatch = {
         'sswr': read_default_exploration_list,
         'osign': toggle_online_signup,
@@ -54,7 +77,7 @@ def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
 
 
 def read_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
-    """共通探索リストを読む"""
+    """Reads and displays the server's default exploration list."""
     server_prefs_dict = database.read_server_pref()
     if not server_prefs_dict:
         logging.error("サーバ設定の読み込みに失敗しました。")
@@ -68,7 +91,7 @@ def read_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
 
 
 def write_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
-    """共通探索リストを書き込む"""
+    """Prompts the SysOp to enter and save a new default exploration list."""
     def save_func(exploration_list_str):
         return database.update_record(
             'server_pref',
@@ -80,7 +103,7 @@ def write_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
 
 
 def change_login_message(chan, _sysop_login_id, current_menu_mode):
-    """ログインメッセージ変更"""
+    """Changes the global login message displayed to users."""
     util.send_text_by_key(
         chan, "sysop_menu.change_login_message.header", current_menu_mode)
 
@@ -130,7 +153,7 @@ def change_login_message(chan, _sysop_login_id, current_menu_mode):
 
 
 def toggle_online_signup(chan, _sysop_login_id, current_menu_mode):
-    """オンラインサインアップの有効/無効を切り替える"""
+    """Toggles the online signup feature on or off."""
     server_prefs_dict = database.read_server_pref()
     if not server_prefs_dict:
         util.send_text_by_key(chan, "common_messages.error", current_menu_mode)
@@ -166,7 +189,7 @@ def toggle_online_signup(chan, _sysop_login_id, current_menu_mode):
 
 
 def user_list(chan, _sysop_login_id, current_menu_mode):
-    """ユーザ一覧表示"""
+    """Displays a list of all registered users."""
     try:
         users = database.get_all_users()
         if users:
@@ -196,7 +219,7 @@ def user_list(chan, _sysop_login_id, current_menu_mode):
 
 
 def user_register(chan, _sysop_login_id, current_menu_mode):
-    """ユーザ登録"""
+    """Handles the manual registration of a new user by the SysOp."""
     util.send_text_by_key(
         chan, "sysop_menu.user_register.header", current_menu_mode)
     while True:
@@ -283,9 +306,8 @@ def user_register(chan, _sysop_login_id, current_menu_mode):
 
 
 def _get_target_user(chan, prompt_key, current_menu_mode):
-    """
-    ユーザー名の入力を促し、検証済みのユーザー情報を返すヘルパー関数。
-    見つからない場合やキャンセルの場合は None を返す。
+    """Helper function to prompt for a username and return the verified user data.
+    Returns None if the user is not found or the action is cancelled.
     """
     util.send_text_by_key(
         chan, prompt_key, current_menu_mode, add_newline=False)
@@ -307,7 +329,7 @@ def _get_target_user(chan, prompt_key, current_menu_mode):
 
 
 def user_delete(chan, sysop_login_id, current_menu_mode):
-    """ユーザ削除"""
+    """Handles the deletion of a user account."""
     util.send_text_by_key(
         chan, "sysop_menu.user_delete.header", current_menu_mode)
 
@@ -342,7 +364,7 @@ def user_delete(chan, sysop_login_id, current_menu_mode):
 
 
 def view_settings(chan, _sysop_login_id, current_menu_mode):
-    """設定一覧表示"""
+    """Displays the current server permission settings."""
     server_prefs_dict = database.read_server_pref()
     if server_prefs_dict:
         # server_prefテーブルから読み込んだ辞書を直接使用する
@@ -366,7 +388,7 @@ def view_settings(chan, _sysop_login_id, current_menu_mode):
 
 
 def change_top_menu_permission(chan, _sysop_login_id, current_menu_mode):
-    """トップメニューのアクセス権限変更"""
+    """Changes the minimum required user level for a top menu command."""
     util.send_text_by_key(
         chan, "sysop_menu.set_permissions.header", current_menu_mode)
     valid_menus = ['bbs', 'chat', 'mail',
@@ -427,7 +449,7 @@ def change_top_menu_permission(chan, _sysop_login_id, current_menu_mode):
 
 
 def change_user_level(chan, sysop_login_id, current_menu_mode):
-    """ユーザレベルの変更"""
+    """Changes the permission level of a specified user."""
     util.send_text_by_key(
         chan, "sysop_menu.change_user_level.header", current_menu_mode)
 
@@ -488,7 +510,7 @@ def change_user_level(chan, sysop_login_id, current_menu_mode):
 
 
 def change_user_password_by_sysop(chan, sysop_login_id, current_menu_mode):
-    """ シスオペによるユーザーパスワード再発行 """
+    """Allows the SysOp to reissue a password for a user."""
     util.send_text_by_key(
         chan, "sysop_menu.change_user_password.header", current_menu_mode)
 
@@ -532,7 +554,7 @@ def change_user_password_by_sysop(chan, sysop_login_id, current_menu_mode):
 
 
 def system_quit(chan, _sysop_login_id, current_menu_mode):
-    """システム強制終了"""
+    """Forces the server to shut down."""
     util.send_text_by_key(
         chan, "sysop_menu.system_quit.header", current_menu_mode)
     util.send_text_by_key(chan, "common_messages.confirm_yn",
@@ -549,7 +571,7 @@ def system_quit(chan, _sysop_login_id, current_menu_mode):
 
 
 def make_board(chan, sysop_login_id, current_menu_mode):
-    """掲示板作成"""
+    """Handles the interactive creation of a new BBS board."""
     util.send_text_by_key(
         chan, "sysop_menu.make_board.header_direct", current_menu_mode)
     shortcut_id = ""
@@ -754,7 +776,7 @@ def make_board(chan, sysop_login_id, current_menu_mode):
 
 
 def delete_board(chan, _sysop_login_id, current_menu_mode):
-    """掲示板削除"""
+    """Handles the deletion of a BBS board."""
     util.send_text_by_key(
         chan, "sysop_menu.delete_board.header", current_menu_mode)
     while True:
@@ -802,7 +824,7 @@ def delete_board(chan, _sysop_login_id, current_menu_mode):
 
 
 def list_boards(chan, _sysop_login_id, current_menu_mode):
-    """DBに登録されている掲示板一覧を表示"""
+    """Displays a list of all boards registered in the database."""
     boards = database.get_all_boards_for_sysop_list()
     if not boards:
         util.send_text_by_key(
@@ -854,7 +876,7 @@ def list_boards(chan, _sysop_login_id, current_menu_mode):
 
 
 def change_board_full_settings(chan, sysop_login_id, current_menu_mode):
-    """掲示板の各種設定をまとめて変更する"""
+    """Provides an interactive prompt to change all settings for a specific board."""
     util.send_text_by_key(
         chan, "sysop_menu.change_board_full.header", current_menu_mode)
 

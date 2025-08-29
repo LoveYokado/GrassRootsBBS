@@ -1,5 +1,21 @@
-# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado) <hogehoge@gmail.com>
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# Command Dispatcher
+#
+# This module acts as a central router for user commands entered in the top
+# menu. It maps command strings (e.g., 'b', 'c', '?') to their corresponding
+# handler functions and performs permission checks before execution.
+# ==============================================================================
+#
+# ==============================================================================
+# コマンドディスパッチャ
+#
+# このモジュールは、トップメニューで入力されたユーザーコマンドの
+# 中央ルーターとして機能します。コマンド文字列（例: 'b', 'c', '?'）を
+# 対応するハンドラ関数にマッピングし、実行前に権限チェックを行います。
+# ==============================================================================
 
 from . import util
 from . import bbsmenu
@@ -13,24 +29,23 @@ from . import manual_menu_handler
 from . import plugin_manager
 from . import hamlet_game
 
-# --- Command Handlers ---
+# --- Command Handlers / 各コマンドに対応するハンドラ関数 ---
 
 
 def _get_online_members_list(context):
-    """コンテキストからオンラインメンバーリスト取得関数を呼び出す"""
-    # server.py の get_online_members_list を呼び出すためのラッパー
+    """コンテキストからオンラインメンバーリスト取得関数を呼び出すラッパー関数。"""
     return context['online_members_func']()
 
 
 def handle_help_h(context):
-    """'h' ヘルプコマンドを処理する"""
+    """'h' ヘルプコマンドを処理し、コマンド一覧を表示します。"""
     util.send_text_by_key(
         context['chan'], "top_menu.help_h", context['menu_mode'])
     return {'status': 'continue'}
 
 
 def handle_help_q(context):
-    """'?' ヘルプコマンドを処理する"""
+    """'?' ヘルプコマンドを処理し、コマンド説明を表示します。"""
     util.send_text_by_key(
         context['chan'], "top_menu.help_q", context['menu_mode'])
     util.send_top_menu(context['chan'], context['menu_mode'])
@@ -38,7 +53,7 @@ def handle_help_q(context):
 
 
 def handle_explore_new_articles(context):
-    """'n' 新アーティクル探索コマンドを処理する"""
+    """'n' コマンドを処理し、新着記事の探索を開始します。"""
     bbsmenu._handle_explore_new_articles(
         context['chan'], context['login_id'], context['display_name'], context['user_id'],
         context['userlevel'], context['menu_mode'], context['addr'][0]
@@ -48,7 +63,7 @@ def handle_explore_new_articles(context):
 
 
 def handle_full_sig_exploration(context):
-    """'x' 全シグ探索コマンドを処理する"""
+    """'x' コマンドを処理し、全シグ（掲示板）の探索を開始します。"""
     default_exploration_list = context['server_pref_dict'].get(
         "default_exploration_list", "")
     bbsmenu._handle_full_sig_exploration(
@@ -60,7 +75,7 @@ def handle_full_sig_exploration(context):
 
 
 def handle_new_article_headlines(context):
-    """'o' 新アーティクル見出しコマンドを処理する"""
+    """'o' コマンドを処理し、新着記事の見出し一覧を表示します。"""
     bbsmenu.handle_new_article_headlines(
         context['chan'], context['login_id'], context['user_id'], context['userlevel'], context['menu_mode']
     )
@@ -69,7 +84,7 @@ def handle_new_article_headlines(context):
 
 
 def handle_auto_download(context):
-    """'a' 自動ダウンロードコマンドを処理する"""
+    """'a' コマンドを処理し、新着記事の自動ダウンロードを開始します。"""
     bbsmenu.handle_auto_download(
         context['chan'], context['login_id'], context['user_id'], context['userlevel'], context['menu_mode']
     )
@@ -78,7 +93,7 @@ def handle_auto_download(context):
 
 
 def handle_sysop_menu(context):
-    """'s' シスオペメニューコマンドを処理する"""
+    """'s' コマンドを処理し、シスオペメニューを表示します。"""
     context['chan'].send(b'\x1b[?2031l')
     result = sysop_menu.sysop_menu(
         context['chan'], context['login_id'], context['display_name'], context['menu_mode'])
@@ -88,7 +103,7 @@ def handle_sysop_menu(context):
 
 
 def handle_bbs(context):
-    """'b' 掲示板コマンドを処理する"""
+    """'b' コマンドを処理し、電子掲示板機能を開始します。"""
     context['chan'].send(b'\x1b[?2031l')
     # bbs_handler.handle_bbs_menu に処理を移譲する。
     # shortcut_id=None で呼び出すと、階層メニューが表示される。
@@ -103,7 +118,7 @@ def handle_bbs(context):
 
 
 def handle_chat(context):
-    """'c' チャットコマンドを処理する"""
+    """'c' コマンドを処理し、チャット機能を開始します。"""
     context['chan'].send(b'\x1b[?2031l')
     # 新しく作成したチャットメニューハンドラを呼び出す
     chat_handler.handle_chat_menu(
@@ -116,7 +131,7 @@ def handle_chat(context):
 
 
 def handle_who_menu(context):
-    """'w' オンラインメンバー一覧コマンドを処理する"""
+    """'w' コマンドを処理し、オンラインメンバーの一覧を表示します。"""
     online_members_dict = _get_online_members_list(context)
     bbsmenu.who_menu(context['chan'], online_members_dict,
                      context['menu_mode'])
@@ -125,7 +140,7 @@ def handle_who_menu(context):
 
 
 def handle_telegram(context):
-    """'#' or '!' 電報コマンドを処理する"""
+    """'#' または '!' コマンドを処理し、電報送信機能を開始します。"""
     online_members_dict = _get_online_members_list(context)
     # オンラインメンバーの辞書から、SIDではなくログインIDのリストを抽出する
     online_user_logins = [
@@ -138,7 +153,7 @@ def handle_telegram(context):
 
 
 def handle_user_pref_menu(context):
-    """'u' ユーザー環境設定コマンドを処理する"""
+    """'u' コマンドを処理し、ユーザー環境設定メニューを表示します。"""
     context['chan'].send(b'\x1b[?2031l')
     result = user_pref_menu.userpref_menu(
         context['chan'], context['login_id'], context['display_name'], context['menu_mode'])
@@ -155,7 +170,7 @@ def handle_user_pref_menu(context):
 
 
 def handle_mail(context):
-    """'m' メールコマンドを処理する"""
+    """'m' コマンドを処理し、メールボックス機能を開始します。"""
     context['chan'].send(b'\x1b[?2031l')
     result = mail_handler.mail(
         context['chan'], context['login_id'], context['menu_mode'])
@@ -167,7 +182,7 @@ def handle_mail(context):
 
 
 def handle_online_signup(context):
-    """'l' オンラインサインアップコマンドを処理する"""
+    """'l' コマンドを処理し、オンラインサインアップ機能を開始します。"""
     context['chan'].send(b'\x1b[?2031l')
     bbsmenu.handle_online_signup(context['chan'], context['menu_mode'])
     util.send_top_menu(context['chan'], context['menu_mode'])
@@ -175,12 +190,12 @@ def handle_online_signup(context):
 
 
 def handle_logoff(context):
-    """'e' ログオフコマンドを処理する"""
+    """'e' コマンドを処理し、ログオフシーケンスを開始します。"""
     return {'status': 'logoff'}
 
 
 def handle_hamlet_game(context):
-    """'z' ハムレットゲームコマンドを処理する"""
+    """'z' コマンドを処理し、ハムレットゲームを開始します。"""
     context['chan'].send(b'\x1b[?2031l')
     hamlet_game.run_game_vs_ai(context['chan'], context['menu_mode'])
     util.send_top_menu(context['chan'], context['menu_mode'])
@@ -188,7 +203,7 @@ def handle_hamlet_game(context):
 
 
 def handle_plugin_menu(context):
-    """'p' プラグインメニューコマンドを処理する"""
+    """'p' コマンドを処理し、プラグインメニューを表示します。"""
     # トップメニューのボタンを非表示にする
     context['chan'].send(b'\x1b[?2031l')
     # 循環インポートを避けるため、ここでインポートする
@@ -198,9 +213,17 @@ def handle_plugin_menu(context):
     util.send_top_menu(context['chan'], context['menu_mode'])
     return {'status': 'continue'}
 
-# --- Dispatch Table ---
 
-
+# --- Dispatch Table / ディスパッチテーブル ---
+# Maps command strings to their handler functions and required permission levels.
+# 'level': Specifies a fixed required user level.
+# 'level_key': Specifies a key to look up the required level from server_pref.
+# 'guest_only': If True, the command is only available to GUEST users.
+#
+# コマンド文字列を、対応するハンドラ関数と必要な権限レベルにマッピングします。
+# 'level': 固定の要求ユーザーレベルを指定します。
+# 'level_key': server_prefから要求レベルを検索するためのキーを指定します。
+# 'guest_only': Trueの場合、GUESTユーザーのみが利用可能なコマンドです。
 COMMAND_DISPATCH_TABLE = {
     'h': {'handler': handle_help_h, 'level': 0},
     '?': {'handler': handle_help_q, 'level': 0},
@@ -225,8 +248,8 @@ COMMAND_DISPATCH_TABLE = {
 
 def dispatch_command(command, context):
     """
-    コマンドをディスパッチテーブルに基づいて処理する。
-    権限チェックもここで行う。
+    コマンドをディスパッチテーブルに基づいて処理します。
+    実行前に権限チェックも行います。
     """
     command_info = COMMAND_DISPATCH_TABLE.get(command)
     if not command_info:
@@ -240,14 +263,17 @@ def dispatch_command(command, context):
     server_pref_dict = context['server_pref_dict']
 
     # --- 権限チェック ---
+    # まず、デフォルトの要求レベルを0に設定
     required_level = 0
     if 'level' in command_info:
+        # 固定のレベルが指定されている場合
         required_level = command_info['level']
     elif 'level_key' in command_info:
+        # server_prefから動的にレベルを取得する場合
         required_level = server_pref_dict.get(command_info['level_key'], 2)
 
     if command_info.get('guest_only', False):
-        # config.tomlからDBのserver_prefテーブルを参照するように変更
+        # GUEST専用コマンドの場合の特別チェック
         online_signup_enabled = server_pref_dict.get(
             'online_signup_enabled', False)
         if not online_signup_enabled or user_level != 1:

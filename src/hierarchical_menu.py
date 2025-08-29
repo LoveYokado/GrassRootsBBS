@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
 import logging
 import yaml
 

@@ -1,9 +1,30 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado) <hogehoge@gmail.com>
 # SPDX-License-Identifier: MIT
-# # /home/yuki/python/GrassRootsBBS/src/webapp.py
 
-# Gunicorn + gevent で WebSocket を動作させるために必須
-# monkey.patch_all() は、他の標準ライブラリ(socket, threadingなど)を
+# ==============================================================================
+# Main Web Application Entry Point
+#
+# This is the main file for the GrassRootsBBS web application. It initializes
+# the Flask app, sets up SocketIO for real-time communication, configures
+# the database, loads plugins, and defines all web routes and WebSocket events.
+#
+# It uses gevent and monkey patching to handle asynchronous operations,
+# making it suitable for deployment with a WSGI server like Gunicorn.
+# ==============================================================================
+#
+# ==============================================================================
+# メインWebアプリケーション エントリーポイント
+#
+# このファイルは、GrassRootsBBS Webアプリケーションのメインファイルです。
+# Flaskアプリケーションを初期化し、リアルタイム通信のためのSocketIOを設定し、
+# データベースを構成し、プラグインをロードし、全てのWebルートとWebSocket
+# イベントを定義します。
+#
+# geventとモンキーパッチを使用して非同期操作を処理するため、Gunicornのような
+# WSGIサーバーでのデプロイに適しています。
+# ==============================================================================
+
+# Gunicorn + gevent で WebSocket を動作させるために必須。他の標準ライブラリを
 # インポートする前に、可能な限り早く呼び出す必要があります。
 from . import command_dispatcher, database, util, passkey_handler, plugin_manager, backup_util
 from .admin.routes import admin_bp  # 管理画面のブループリントを直接インポート
@@ -38,11 +59,7 @@ from apscheduler.triggers.cron import CronTrigger
 from webauthn.helpers import base64url_to_bytes
 monkey.patch_all()
 
-# --- 標準ライブラリ ---
-
-# --- サードパーティライブラリ ---
-
-# --- プロジェクトルートとパスの設定 ---
+# --- Path and Directory Setup / パスとディレクトリ設定 ---
 # このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
@@ -50,7 +67,7 @@ APP_LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
 SESSION_LOG_DIR = os.path.join(APP_LOG_DIR, 'webapp_sessions')
 
 # --- Flaskアプリケーションのセットアップ ---
-# Flaskにtemplatesフォルダの場所を教えます（プロジェクトルート直下）。
+# Flaskにtemplates/staticフォルダの場所を教えます（プロジェクトルート直下）。
 app = Flask(__name__, template_folder=os.path.join(
     PROJECT_ROOT, 'templates'), static_folder=os.path.join(PROJECT_ROOT, 'static'))
 
@@ -58,7 +75,7 @@ app = Flask(__name__, template_folder=os.path.join(
 app.wsgi_app = ProxyFix(
     app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1
 )
-# セッション管理のために、ランダムな秘密鍵を設定します
+# セッション管理のために、ランダムな秘密鍵を設定します。
 app.secret_key = secrets.token_hex(16)
 # WebSocketのためのSocketIOラッパー。Gunicornのgeventワーカーと連携するためにasync_modeを指定。
 allowed_origins_str = os.getenv(
@@ -69,13 +86,10 @@ app.config['ALLOWED_ORIGINS'] = allowed_origins_str.split(
 socketio = SocketIO(
     app, cors_allowed_origins=app.config['ALLOWED_ORIGINS'], async_mode='gevent')
 
-# --- アプリケーションモジュールのインポート ---
-# app と socketio の初期化後にインポートすることで、循環インポートを避ける
-
-
-# --- 初期設定 ---
-# 既存の設定ファイルを読み込みます
+# --- Application Initialization / アプリケーション初期化 ---
 try:
+    # 1. Load main configuration from config.toml
+    # 1. メイン設定ファイル(config.toml)を読み込みます
     config_path = os.path.join(PROJECT_ROOT, 'setting', 'config.toml')
     util.load_app_config_from_path(config_path)
 
@@ -85,6 +99,8 @@ try:
                         value in util.app_config.items()}
     app.config.from_mapping(uppercase_config)
 
+    # 2. Setup directories for attachments and logs
+    # 2. 添付ファイルとログ用のディレクトリをセットアップします
     ATTACHMENT_DIR = app.config.get('WEBAPP', {}).get(
         'ATTACHMENT_UPLOAD_DIR', 'data/attachments')
     if not os.path.isabs(ATTACHMENT_DIR):
@@ -99,7 +115,8 @@ try:
     if not os.path.exists(SESSION_LOG_DIR):
         os.makedirs(SESSION_LOG_DIR)
 
-    # --- ロギング設定 ---
+    # 3. Configure logging
+    # 3. ロギングを設定します
     # 1. アクセスロガーの設定 (grbbs.access)
     access_logger = logging.getLogger('grbbs.access')
     access_logger.setLevel(logging.INFO)
@@ -121,7 +138,8 @@ try:
     logging.getLogger().addHandler(error_handler)
     logging.getLogger().setLevel(logging.INFO)
 
-    # --- MariaDB 接続設定 ---
+    # 4. Configure and initialize the database connection pool
+    # 4. データベースコネクションプールを設定・初期化します
     db_config_from_file = app.config.get('DATABASE', {})
     db_config = {
         'host': os.getenv('DB_HOST', db_config_from_file.get('host', 'localhost')),
@@ -139,7 +157,8 @@ try:
         db_config=db_config
     )
 
-    # --- データベース初期化チェック ---
+    # 5. Check if the database is initialized, and set it up if not
+    # 5. データベースが初期化されているかチェックし、されていなければセットアップします
     # アプリケーション起動時にテーブルの存在を確認し、なければ作成する
     if not database.initializer.check_initialized():
         logging.info("データベースが初期化されていません。初期セットアップを実行します。")
@@ -160,13 +179,16 @@ try:
                 logging.exception(
                     f"データベースの初期化中にエラーが発生しました: {e}")
 
-    # --- データベースマイグレーション ---
+    # 6. Apply any pending database schema migrations
+    # 6. 保留中のデータベーススキーマのマイグレーションを適用します
     database.apply_migrations()
 
-    # --- プラグインのロード ---
+    # 7. Load all enabled plugins
+    # 7. 有効なプラグインをすべてロードします
     plugin_manager.load_plugins()
 
-    # --- セッション設定 ---
+    # 8. Configure server-side sessions using Redis
+    # 8. Redisを使用したサーバーサイドセッションを設定します
     redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
     app.config['SESSION_TYPE'] = 'redis'
     app.config['SESSION_REDIS'] = redis.from_url(redis_url)
@@ -182,13 +204,15 @@ try:
     sess = Session()
     sess.init_app(app)
 
-    # --- テンプレートグローバル ---
+    # 9. Inject global variables into Jinja2 templates
+    # 9. Jinja2テンプレートにグローバル変数を注入します
     @app.context_processor
     def inject_util():
         """Jinja2テンプレートに共通の変数や関数を注入する"""
         return dict(util=util)
 
-    # --- ブループリントの登録 ---
+    # 10. Register blueprints (e.g., for the admin panel)
+    # 10. ブループリント（例：管理画面用）を登録します
     app.register_blueprint(admin_bp)
 
 except Exception as e:
@@ -202,6 +226,7 @@ except Exception as e:
 def timestamp_to_datetime_filter(ts):
     """
     Jinja2テンプレート内でUNIXタイムスタンプを人間が読める形式の日時に変換するフィルタ。
+    A Jinja2 filter to convert a UNIX timestamp to a human-readable datetime string.
     """
     if not ts or not isinstance(ts, (int, float)) or ts <= 0:
         return "N/A"
@@ -212,11 +237,12 @@ def timestamp_to_datetime_filter(ts):
         return "Invalid Date"
 
 
+# --- Request Hooks / リクエストフック ---
 @app.after_request
 def add_security_headers(response):
     """
     すべてのレスポンスにセキュリティ関連のHTTPヘッダーを追加する。
-    特にContent-Security-Policy (CSP) を設定し、外部リソースの読み込みを制御する。
+    特にContent-Security-Policy (CSP) を設定し、外部リソースの読み込みを制御します。
     """
     # CSPの設定
     origin = app.config.get('WEBAPP', {}).get(
@@ -259,13 +285,12 @@ def add_security_headers(response):
     response.headers['Content-Security-Policy'] = csp_string
     return response
 
-# --- ここまで ---
-
 
 @app.before_request
 def restrict_admin_access_by_ip():
     """
     リクエストの前処理として、管理画面へのIPアドレスベースのアクセスを制御する。
+    As a pre-request process, controls access to the admin panel based on IP address.
     """
     # /admin パスへのリクエストの場合のみチェック
     if request.path.startswith('/admin'):
@@ -302,26 +327,29 @@ def restrict_admin_access_by_ip():
             abort(403)
 
 
-# --- クライアントごとの状態管理 ---
-# {sid: WebTerminalHandler_instance}
+# --- Global State for Web Terminal Clients / Webターミナルクライアントの状態管理 ---
+# {sid: WebTerminalHandler_instance} - Maps SocketIO session IDs to handler instances.
+# SocketIOのセッションIDとハンドラインスタンスをマッピングします。
 client_states = {}
 
+# Tracks the number of currently connected web terminal clients.
+# 現在接続中のWebターミナルクライアント数を追跡します。
 current_webapp_clients = 0
 current_webapp_clients_lock = threading.Lock()
 
 
-# --- 定数 ---
+# --- Constants for Simulated Baud Rates / 擬似BPSレート用定数 ---
 BPS_DELAYS = {
     '300': 10.0 / 300,    # 約 33.3 ms/char (8-N-1を想定し10bit/char)
     '2400': 10.0 / 2400,   # 約 4.17 ms/char
     '4800': 10.0 / 4800,   # 約 2.08 ms/char
     '9600': 10.0 / 9600,   # 約 1.04 ms/char
-    'full': 0,
+    'full': 0,            # No delay
 }
 
 
 def get_webapp_online_members():
-    """Web UIでオンラインのメンバーリストを生成する"""
+    """Generates a list of currently online members for the web UI."""
     members = {}
     # 辞書のコピーに対して反復処理を行うことで、反復中の変更によるエラーを回避
     for sid, handler in client_states.copy().items():
@@ -345,8 +373,8 @@ def get_webapp_online_members():
 
 def kick_user_session(sid):
     """
-    指定されたSIDのユーザーセッションを強制的に切断する。
-    管理画面から呼び出されることを想定。
+    Forcefully disconnects a user session specified by its SID.
+    Intended to be called from the admin panel.
     """
     if sid in client_states:
         # ユーザーに切断理由を通知
@@ -369,7 +397,11 @@ def kick_user_session(sid):
 
 
 class WebTerminalHandler:
-    """Webターミナルセッションの状態とロジックを管理するクラス"""
+    """
+    Manages the state and logic for a single web terminal session.
+    An instance of this class is created for each connected client.
+    It orchestrates the BBS main loop and I/O between the client and the server.
+    """
 
     def __init__(self, sid, user_session, ip_address):
         self.sid = sid
@@ -388,7 +420,10 @@ class WebTerminalHandler:
         self.main_thread_active = True
         self.pending_attachment = None
 
-        # SSHの `paramiko.Channel` のように振る舞うアダプタクラス
+        # An adapter class that mimics the behavior of `paramiko.Channel`
+        # to make the core BBS logic compatible with the web terminal.
+        # SSHの `paramiko.Channel` のように振る舞うアダプタクラス。
+        # これにより、コアBBSロジックをWebターミナルと互換性のあるものにします。
         class WebChannel:
             def __init__(self, handler_instance, ip_addr):
                 self.handler = handler_instance
@@ -398,7 +433,7 @@ class WebTerminalHandler:
                 self._timeout = None
 
             def settimeout(self, timeout):
-                """ssh_input.pyから呼び出されるタイムアウト設定"""
+                """Sets a timeout for the recv() operation."""
                 self._timeout = timeout
 
             def send(self, data):
@@ -415,7 +450,7 @@ class WebTerminalHandler:
                 self.handler.output_queue.append(text_to_send)
 
             def recv(self, n):
-                """ssh_inputから呼ばれる。クライアントからの入力をバイト列で返す。"""
+                """Receives data from the client, mimicking a socket's recv()."""
                 while len(self.recv_buffer) < n and self.active:
                     # キューが空なら、新しい入力が来るまで待機
                     if not self.handler.input_queue:
@@ -444,17 +479,18 @@ class WebTerminalHandler:
                 return ret
 
             def getpeername(self):
-                # WebTerminalHandlerから渡されたIPアドレスを返す
+                """Returns the client's IP address, mimicking a socket."""
                 return (self.ip_address, 12345)
 
             def close(self):
+                """Marks the channel as inactive."""
                 self.active = False
                 self.handler.input_event.set()  # Waiting recv() should be unblocked
 
             def _process_input_internal(self, echo=True):
                 """
-                クライアントから1行入力を受け取り、文字列として返す内部メソッド。
-                エコーバックとマルチバイト文字に対応。
+                Internal method to process a line of input from the client,
+                handling echoing, backspace, and multi-byte characters.
                 """
                 line_buffer = []  # 文字列のリストとして保持
                 decoder = codecs.getincrementaldecoder('utf-8')('ignore')
@@ -517,15 +553,15 @@ class WebTerminalHandler:
 
             def process_input(self):
                 """
-                クライアントから1行入力を受け取り、文字列として返す。
-                エコーバックとバックスペース処理も行う。ssh_input.process_inputの代替。
+                Receives a line of input from the client with echoing.
+                A replacement for `ssh_input.process_input`.
                 """
                 return self._process_input_internal(echo=True)
 
             def hide_process_input(self):
                 """
-                クライアントから1行入力を受け取るが、エコーバックしない。
-                パスワード入力用。ssh_input.hide_process_inputの代替。
+                Receives a line of input from the client without echoing (for passwords).
+                A replacement for `ssh_input.hide_process_input`.
                 """
                 return self._process_input_internal(echo=False)
 
@@ -534,7 +570,7 @@ class WebTerminalHandler:
         socketio.start_background_task(self._bbs_main_loop)
 
     def _sender_worker(self):
-        """出力キューを監視し、クライアントにデータを送信するワーカースレッド"""
+        """A background worker that sends data from the output queue to the client."""
         while not self.stop_worker_event.is_set():
             try:
                 text = self.output_queue.popleft()
@@ -550,13 +586,13 @@ class WebTerminalHandler:
                 socketio.sleep(0.01)  # キューが空なら少し待機
 
     def stop_worker(self):
-        """ワーカースレッドを停止させる"""
+        """Stops the background worker threads for this session."""
         self.main_thread_active = False
         self.channel.close()
         self.stop_worker_event.set()
 
     def _bbs_main_loop(self):
-        """BBSのメインロジックを実行するスレッド"""
+        """The main BBS logic loop for this user session."""
         server_pref_dict = {}
         try:
             # サーバ設定読み込み
@@ -662,11 +698,9 @@ class WebTerminalHandler:
             logging.info(
                 f"BBSメインループが終了しました ({self.user_session.get('username')})")
 
-# --- デコレータ ---
-
 
 def login_required(f):
-    """ログインが必要なページへのアクセスのためのデコレータ"""
+    """A decorator to ensure a user is logged in before accessing a page."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -677,16 +711,15 @@ def login_required(f):
 
 
 # --- ルーティング（URLと関数の紐付け） ---
-
 @app.route('/manifest.json')
 def manifest():
-    """PWAのマニフェストファイルを配信する"""
+    """Serves the PWA manifest file."""
     return send_from_directory(app.static_folder, 'manifest.json')
 
 
 @app.route('/sw.js')
 def service_worker():
-    """PWAのService Workerファイルを配信する"""
+    """Serves the PWA Service Worker file."""
     response = send_from_directory(app.static_folder, 'sw.js')
     # Service Workerのスクリプトには特定のヘッダーが必要
     response.headers['Content-Type'] = 'application/javascript'
@@ -697,7 +730,7 @@ def service_worker():
 @app.route('/')
 @login_required
 def index():
-    """ターミナルページを表示"""
+    """Renders the main terminal page for logged-in users."""
     menu_mode = session.get('menu_mode', '2')
     # url_forはリクエストコンテキスト内で呼び出す必要がある
     fkey_definitions = {
@@ -747,7 +780,7 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """ログインページ"""
+    """Handles the user login process, including password and Passkey authentication."""
     webapp_config = app.config.get('WEBAPP', {})
     page_title = webapp_config.get('LOGIN_PAGE_TITLE', 'Login')
     logo_path = webapp_config.get('LOGIN_PAGE_LOGO_PATH')
@@ -889,7 +922,7 @@ def login():
 
 @app.route('/logout')
 def logout():
-    """ログアウト処理"""
+    """Logs the user out and clears the session."""
     # テンプレートで使う menu_mode をセッションクリア前に取得
     # ログアウト後はセッションがないため、デフォルト値を '2' に設定
     menu_mode = session.get('menu_mode', '2')
@@ -901,7 +934,7 @@ def logout():
 @app.route('/passkey/register-options', methods=['POST'])
 @login_required
 def passkey_register_options():
-    """Passkey登録のためのオプションを生成して返すAPI"""
+    """API endpoint to generate options for Passkey registration."""
     user_id = session.get('user_id')
     username = session.get('username')
 
@@ -926,7 +959,7 @@ def passkey_register_options():
 @app.route('/passkey/verify-registration', methods=['POST'])
 @login_required
 def passkey_verify_registration():
-    """Passkey登録の検証を行い、結果を返すAPI"""
+    """API endpoint to verify a Passkey registration response."""
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({"error": "User not logged in"}), 401
@@ -962,7 +995,7 @@ def passkey_verify_registration():
 
 @app.route('/passkey/auth-options', methods=['POST'])
 def passkey_auth_options():
-    """Passkey認証のためのオプションを生成して返すAPI"""
+    """API endpoint to generate options for Passkey authentication."""
     data = request.get_json()
     username = data.get('username', '').upper()
     if not username:
@@ -987,7 +1020,7 @@ def passkey_auth_options():
 
 @app.route('/passkey/verify-auth', methods=['POST'])
 def passkey_verify_auth():
-    """Passkey認証の検証を行い、成功すればログインさせるAPI"""
+    """API endpoint to verify a Passkey authentication response and log the user in."""
     challenge_str = session.pop("passkey_authentication_challenge", None)
     if not challenge_str:
         return jsonify({"error": "Challenge not found in session"}), 400
@@ -1031,9 +1064,7 @@ def passkey_verify_auth():
 @app.route('/push/subscribe', methods=['POST'])
 @login_required
 def subscribe_push():
-    """
-    クライアントから送信されたPush Subscription情報を保存するAPI
-    """
+    """API endpoint to save a client's Push Subscription information."""
     user_id = session.get('user_id')
     # user_idはlogin_requiredデコレータで保証されているはずだが念のため
     if not user_id:
@@ -1054,9 +1085,7 @@ def subscribe_push():
 @app.route('/push/unsubscribe', methods=['POST'])
 @login_required
 def unsubscribe_push():
-    """
-    クライアントから送信されたPush Subscription解除リクエストを処理する
-    """
+    """API endpoint to handle a client's request to unsubscribe from push notifications."""
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({'status': 'error', 'message': 'User not logged in'}), 401
@@ -1076,7 +1105,7 @@ def unsubscribe_push():
 @app.route('/attachments/<path:filename>')
 @login_required
 def download_attachment(filename):
-    """保存された添付ファイルをダウンロードさせる"""
+    """Serves a previously uploaded attachment file for download."""
     # セキュリティのため、ATTACHMENT_DIRからのみファイルを送信する
     return send_from_directory(ATTACHMENT_DIR, filename, as_attachment=True)
 
@@ -1085,7 +1114,7 @@ def download_attachment(filename):
 
 @socketio.on('connect')
 def handle_connect(auth=None):
-    """クライアント接続時の処理。auth引数はSocketIOから渡される可能性があるため受け取る。"""
+    """Handles new client connections via WebSocket."""
     if 'user_id' not in session:
         return False  # 未認証ユーザーは接続を拒否
 
@@ -1157,7 +1186,7 @@ def handle_connect(auth=None):
 
 @socketio.on('set_speed')
 def handle_set_speed(speed_name):
-    """クライアントから速度設定を受け取る"""
+    """Receives a speed setting from the client to simulate baud rates."""
     sid = request.sid
     if sid in client_states:
         handler = client_states[sid]
@@ -1169,7 +1198,7 @@ def handle_set_speed(speed_name):
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    """クライアント切断時の処理"""
+    """Handles client disconnections."""
     global current_webapp_clients
     with current_webapp_clients_lock:
         current_webapp_clients = max(0, current_webapp_clients - 1)
@@ -1203,7 +1232,7 @@ def handle_disconnect():
 
 @socketio.on('client_input')
 def handle_client_input(data):
-    """クライアントからの入力を受け取り、対応するハンドラのキューに入れる"""
+    """Receives input from the client and adds it to the corresponding handler's input queue."""
     sid = request.sid
     if sid not in client_states:
         return  # 状態がない場合は何もしない
@@ -1215,7 +1244,7 @@ def handle_client_input(data):
 
 @socketio.on('toggle_logging')
 def handle_toggle_logging():
-    """ロギングの開始/停止をトグルする"""
+    """Toggles session logging on or off for the client."""
     sid = request.sid
     if sid not in client_states:
         return
@@ -1268,14 +1297,14 @@ def handle_toggle_logging():
 @app.route('/download_log/<path:filename>')
 @login_required
 def download_log(filename):
-    """保存されたログファイルをダウンロードさせる"""
+    """Serves a saved session log file for download."""
     # セキュリティのため、SESSION_LOG_DIRからのみファイルを送信する
     return send_from_directory(SESSION_LOG_DIR, filename, as_attachment=True)
 
 
 @socketio.on('get_log_files')
 def handle_get_log_files():
-    """クライアントに保存済みログファイルの一覧を送信する"""
+    """Sends a list of the user's saved log files to the client."""
     if 'user_id' not in session:
         return
 
@@ -1319,7 +1348,7 @@ def handle_get_log_files():
 
 @socketio.on('get_log_content')
 def handle_get_log_content(data):
-    """指定されたログファイルの内容をクライアントに送信する"""
+    """Sends the content of a specified log file to the client."""
     if 'user_id' not in session:
         return
 
@@ -1352,7 +1381,7 @@ def handle_get_log_content(data):
 
 @socketio.on('get_current_log_buffer')
 def handle_get_current_log_buffer():
-    """クライアントに現在記録中のログバッファ内容を送信する"""
+    """Sends the current, in-memory log buffer to the client."""
     sid = request.sid
     if sid in client_states:
         handler = client_states[sid]
@@ -1374,7 +1403,7 @@ def handle_get_current_log_buffer():
 
 @socketio.on('upload_attachment')
 def handle_upload_attachment(data):
-    """クライアントからのファイルアップロードを処理する"""
+    """Handles file uploads from the client for BBS attachments."""
     sid = request.sid
     if sid not in client_states:
         return
@@ -1454,7 +1483,7 @@ def handle_upload_attachment(data):
 
 @socketio.on('clear_pending_attachment')
 def handle_clear_pending_attachment():
-    """保留中の添付ファイル情報をクリアする"""
+    """Clears any pending attachment information for the session."""
     sid = request.sid
     if sid in client_states:
         handler = client_states[sid]
@@ -1466,7 +1495,7 @@ def handle_clear_pending_attachment():
 
 
 def scheduled_backup_job():
-    """スケジューラによって呼び出されるバックアップジョブ"""
+    """The backup job function called by the scheduler."""
     # Flaskのアプリケーションコンテキスト内で実行
     with app.app_context():
         logging.info("スケジュールされたバックアップジョブを開始します...")
@@ -1479,7 +1508,7 @@ def scheduled_backup_job():
             logging.error("スケジュールされたバックアップの作成に失敗しました。")
 
 
-# --- スケジューラの設定 ---
+# --- Scheduler Setup / スケジューラ設定 ---
 # データベースからスケジュール設定を読み込む
 schedule_settings = database.read_server_pref()
 if schedule_settings.get('backup_schedule_enabled'):
@@ -1501,7 +1530,7 @@ if schedule_settings.get('backup_schedule_enabled'):
 else:
     logging.info("自動バックアップスケジュールは無効です。")
 
-# --- Webサーバーの起動 ---
+# --- Web Server Execution / Webサーバーの起動 ---
 if __name__ == '__main__':
     # デバッグモードで実行 (開発中に便利)
     # 実際の運用ではGunicornなどのWSGIサーバーを使います

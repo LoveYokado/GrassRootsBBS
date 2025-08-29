@@ -1,3 +1,24 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# BBS Menu Handlers
+#
+# This module contains handler functions for various commands available from
+# the main BBS top menu. It includes functionalities like displaying online
+# users, handling online sign-ups, and exploring new articles. These functions
+# are typically dispatched from `command_dispatcher.py`.
+# ==============================================================================
+#
+# ==============================================================================
+# BBSメニューハンドラ
+#
+# このモジュールは、BBSのトップメニューから利用可能な様々なコマンドの
+# ハンドラ関数を含んでいます。オンラインユーザーの表示、オンラインサインアップ、
+# 新着記事の探索といった機能が含まれます。これらの関数は、通常
+# `command_dispatcher.py` から呼び出されます。
+# ==============================================================================
+
 import textwrap
 import logging
 import datetime
@@ -39,11 +60,11 @@ def who_menu(chan, online_members_dict, current_menu_mode):
         # ヘッダーのフォーマットに合わせて表示
         chan.send(
             f"{display_name_short:<22} {comment_short}\r\n".encode('utf-8'))
-    util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)
+    util.send_text_by_key(chan, "who_menu.footer", menu_mode)
 
 
 def handle_online_signup(chan, menu_mode):
-    """オンラインサインアップ処理"""
+    """オンラインサインアップの対話処理を管理します。"""
     util.send_text_by_key(
         chan, "online_signup.guidance", menu_mode
     )
@@ -51,6 +72,7 @@ def handle_online_signup(chan, menu_mode):
     id_min_len = security_config.get('ID_MIN_LENGTH', 3)
     id_max_len = security_config.get('ID_MAX_LENGTH', 20)
 
+    # --- 1. 希望IDの入力と検証 ---
     new_id = ""
     while True:
         util.send_text_by_key(chan, "online_signup.prompt_id",
@@ -76,6 +98,7 @@ def handle_online_signup(chan, menu_mode):
             continue
         break
 
+    # --- 2. パスワードの入力と検証 ---
     pw_min_len = security_config.get('PASSWORD_MIN_LENGTH', 8)
     pw_max_len = security_config.get('PASSWORD_MAX_LENGTH', 64)
 
@@ -98,12 +121,14 @@ def handle_online_signup(chan, menu_mode):
             continue
         break
 
+    # --- 4. シスオペへのメッセージ入力 ---
     util.send_text_by_key(
         chan, "online_signup.prompt_message", menu_mode, add_newline=False)
     message_to_sysop = chan.process_input()
     if message_to_sysop is None:
         return  # 切断
 
+    # --- 5. 登録内容の確認 ---
     util.send_text_by_key(chan, "online_signup.confirm_registration_yn",
                           menu_mode, new_id=new_id, new_email=new_email, add_newline=False)
     confirm = chan.process_input()
@@ -111,6 +136,7 @@ def handle_online_signup(chan, menu_mode):
         util.send_text_by_key(chan, "online_signup.cancelled", menu_mode)
         return
 
+    # --- 6. 登録処理 ---
     # パスワード生成と長さチェック
     temp_password = ""
     while True:
@@ -158,8 +184,11 @@ def handle_online_signup(chan, menu_mode):
             chan, "online_signup.registration_failed", menu_mode)
 
 
-def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str):
-    """新アーティクル探索"""
+def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str):  # noqa
+    """
+    新アーティクル探索の共通ロジック。
+    ユーザーの探索リストに基づいて掲示板を巡回し、未読記事を表示します。
+    """
     util.send_text_by_key(
         chan, "explore_new_articles.start_message", menu_mode
     )
@@ -232,8 +261,11 @@ def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id
         chan, "explore_new_articles.complete_message", menu_mode)
 
 
-def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str, default_exploration_list_str: str):
-    """全シグ探索 (共通探索リストを使用)"""
+def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str, default_exploration_list_str: str):  # noqa
+    """
+    全シグ探索の共通ロジック。
+    サーバーのデフォルト探索リストに基づいて掲示板を巡回し、未読記事を表示します。
+    """
     util.send_text_by_key(
         chan, "full_sig_exploration.start_message", menu_mode
     )
@@ -298,8 +330,11 @@ def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id
         chan, "full_sig_exploration.complete_message", menu_mode)
 
 
-def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
-    """新アーティクル見出し表示"""
+def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):  # noqa
+    """
+    新アーティクル見出し表示。
+    探索リスト内の各掲示板について、未読記事のタイトルのみを一覧表示します。
+    """
     util.send_text_by_key(
         chan, "new_article_headlines.start_message", menu_mode)
     # 探索リスト取得(TODO:これ、後で関数化出来そうだな)
@@ -407,8 +442,11 @@ def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_leve
         chan, "new_article_headlines.end_message", menu_mode)
 
 
-def handle_auto_download(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
-    """新アーティクル自動ダウンロード"""
+def handle_auto_download(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):  # noqa
+    """
+    自動ダウンロード。
+    探索リスト内の各掲示板の未読記事を、ヘッダと本文を含めて連続で表示します。
+    """
     util.send_text_by_key(
         chan, "auto_download.start_message", menu_mode)
 

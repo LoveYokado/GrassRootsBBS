@@ -1,3 +1,24 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# User Preferences Menu Handler
+#
+# This module provides the user interface and logic for the user preferences
+# menu. It allows users to manage their account settings, such as changing
+# their password, profile, menu mode, and managing advanced features like
+# Passkeys and exploration lists.
+# ==============================================================================
+#
+# ==============================================================================
+# ユーザー設定メニューハンドラ
+#
+# このモジュールは、ユーザー設定メニューのユーザーインターフェースとロジックを
+# 提供します。ユーザーは、パスワード、プロフィール、メニューモードの変更や、
+# Passkey、探索リストなどの高度な機能の管理といった、自身のアカウント設定を
+# 管理できます。
+# ==============================================================================
+
 import datetime
 import logging
 
@@ -5,8 +26,7 @@ from . import util, database
 
 
 def userpref_menu(chan, login_id, display_name, current_menu_mode):
-    """ユーザー設定メニュー"""
-    # 最初にユーザー情報を一括で取得
+    """Displays the user preferences menu and dispatches commands."""
     user_data = database.get_user_auth_info(login_id)
     if not user_data:
         util.send_text_by_key(
@@ -14,7 +34,7 @@ def userpref_menu(chan, login_id, display_name, current_menu_mode):
         logging.error(f"ユーザー設定メニュー表示時にユーザーが見つかりません: {login_id}")
         return None
 
-    # コマンドと対応する関数のディスパッチテーブル
+    # --- Command Dispatch Table ---
     command_dispatch = {
         '1': change_menu_mode,
         '2': change_password,
@@ -33,7 +53,7 @@ def userpref_menu(chan, login_id, display_name, current_menu_mode):
         '?': display_help,
     }
 
-    # モバイル用の操作ボタンを表示するエスケープシーケンスを送信
+    # Show mobile-specific buttons
     chan.send(b'\x1b[?2028h')
     try:
         while True:
@@ -65,14 +85,13 @@ def userpref_menu(chan, login_id, display_name, current_menu_mode):
 
 
 def display_help(chan, login_id, current_menu_mode, user_data):
-    """ヘルプメッセージを表示"""
+    """Displays the help message for the user preferences menu."""
     util.send_text_by_key(chan, "user_pref_menu.help", current_menu_mode)
     return None
 
 
-# 以下の関数は変更なし（必要に応じてリファクタリング可能）
 def change_menu_mode(chan, login_id, current_menu_mode, user_data):
-    """メニューモード変更"""
+    """Handles changing the user's menu display mode."""
     user_id = user_data['id']
     while True:
         util.send_text_by_key(
@@ -108,7 +127,7 @@ def change_menu_mode(chan, login_id, current_menu_mode, user_data):
 
 
 def show_member_list(chan, login_id, current_menu_mode, user_data):
-    """会員リストを表示する"""
+    """Displays a searchable list of all registered members."""
     util.send_text_by_key(
         chan, "user_pref_menu.member_list.search_prompt", current_menu_mode, add_newline=False)
     search_word = chan.process_input()
@@ -132,7 +151,7 @@ def show_member_list(chan, login_id, current_menu_mode, user_data):
 
 
 def change_password(chan, login_id, current_menu_mode, user_data):
-    """パスワード変更"""
+    """Handles the process of changing the user's password."""
     security_config = util.app_config.get('security', {})
 
     util.send_text_by_key(chan, "user_pref_menu.change_password.current_password",
@@ -192,7 +211,7 @@ def change_password(chan, login_id, current_menu_mode, user_data):
 
 
 def change_profile(chan, login_id, current_menu_mode, user_data):
-    """プロフィール変更"""
+    """Handles changing the user's profile comment."""
     current_comment = user_data.get('comment', '')
     util.send_text_by_key(chan, "user_pref_menu.change_profile.current_profile",
                           current_menu_mode, comment=current_comment)
@@ -218,7 +237,7 @@ def change_profile(chan, login_id, current_menu_mode, user_data):
 
 
 def list_passkeys(chan, login_id, current_menu_mode, user_data):
-    """登録済みのPasskeyを一覧表示する"""
+    """Lists all Passkeys registered to the user's account."""
     user_id_pk = user_data.get('id')
     passkeys = database.get_passkeys_by_user(user_id_pk)
 
@@ -244,7 +263,7 @@ def list_passkeys(chan, login_id, current_menu_mode, user_data):
 
 
 def delete_passkey(chan, login_id, current_menu_mode, user_data):
-    """登録済みのPasskeyを削除する"""
+    """Handles the deletion of a registered Passkey."""
     user_id_pk = user_data.get('id')
     passkeys = database.get_passkeys_by_user(user_id_pk)
 
@@ -301,7 +320,7 @@ def delete_passkey(chan, login_id, current_menu_mode, user_data):
 
 
 def manage_passkeys(chan, login_id, current_menu_mode, user_data):
-    """Passkey管理メニュー"""
+    """Displays the Passkey management sub-menu."""
     while True:
         util.send_text_by_key(
             chan, "user_pref_menu.passkey_management.header", current_menu_mode)
@@ -314,7 +333,7 @@ def manage_passkeys(chan, login_id, current_menu_mode, user_data):
         choice = choice.strip().lower()
 
         if choice == '1':
-            # フロントエンドにPasskey登録フローを開始するよう指示
+            # Instruct the frontend to start the Passkey registration flow
             chan.send(b'\x1b[?2027h')
             util.send_text_by_key(
                 chan, "user_pref_menu.passkey_management.start_registration_prompt", current_menu_mode)
@@ -335,7 +354,7 @@ def manage_passkeys(chan, login_id, current_menu_mode, user_data):
 
 
 def set_lastlogin_datetime(chan, login_id, current_menu_mode, user_data):
-    """最終ログイン日時を手動で設定"""
+    """Manually sets the user's last login time, which affects new article checks."""
     user_id = user_data.get('id')
     current_lastlogin_ts = user_data['lastlogin']
 
@@ -394,7 +413,7 @@ def set_lastlogin_datetime(chan, login_id, current_menu_mode, user_data):
 
 
 def set_telegram_restriction(chan, login_id, current_menu_mode, user_data):
-    """電報受信制限設定"""
+    """Sets the user's preference for receiving telegrams."""
     user_id = user_data.get('id')
     restriction_options = {
         '1': {'level': 0, 'key': "user_pref_menu.telegram_restriction.recieve_all"},
@@ -425,7 +444,7 @@ def set_telegram_restriction(chan, login_id, current_menu_mode, user_data):
 
 
 def edit_blacklist(chan, login_id, current_menu_mode, user_data):
-    """ブラックリスト編集"""
+    """Allows the user to edit their personal blacklist for telegrams."""
     user_id = user_data.get('id')
     current_blacklist_str = user_data.get('blacklist', '')
 
@@ -527,7 +546,7 @@ def edit_blacklist(chan, login_id, current_menu_mode, user_data):
 
 
 def register_exploration_list(chan, login_id, current_menu_mode, user_data):
-    """探索リスト登録"""
+    """Registers a custom exploration list for the user."""
     user_id = user_data.get('id')
 
     # util.pyの共通関数を呼び出す。保存処理はラムダ式で渡す。
@@ -539,7 +558,7 @@ def register_exploration_list(chan, login_id, current_menu_mode, user_data):
 
 
 def read_exploration_list(chan, login_id, current_menu_mode, user_data):
-    """探索リスト読み出し"""
+    """Displays the user's custom exploration list."""
     user_id = user_data.get('id')
     # dbnameは不要になった
     exploration_list_str = database.get_user_exploration_list(user_id)
@@ -548,7 +567,7 @@ def read_exploration_list(chan, login_id, current_menu_mode, user_data):
 
 
 def read_server_default_exploration_list(chan, login_id, current_menu_mode, user_data):
-    """元探索リスト読み出し"""
+    """Displays the server's default exploration list."""
     server_prefs = database.read_server_pref()
     if not server_prefs or len(server_prefs) <= 6:
         logging.error("サーバ設定の読み込みに失敗したか、共通探索リストの項目がありません。")
@@ -562,7 +581,7 @@ def read_server_default_exploration_list(chan, login_id, current_menu_mode, user
 
 
 def change_email_address(chan, login_id, current_menu_mode, user_data):
-    """メールアドレス変更"""
+    """Handles changing the user's registered email address."""
     user_id = user_data.get('id')
     email_from_db = user_data.get('email')
     current_email = email_from_db if email_from_db is not None else ''

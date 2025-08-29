@@ -1,4 +1,25 @@
-# /home/yuki/python/GrassRootsBBS/src/backup_util.py
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# Backup and Restore Utility
+#
+# This module provides core functionalities for data management, including:
+# - Creating full backups (database + specified directories).
+# - Restoring data from a backup archive.
+# - Wiping all application data to return to a clean state.
+# - Cleaning up old backup files based on retention settings.
+# ==============================================================================
+#
+# ==============================================================================
+# バックアップ・リストアユーティリティ
+#
+# このモジュールは、以下のデータ管理に関する中核機能を提供します:
+# - フルバックアップの作成 (データベース + 指定ディレクトリ)
+# - バックアップアーカイブからのデータ復元
+# - 全てのアプリケーションデータを消去し、初期状態に戻す機能
+# - 設定に基づいた古いバックアップファイルのクリーンアップ
+# ==============================================================================
 
 import os
 import datetime
@@ -8,14 +29,16 @@ import shutil
 import logging
 from . import util
 
-# プロジェクトルートの絶対パスを取得
+# --- Constants / 定数 ---
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 
 def create_backup():
     """
-    データベース、添付ファイル、設定ファイルをまとめてバックアップする。
-    :return: 作成されたバックアップファイル名。失敗した場合はNone。
+    データベース、添付ファイル、設定ファイルを一つのアーカイブにまとめてバックアップします。
+
+    :return: 作成されたバックアップファイル名 (例: 'grbbs_backup_20250101_120000.tar.gz')。
+             失敗した場合はNoneを返します。
     """
     # --- 設定ファイルからバックアップ設定を読み込む ---
     backup_config = util.app_config.get('backup', {})
@@ -30,11 +53,11 @@ def create_backup():
     archive_root_dir_format = backup_config.get(
         'archive_root_dir_format', 'backup_{timestamp}')
 
-    # バックアップディレクトリ
+    # バックアップディレクトリの絶対パスを決定
     backup_dir = os.path.join(PROJECT_ROOT, backup_dir_rel)
     os.makedirs(backup_dir, exist_ok=True)
 
-    # 一時作業ディレクトリ
+    # 一時作業ディレクトリを作成（既存の場合はクリーンアップ）
     temp_backup_dir = os.path.join(backup_dir, f'{temp_dir_prefix}backup')
     if os.path.exists(temp_backup_dir):
         # 既存のものをクリーンアップ
@@ -42,7 +65,7 @@ def create_backup():
     os.makedirs(temp_backup_dir)
 
     try:
-        # 1. データベースのダンプ
+        # --- 1. データベースのダンプ ---
         db_config = util.app_config.get('database', {})
         db_name = os.getenv('DB_NAME', db_config.get('name'))
         db_user = os.getenv('DB_USER', db_config.get('user'))
@@ -71,16 +94,17 @@ def create_backup():
                 logging.error(f"mysqldump failed: {process.stderr}")
                 return None
 
-        # 2. 設定ファイルで指定されたディレクトリのコピー
+        # --- 2. 設定ファイルで指定されたディレクトリのコピー ---
         for src_rel_path in source_dirs:
             src_abs_path = os.path.join(PROJECT_ROOT, src_rel_path)
             if os.path.exists(src_abs_path):
-                # cp -a の挙動を模倣し、ディレクトリ名を維持してコピー
+                # `cp -a` の挙動を模倣し、ディレクトリ名を維持して一時ディレクトリ内にコピー
                 dest_path = os.path.join(
                     temp_backup_dir, os.path.basename(src_rel_path))
                 shutil.copytree(src_abs_path, dest_path)
 
-        # 3. tar.gzにアーカイブ
+        # --- 3. tar.gz形式でアーカイブ ---
+        # タイムスタンプ付きのファイル名と、アーカイブ内のルートディレクトリ名を生成
         timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         archive_filename = archive_name_format.format(timestamp=timestamp)
         archive_filepath = os.path.join(backup_dir, archive_filename)
@@ -91,16 +115,18 @@ def create_backup():
 
         return archive_filename
     finally:
-        # 一時ディレクトリをクリーンアップ
+        # --- 4. 一時ディレクトリをクリーンアップ ---
         if os.path.exists(temp_backup_dir):
             shutil.rmtree(temp_backup_dir)
 
 
 def restore_from_backup(filename):
     """
-    指定されたバックアップファイルからリストアを実行する。
-    :param filename: リストアするバックアップファイル名 (e.g., 'grbbs_backup_20250101_120000.tar.gz')
-    :return: 成功した場合はTrue、失敗した場合はFalse。
+    指定されたバックアップファイルからデータをリストアします。
+    この操作は現在のデータを上書きするため、非常に破壊的です。
+
+    :param filename: リストア対象のバックアップファイル名。
+    :return: 成功した場合は True、失敗した場合は False を返します。
     """
     # --- 設定ファイルからバックアップ設定を読み込む ---
     backup_config = util.app_config.get('backup', {})
@@ -118,14 +144,14 @@ def restore_from_backup(filename):
         logging.error(f"リストア失敗: バックアップファイルが見つかりません - {archive_filepath}")
         return False
 
-    # 一時展開ディレクトリ
+    # 一時展開ディレクトリを作成
     temp_restore_dir = os.path.join(backup_dir, f'{temp_dir_prefix}restore')
     if os.path.exists(temp_restore_dir):
         shutil.rmtree(temp_restore_dir)
     os.makedirs(temp_restore_dir)
 
     try:
-        # 1. バックアップファイルを展開
+        # --- 1. バックアップファイルを一時ディレクトリに展開 ---
         with tarfile.open(archive_filepath, "r:gz") as tar:
             tar.extractall(path=temp_restore_dir)
 
@@ -138,7 +164,7 @@ def restore_from_backup(filename):
 
         content_dir = os.path.join(temp_restore_dir, extracted_dirs[0])
 
-        # 2. データベースのリストア
+        # --- 2. データベースのリストア ---
         db_config = util.app_config.get('database', {})
         db_name = os.getenv('DB_NAME', db_config.get('name'))
         db_user = os.getenv('DB_USER', db_config.get('user'))
@@ -164,7 +190,7 @@ def restore_from_backup(filename):
                 return False
         logging.info("データベースのリストアが完了しました。")
 
-        # 3. 設定ファイルで指定されたディレクトリのリストア
+        # --- 3. 設定ファイルで指定されたディレクトリのリストア ---
         for src_rel_path in source_dirs:
             # まず既存のものを削除
             dest_abs_path = os.path.join(PROJECT_ROOT, src_rel_path)
@@ -184,23 +210,26 @@ def restore_from_backup(filename):
         logging.error(f"リストア処理中にエラーが発生しました: {e}", exc_info=True)
         return False
     finally:
-        # 一時ディレクトリをクリーンアップ
+        # --- 4. 一時ディレクトリをクリーンアップ ---
         if os.path.exists(temp_restore_dir):
             shutil.rmtree(temp_restore_dir)
 
 
 def wipe_all_data():
     """
-    すべてのBBSデータを削除し、初期状態に戻す。
-    - 添付ファイルの削除
-    - データベーステーブルの全削除
-    - データベースの再初期化（テーブル作成とシスオペ再登録）
-    :return: 成功した場合はTrue、失敗した場合はFalse。
+    全てのBBSデータを削除し、システムを初期状態に戻します。
+    この操作は元に戻せません。
+
+    - 添付ファイルや設定ファイルなど、指定されたディレクトリを削除します。
+    - データベースの全テーブルを削除します。
+    - データベースを再初期化し、シスオペアカウントを再作成します。
+
+    :return: 成功した場合は True、失敗した場合は False を返します。
     """
     try:
-        # --- 設定ファイルからパスを読み込む ---
+        # --- 1. 対象ディレクトリを削除 ---
         backup_config = util.app_config.get('backup', {})
-        # wipe対象はバックアップ対象と同じディレクトリとする
+        # wipe対象はバックアップ対象と同じディレクトリ群とする
         dirs_to_wipe = backup_config.get(
             'source_directories', ['data/attachments', 'setting'])
 
@@ -210,7 +239,7 @@ def wipe_all_data():
             if os.path.exists(abs_path):
                 shutil.rmtree(abs_path)
 
-        # 2. データベースの全テーブルを削除
+        # --- 2. データベースの全テーブルを削除 ---
         db_config = util.app_config.get('database', {})
         db_name = os.getenv('DB_NAME', db_config.get('name'))
 
@@ -240,7 +269,7 @@ def wipe_all_data():
             if conn:
                 conn.close()
 
-        # 3. データベースの再初期化
+        # --- 3. データベースの再初期化 ---
         logging.info("Re-initializing database...")
         sysop_id = os.getenv('GRASSROOTSBBS_SYSOP_ID')
         sysop_password = os.getenv('GRASSROOTSBBS_SYSOP_PASSWORD')
@@ -259,8 +288,8 @@ def wipe_all_data():
 
 def cleanup_old_backups():
     """
-    古いバックアップファイルをクリーンアップする。
-    設定ファイルに基づいて保持する数を決定する。
+    古いバックアップファイルをクリーンアップします。
+    `config.toml` の `[scheduler]` セクションにある `max_backups` の設定値に基づいて、保持する数を決定します。
     """
     scheduler_config = util.app_config.get('scheduler', {})
     max_backups = scheduler_config.get('max_backups', 0)
@@ -277,7 +306,7 @@ def cleanup_old_backups():
         return
 
     try:
-        # バックアップファイル一覧を取得し、更新日時でソート
+        # バックアップディレクトリ内の .tar.gz ファイルを更新日時の降順（新しいものが先）でソート
         backups = [
             f for f in os.listdir(backup_dir)
             if f.endswith('.tar.gz') and os.path.isfile(os.path.join(backup_dir, f))  # noqa

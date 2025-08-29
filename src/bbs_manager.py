@@ -1,3 +1,26 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# BBS Business Logic Manager
+#
+# This module contains manager classes that encapsulate the business logic
+# for the Bulletin Board System (BBS). These classes act as an intermediary
+# layer between the request handlers (e.g., bbs_handler.py) and the database
+# access layer (database.py), handling operations related to boards, articles,
+# and permissions.
+# ==============================================================================
+#
+# ==============================================================================
+# BBS ビジネスロジックマネージャ
+#
+# このモジュールは、電子掲示板システム (BBS) のビジネスロジックを
+# カプセル化するマネージャクラスを含んでいます。これらのクラスは、
+# リクエストハンドラ (例: bbs_handler.py) とデータベースアクセス層
+# (database.py) の中間層として機能し、掲示板、記事、権限に関連する
+# 操作を処理します。
+# ==============================================================================
+
 import logging
 import time
 import json
@@ -6,17 +29,18 @@ from . import util, database
 
 
 class BoardManager:
-    """掲示板のメタ情報を管理するクラス"""
+    """掲示板のメタ情報（設定、看板など）を管理するクラス。"""
 
     def __init__(self):
-        # dbname は不要になったため削除
+        # データベース接続はグローバルな database モジュールを介して行われるため、
+        # このクラスのインスタンス変数として保持する必要はありません。
         pass
 
     def load_boards_from_config(self):
+        """bbs.yaml から掲示板情報を読み込み、DBと同期します。（現在未使用）"""
         # This function is currently not called from anywhere.
         paths_config = util.app_config.get('paths', {})
         bbs_config_path = paths_config.get('bbs_sync_config')
-        """bbs.yaml から掲示板情報を読み込み、DBと同期する"""
         bbs_config_data = util.load_yaml_file_for_shortcut(bbs_config_path)
         if not bbs_config_data or "categories" not in bbs_config_data:
             logging.error("bbs.yaml の読み込みに失敗したか、不正な形式です。")
@@ -61,20 +85,20 @@ class BoardManager:
         return True  # 仮
 
     def get_board_info(self, shortcut_id):
-        """指定されたショートカットIDの掲示板情報をDBから取得する"""
+        """指定されたショートカットIDの掲示板情報をDBから取得します。"""
         # database.py は直接辞書を返すため、dict()変換は不要
         return database.get_board_by_shortcut_id(shortcut_id)
 
 
 class ArticleManager:
-    """記事のCRUD操作と表示を行うクラス"""
+    """記事の作成、読み込み、更新、削除 (CRUD) 操作を管理するクラス。"""
 
     def __init__(self):
-        # dbname は不要になったため削除
+        # データベース接続はグローバルな database モジュールを介して行われます。
         pass
 
     def get_articles_by_board(self, board_id, include_deleted=False):
-        """指定された掲示板の投稿一覧を取得する"""
+        """指定された掲示板の投稿一覧を取得します。"""
         # board_idはboardsテーブルの主キー(id)
         # 投稿順（古いものが先）で取得
         return database.get_articles_by_board_id(board_id, order_by="created_at ASC, article_number ASC", include_deleted=include_deleted)
@@ -84,18 +108,18 @@ class ArticleManager:
         return database.get_new_articles_for_board(board_id, last_login_timestamp)
 
     def get_article_by_number(self, board_id, article_number, include_deleted=False):
-        """指定された記事番号の記事を取得する"""
+        """指定された記事番号の記事を取得します。"""
         # board_idはboardsテーブルの主キー(id)
         # self.dbname は不要になったため、直接 database モジュールを呼び出す
         return database.get_article_by_board_and_number(
             board_id, article_number, include_deleted=include_deleted)
 
     def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None, attachment_size=None):
-        """
-        記事を新規作成する
-        board_id_pkはboardsテーブルの主キー
-        user_identifierはusersテーブルの主キー(int)またはゲストの表示名(str)
-        戻り値は作成された記事のID、失敗したらNone
+        """記事を新規作成します。
+
+        :param board_id_pk: 掲示板の主キー (boards.id)
+        :param user_identifier: ユーザーの主キー (users.id) またはゲストの表示名 (文字列)
+        :return: 成功した場合は作成された記事のID、失敗した場合はNoneを返します。
         """
         conn = None
         cursor = None
@@ -103,11 +127,11 @@ class ArticleManager:
             conn = database.get_connection()
             cursor = conn.cursor()
 
-            # 返信の場合は記事番号を採番せず、スレッド作成の場合のみ採番する
+            # --- 1. 記事番号の採番 (新規スレッド/記事の場合のみ) ---
             if parent_article_id is not None:
                 next_article_number = None  # 返信には記事番号を割り当てない
             else:
-                # 次の記事番号取得 (トランザクション内で実行)
+                # トランザクション内で次の記事番号を取得
                 query_next_num = "SELECT COALESCE(MAX(article_number), 0) + 1 FROM articles WHERE board_id = %s"
                 cursor.execute(query_next_num, (board_id_pk,))
                 result = cursor.fetchone()
@@ -116,7 +140,7 @@ class ArticleManager:
                 if next_article_number is None:
                     raise Exception("次の記事番号の取得に失敗")
 
-            # 記事を挿入 (トランザクション内で実行)
+            # --- 2. 記事の挿入 ---
             current_timestamp = int(time.time())
             query_insert = """
                 INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, attachment_filename, attachment_originalname, attachment_size)
@@ -130,14 +154,14 @@ class ArticleManager:
             if article_id is None:
                 raise Exception("記事の挿入に失敗")
 
-            # 掲示板の最終投稿日時を更新 (トランザクション内で実行)
+            # --- 3. 掲示板の最終投稿日時を更新 ---
             query_update_board = "UPDATE boards SET last_posted_at = %s WHERE id = %s"
             cursor.execute(query_update_board,
                            (current_timestamp, board_id_pk))
             if cursor.rowcount == 0:
                 raise Exception(f"掲示板(ID: {board_id_pk})の最終投稿日時更新に失敗（対象行なし）")
 
-            # 全ての処理が成功したらコミット
+            # --- 4. コミット ---
             conn.commit()
             logging.info(
                 f"記事を作成しました(BoardID:{board_id_pk}, ArticleNo:{next_article_number}, User:{user_identifier}, ArticleDBID:{article_id})")
@@ -156,36 +180,36 @@ class ArticleManager:
                 conn.close()
 
     def get_threads(self, board_id, include_deleted=False):
-        """指定された掲示板のスレッド一覧(親記事と返信数)を取得"""
+        """指定された掲示板のスレッド一覧（親記事と返信数）を取得します。"""
         return database.get_thread_root_articles_with_reply_count(board_id, include_deleted)
 
     def get_replies(self, parent_article_id, include_deleted=False):
-        """指定された親記事の返信をすべて取得"""
+        """指定された親記事の返信をすべて取得します。"""
         return database.get_replies_for_article(parent_article_id, include_deleted)
 
     def update_article(self, article_id, title, body):
-        """記事を更新する（主に看板用）"""
+        """記事を更新します。（現在未使用）"""
         # TODO: 実装
         pass
 
     def toggle_delete_article(self, article_id):
-        """記事の削除フラグをトグルする(論理削除)"""
+        """記事の削除フラグをトグルします（論理削除）。"""
         return database.toggle_article_deleted_status(article_id)
 
     def search_articles(self, board_id, keyword, search_body=False):
+        """記事を検索します（タイトルまたは本文）。（現在未使用）"""
         # TODO: 検索機能の実装時に include_deleted を考慮する
-        """記事を検索する（タイトルまたは本文）"""
         # TODO: 実装
         pass
 
     def get_thread_count(self, board_id_pk):
-        """指定された掲示板の現在のスレッド数を取得する（削除済みは除く）"""
+        """指定された掲示板の現在のスレッド数を取得します（削除済みは除く）。"""
         query = "SELECT COUNT(*) AS count FROM articles WHERE board_id = %s AND parent_article_id IS NULL AND is_deleted = 0"
         result = database.execute_query(query, (board_id_pk,), fetch='one')
         return result['count'] if result else 0
 
     def get_reply_count(self, parent_article_id_pk):
-        """指定された親記事の現在の返信数を取得する（削除済みは除く）"""
+        """指定された親記事の現在の返信数を取得します（削除済みは除く）。"""
         query = "SELECT COUNT(*) AS count FROM articles WHERE parent_article_id = %s AND is_deleted = 0"
         result = database.execute_query(
             query, (parent_article_id_pk,), fetch='one')
@@ -193,10 +217,10 @@ class ArticleManager:
 
 
 class PermissionManager:
-    """権限管理を行うクラス"""
+    """掲示板や記事へのアクセス権限を管理・検証するクラス。"""
 
     def __init__(self):
-        # dbname は不要になったため削除
+        # データベース接続はグローバルな database モジュールを介して行われます。
         pass
 
     def _check_generic_permission(self, board_info, user_id_pk, user_level, level_key):
@@ -225,18 +249,17 @@ class PermissionManager:
 
     def check_permission(self, board_id, user_id, action):
         """
-        指定されたアクションの実行権限があるかチェックする
-        将来的に詳細な権限管理に使用する予定。
-        現状はcan_view_board,can_write_to_boardを使用
+        指定されたアクションの実行権限があるかチェックします。
+        将来的に詳細な権限管理に使用する予定です。
         """
         return True
 
     def can_view_board(self, board_info, user_id_pk, user_level):
-        """指定された掲示板の閲覧権限があるかチェックする"""
+        """指定された掲示板の閲覧権限があるかチェックします。"""
         return self._check_generic_permission(board_info, user_id_pk, user_level, 'read_level')
 
     def can_write_to_board(self, board_info, user_id_pk, user_level):
-        """指定された掲示板の書き込み権限があるかチェックする"""
+        """指定された掲示板の書き込み権限があるかチェックします。"""
         # シグオペは汎用チェックの前に特別に許可する
         try:
             operator_ids_json = board_info.get('operators', '[]')
@@ -250,7 +273,7 @@ class PermissionManager:
         return self._check_generic_permission(board_info, user_id_pk, user_level, 'write_level')
 
     def can_delete_article(self, article_data, user_id_pk, user_level):
-        """指定された記事の削除/復元権限があるかチェックする"""
+        """指定された記事の削除/復元権限があるかチェックします。"""
         if not article_data:
             return False
 
@@ -272,7 +295,7 @@ class PermissionManager:
         return False
 
     def can_view_deleted_article_content(self, article_data, user_id_pk, user_level):
-        """削除された記事の内容（タイトルや本文）を閲覧する権限があるかチェックする"""
+        """削除された記事の内容（タイトルや本文）を閲覧する権限があるかチェックします。"""
         if not article_data or article_data.get('is_deleted') != 1:
             # 削除されていない記事、またはデータがない場合は権限チェックの対象外
             return True
@@ -290,10 +313,11 @@ class PermissionManager:
             return False
 
     def get_permission_list(self, board_id):
-        """指定された掲示板のパーミッションリストを取得する"""
+        """指定された掲示板のパーミッションリストを取得します。（現在未使用）"""
         # TODO: 実装
         pass
 
     def update_permission_list(self, board_id, user_id, permission_type):
-        """指定された掲示板のパーミッションリストを更新する"""
+        """指定された掲示板のパーミッションリストを更新します。（現在未使用）"""
         # permission_type: "allow" (ホワイトリスト), "deny" (ブラックリスト)
+        pass

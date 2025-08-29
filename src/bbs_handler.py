@@ -1,4 +1,23 @@
-# bbs_handler.py (骨格)
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# BBS Handler
+#
+# This module contains the core logic for navigating and interacting with the
+# Bulletin Board System (BBS). It handles displaying article lists, reading
+# and writing articles, managing replies, and processing user commands
+# within a specific board context.
+# ==============================================================================
+#
+# ==============================================================================
+# 掲示板ハンドラ
+#
+# このモジュールは、電子掲示板システム (BBS) のナビゲーションと対話に関する
+# 中核的なロジックを含んでいます。記事一覧の表示、記事の読み書き、返信の管理、
+# 特定の掲示板コンテキスト内でのユーザーコマンドの処理などを担当します。
+# ==============================================================================
+
 import logging
 import socket
 import datetime
@@ -9,11 +28,12 @@ import base64
 
 from . import util, hierarchical_menu, bbs_manager, database, manual_menu_handler
 
-# CommandHandler: ユーザー入力に応じたコマンド処理
-
 
 class CommandHandler:
-    """ユーザー入力に応じたコマンド処理を行うクラス"""
+    """
+    特定の掲示板内でのユーザー操作とコマンド処理を管理するクラス。
+    インスタンスは、ユーザーが掲示板に入室するたびに作成されます。
+    """
 
     def __init__(self, chan, login_id, display_name, menu_mode, ip_address):
         self.chan = chan
@@ -90,7 +110,10 @@ class CommandHandler:
                 self.user_id_pk, self.user_read_progress_map)
 
     def display_board_entry_sequence(self):
-        """掲示板に入った際の初期表示(ヘッダと看板)"""
+        """
+        掲示板に入室した際の初期シーケンス（ヘッダと看板の表示）を実行します。
+        This method is currently not called, but remains for potential future use.
+        """
         if not self.current_board:
             logging.error("現在のボードが設定されていません。")
             return
@@ -101,7 +124,10 @@ class CommandHandler:
         self._display_kanban()
 
     def command_loop(self):
-        """コマンド処理のメインループ (mail_handler.py を参考に実装)"""
+        """
+        掲示板のトップレベル（書き込み/読み込み選択）のコマンド処理ループ。
+        ユーザーが 'w' (書き込み) または 'r' (読み込み) を選択するのを待ち受けます。
+        """
         if not self.current_board:
             util.send_text_by_key(
                 self.chan, "bbs.no_board_selected", self.menu_mode)
@@ -160,16 +186,19 @@ class CommandHandler:
                     util.send_text_by_key(
                         self.chan, "common_messages.invalid_command", self.menu_mode)
         finally:
-            # メニューを抜けたら必ずボタンを非表示にする
+            # このループを抜けるとき（掲示板から抜けるとき）にボタンを非表示にします。
             self.chan.send(b'\x1b[?2030l')
 
     def show_article_list(self, display_initial_header=True, last_login_timestamp=0):
-        """記事一覧を表示"""
+        """
+        記事一覧を表示し、ユーザーのナビゲーション入力を処理するメインループ。
+        カーソル移動、記事の読み込み、削除、検索などの操作を扱います。
+        """
 
         # モバイル用の操作ボタンを表示するエスケープシーケンスを送信
         self.chan.send(b'\x1b[?2024h')  # パネル表示
 
-        # 掲示板閲覧権限チェック(念の為)
+        # 掲示板閲覧権限チェック
         if not self.permission_manager.can_view_board(self.current_board, self.user_id_pk, self.userlevel):
             util.send_text_by_key(
                 self.chan, "bbs.permission_denied_read_board", self.menu_mode)
@@ -181,10 +210,11 @@ class CommandHandler:
         current_index = 0
         article_id_width = 5  # 記事番号桁数
 
-        # 常に削除済み記事も取得するが、表示方法は権限によって変える
-        # show_deleted_articles 変数はここでは直接使わない
-
         def reload_articles_display(keep_index=True):
+            """
+            データベースから記事リストを再読み込みし、表示を更新します。
+            既読状態やカーソル位置も再計算します。
+            """
             nonlocal articles, current_index, article_id_width, display_initial_header, last_login_timestamp
             current_article_id_on_reload = None
 
@@ -259,6 +289,9 @@ class CommandHandler:
             display_initial_header = True
 
         def display_current_article_header():
+            """
+            現在のカーソル位置に基づいて、記事のヘッダー行またはマーカーを表示します。
+            """
             nonlocal articles, current_index, article_id_width
             if current_index == -1:  # 先頭マーカ
                 marker_num_str = "0" * article_id_width
@@ -477,7 +510,7 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
                 continue  # 数字ジャンプ処理後はループの先頭へ
             elif decoded_char_for_check == '"':  # タイトル検索
-                self.chan.send(b'"\r\n')  # 入力された " をエコーして改行
+                self.chan.send(b'"\r\n')  # 入力された " をエコーバックして改行
                 util.send_text_by_key(
                     self.chan, "bbs.search_title_prompt", self.menu_mode, add_newline=False)
                 search_term_raw = self.chan.process_input()
@@ -547,7 +580,7 @@ class CommandHandler:
                     display_current_article_header()  # 検索結果の先頭記事ヘッダを表示
                 self.just_displayed_header_from_tail_h = False
                 continue
-            elif decoded_char_for_check == "'":  # 全文検索
+            elif decoded_char_for_check == "'":  # 本文検索
                 self.chan.send(b"'\r\n")  # 入力された ' をエコーして改行
                 util.send_text_by_key(
                     self.chan, "bbs.search_title_prompt", self.menu_mode, add_newline=False)  # タイトル検索と同じプロンプト
@@ -615,7 +648,7 @@ class CommandHandler:
                     display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
                 continue
-            # 旧方向へ進む[ctrl+e][k][上カーソル]
+            # --- カーソル上移動 ---
             elif key_input == '\x05' or key_input == "k" or key_input == "KEY_UP":
                 if not articles:
                     self.chan.send(b'\a')
@@ -627,6 +660,7 @@ class CommandHandler:
                     self.chan.send(b'\a')
                 self.just_displayed_header_from_tail_h = False
 
+            # --- カーソル下移動 ---
             elif key_input == "j" or key_input == "SPACE" or key_input == "KEY_DOWN":
                 if not articles:
                     self.chan.send(b'\a')
@@ -638,7 +672,7 @@ class CommandHandler:
                     self.chan.send(b'\a')
                 self.just_displayed_header_from_tail_h = False
 
-            # 現在位置を読む[ctrl+d][enter]
+            # --- 記事を読む (カーソル位置) ---
             elif key_input == '\x04' or key_input == "ENTER" or key_input == 'p':
                 if articles and 0 <= current_index < len(articles):
                     self.read_article(
@@ -652,6 +686,7 @@ class CommandHandler:
                     self.chan.send(b'\a')  # マーカー位置では読めない
                 self.just_displayed_header_from_tail_h = False
 
+            # --- 読み戻り (カーソル上の記事を読んでから上に移動) ---
             elif key_input == "h" or key_input == "KEY_LEFT":  # 読み戻り
                 if not articles:
                     self.chan.send(b'\a')
@@ -688,7 +723,7 @@ class CommandHandler:
                     # else current_index が範囲外のケースは通常発生しない
                     self.just_displayed_header_from_tail_h = False
 
-            # 読み進み[ctrl+f][l][右カーソル][タブ]
+            # --- 読み進み (カーソル下の記事を読んでから下に移動) ---
             elif key_input == '\x06' or key_input == "l" or key_input == "KEY_RIGHT" or key_input == "\t":
                 if not articles:
                     self.chan.send(b'\a')
@@ -726,7 +761,7 @@ class CommandHandler:
                     display_current_article_header()  # とりあえず現在の状態を表示
                 self.just_displayed_header_from_tail_h = False
 
-            # 削除[*]
+            # --- 記事の削除/復元 ---
             elif key_input == "*":
                 # ゲストは削除/復元機能を使えないようにしないとね
                 if self.login_id.upper() == 'GUEST':
@@ -772,11 +807,13 @@ class CommandHandler:
                     display_current_article_header()  # 権限なしメッセージの後、現在の行を再表示
                 self.just_displayed_header_from_tail_h = False
 
+            # --- リスト更新 ---
             elif key_input == "u":  # Update/Refresh
                 reload_articles_display(keep_index=True)
                 self.just_displayed_header_from_tail_h = False
 
-            elif key_input == "w":  # 書込み
+            # --- 記事書き込み ---
+            elif key_input == "w":
                 parent_article_for_reply = None
                 board_type = self.current_board.get('board_type', 'simple')
                 # シンプル形式で、かつ有効な記事を指している場合のみ返信モード
@@ -795,17 +832,20 @@ class CommandHandler:
                     reload_articles_display(keep_index=True)
                 self.just_displayed_header_from_tail_h = False
 
+            # --- シグ看板表示 ---
             elif key_input == "s":  # シグ看板表示
                 # 看板表示前に現在の記事ヘッダを消す必要はない（看板は別領域に表示される想定）
                 self._display_kanban()
                 display_current_article_header()  # 看板表示後はリストモードに戻る
                 self.just_displayed_header_from_tail_h = False
 
+            # --- 終了 ---
             elif key_input == "e" or key_input == '\x1b':  # ESCでも終了
                 # モバイル用の操作ボタンを非表示にするエスケープシーケンスを送信
                 self.chan.send(b'\x1b[?2024l')
                 return  # command_loop に戻る
 
+            # --- ヘルプ表示 ---
             elif key_input == "?":
                 self.chan.send(b'\r\n')
                 util.send_text_by_key(
@@ -814,6 +854,7 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
                 display_current_article_header()  # ヘルプ表示後に現在の行を再表示
 
+            # --- 探索リストに追加/削除 ---
             elif key_input == "@":
                 # 現在の掲示板のショートカットIDを取得
                 target_shortcut_id = self.current_board['shortcut_id'] if 'shortcut_id' in self.current_board.keys(
@@ -852,6 +893,7 @@ class CommandHandler:
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
 
+            # --- タイトル一覧表示 ---
             elif key_input == "t":  # タイトル一覧 (連続スクロール)
                 if not articles:
                     self.chan.send(b'\a')
@@ -938,22 +980,26 @@ class CommandHandler:
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
 
+            # --- シグオペ変更 (SysOpのみ) ---
             elif key_input == "c":  # シグオペ変更
                 self.edit_board_operators()
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
 
+            # --- シグ看板編集 (SysOp/SigOpのみ) ---
             elif key_input == "g":  # シグ看板編集
                 self.edit_kanban()
                 self.just_displayed_header_from_tail_h = False
                 continue
 
+            # --- B/Wリスト編集 (SysOp/SigOpのみ) ---
             elif key_input == "u":
                 self.edit_board_userlist()
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
                 continue
 
+            # --- 連続読み ---
             elif key_input == "r":  # 連続読み
                 if not articles:
                     self.chan.send(b'\a')
@@ -977,7 +1023,7 @@ class CommandHandler:
                 self.just_displayed_header_from_tail_h = False
 
             else:
-                self.chan.send(b'\a')
+                self.chan.send(b'\a')  # 未定義のキーはビープ音
                 self.just_displayed_header_from_tail_h = False
 
     def edit_kanban(self):
@@ -1100,7 +1146,7 @@ class CommandHandler:
                 self.chan, "bbs.permission_denied_edit_operators", self.menu_mode)
             util.send_text_by_key(
                 self.chan, "bbs.article_list_header", self.menu_mode)
-            return
+            return  # 権限がない場合はここで終了
 
         # 編集画面表示
         util.send_text_by_key(
@@ -1194,7 +1240,7 @@ class CommandHandler:
                 self.chan, "common_messages.db_update_error", self.menu_mode
             )
 
-    def edit_board_userlist(self):
+    def edit_board_userlist(self):  # noqa
         """
         現在の掲示板のユーザーパーミッションリスト（ユーザー名とallow/deny）を編集する。
         ユーザーはユーザー名のみを入力し、ボードタイプによってallow/denyが自動設定される。
@@ -1350,7 +1396,7 @@ class CommandHandler:
             self.chan, "bbs.userlist_updated_success", self.menu_mode)
 
     def read_article(self, article_number, show_back_prompt=True):
-        """記事を読む"""
+        """指定された記事番号の記事を読み、返信や添付ファイルの処理も行う。"""
         if not self.current_board:
             util.send_text_by_key(
                 self.chan, "bbs.no_board_selected", self.menu_mode)
@@ -1503,7 +1549,7 @@ class CommandHandler:
         self._update_read_progress(board_id_pk, article_number)
 
     def _reply_to_article(self, parent_article):
-        """記事に返信する"""
+        """指定された親記事に返信する。"""
         if not self.permission_manager.can_write_to_board(self.current_board, self.user_id_pk, self.userlevel):
             util.send_text_by_key(
                 self.chan, "bbs.permission_denied_write_article", self.menu_mode)
@@ -1624,7 +1670,11 @@ class CommandHandler:
         return reply_prefix_simple + original_title
 
     def write_article(self, parent_article=None):
-        """記事を新規作成"""
+        """
+        記事を新規作成する。スレッドへの返信もこの関数で処理する。
+        :param parent_article: 返信対象の親記事データ。新規スレッドの場合はNone。
+        :return: 処理結果を示す文字列 ('posted', 'cancelled', 'failed')。
+        """
         if not self.current_board:
             util.send_text_by_key(
                 self.chan, "bbs.no_board_selected", self.menu_mode)
@@ -1846,7 +1896,11 @@ class CommandHandler:
 
 
 def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_address):
-    """掲示板メニューのエントリーポイント"""
+    """
+    BBS機能のエントリーポイント。
+    ショートカットIDが指定されていれば直接その掲示板へ、なければメニューを表示する。
+    メニューモードに応じて、手書きメニュー(mode 1)と階層メニュー(mode 2, 3)を切り替える。
+    """
     handler = CommandHandler(
         chan, login_id, display_name, menu_mode, ip_address)
     if shortcut_id:

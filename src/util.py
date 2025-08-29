@@ -1,3 +1,24 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# Utility Module
+#
+# This module provides a collection of helper functions used across the
+# GrassRootsBBS application. It includes functionalities for configuration
+# management, text processing, password hashing, data formatting, and other
+# common tasks to avoid code duplication.
+# ==============================================================================
+#
+# ==============================================================================
+# ユーティリティモジュール
+#
+# このモジュールは、GrassRootsBBSアプリケーション全体で使用されるヘルパー関数の
+# コレクションを提供します。設定管理、テキスト処理、パスワードハッシュ化、
+# データフォーマット、その他の共通タスクなどの機能を含み、コードの重複を
+# 避ける役割を担います。
+# ==============================================================================
+
 import logging
 import toml
 import os
@@ -13,13 +34,14 @@ import base64
 from pywebpush import webpush, WebPushException
 from cryptography.hazmat.primitives import serialization
 
-# テキストデータのキャッシュ用グローバル変数
+# --- Global Variables / グローバル変数 ---
 _master_text_data_cache = None
 
 
 def load_app_config_from_path(config_file_path):
     """
-    指定されたパスから設定を読み込んで設定辞書を初期化
+    Initializes the global `app_config` dictionary from a specified TOML file path.
+    指定されたパスのTOMLファイルから、グローバルな `app_config` 辞書を初期化します。
     """
     global app_config
     try:
@@ -37,7 +59,8 @@ def load_app_config_from_path(config_file_path):
 
 def save_app_config(config_data, config_file_path):
     """
-    設定辞書を指定されたパスのTOMLファイルに保存する。
+    Saves a configuration dictionary to a TOML file at the specified path.
+    設定辞書を指定されたパスのTOMLファイルに保存します。
     """
     try:
         with open(config_file_path, 'w', encoding='utf-8') as f:
@@ -51,7 +74,8 @@ def save_app_config(config_data, config_file_path):
 
 def verify_password(stored_password_hash, salt_hex, provided_password):
     """
-    パスワードと保存されたハッシュの検証
+    Verifies a provided password against a stored hash and salt.
+    提供されたパスワードを、保存されているハッシュおよびソルトと照合して検証します。
     """
     try:
         salt = bytes.fromhex(salt_hex)
@@ -70,7 +94,8 @@ def verify_password(stored_password_hash, salt_hex, provided_password):
 
 def _validate_config_or_log_warnings():
     """
-    設定ファイルの基本的な検証
+    Performs a basic validation of the loaded configuration file.
+    読み込まれた設定ファイルの基本的な検証を行います。
     """
     required_sections = {"security", "webapp"}
     for section in required_sections:
@@ -79,7 +104,10 @@ def _validate_config_or_log_warnings():
 
 
 def load_master_text_data():
-    """全体のテキストデータを読み込んでキャッシュする。"""
+    """
+    Loads the main text data file (textdata.yaml) and caches it in memory.
+    メインのテキストデータファイル (textdata.yaml) を読み込み、メモリにキャッシュします。
+    """
     global _master_text_data_cache
     if _master_text_data_cache is not None:
         return _master_text_data_cache
@@ -104,8 +132,10 @@ def load_master_text_data():
 
 def get_text_by_key(key_string, menu_mode, default_value=""):
     """
-    指定モードのテキストデータを取得する。
-    例：get_text_by_key("user_pref_menu.header","1")
+    Retrieves a specific text string from the cached text data for a given mode.
+    Example: `get_text_by_key("user_pref_menu.header", "1")`
+    指定されたモードに対応するテキストデータを、キャッシュから取得します。
+    例: `get_text_by_key("user_pref_menu.header", "1")`
     """
     master_data = load_master_text_data()
     keys = key_string.split('.')
@@ -142,8 +172,11 @@ def get_text_by_key(key_string, menu_mode, default_value=""):
 
 
 def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=True, **kwargs):
-    """指定されたキーのテキストをチャンネルに送信する
-    キーワード引数でプレイスホルダを置換可能"""
+    """
+    Retrieves text by key and sends it to the client channel, with optional placeholder replacement.
+    指定されたキーのテキストを取得し、チャンネルに送信します。
+    キーワード引数でプレイスホルダの置換も可能です。
+    """
     text_to_send = get_text_by_key(key_string, menu_mode, default_value)
     if text_to_send:
         try:
@@ -194,7 +227,10 @@ def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=
 
 
 def send_top_menu(chan, menu_mode):
-    """トップメニューのUIとテキストを表示する"""
+    """
+    Displays the top menu UI and text, and shows mobile-specific buttons.
+    トップメニューのUIとテキストを表示し、モバイル用のボタンも表示します。
+    """
     # モバイル用のトップメニューボタンを表示
     chan.send(b'\x1b[?2031h')
     # トップメニューのテキストを表示
@@ -202,7 +238,7 @@ def send_top_menu(chan, menu_mode):
 
 
 def hash_password(password):
-    """ハッシュ化したパスワードを返す"""
+    """Hashes a password using PBKDF2 and returns the salt and hash."""
     pbkdf2_rounds_val = app_config.get('security', {}).get('PBKDF2_ROUNDS')
     if pbkdf2_rounds_val is None:
         logging.warning("security.pbkdf2_rounds が設定されていません。デフォルト値を使用します。")
@@ -219,7 +255,10 @@ def hash_password(password):
 
 
 def prompt_handler(chan, login_id, menu_mode='2'):
-    """ 定型実行のまとめ """
+    """
+    A routine function called before displaying a prompt to check for new mail and telegrams.
+    プロンプトを表示する前に呼び出される定型処理。新着メールや電報をチェックします。
+    """
     from . import database
 
     # 通知状態をセッションハンドラから取得
@@ -239,7 +278,10 @@ def prompt_handler(chan, login_id, menu_mode='2'):
 
 
 def load_yaml_file_for_shortcut(filename: str):
-    """設定からYAMLをロードしてショートカット情報を取得する"""
+    """
+    Loads a YAML file from the path specified in the configuration.
+    設定ファイルで指定されたパスからYAMLファイルをロードします。
+    """
     # This function is used by util.handle_shortcut and bbs_handler.BoardManager.load_boards_from_config
     # The filename argument should be the full path from config.toml
     filepath = filename  # filename is now expected to be a full path from config.toml
@@ -255,7 +297,7 @@ def load_yaml_file_for_shortcut(filename: str):
 
 
 def _search_items_recursive(items_list, target_id, menu_mode, expected_type):
-    """アイテムリストを再帰的に探索するヘルパー関数"""
+    """Helper function to recursively search for an item in a nested list."""
     if not items_list:
         return None, None
 
@@ -280,7 +322,10 @@ def _search_items_recursive(items_list, target_id, menu_mode, expected_type):
 
 
 def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
-    """YAMLから指定されたIDのアイテムを再帰的に検索、期待されるタイプならアイテムと名前を返す"""
+    """
+    Recursively searches a YAML configuration structure for an item with a specific ID and type.
+    YAML設定データから、指定されたIDとタイプを持つアイテムを再帰的に検索します。
+    """
     if not config_data:
         return None, None
 
@@ -303,7 +348,11 @@ def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
 
 
 def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, user_id: int, shortcut_input: str, online_members_func: callable):
-    """ショートカットを処理する。ショートカットとして処理が完了したらtrueを返す"""
+    """
+    Processes a shortcut command (e.g., ';bbs_free'). Returns True if the input was handled as a shortcut.
+    ショートカットコマンド（例: ';bbs_free'）を処理します。
+    ショートカットとして処理された場合は True を返します。
+    """
     from . import database
     # ショートカットではない
     if not shortcut_input.startswith(';'):
@@ -383,7 +432,10 @@ def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, user
 
 
 def check_new_mail(chan, username, current_menu_mode, notified_in_session):
-    """新着メールがないか確認し、あれば通知する。"""
+    """
+    Checks for new mail and notifies the user if any is found and they haven't been notified yet in the current session.
+    新着メールを確認し、現在のセッションでまだ通知されていない場合にユーザーに通知します。
+    """
     from . import database
     user_id = database.get_user_id_from_user_name(username)
     if user_id is None:
@@ -426,7 +478,8 @@ def check_new_mail(chan, username, current_menu_mode, notified_in_session):
 
 def telegram_send(chan, display_name, online_members_ids, current_menu_mode):
     """
-    オンラインのメンバーにのみ電報を送信し、データベースに保存する。
+    Handles the interactive process of sending a telegram to an online user.
+    オンラインユーザーに電報を送信する対話的なプロセスを処理します。
     """
     from . import database
     send_text_by_key(chan, "telegram.send_message",
@@ -482,13 +535,16 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode):
 
 
 def strip_ansi(text):
-    """文字列からANSIエスケープシーケンスを削除する"""
+    """
+    Removes ANSI escape sequences from a string.
+    文字列からANSIエスケープシーケンスを削除します。
+    """
     ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
     return ansi_escape.sub('', text)
 
 
 def truncate_ansi_string(text, max_width):
-    """
+    """Truncates a string containing ANSI escape sequences to a specified visible width.
     ANSIエスケープシーケンスを考慮して文字列を指定された表示幅に切り詰める。
     """
     ansi_escape_pattern = re.compile(r'(\x1b\[[0-9;]*m)')
@@ -520,7 +576,10 @@ def truncate_ansi_string(text, max_width):
 
 
 def telegram_recieve(chan, username, current_menu_mode):
-    """受信している電報を表示すして、表示後に削除する"""
+    """
+    Retrieves and displays any pending telegrams for the user, then deletes them from the database.
+    ユーザー宛の未読電報を取得・表示し、その後データベースから削除します。
+    """
     from . import database
     # 電報受信設定を取得
     user_settings = database.get_user_auth_info(username)
@@ -594,7 +653,10 @@ def telegram_recieve(chan, username, current_menu_mode):
 
 
 def is_valid_email(email: str) -> bool:
-    """メールアドレスの簡易検証"""
+    """
+    Performs a simple validation of an email address format.
+    メールアドレスの形式を簡易的に検証します。
+    """
     if not email:
         return False
     pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -604,14 +666,17 @@ def is_valid_email(email: str) -> bool:
 
 
 def generate_random_password(length=12):
-    """ランダムパスワード生成"""
+    """
+    Generates a cryptographically secure random password.
+    暗号学的に安全なランダムパスワードを生成します。
+    """
     alphabet = string.ascii_letters + string.digits
     password = ''.join(secrets.choice(alphabet) for i in range(length))
     return password
 
 
 def display_exploration_list(chan, list_str: str):
-    """カンマ区切りの探索リスト文字列を整形して表示する共通関数"""
+    """Helper function to format and display a comma-separated exploration list."""
     if not list_str:
         # リストが空の場合は何も表示しない（メッセージは呼び出し元で制御）
         return
@@ -625,7 +690,7 @@ def display_exploration_list(chan, list_str: str):
 
 
 def prompt_and_save_exploration_list(chan, menu_mode: str, save_callback: callable):
-    """探索リストの入力を促し、指定されたコールバック関数で保存する共通関数"""
+    """Common function to prompt for and save an exploration list using a provided callback."""
     send_text_by_key(
         chan, "user_pref_menu.register_exploration_list.header", menu_mode)
 
@@ -668,7 +733,10 @@ def prompt_and_save_exploration_list(chan, menu_mode: str, save_callback: callab
 
 
 def format_timestamp(timestamp, default_str='N/A', date_format='%Y-%m-%d %H:%M'):
-    """タイムスタンプを安全にフォーマットする"""
+    """
+    Safely formats a UNIX timestamp into a human-readable date string.
+    UNIXタイムスタンプを安全に人間が読める形式の日時文字列にフォーマットします。
+    """
     if not timestamp or timestamp <= 0:
         return default_str
     try:
@@ -679,7 +747,10 @@ def format_timestamp(timestamp, default_str='N/A', date_format='%Y-%m-%d %H:%M')
 
 
 def generate_guest_hash(ip_address: str) -> str:
-    """IPアドレスからゲスト用の短縮ハッシュを生成する"""
+    """
+    Generates a short, consistent hash from an IP address for guest user identification.
+    ゲストユーザーを識別するために、IPアドレスから一貫性のある短いハッシュを生成します。
+    """
     # app_configがロードされていることを前提とする
     security_config = app_config.get('security', {})
     salt = security_config.get('GUEST_ID_SALT')
@@ -696,7 +767,10 @@ def generate_guest_hash(ip_address: str) -> str:
 
 
 def get_display_name(login_id: str, ip_address: str) -> str:
-    """ユーザーの表示名を取得する。ゲストの場合は動的IDを生成する。"""
+    """
+    Gets the display name for a user. For GUEST users, it generates a dynamic ID.
+    ユーザーの表示名を取得します。GUESTユーザーの場合は動的なIDを生成します。
+    """
     if login_id.upper() == 'GUEST':
         guest_hash = generate_guest_hash(ip_address)
         return f"GUEST({guest_hash})"
@@ -704,7 +778,7 @@ def get_display_name(login_id: str, ip_address: str) -> str:
 
 
 def shorten_text_by_slicing(text, width, placeholder="..."):
-    """
+    """Shortens text to a specified width by simple slicing, ensuring the placeholder fits.
     テキストを指定された幅に単純なスライスで短縮する。
     textwrap.shortenと異なり、長い単語でも先頭部分を残す。
     """
@@ -721,7 +795,10 @@ def shorten_text_by_slicing(text, width, placeholder="..."):
 
 
 def format_file_size(size_in_bytes):
-    """ファイルサイズを人間が読みやすい形式にフォーマットする"""
+    """
+    Formats a file size in bytes into a human-readable string (B, KB, MB).
+    バイト単位のファイルサイズを、人間が読みやすい形式（B, KB, MB）にフォーマットします。
+    """
     if not isinstance(size_in_bytes, (int, float)) or size_in_bytes < 0:
         return "0 B"
     if size_in_bytes < 1024:
@@ -735,7 +812,8 @@ def format_file_size(size_in_bytes):
 
 def send_push_notification(subscription_info_json, payload_json):
     """
-    単一の購読情報に対してプッシュ通知を送信する。
+    Sends a single push notification to a subscribed client using their subscription info.
+    単一の購読情報を使用して、購読済みのクライアントにプッシュ通知を送信します。
     """
     push_config = app_config.get('push', {})
     # VAPID_PRIVATE_KEY はファイルから直接読み込む

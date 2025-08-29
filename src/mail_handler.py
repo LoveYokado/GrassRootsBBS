@@ -1,3 +1,26 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# Mail Handler
+#
+# This module provides the user interface and logic for the internal mail
+# system. It includes:
+# - An interactive, list-based mail viewer (`MailViewer`).
+# - Functions for composing and sending new mail.
+# - Handlers for reading mail in a sequential or list-based manner.
+# ==============================================================================
+#
+# ==============================================================================
+# メールハンドラ
+#
+# このモジュールは、内部メールシステムのユーザーインターフェースとロジックを
+# 提供します。以下の機能を含みます:
+# - 対話的でリストベースのメールビューア (`MailViewer`)
+# - 新規メールの作成と送信機能
+# - 順次読み出しまたはリスト形式でのメール閲覧機能
+# ==============================================================================
+
 import datetime
 import time
 import logging
@@ -9,7 +32,7 @@ from . import database
 
 
 def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
-    """指定されたメールのヘッダ情報（1行）を文字列として返す"""
+    """指定されたメールデータのヘッダ情報（1行）を、整形された文字列として返します。"""
     if not mail_data:
         return ""
 
@@ -78,9 +101,7 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
 
 
 class MailViewer:
-    """
-    メール一覧の表示と操作を担当するクラス。
-    """
+    """メール一覧の表示と、その中での対話的な操作を管理するクラス。"""
 
     def __init__(self, chan, login_id, menu_mode, user_id):
         self.chan = chan
@@ -88,13 +109,13 @@ class MailViewer:
         self.menu_mode = menu_mode
         self.user_id = user_id
 
-        # 状態を管理するインスタンス変数
+        # --- Instance State / インスタンスの状態管理 ---
         self.view_mode = 'inbox'  # 'inbox' または 'outbox'
         self.mails = []
         self.current_index = 0
         self.mail_count_digits = 5
 
-        # キー入力とメソッドのディスパッチテーブル
+        # --- Key Dispatch Table / キー入力とメソッドのディスパッチテーブル ---
         self.key_dispatch = {
             '\x05': self._move_cursor_up, 'k': self._move_cursor_up, 'K': self._move_cursor_up, "KEY_UP": self._move_cursor_up,
             '\x18': self._move_cursor_down, 'j': self._move_cursor_down, 'J': self._move_cursor_down, ' ': self._move_cursor_down, "KEY_DOWN": self._move_cursor_down,
@@ -110,14 +131,14 @@ class MailViewer:
         }
 
     def _display_mail_header_line(self, mail_data):
-        """指定されたメールのヘッダ情報（1行）を表示する"""
+        """指定されたメールデータ一件のヘッダ情報（1行）を表示します。"""
         header_line = format_mail_header_str(
             mail_data, self.view_mode, self.mail_count_digits)
         if header_line:
             self.chan.send(header_line.encode('utf-8') + b"\r\n")
 
     def _display_current_header(self):
-        """現在のcurrent_indexに対応するメールヘッダを表示する。"""
+        """現在のカーソル位置 (`current_index`) に対応するメールヘッダまたはマーカーを表示します。"""
         if self.current_index == -1:
             marker_id_str = "0" * self.mail_count_digits
             self.chan.send(f"{marker_id_str} v\r\n".encode('utf-8'))
@@ -135,7 +156,10 @@ class MailViewer:
             self.chan.send("メールがありません。\r\n".encode('utf-8'))
 
     def _reload_mails(self, keep_index=True):
-        """メールリストを再読み込みし、表示を更新する。"""
+        """
+        データベースからメールリストを再読み込みし、表示を更新します。
+        カーソル位置の維持や、未読メールへのジャンプもここで行います。
+        """
         current_mail_id = None
         if self.mails and 0 <= self.current_index < len(self.mails):
             current_mail_id = self.mails[self.current_index]['id']
@@ -180,7 +204,7 @@ class MailViewer:
             return False
 
     def _get_key_input(self):
-        """チャンネルから1キー入力を取得し、矢印キーなどを解釈する。"""
+        """チャンネルから1キー入力を取得し、矢印キーなどの特殊キーを解釈して文字列として返します。"""
         try:
             data = self.chan.recv(1)
             if not data:
@@ -214,7 +238,7 @@ class MailViewer:
             return None
 
     def run(self):
-        """メールビューアのメインループを開始する。"""
+        """メールビューアのメインループを開始し、ユーザー入力を待ち受けます。"""
         # モバイル用の操作ボタンを表示
         self.chan.send(b'\x1b[?2024h')
 
@@ -259,7 +283,7 @@ class MailViewer:
         return "back_to_top"
 
     def _move_cursor_up(self):
-        """カーソルを一つ上に移動する。"""
+        """カーソルを一つ上に移動します。"""
         if not self.mails:
             self.chan.send(b'\a')
             return
@@ -270,7 +294,7 @@ class MailViewer:
             self.chan.send(b'\a')
 
     def _move_cursor_down(self):
-        """カーソルを一つ下に移動する。"""
+        """カーソルを一つ下に移動します。"""
         if not self.mails:
             self.chan.send(b'\a')
             return
@@ -281,7 +305,7 @@ class MailViewer:
             self.chan.send(b'\a')
 
     def _read_selected_mail(self, advance_cursor_after=False):
-        """選択されているメールを読み、カーソルを進めるかを選択する。"""
+        """現在カーソルがあるメールを読み、必要に応じてカーソルを進めます。"""
         if not (self.mails and 0 <= self.current_index < len(self.mails)):
             self.chan.send(b'\a')
             return
@@ -326,15 +350,15 @@ class MailViewer:
         self._display_current_header()
 
     def _read_selected_mail_and_stay(self):
-        """選択されているメールを読み、カーソルはそのまま。"""
+        """選択されているメールを読み、カーソル位置は変更しません。"""
         self._read_selected_mail(advance_cursor_after=False)
 
     def _read_and_move_down(self):
-        """選択されているメールを読み、カーソルを一つ下に進める。"""
+        """選択されているメールを読み、カーソルを一つ下に進めます。"""
         self._read_selected_mail(advance_cursor_after=True)
 
     def _read_and_move_up(self):
-        """カーソルを一つ上に移動し、そのメールを読む。"""
+        """カーソルを一つ上に移動し、その位置のメールを読みます。"""
         if not self.mails:
             self.chan.send(b'\a')
             return
@@ -345,7 +369,7 @@ class MailViewer:
             self.chan.send(b'\a')
 
     def _toggle_delete(self):
-        """選択されているメールの削除状態を切り替える。"""
+        """選択されているメールの削除状態（論理削除）を切り替えます。"""
         if not (self.mails and 0 <= self.current_index < len(self.mails)):
             self.chan.send(b'\a')
             return
@@ -365,7 +389,7 @@ class MailViewer:
             self._display_current_header()
 
     def _switch_view_mode(self):
-        """受信箱と送信箱を切り替える。"""
+        """受信箱 (inbox) と送信箱 (outbox) の表示を切り替えます。"""
         self.view_mode = 'outbox' if self.view_mode == 'inbox' else 'inbox'
         self._reload_mails(keep_index=False)
         # ヘッダ表示
@@ -378,7 +402,7 @@ class MailViewer:
         self._display_current_header()
 
     def _write_mail(self):
-        """メールを作成する。"""
+        """メール作成画面を呼び出し、完了後に一覧をリロードします。"""
         self.chan.send(b'\r\n')
         mail_write(self.chan, self.login_id, self.menu_mode)
         self._reload_mails(keep_index=False)
@@ -392,7 +416,7 @@ class MailViewer:
         self._display_current_header()
 
     def _read_all_from_current(self):
-        """現在位置から全てのメールを連続表示する。"""
+        """現在カーソルがある位置から、リストの最後までメールを連続表示します。"""
         if not self.mails or self.current_index == len(self.mails):
             self.chan.send(b'\a')
             return
@@ -417,7 +441,7 @@ class MailViewer:
         self._display_current_header()
 
     def _display_title_list(self):
-        """タイトル一覧を表示する。"""
+        """現在カーソルがある位置から、リストの最後までメールのヘッダのみを一覧表示します。"""
         if not self.mails or self.current_index == len(self.mails):
             self.chan.send(b'\a')
             return
@@ -439,7 +463,7 @@ class MailViewer:
         self._display_current_header()
 
     def _display_help(self):
-        """ヘルプを表示する。"""
+        """メールビューアの操作ヘルプを表示します。"""
         self.chan.send(b'\r\n')
         util.send_text_by_key(
             self.chan, "mail_handler.mail_help", self.menu_mode)
@@ -454,9 +478,7 @@ class MailViewer:
 
 
 def mail(chan, login_id, menu_mode):
-    """
-    メールメニュー (パソコン通信風)
-    """
+    """メール機能のメインエントリーポイント。書き込み、受信、一覧表示のメニューを提供します。"""
     user_id = database.get_user_id_from_user_name(login_id)
     if user_id is None:
         util.send_text_by_key(
@@ -581,14 +603,14 @@ def mail(chan, login_id, menu_mode):
 
 
 def display_mail_header(chan, mail_data, view_mode='inbox', mail_id_width=5):
-    """指定されたメールのヘッダ情報（1行）を表示する"""
+    """指定されたメールデータ一件のヘッダ情報（1行）を表示します。"""
     header_line = format_mail_header_str(mail_data, view_mode, mail_id_width)
     if header_line:
         chan.send((header_line + "\r\n").encode('utf-8'))
 
 
 def display_mail_content(chan, mail_data, recipient_user_id_pk, view_mode='inbox', menu_mode='2'):
-    """メールの内容を表示し、既読にする。成功/失敗(bool)と既読変更(bool)を返す"""
+    """メールの内容を表示し、受信箱の場合は既読にマークします。"""
     try:
         if not mail_data:
             util.send_text_by_key(
@@ -629,7 +651,7 @@ def display_mail_content(chan, mail_data, recipient_user_id_pk, view_mode='inbox
 
 
 def _get_recipients(chan, menu_mode):
-    """宛先をユーザーから取得し、検証してリストで返す。"""
+    """宛先をユーザーから取得し、検証してリストとして返します。複数宛先に対応しています。"""
     recipient_info_list = []  # 複数宛先に対応
     while True:
         util.send_text_by_key(
@@ -684,7 +706,7 @@ def _get_recipients(chan, menu_mode):
 
 
 def _get_subject(chan, menu_mode):
-    """件名をユーザーから取得し、長さを検証して返す。"""
+    """件名をユーザーから取得し、長さを検証して返します。"""
     limits_config = util.app_config.get('limits', {})
     mail_subject_max_len = limits_config.get('mail_subject_max_length', 100)
     util.send_text_by_key(
@@ -702,7 +724,7 @@ def _get_subject(chan, menu_mode):
 
 
 def _get_body(chan, menu_mode):
-    """本文をユーザーから取得し、長さを検証して返す。"""
+    """本文をユーザーから取得し、長さを検証して返します。"""
     limits_config = util.app_config.get('limits', {})
     mail_body_max_len = limits_config.get('mail_body_max_length', 4096)
     util.send_text_by_key(
@@ -724,7 +746,7 @@ def _get_body(chan, menu_mode):
 
 
 def _save_mails_to_db(sender_id, recipient_info_list, subject, body, ip_address=None):
-    """メールをデータベースに保存する。"""
+    """複数の宛先に対してメールをデータベースに保存します。"""
     try:
         sent_at = int(time.time())
         for rec_name, _ in recipient_info_list:
@@ -744,7 +766,7 @@ def _save_mails_to_db(sender_id, recipient_info_list, subject, body, ip_address=
 
 
 def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, body, ip_address=None):
-    """送信内容を確認し、ユーザーの同意を得てからDBに保存する。"""
+    """送信内容の最終確認画面を表示し、ユーザーの同意を得てからDBに保存します。"""
     util.send_text_by_key(
         chan, "mail_handler.confirm_send", menu_mode)
 
@@ -784,7 +806,7 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
 
 
 def mail_write(chan, login_id, menu_mode='2'):
-    """メール作成のメインハンドラ"""
+    """メール作成のメインハンドラ。宛先、件名、本文の入力を順に受け付け、送信します。"""
     recipient_info_list = _get_recipients(chan, menu_mode)
     if not recipient_info_list:  # キャンセルまたは切断
         return

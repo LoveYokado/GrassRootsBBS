@@ -1,5 +1,26 @@
 # -*- coding: utf-8 -*-
 
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# ==============================================================================
+# Plugin Manager
+#
+# This module is responsible for discovering, loading, and executing plugins.
+# It scans a dedicated 'plugins' directory, reads metadata from each plugin's
+# 'plugin.toml' file, checks dependencies, and provides a sandboxed API
+# for safe interaction with the host application.
+# ==============================================================================
+#
+# ==============================================================================
+# プラグインマネージャ
+#
+# このモジュールは、プラグインの発見、読み込み、実行を担当します。
+# 専用の 'plugins' ディレクトリをスキャンし、各プラグインの 'plugin.toml'
+# ファイルからメタデータを読み込み、依存関係をチェックし、ホストアプリケーションと
+# 安全に対話するためのサンドボックス化されたAPIを提供します。
+# ==============================================================================
+
 import os
 import importlib
 import importlib.util
@@ -9,20 +30,24 @@ import toml
 
 from .grbbs_api import GrbbsApi
 from . import database, util
-# このファイルの絶対パスから、プロジェクトのルートディレクトリを特定します。
+
+# --- Constants and Global State / 定数とグローバル状態 ---
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
 PLUGINS_DIR = os.path.join(PROJECT_ROOT, 'plugins')
 
-# ロードされたプラグインを格納する辞書
-# { 'plugin_dir_name': {'module': module, 'name': 'Plugin Name', 'description': '...'} }
+# A dictionary to store loaded plugins.
+# Structure: { 'plugin_dir_name': {'module': module, 'name': 'Plugin Name', ...} }
+# ロードされたプラグインを格納する辞書。
 _loaded_plugins = {}
 
 
 def load_plugins():
     """
-    'plugins' ディレクトリをスキャンし、有効なプラグインをロードする。
-    DBの設定を読み込み、無効化されているプラグインはスキップする。
+    Scans the 'plugins' directory, reads metadata, checks dependencies and
+    database settings, and loads all valid and enabled plugins.
+    'plugins' ディレクトリをスキャンし、メタデータ、依存関係、DB設定をチェックして、
+    有効なすべてのプラグインをロードします。
     """
     global _loaded_plugins
     _loaded_plugins = {}
@@ -32,7 +57,7 @@ def load_plugins():
         logging.warning(f"プラグインディレクトリが見つかりません: {PLUGINS_DIR}")
         return
 
-    # 1. DBから現在のプラグイン設定を取得
+    # 1. Get current plugin settings from the database.
     plugin_settings = database.get_all_plugin_settings()
 
     for item in os.listdir(PLUGINS_DIR):
@@ -42,20 +67,21 @@ def load_plugins():
         if os.path.isdir(plugin_dir) and os.path.exists(metadata_path):
             plugin_id = item
             try:
-                # 2. DBの設定をチェック。なければデフォルトで有効としてDBに登録。
+                # 2. Check DB settings. If not present, enable by default and register in DB.
                 is_enabled = plugin_settings.get(plugin_id, True)
                 if plugin_id not in plugin_settings:
                     database.upsert_plugin_setting(plugin_id, True)
 
                 if not is_enabled:
-                    logging.info(f"プラグイン '{plugin_id}' は無効化されているため、スキップします。")
+                    logging.info(
+                        f"Plugin '{plugin_id}' is disabled, skipping.")
                     continue
 
-                # 3. メタデータを先に読み込む
+                # 3. Read plugin metadata.
                 with open(metadata_path, 'r', encoding='utf-8') as f:
                     metadata = toml.load(f)
 
-                # 4. 依存関係をチェック
+                # 4. Check for dependencies.
                 requirements = metadata.get('requirements', [])
                 is_loadable = True
                 for req in requirements:
@@ -68,7 +94,7 @@ def load_plugins():
                 if not is_loadable:
                     continue
 
-                # 5. 依存関係が満たされていれば、モジュールをインポート
+                # 5. If dependencies are met, import the module.
                 module_name = metadata.get('entry_point')
                 if not module_name:
                     logging.warning(
@@ -99,10 +125,7 @@ def load_plugins():
 
 
 def get_loaded_plugins():
-    """
-    ロード済みのプラグインのリストを返す。
-    メニュー表示用に整形された辞書のリスト。
-    """
+    """Returns a list of loaded plugins, formatted for menu display."""
     plugins_list = []
     for plugin_id, plugin_data in _loaded_plugins.items():
         plugins_list.append({
@@ -110,13 +133,15 @@ def get_loaded_plugins():
             'name': plugin_data['name'],
             'description': plugin_data['description']
         })
-    # 名前順でソートして返す
+    # Return sorted by name.
     return sorted(plugins_list, key=lambda p: p['name'])
 
 
 def run_plugin(plugin_id, context):
-    """
-    指定されたIDのプラグインを実行する。
+    """Executes a plugin specified by its ID.
+
+    A safe context with a limited API is provided to the plugin.
+    Execution is subject to a timeout defined in config.toml.
     """
     # config.tomlからタイムアウト値を取得、なければデフォルト60秒
     plugins_config = util.app_config.get('plugins', {})
@@ -130,7 +155,7 @@ def run_plugin(plugin_id, context):
     logging.info(
         f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {timeout_seconds}秒)...")
 
-    # プラグインに渡すコンテキストを再構築し、安全なAPIのみを公開する
+    # Rebuild the context to provide a safe API to the plugin.
     api = GrbbsApi(context['chan'])
     safe_context = {
         'api': api,
@@ -153,9 +178,9 @@ def run_plugin(plugin_id, context):
 
 
 def get_all_available_plugins():
-    """
-    'plugins' ディレクトリをスキャンし、利用可能なすべてのプラグインの情報を返す。
-    DBから有効/無効の状態も取得する。
+    """Scans the 'plugins' directory and returns information for all
+    available plugins, including their enabled/disabled status from the database.
+    This is used for the admin panel.
     """
     available_plugins = []
     if not os.path.isdir(PLUGINS_DIR):
