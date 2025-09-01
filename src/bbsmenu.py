@@ -60,7 +60,7 @@ def who_menu(chan, online_members_dict, current_menu_mode):
         # ヘッダーのフォーマットに合わせて表示
         chan.send(
             f"{display_name_short:<22} {comment_short}\r\n".encode('utf-8'))
-    util.send_text_by_key(chan, "who_menu.footer", menu_mode)
+    util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)
 
 
 def handle_online_signup(chan, menu_mode):
