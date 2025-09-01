@@ -17,7 +17,7 @@
 # デフォルトのエラーページよりもユーザーフレンドリーな体験を提供します。
 # ==============================================================================
 
-from flask import render_template, request
+from flask import render_template, request, session
 import logging
 
 
@@ -28,17 +28,17 @@ def register_error_handlers(app):
     def ratelimit_handler(e):
         logging.warning(
             f"Rate limit exceeded for {request.remote_addr} on {request.path}. Limit: {e.description}")
-        return render_template('errors/429.html', error=e), 429
+        return render_template('errors/429.html', error=e, session=session), 429
 
     @app.errorhandler(403)
     def forbidden_error(error):
-        return render_template('errors/403.html'), 403
+        return render_template('errors/403.html', session=session), 403
 
     @app.errorhandler(404)
     def not_found_error(error):
-        return render_template('errors/404.html'), 404
+        return render_template('errors/404.html', session=session), 404
 
     @app.errorhandler(500)
     def internal_error(error):
         logging.error(f"500 Internal Server Error: {error}", exc_info=True)
-        return render_template('errors/500.html'), 500
+        return render_template('errors/500.html', session=session), 500

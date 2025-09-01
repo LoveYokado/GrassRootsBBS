@@ -67,7 +67,13 @@
         <h1>{% block error_code %}Error{% endblock %}</h1>
         <h2>{% block error_title %}An Error Occurred{% endblock %}</h2>
         {% block error_message %}<p>Something went wrong on our end. We're looking into it.</p>{% endblock %}
-        <p><a href="{{ url_for('web.index') }}">Return to Home</a></p>
+        <p>
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('web.index') }}">Return to Terminal</a>
+            {% else %}
+            <a href="{{ url_for('web.login') }}">Return to Login</a>
+            {% endif %}
+        </p>
     </div>
 </body>
 
