@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
-    <link rel="manifest" href="{{ url_for('manifest') }}">
+    <link rel="manifest" href="{{ url_for('web.manifest') }}">
     <meta name="theme-color" content="#282c34">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -205,7 +205,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register("{{ url_for('service_worker') }}")
+                navigator.serviceWorker.register("{{ url_for('web.service_worker') }}")
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
                     })
@@ -248,7 +248,7 @@
             // サーバーから認証オプションを取得
             let options;
             try {
-                const resp = await fetch('/passkey/auth-options', {
+                const resp = await fetch("{{ url_for('web.passkey_auth_options') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: username }),
@@ -295,14 +295,14 @@
 
             // サーバーに検証をリクエスト
             try {
-                const verificationResp = await fetch('/passkey/verify-auth', {
+                const verificationResp = await fetch("{{ url_for('web.passkey_verify_auth') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ credential: authenticationResponse }),
                 });
                 const verificationJSON = await verificationResp.json();
                 if (verificationJSON && verificationJSON.verified) {
-                    window.location.href = "{{ url_for('index') }}";
+                    window.location.href = "{{ url_for('web.index') }}";
                 } else {
                     throw new Error(verificationJSON.error || "Authentication failed on server.");
                 }
