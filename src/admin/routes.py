@@ -24,7 +24,7 @@ import os
 from datetime import datetime, timedelta
 import time
 import logging
-from .. import database, util, backup_util, plugin_manager
+from .. import database, util, backup_util, plugin_manager, terminal_handler
 import psutil
 import toml
 import shutil
@@ -71,18 +71,16 @@ def load_admin_texts():
     """
     menu_mode = session.get('menu_mode', '3')  # デフォルトは英語モード
     # adminセクションのテキストをロードし、指定されたmenu_modeのテキストを抽出
-    g.texts = _process_texts_for_mode(
-        util.load_master_text_data().get('admin', {}), menu_mode)
+    # Load all texts for the given mode
+    g.texts = _process_texts_for_mode(util.load_master_text_data(), menu_mode)
 
 
 @admin_bp.route('/')
 @sysop_required
 def dashboard():
     """管理画面のダッシュボードを表示します。"""
-    # 循環参照を避けるため、関数内でインポートします
-    from .. import webapp
     # オンラインメンバーの数を取得
-    online_count = len(webapp.get_webapp_online_members())
+    online_count = len(terminal_handler.get_webapp_online_members())
 
     # 統計情報を取得
     stats = {
@@ -141,9 +139,7 @@ def dashboard():
 @sysop_required
 def who_online():
     """オンラインユーザーの詳細一覧ページを表示します。"""
-    # 循環参照を避けるため、関数内でwebappをインポートします
-    from .. import webapp
-    online_members_raw = webapp.get_webapp_online_members()
+    online_members_raw = terminal_handler.get_webapp_online_members()
 
     # データを整形し、接続時間を計算
     online_list = []
@@ -186,15 +182,19 @@ def who_online():
 @sysop_required
 def kick_user(sid):
     """指定されたSIDのユーザーセッションを強制的に切断します。"""
-    # webappモジュールからキック関数を呼び出す
-    from .. import webapp
+    from ..factory import socketio
 
-    online_members = webapp.get_webapp_online_members()
+    online_members = terminal_handler.get_webapp_online_members()
     member_to_kick = online_members.get(sid)
     display_name = member_to_kick.get(
         'display_name', f'session {sid}') if member_to_kick else f'session {sid}'
 
-    if webapp.kick_user_session(sid):
+    kicked = False
+    if sid in terminal_handler.client_states:
+        socketio.disconnect(sid)
+        kicked = True
+
+    if kicked:
         flash(f"User '{display_name}' has been kicked.", 'success')
     else:
         flash(
@@ -262,6 +262,9 @@ def new_user():
 @sysop_required
 def edit_user(user_id):
     """ユーザー編集ページを表示し、更新処理を行います。"""
+    # This key is used in the template, so we get it here for convenience
+    edit_user_texts = g.texts.get('admin_edit_user', {})
+
     user = database.get_user_by_id(user_id)
     if not user:
         flash(f"User with ID {user_id} not found.", 'danger')
@@ -290,7 +293,28 @@ def edit_user(user_id):
             f"User '{user['name']}' has been updated successfully.", 'success')
         return redirect(url_for('admin.user_list'))
 
-    return render_template('admin/edit_user.html', title='Edit User', user=user)
+    # GET request: Fetch passkeys and render the template
+    passkeys = database.get_passkeys_by_user(user_id)
+
+    return render_template(
+        'admin/edit_user.html',
+        title=edit_user_texts.get('title', 'Edit User'),
+        user=user,
+        passkeys=passkeys
+    )
+
+
+@admin_bp.route('/users/edit/<int:user_id>/delete_passkey/<int:passkey_id>', methods=['POST'])
+@sysop_required
+def delete_user_passkey(user_id, passkey_id):
+    """Deletes a specific Passkey for a user."""
+    if database.delete_passkey_by_id_and_user_id(passkey_id, user_id):
+        flash(g.texts.get('admin_edit_user', {}).get(
+            'flash_passkey_deleted', "Passkey has been deleted."), 'success')
+    else:
+        flash(g.texts.get('admin_edit_user', {}).get(
+            'flash_passkey_delete_failed', "Failed to delete Passkey."), 'danger')
+    return redirect(url_for('admin.edit_user', user_id=user_id))
 
 
 @admin_bp.route('/users/delete/<int:user_id>', methods=['POST'])
@@ -957,9 +981,7 @@ def broadcast():
             'flash_empty', 'Message cannot be empty.'), 'warning')
         return redirect(url_for('admin.dashboard'))
 
-    # 循環参照を避けるため、関数内でインポート
-    from .. import webapp
-    online_members = webapp.get_webapp_online_members()
+    online_members = terminal_handler.get_webapp_online_members()
 
     if not online_members:
         flash(g.texts.get('broadcast', {}).get(

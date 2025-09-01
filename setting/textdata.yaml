@@ -599,7 +599,7 @@ sysop_menu:
       ■[blist] 掲示板一覧                      [chulv]  ユーザーレベル変更       □
       □[bdel]  掲示板削除                      [udel]   会員抹消                 ■
       ■[bmod]  掲示板総合設定変更              [uadd]   会員登録                 □
-      □[osign] オンラインサインアップ設定      [SYMW]   シンボルテーブルを書く   ■
+      □[osign] オンラインサインアップ設定      [passkey] Passkey管理             ■
       ■[mcnf]  トップメニューの会員レベル設定                                    □
       □[cshow] 設定一覧表示                    [lgmc]   ログインメッセージ変更   ■
       ■[halt]  システム強制終了                                                  □
@@ -618,6 +618,7 @@ sysop_menu:
       [bdel]  掲示板削除
       [uadd]  会員登録
       [udel]  会員抹消
+      [passkey] Passkey管理
       [chulv] ユーザーレベル変更
       [osign] オンラインサインアップ設定
       [ulist] 会員一覧表示
@@ -640,6 +641,7 @@ sysop_menu:
       | bdel    | Delete Board: Remove bulletin board       |
       | uadd    | Register User: Add new member             |
       | udel    | Delete User: Remove member account        |
+      | passkey | Manage User Passkeys                      |
       | chulv   | Change User Level: Adjust user perms      |
       | osign   | Toggle Online Signup: Enable/disable      |
       | ulist   | List Users: Show all members              |
@@ -992,6 +994,47 @@ sysop_menu:
       mode_1: "現在のログインメッセージ: {message}\r\n"
       mode_2: "現在のログインメッセージ: {message}\r\n"
       mode_3: "Current login message: {message}\r\n"
+  passkey_management:
+    header:
+      mode_1: "--- パスキー管理 ---"
+      mode_2: "--- パスキー管理 ---"
+      mode_3: "--- Passkey Management ---"
+    user_prompt:
+      mode_1: "パスキーを管理するユーザーIDを入力してください: "
+      mode_2: "パスキーを管理するユーザーIDを入力してください: "
+      mode_3: "Enter username to manage Passkeys: "
+    list_header:
+      mode_1: "ユーザー '{username}' のパスキー一覧"
+      mode_2: "ユーザー '{username}' のパスキー一覧"
+      mode_3: "Passkeys for user: {username}"
+    no_passkeys:
+      mode_1: "このユーザーはパスキーを登録していません。"
+      mode_2: "このユーザーはパスキーを登録していません。"
+      mode_3: "No Passkeys registered for this user."
+    list_item_format:
+      mode_1: "[{index}] {nickname} (登録日: {created_at}, 最終利用: {last_used_at})"
+      mode_2: "[{index}] {nickname} (登録日: {created_at}, 最終利用: {last_used_at})"
+      mode_3: "[{index}] {nickname} (Created: {created_at}, Last Used: {last_used_at})"
+    submenu_prompt:
+      mode_1: "[D]削除 [E]終了: "
+      mode_2: "[D]削除 [E]終了: "
+      mode_3: "[D]elete, [E]xit: "
+    delete_prompt:
+      mode_1: "削除するパスキーの番号を入力してください: "
+      mode_2: "削除するパスキーの番号を入力してください: "
+      mode_3: "Enter number of Passkey to delete: "
+    delete_confirm_yn:
+      mode_1: "本当にパスキー '{nickname}' を削除しますか？ (y/N): "
+      mode_2: "本当にパスキー '{nickname}' を削除しますか？ (y/N): "
+      mode_3: "Really delete Passkey '{nickname}'? (y/N): "
+    delete_success:
+      mode_1: "パスキーを削除しました。"
+      mode_2: "パスキーを削除しました。"
+      mode_3: "Passkey has been deleted."
+    invalid_selection:
+      mode_1: "無効な選択です。"
+      mode_2: "無効な選択です。"
+      mode_3: "Invalid selection."
 # --- 5. Mail Handler / メール関連 ---
 mail_handler:
   main_prompt:
@@ -4054,6 +4097,83 @@ terminal_ui:
       mode_1: "ユーザーが見つかりません。"
       mode_2: "ユーザーが見つかりません。"
       mode_3: "No users found."
+  admin_edit_user:
+    title:
+      mode_1: "ユーザー編集"
+      mode_2: "ユーザー編集"
+      mode_3: "Edit User"
+    username_label:
+      mode_1: "ユーザー名 (読み取り専用)"
+      mode_2: "ユーザー名 (読み取り専用)"
+      mode_3: "Username (read-only)"
+    level_label:
+      mode_1: "レベル (0-5)"
+      mode_2: "レベル (0-5)"
+      mode_3: "Level (0-5)"
+    email_label:
+      mode_1: "メールアドレス"
+      mode_2: "メールアドレス"
+      mode_3: "Email"
+    comment_label:
+      mode_1: "コメント"
+      mode_2: "コメント"
+      mode_3: "Comment"
+    password_label:
+      mode_1: "新しいパスワード (空欄で変更なし)"
+      mode_2: "新しいパスワード (空欄で変更なし)"
+      mode_3: "New Password (leave blank to keep current)"
+    save_button:
+      mode_1: "変更を保存"
+      mode_2: "変更を保存"
+      mode_3: "Save Changes"
+    cancel_button:
+      mode_1: "キャンセル"
+      mode_2: "キャンセル"
+      mode_3: "Cancel"
+    passkeys_header:
+      mode_1: "パスキー"
+      mode_2: "パスキー"
+      mode_3: "Passkeys"
+    table_nickname:
+      mode_1: "ニックネーム"
+      mode_2: "ニックネーム"
+      mode_3: "Nickname"
+    table_registered:
+      mode_1: "登録日時"
+      mode_2: "登録日時"
+      mode_3: "Registered At"
+    table_last_used:
+      mode_1: "最終利用"
+      mode_2: "最終利用"
+      mode_3: "Last Used"
+    table_actions:
+      mode_1: "操作"
+      mode_2: "操作"
+      mode_3: "Actions"
+    action_delete:
+      mode_1: "削除"
+      mode_2: "削除"
+      mode_3: "Delete"
+    never:
+      mode_1: "なし"
+      mode_2: "なし"
+      mode_3: "Never"
+    no_passkeys:
+      mode_1: "このユーザーはパスキーを登録していません。"
+      mode_2: "このユーザーはパスキーを登録していません。"
+      mode_3: "This user has no registered Passkeys."
+    delete_confirm:
+      mode_1: "このパスキーを本当に削除しますか？"
+      mode_2: "このパスキーを本当に削除しますか？"
+      mode_3: "Are you sure you want to delete this Passkey?"
+    flash_passkey_deleted:
+      mode_1: "パスキーを削除しました。"
+      mode_2: "パスキーを削除しました。"
+      mode_3: "Passkey has been deleted."
+    flash_passkey_delete_failed:
+      mode_1: "パスキーの削除に失敗しました。"
+      mode_2: "パスキーの削除に失敗しました。"
+      mode_3: "Failed to delete Passkey."
   plugin_list:
     title:
       mode_1: "プラグイン管理"

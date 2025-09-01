@@ -1,0 +1,11 @@
+{% extends "errors/base_error.html" %}
+
+{% block title %}Forbidden{% endblock %}
+
+{% block error_code %}403{% endblock %}
+{% block error_title %}Access Forbidden{% endblock %}
+{% block error_message %}
+<p>
+    You do not have permission to access this page.
+</p>
+{% endblock %}

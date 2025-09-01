@@ -43,6 +43,7 @@ def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
         'bdel': delete_board,
         'bmod': change_board_full_settings,
         'udel': user_delete,
+        'passkey': manage_passkeys_by_sysop,
         'uadd': user_register,
         'passwd': change_user_password_by_sysop,
         'chulv': change_user_level,
@@ -100,6 +101,99 @@ def write_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
         )
     util.prompt_and_save_exploration_list(chan, current_menu_mode, save_func)
     return None
+
+
+def manage_passkeys_by_sysop(chan, sysop_login_id, current_menu_mode):
+    """SysOp menu for managing a user's Passkeys."""
+    util.send_text_by_key(
+        chan, "sysop_menu.passkey_management.header", current_menu_mode)
+
+    # Get target user
+    user_data = _get_target_user(
+        chan, "sysop_menu.passkey_management.user_prompt", current_menu_mode)
+    if not user_data:
+        return None  # User not found or cancelled
+
+    user_id_to_manage = user_data['id']
+    user_name_to_manage = user_data['name']
+
+    while True:
+        passkeys = database.get_passkeys_by_user(user_id_to_manage)
+
+        util.send_text_by_key(
+            chan, "sysop_menu.passkey_management.list_header", current_menu_mode, username=user_name_to_manage)
+
+        if not passkeys:
+            util.send_text_by_key(
+                chan, "sysop_menu.passkey_management.no_passkeys", current_menu_mode)
+        else:
+            for i, key in enumerate(passkeys):
+                created_at_str = util.format_timestamp(key.get('created_at'))
+                last_used_at_str = util.format_timestamp(
+                    key.get('last_used_at'), default_str='未使用')
+                nickname = key.get('nickname', '(No Nickname)')
+                util.send_text_by_key(
+                    chan, "sysop_menu.passkey_management.list_item_format", current_menu_mode,
+                    index=i + 1,
+                    nickname=nickname,
+                    created_at=created_at_str,
+                    last_used_at=last_used_at_str
+                )
+
+        util.send_text_by_key(
+            chan, "sysop_menu.passkey_management.submenu_prompt", current_menu_mode, add_newline=False)
+
+        choice = chan.process_input()
+        if choice is None:
+            return None  # Disconnected
+
+        choice = choice.strip().lower()
+
+        if choice == 'd':
+            if not passkeys:
+                chan.send(b'\a')  # Beep if no passkeys to delete
+                continue
+
+            util.send_text_by_key(
+                chan, "sysop_menu.passkey_management.delete_prompt", current_menu_mode, add_newline=False)
+
+            delete_choice_input = chan.process_input()
+            if delete_choice_input is None or not delete_choice_input.strip():
+                continue
+
+            try:
+                delete_index = int(delete_choice_input) - 1
+                if not (0 <= delete_index < len(passkeys)):
+                    raise ValueError
+
+                key_to_delete = passkeys[delete_index]
+                passkey_id_to_delete = key_to_delete['id']
+                nickname_to_delete = key_to_delete.get(
+                    'nickname', '(No Nickname)')
+
+                util.send_text_by_key(
+                    chan, "sysop_menu.passkey_management.delete_confirm_yn", current_menu_mode,
+                    nickname=nickname_to_delete, add_newline=False
+                )
+                confirm = chan.process_input()
+                if confirm and confirm.strip().lower() == 'y':
+                    if database.delete_passkey_by_id_and_user_id(passkey_id_to_delete, user_id_to_manage):
+                        util.send_text_by_key(
+                            chan, "sysop_menu.passkey_management.delete_success", current_menu_mode)
+                    else:
+                        util.send_text_by_key(
+                            chan, "common_messages.db_update_error", current_menu_mode)
+            except ValueError:
+                util.send_text_by_key(
+                    chan, "sysop_menu.passkey_management.invalid_selection", current_menu_mode)
+
+        elif choice == 'e' or choice == '':
+            break
+        else:
+            util.send_text_by_key(
+                chan, "common_messages.invalid_command", current_menu_mode)
+
+    return None  # Return to main sysop menu
 
 
 def change_login_message(chan, _sysop_login_id, current_menu_mode):
