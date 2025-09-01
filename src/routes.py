@@ -29,7 +29,7 @@ from cryptography.hazmat.primitives import serialization
 import time
 import logging
 
-from . import util, database, passkey_handler
+from . import util, database, passkey_handler, extensions
 
 web_bp = Blueprint('web', __name__)
 
@@ -124,6 +124,7 @@ def index():
 
 
 @web_bp.route('/login', methods=['GET', 'POST'])
+@extensions.limiter.limit("10 per minute")
 def login():
     """Handles the user login process, including password and Passkey authentication."""
     webapp_config = current_app.config.get('WEBAPP', {})
@@ -208,6 +209,7 @@ def logout():
 
 @web_bp.route('/passkey/register-options', methods=['POST'])
 @login_required
+@extensions.limiter.limit("20 per minute")
 def passkey_register_options():
     """API endpoint to generate options for Passkey registration."""
     user_id = session.get('user_id')
@@ -221,6 +223,7 @@ def passkey_register_options():
 
 @web_bp.route('/passkey/verify-registration', methods=['POST'])
 @login_required
+@extensions.limiter.limit("10 per minute")
 def passkey_verify_registration():
     """API endpoint to verify a Passkey registration response."""
     user_id = session.get('user_id')
@@ -229,10 +232,8 @@ def passkey_verify_registration():
     data = request.get_json()
     credential_json = json.dumps(data['credential'])
     nickname = data['nickname']
-    expected_origin = current_app.config.get(
-        'WEBAPP', {}).get('ORIGIN', 'http://localhost:5000')
     success = passkey_handler.verify_registration_for_user(
-        user_id, credential_json, challenge_bytes, expected_origin, nickname)
+        user_id, credential_json, challenge_bytes, request.url_root.rstrip('/'), nickname)
     if success:
         return jsonify({"verified": True})
     else:
@@ -240,6 +241,7 @@ def passkey_verify_registration():
 
 
 @web_bp.route('/passkey/auth-options', methods=['POST'])
+@extensions.limiter.limit("20 per minute")
 def passkey_auth_options():
     """API endpoint to generate options for Passkey authentication."""
     username = request.get_json().get('username', '').upper()
@@ -253,15 +255,14 @@ def passkey_auth_options():
 
 
 @web_bp.route('/passkey/verify-auth', methods=['POST'])
+@extensions.limiter.limit("10 per minute")
 def passkey_verify_auth():
     """API endpoint to verify a Passkey authentication response and log the user in."""
     challenge_str = session.pop("passkey_authentication_challenge", None)
     challenge_bytes = base64url_to_bytes(challenge_str)
     credential_json = json.dumps(request.get_json()['credential'])
-    expected_origin = current_app.config.get(
-        'WEBAPP', {}).get('ORIGIN', 'http://localhost:5000')
     user_data = passkey_handler.verify_authentication_for_user(
-        credential_json, challenge_bytes, expected_origin)
+        credential_json, challenge_bytes, request.url_root.rstrip('/'))
     if user_data:
         session['lastlogin'] = user_data.get('lastlogin', 0)
         session['user_id'] = user_data['id']

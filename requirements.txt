@@ -2,6 +2,7 @@ numpy
 toml
 PyYAML
 flask
+Flask-Limiter
 flask-socketio
 flask-session
 gunicorn

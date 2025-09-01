@@ -28,6 +28,7 @@ import mysql.connector
 from mysql.connector import pooling
 import logging
 import json
+import os
 
 import time  # For timestamp in some functions
 

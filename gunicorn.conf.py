@@ -5,7 +5,7 @@ bind = "0.0.0.0:5000"
 
 # ワーカープロセス
 workers = 1
-worker_class = "gevent"
+worker_class = "geventwebsocket.gunicorn.workers.GeventWebSocketWorker"
 
 # 開発用にリロードを有効にする
 reload = True

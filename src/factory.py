@@ -34,7 +34,7 @@ from flask_session import Session
 from flask_socketio import SocketIO
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import util, database, plugin_manager, backup_util
+from . import util, database, plugin_manager, backup_util, errors, extensions
 from .routes import web_bp
 from .events import init_events
 from .admin.routes import admin_bp
@@ -106,6 +106,11 @@ def create_app():
     database.init_app(app)
 
     # --- Initialize Other Extensions ---
+    # Use a different Redis DB for rate limiting to avoid key collisions with session data.
+    app.config.setdefault('RATELIMIT_STORAGE_URI', os.getenv(
+        'REDIS_URL', 'redis://localhost:6379/0').replace('/0', '/1'))
+    extensions.limiter.init_app(app)
+
     plugin_manager.load_plugins()
 
     # --- Session Configuration ---
@@ -126,6 +131,9 @@ def create_app():
     # --- Register Blueprints ---
     app.register_blueprint(web_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
+
+    # --- Register Error Handlers ---
+    errors.register_error_handlers(app)
 
     # --- Register Context Processors and Template Filters ---
     @app.context_processor
