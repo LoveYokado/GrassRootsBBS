@@ -126,6 +126,20 @@ class WebTerminalHandler:
         self.socketio.start_background_task(self._sender_worker)
         self.socketio.start_background_task(self._bbs_main_loop)
 
+        @self.socketio.on('get_bbs_list')
+        def handle_get_bbs_list():
+            """クライアントからのBBSリスト要求に応答します。"""
+            if not self.user_session.get('user_id'):
+                return  # 未認証の場合は何もしない
+
+            try:
+                links = database.get_bbs_links()
+                self.socketio.emit('bbs_list_data', {'links': links})
+            except Exception as e:
+                logging.error(f"BBSリストの取得中にエラーが発生しました: {e}", exc_info=True)
+                self.socketio.emit('bbs_list_data', {
+                                   'links': [], 'error': 'Could not retrieve BBS list.'})
+
     class WebChannel:
         def __init__(self, handler_instance, ip_addr):
             self.handler = handler_instance

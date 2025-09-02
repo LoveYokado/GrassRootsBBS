@@ -80,7 +80,7 @@ def index():
         "f4": {"label": "NoFunction", "action": "none"},
         "f5": {"label": "Line Edit", "action": "open_line_editor"},
         "f6": {"label": "M-Line Edit", "action": "open_multiline_editor"},
-        "f7": {"label": "BBS LIST", "action": "none"},
+        "f7": {"label": "BBS LIST", "action": "open_bbs_list"},
         "f8": {"label": "ReConnect", "action": "redirect", "value": url_for('web.login')},
     }
     limits_config = current_app.config.get('LIMITS', {})
