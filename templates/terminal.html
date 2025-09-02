@@ -2703,7 +2703,31 @@
                 updateTerminalLayout();
             }
 
+            // --- 自動スクロール & レイアウト補正 ---
+            const buffer = term.buffer.active;
+            // 処理前に、ユーザーが既に一番下までスクロールしているか確認
+            const isScrolledToBottom = buffer.viewportY + term.rows >= buffer.baseY + buffer.length;
+
+            // --- モバイルのキーボード表示中のレイアウト崩れ対策 ---
+            // 電報受信などで非同期にデータが書き込まれると、キーボード表示中のレイアウトが崩れることがある。
+            // これを防ぐため、書き込み前に visualViewport を使ってレイアウトを再適用する。
+            if ('visualViewport' in window) {
+                const vv = window.visualViewport;
+                const isMobile = window.matchMedia("(max-width: 992px)").matches;
+                const isKeyboardVisible = (window.innerHeight - vv.height) > 80;
+
+                if (isMobile && isKeyboardVisible) {
+                    document.body.style.height = `${vv.height}px`;
+                    document.querySelector('.monitor-screen').style.paddingBottom = '0px';
+                }
+            }
+
             term.write(data);
+
+            // もし書き込み前に一番下までスクロールされていたなら、書き込み後も一番下にスクロール
+            if (isScrolledToBottom) {
+                term.scrollToBottom();
+            }
         });
 
         socket.on('bbs_link_submission_result', (data) => {
