@@ -128,7 +128,10 @@ class WebTerminalHandler:
 
         @self.socketio.on('get_bbs_list')
         def handle_get_bbs_list():
-            """クライアントからのBBSリスト要求に応答します。"""
+            """
+            クライアント(F7キーポップアップ)からのBBSリスト要求に応答します。
+            データベースから承認済みのリンクを取得し、クライアントに送信します。
+            """
             if not self.user_session.get('user_id'):
                 return  # 未認証の場合は何もしない
 
@@ -139,6 +142,33 @@ class WebTerminalHandler:
                 logging.error(f"BBSリストの取得中にエラーが発生しました: {e}", exc_info=True)
                 self.socketio.emit('bbs_list_data', {
                                    'links': [], 'error': 'Could not retrieve BBS list.'})
+
+        @self.socketio.on('submit_bbs_link')
+        def handle_submit_bbs_link(data):
+            """
+            ユーザーからのBBSリンク申請を処理します。
+            受け取ったデータを検証し、'pending'ステータスでデータベースに保存します。
+            処理結果をクライアントに返します。
+            """
+            user_id = self.user_session.get('user_id')
+            if not user_id:
+                return
+
+            name = data.get('name')
+            url = data.get('url')
+            description = data.get('description', '')
+
+            if not name or not url:
+                self.socketio.emit('bbs_link_submission_result', {
+                                   'success': False, 'message': 'Name and URL are required.'})
+                return
+
+            if database.add_bbs_link(name, url, description, source='user', submitted_by=user_id):
+                self.socketio.emit(
+                    'bbs_link_submission_result', {'success': True})
+            else:
+                self.socketio.emit('bbs_link_submission_result', {
+                                   'success': False, 'message': 'Failed to submit link. URL might already exist.'})
 
     class WebChannel:
         def __init__(self, handler_instance, ip_addr):

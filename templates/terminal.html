@@ -507,6 +507,19 @@
             font-family: '"M PLUS 1m", "Courier New", monospace';
         }
 
+        .popup-window-input {
+            width: 95%;
+            padding: 8px;
+            margin-bottom: 15px;
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
+            font-family: '"M PLUS 1m", "Courier New", monospace';
+        }
+
         .popup-window-textarea {
             width: 100%;
             background-color: #000;
@@ -1290,7 +1303,7 @@
         <button class="mobile-btn" id="plugin-btn-enter">Enter</button>
     </div>
 
-    <!-- BBS List Viewer -->
+    <!-- BBS List Viewer: F7キーで表示されるBBSリンク一覧のポップアップ -->
     <div id="bbs-list-overlay" class="popup-overlay"></div>
     <div id="bbs-list-window" class="popup-window">
         <div class="popup-header">
@@ -1305,8 +1318,28 @@
             <div class="detail-pane">
                 <h3 id="bbs-detail-name">Select a BBS from the list</h3>
                 <p id="bbs-detail-description" style="white-space: pre-wrap; flex-grow: 1;"></p>
-                <button id="bbs-list-jump-btn" class="popup-content-button" disabled>Jump to BBS</button>
+                <div style="display: flex; gap: 10px; margin-top: auto;">
+                    <button id="bbs-list-jump-btn" class="popup-content-button" style="flex-grow: 1;" disabled>Jump to
+                        BBS</button>
+                    <button id="bbs-list-submit-new-btn" class="popup-content-button">Submit New Link</button>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- BBS Link Submission Popup: ユーザーが新しいBBSリンクを申請するためのポップアップ -->
+    <div id="bbs-submission-overlay" class="popup-overlay"></div>
+    <div id="bbs-submission-window" class="popup-window">
+        <div class="popup-header">
+            <h2>Submit New BBS Link</h2>
+            <button id="bbs-submission-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content">
+            <input type="text" id="bbs-submission-name" placeholder="BBS Name" class="popup-window-input">
+            <input type="url" id="bbs-submission-url" placeholder="https://example.com" class="popup-window-input">
+            <textarea id="bbs-submission-description" placeholder="Description (optional)" class="popup-window-textarea"
+                style="height: 100px;"></textarea>
+            <button id="bbs-submission-submit-btn" class="popup-content-button">Submit for Approval</button>
         </div>
     </div>
 
@@ -2022,6 +2055,13 @@
         const bbsListJumpBtn = document.getElementById('bbs-list-jump-btn');
         let currentBbsLinks = [];
 
+        const bbsSubmissionOverlay = document.getElementById('bbs-submission-overlay');
+        const bbsSubmissionWindow = document.getElementById('bbs-submission-window');
+        const bbsSubmissionCloseBtn = document.getElementById('bbs-submission-close-btn');
+        const bbsSubmissionName = document.getElementById('bbs-submission-name');
+        const bbsSubmissionUrl = document.getElementById('bbs-submission-url');
+        const bbsSubmissionDescription = document.getElementById('bbs-submission-description');
+
         function b64DecodeUnicode(str) {
             return decodeURIComponent(atob(str).split('').map(function (c) {
                 return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
@@ -2152,6 +2192,10 @@
             logViewerWindow.classList.remove('visible');
         }
 
+        /**
+         * BBSリストのポップアップを開きます。
+         * サーバーにリストデータを要求し、ポップアップを表示します。
+         */
         function openBbsListPopup() {
             bbsStationsList.innerHTML = '<li><button>Loading...</button></li>';
             bbsDetailName.textContent = 'Select a BBS';
@@ -2164,6 +2208,9 @@
             bbsListWindow.classList.add('visible');
         }
 
+        /**
+         * BBSリストのポップアップを閉じます。
+         */
         function closeBbsListPopup() {
             bbsListOverlay.classList.remove('visible');
             bbsListWindow.classList.remove('visible');
@@ -2172,6 +2219,9 @@
         bbsListCloseBtn.addEventListener('click', closeBbsListPopup);
         bbsListOverlay.addEventListener('click', closeBbsListPopup);
 
+        /**
+         * 「Jump to BBS」ボタンがクリックされたときの処理。新しいタブでURLを開きます。
+         */
         bbsListJumpBtn.addEventListener('click', () => {
             const url = bbsListJumpBtn.dataset.url;
             if (url) {
@@ -2179,6 +2229,10 @@
             }
         });
 
+        /**
+         * サーバーからBBSリストデータを受け取ったときの処理。
+         * リストを動的に生成します。
+         */
         socket.on('bbs_list_data', (data) => {
             currentBbsLinks = data.links || [];
             bbsStationsList.innerHTML = ''; // リストをクリア
@@ -2196,6 +2250,44 @@
                 li.appendChild(button);
                 bbsStationsList.appendChild(li);
             });
+        });
+
+        /**
+         * 「Submit New Link」ボタンがクリックされたときの処理。申請用ポップアップを開きます。
+         */
+        document.getElementById('bbs-list-submit-new-btn').addEventListener('click', () => {
+            bbsSubmissionName.value = '';
+            bbsSubmissionUrl.value = '';
+            bbsSubmissionDescription.value = '';
+            bbsSubmissionOverlay.classList.add('visible');
+            bbsSubmissionWindow.classList.add('visible');
+        });
+
+        /**
+         * リンク申請用ポップアップを閉じます。
+         */
+        function closeBbsSubmissionPopup() {
+            bbsSubmissionOverlay.classList.remove('visible');
+            bbsSubmissionWindow.classList.remove('visible');
+        }
+
+        bbsSubmissionCloseBtn.addEventListener('click', closeBbsSubmissionPopup);
+        bbsSubmissionOverlay.addEventListener('click', closeBbsSubmissionPopup);
+        /**
+         * 申請フォームの「Submit for Approval」ボタンがクリックされたときの処理。
+         * 入力内容をサーバーに送信します。
+         */
+        document.getElementById('bbs-submission-submit-btn').addEventListener('click', () => {
+            const name = bbsSubmissionName.value.trim();
+            const url = bbsSubmissionUrl.value.trim();
+            const description = bbsSubmissionDescription.value.trim();
+
+            if (name && url) {
+                socket.emit('submit_bbs_link', { name, url, description });
+                closeBbsSubmissionPopup();
+            } else {
+                alert('BBS Name and URL are required.');
+            }
         });
 
         const fkeysLeftContainer = document.getElementById('f-keys-left');
@@ -2273,7 +2365,10 @@
         multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
         logViewerCloseBtn.addEventListener('click', closeLogViewer);
         logViewerOverlay.addEventListener('click', closeLogViewer);
-
+        /**
+         * BBSリストの項目がクリックされたときの処理。
+         * 右側の詳細ペインを更新し、「Jump」ボタンを有効化します。
+         */
         bbsStationsList.addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 const linkId = parseInt(e.target.dataset.linkId, 10);
@@ -2610,6 +2705,15 @@
 
             term.write(data);
         });
+
+        socket.on('bbs_link_submission_result', (data) => {
+            if (data.success) {
+                alert('Link submitted for approval. Thank you!');
+            } else {
+                alert(`Submission failed: ${data.message}`);
+            }
+        });
+
 
         socket.on('log_files_list', (data) => {
             logFilesList.innerHTML = ''; // 既存のリストをクリア

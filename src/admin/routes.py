@@ -42,7 +42,12 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @admin_bp.route('/bbs_list', methods=['GET', 'POST'])
 @sysop_required
 def bbs_list():
-    """BBSリンクの管理ページ。"""
+    """
+    BBSリンクの管理ページ。
+    GETリクエストではリンク一覧を表示し、
+    POSTリクエストでは追加、削除、承認、却下などの操作を処理します。
+    """
+    # POSTリクエスト: フォームからのアクションを処理
     if request.method == 'POST':
         action = request.form.get('action')
         link_id = request.form.get('id')
@@ -50,26 +55,99 @@ def bbs_list():
         url = request.form.get('url')
         description = request.form.get('description', '')
 
+        # 新規追加
         if action == 'add':
             if name and url:
-                if database.add_bbs_link(name, url, description):
+                if database.add_bbs_link(name, url, description, source='sysop', submitted_by=session.get('user_id')):
                     flash('BBS link added successfully.', 'success')
                 else:
                     flash('Failed to add BBS link. URL might already exist.', 'danger')
             else:
                 flash('Name and URL are required.', 'warning')
+        # 削除
         elif action == 'delete':
             if link_id:
                 if database.delete_bbs_link(link_id):
                     flash('BBS link deleted successfully.', 'success')
                 else:
                     flash('Failed to delete BBS link.', 'danger')
+        # 承認
+        elif action == 'approve':
+            if link_id and database.update_bbs_link_status(link_id, 'approved'):
+                flash('BBS link approved.', 'success')
+            else:
+                flash('Failed to approve BBS link.', 'danger')
+        # 却下
+        elif action == 'reject':
+            if link_id and database.update_bbs_link_status(link_id, 'rejected'):
+                flash('BBS link rejected.', 'success')
+            else:
+                flash('Failed to reject BBS link.', 'danger')
+        # 未承認に戻す
+        elif action == 'unapprove':
+            if link_id and database.update_bbs_link_status(link_id, 'pending'):
+                flash('BBS link has been returned to pending status.', 'success')
+            else:
+                flash('Failed to unapprove BBS link.', 'danger')
+        # 再評価 (却下 -> 未承認)
+        elif action == 'requeue':
+            if link_id and database.update_bbs_link_status(link_id, 'pending'):
+                flash('BBS link has been set to pending for re-evaluation.', 'success')
+            else:
+                flash('Failed to set link to pending.', 'danger')
+        # 処理後は一覧ページにリダイレクト
         return redirect(url_for('admin.bbs_list'))
 
-    links = database.get_bbs_links()
+    # GETリクエスト: 一覧表示
+    # ソート順のパラメータを取得
+    sort_by = request.args.get('sort_by', 'status')
+    order = request.args.get('order', 'asc')
+    # 次のクリックでソート順を逆にするための準備
+    next_order = 'desc' if order == 'asc' else 'asc'
+
+    links = database.get_all_bbs_links_for_admin(sort_by=sort_by, order=order)
     title = util.get_text_by_key(
         'admin.bbs_list.title', session.get('menu_mode', '2'), 'BBS List Management')
-    return render_template('admin/bbs_list.html', title=title, links=links)
+    return render_template(
+        'admin/bbs_list.html', title=title, links=links,
+        sort_by=sort_by, order=order, next_order=next_order
+    )
+
+
+@admin_bp.route('/bbs_list/edit/<int:link_id>', methods=['GET', 'POST'])
+@sysop_required
+def edit_bbs_link(link_id):
+    """
+    BBSリンクの編集ページ。
+    GETリクエストでは指定されたIDのリンク情報をフォームに表示し、
+    POSTリクエストではフォームから送信された内容でリンク情報を更新します。
+    """
+    # 編集対象のリンク情報を取得
+    link = database.bbs_list_manager.get_by_id(link_id)
+    if not link:
+        flash('BBS link not found.', 'danger')
+        return redirect(url_for('admin.bbs_list'))
+
+    if request.method == 'POST':
+        name = request.form.get('name')
+        url = request.form.get('url')
+        description = request.form.get('description', '')
+
+        # バリデーションと更新処理
+        if name and url:
+            if database.update_bbs_link(link_id, name, url, description):
+                flash('BBS link updated successfully.', 'success')
+                return redirect(url_for('admin.bbs_list'))
+            else:
+                flash('Failed to update BBS link.', 'danger')
+        else:
+            flash('Name and URL are required.', 'warning')
+        # 更新失敗時も、入力した内容をフォームに再表示するため辞書を更新
+        link.update(name=name, url=url, description=description)
+
+    title = f"Edit BBS Link: {link['name']}"
+    # 編集ページをレンダリング
+    return render_template('admin/edit_bbs_link.html', title=title, link=link)
 
 
 # --- Backup Directory Configuration / バックアップディレクトリ設定 ---

@@ -1164,15 +1164,67 @@ class BBSListManager:
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
 
-    def get_all(self):
-        """登録されているすべてのBBSリンクを取得する"""
-        query = "SELECT id, name, url, description, source FROM bbs_list ORDER BY name"
+    def get_by_id(self, link_id):
+        """
+        指定されたIDのBBSリンクを1件取得します。
+        主に編集画面で特定のリンク情報を表示するために使用されます。
+
+        Args:
+            link_id (int): 取得するBBSリンクのID。
+
+        Returns:
+            dict or None: リンク情報を含む辞書、または見つからない場合はNone。
+        """
+        query = "SELECT * FROM bbs_list WHERE id = %s"
+        return self._db.execute_query(query, (link_id,), fetch='one')
+
+    def get_approved(self):
+        """
+        承認済み(approved)のすべてのBBSリンクを取得します。
+        F7キーのBBSリストなど、ユーザーに表示する際に使用されます。
+        """
+        query = "SELECT id, name, url, description, source FROM bbs_list WHERE status = 'approved' ORDER BY name"
         return self._db.execute_query(query, fetch='all')
 
-    def add(self, name, url, description, source='sysop'):
-        """新しいBBSリンクをデータベースに追加する"""
-        query = "INSERT INTO bbs_list (name, url, description, source, created_at) VALUES (%s, %s, %s, %s, %s)"
-        params = (name, url, description, source, int(time.time()))
+    def get_all_for_admin(self, sort_by='status', order='asc'):
+        """
+        管理画面用に、ソート機能付きで全てのステータスのBBSリンクを取得します。
+        申請者名も結合して取得します。
+        """
+        # SQLインジェクションを防ぐため、ソート可能なカラムをホワイトリストで管理
+        allowed_columns = {
+            'id': 'bl.id',
+            'name': 'bl.name',
+            'url': 'bl.url',
+            'status': 'bl.status',
+            'submitted_by': 'submitted_by_name',
+            'created_at': 'bl.created_at'
+        }
+        sort_column = allowed_columns.get(sort_by, 'bl.status')
+
+        # asc/desc以外の値が指定された場合は 'asc' にフォールバック
+        if order.lower() not in ['asc', 'desc']:
+            order = 'asc'
+
+        # LEFT JOINを使用して、ユーザーIDから申請者名を取得
+        query = f"""
+            SELECT bl.id, bl.name, bl.url, bl.description, bl.source, bl.status, bl.created_at, u.name as submitted_by_name
+            FROM bbs_list bl
+            LEFT JOIN users u ON bl.submitted_by = u.id
+            ORDER BY {sort_column} {order}, bl.created_at DESC
+        """
+        return self._db.execute_query(query, fetch='all')
+
+    def add(self, name, url, description, source='sysop', submitted_by=None):
+        """
+        新しいBBSリンクをデータベースに追加します。
+        sourceが'sysop'の場合は自動的に'approved'に、それ以外は'pending'になります。
+        """
+        # シスオペによる追加は即時承認、ユーザーによる申請は承認待ち
+        status = 'approved' if source == 'sysop' else 'pending'
+        query = "INSERT INTO bbs_list (name, url, description, source, status, submitted_by, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        params = (name, url, description, source,
+                  status, submitted_by, int(time.time()))
         try:
             result = self._db.execute_query(query, params)
             return result is not None
@@ -1185,13 +1237,25 @@ class BBSListManager:
             return False
 
     def update(self, link_id, name, url, description):
-        """指定されたIDのBBSリンクを更新する"""
+        """指定されたIDのBBSリンクの内容（名前、URL、説明）を更新します。"""
         query = "UPDATE bbs_list SET name = %s, url = %s, description = %s WHERE id = %s"
         params = (name, url, description, link_id)
         return self._db.execute_query(query, params) is not None
 
+    def update_status(self, link_id, status):
+        """
+        指定されたIDのBBSリンクのステータス（承認状態）を更新します。
+        'approved', 'rejected', 'pending' 以外のステータスは無効です。
+        """
+        if status not in ['approved', 'rejected', 'pending']:
+            logging.warning(f"無効なステータスが指定されました: {status}")
+            return False
+        query = "UPDATE bbs_list SET status = %s WHERE id = %s"
+        params = (status, link_id)
+        return self._db.execute_query(query, params) is not None
+
     def delete(self, link_id):
-        """指定されたIDのBBSリンクを削除する"""
+        """指定されたIDのBBSリンクを物理削除します。"""
         query = "DELETE FROM bbs_list WHERE id = %s"
         conn = self._db.get_connection()
         cursor = None
@@ -1528,19 +1592,35 @@ class DatabaseInitializer:
                     `url` VARCHAR(2048) NOT NULL UNIQUE,
                     `description` TEXT,
                     `source` VARCHAR(10) NOT NULL DEFAULT 'sysop',
+                    `status` VARCHAR(10) NOT NULL DEFAULT 'pending',
+                    `submitted_by` INT,
                     `created_at` INT NOT NULL
                 )
                 """
                 cursor.execute(create_query)
                 logging.info("データベースマイグレーション: 'bbs_list'テーブルを作成しました。")
             else:
-                # テーブルは存在するが、カラムが存在しない場合に対応
-                cursor.execute("SHOW COLUMNS FROM `bbs_list` LIKE 'source'")
-                if not cursor.fetchone():
+                # カラムの存在チェックと追加
+                cursor.execute("SHOW COLUMNS FROM `bbs_list`")
+                columns = [row['Field'].lower() for row in cursor.fetchall()]
+                # sourceカラム: リンクの提供元 (sysop/user)
+                if 'source' not in columns:
                     alter_query = "ALTER TABLE `bbs_list` ADD COLUMN `source` VARCHAR(10) NOT NULL DEFAULT 'sysop' AFTER `description`"
                     cursor.execute(alter_query)
                     logging.info(
                         "データベースマイグレーション: 'bbs_list'テーブルに'source'カラムを追加しました。")
+                # statusカラム: 承認状態 (pending/approved/rejected)
+                if 'status' not in columns:
+                    alter_query = "ALTER TABLE `bbs_list` ADD COLUMN `status` VARCHAR(10) NOT NULL DEFAULT 'pending' AFTER `source`"
+                    cursor.execute(alter_query)
+                    logging.info(
+                        "データベースマイグレーション: 'bbs_list'テーブルに'status'カラムを追加しました。")
+                # submitted_byカラム: 申請者のユーザーID
+                if 'submitted_by' not in columns:
+                    alter_query = "ALTER TABLE `bbs_list` ADD COLUMN `submitted_by` INT AFTER `status`"
+                    cursor.execute(alter_query)
+                    logging.info(
+                        "データベースマイグレーション: 'bbs_list'テーブルに'submitted_by'カラムを追加しました。")
 
         except Exception as e:
             logging.error(f"Database migration failed: {e}", exc_info=True)
@@ -1893,12 +1973,12 @@ def apply_migrations():
 
 def get_bbs_links():
     """登録されているすべてのBBSリンクを取得する"""
-    return bbs_list_manager.get_all()
+    return bbs_list_manager.get_approved()
 
 
-def add_bbs_link(name, url, description, source='sysop'):
+def add_bbs_link(name, url, description, source='sysop', submitted_by=None):
     """新しいBBSリンクをデータベースに追加する"""
-    return bbs_list_manager.add(name, url, description, source)
+    return bbs_list_manager.add(name, url, description, source, submitted_by)
 
 
 def update_bbs_link(link_id, name, url, description):
@@ -1909,6 +1989,16 @@ def update_bbs_link(link_id, name, url, description):
 def delete_bbs_link(link_id):
     """指定されたIDのBBSリンクを削除する"""
     return bbs_list_manager.delete(link_id)
+
+
+def get_all_bbs_links_for_admin(sort_by='status', order='asc') -> list:
+    """管理画面用に、ソート順を指定して全てのBBSリンクを取得します。"""
+    return bbs_list_manager.get_all_for_admin(sort_by, order)
+
+
+def update_bbs_link_status(link_id: int, status: str) -> bool:
+    """指定されたBBSリンクのステータスを更新します。"""
+    return bbs_list_manager.update_status(link_id, status)
 
 
 def init_app(app):

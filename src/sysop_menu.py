@@ -28,7 +28,10 @@ from . import util, database
 
 
 def _handle_list_bbs_links(chan, _sysop_login_id, menu_mode):
-    """BBSリンクの一覧を表示する"""
+    """
+    シスオペメニューでBBSリンクの一覧を表示します。
+    この関数は承認済みのリンクのみを表示します。
+    """
     util.send_text_by_key(chan, "sysop_menu.bbs_list.list_header", menu_mode)
     links = database.get_bbs_links()
     if not links:
@@ -43,7 +46,7 @@ def _handle_list_bbs_links(chan, _sysop_login_id, menu_mode):
 
 
 def _handle_add_bbs_link(chan, _sysop_login_id, menu_mode):
-    """BBSリンクを追加する"""
+    """シスオペメニューでBBSリンクを対話的に追加します。"""
     util.send_text_by_key(
         chan, "sysop_menu.bbs_list.add_name_prompt", menu_mode, add_newline=False)
     name = chan.process_input()
@@ -71,7 +74,7 @@ def _handle_add_bbs_link(chan, _sysop_login_id, menu_mode):
 
 
 def _handle_modify_bbs_link(chan, sysop_login_id, menu_mode):
-    """BBSリンクを編集する"""
+    """シスオペメニューでBBSリンクを対話的に編集します。"""
     _handle_list_bbs_links(chan, sysop_login_id, menu_mode)
     util.send_text_by_key(
         chan, "sysop_menu.bbs_list.modify_id_prompt", menu_mode, add_newline=False)
@@ -101,7 +104,7 @@ def _handle_modify_bbs_link(chan, sysop_login_id, menu_mode):
 
 
 def _handle_delete_bbs_link(chan, sysop_login_id, menu_mode):
-    """BBSリンクを削除する"""
+    """シスオペメニューでBBSリンクを対話的に削除します。"""
     _handle_list_bbs_links(chan, sysop_login_id, menu_mode)
     util.send_text_by_key(
         chan, "sysop_menu.bbs_list.delete_id_prompt", menu_mode, add_newline=False)
