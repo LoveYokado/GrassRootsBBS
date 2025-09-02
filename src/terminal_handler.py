@@ -26,6 +26,7 @@ import socket
 import codecs
 import unicodedata
 import time
+import re
 import datetime
 
 from . import util, command_dispatcher, database
@@ -111,122 +112,164 @@ class WebTerminalHandler:
         self.mail_notified_this_session = False
         self.main_thread_active = True
         self.pending_attachment = None
-
-        class WebChannel:
-            def __init__(self, handler_instance, ip_addr):
-                self.handler = handler_instance
-                self.ip_address = ip_addr
-                self.recv_buffer = b''
-                self.active = True
-                self._timeout = None
-
-            def settimeout(self, timeout):
-                self._timeout = timeout
-
-            def send(self, data):
-                if isinstance(data, bytes):
-                    text_to_send = data.decode('utf-8', 'ignore')
-                else:
-                    text_to_send = str(data)
-                if self.handler.is_logging:
-                    self.handler.log_buffer.append(text_to_send)
-                self.handler.output_queue.append(text_to_send)
-
-            def recv(self, n):
-                while len(self.recv_buffer) < n and self.active:
-                    if not self.handler.input_queue:
-                        if not self.handler.input_event.wait(timeout=self._timeout):
-                            raise socket.timeout("timed out")
-                        self.handler.input_event.clear()
-                        if not self.active:
-                            break
-                    try:
-                        data_str = self.handler.input_queue.popleft()
-                        self.recv_buffer += data_str.encode('utf-8')
-                    except IndexError:
-                        continue
-                if not self.active and not self.recv_buffer:
-                    return b''
-                ret = self.recv_buffer[:n]
-                self.recv_buffer = self.recv_buffer[n:]
-                return ret
-
-            def getpeername(self):
-                return (self.ip_address, 12345)
-
-            def close(self):
-                self.active = False
-                self.handler.input_event.set()
-
-            def _process_input_internal(self, echo=True):
-                line_buffer = []
-                decoder = codecs.getincrementaldecoder('utf-8')('ignore')
-                try:
-                    while self.active:
-                        char_byte = self.recv(1)
-                        if not char_byte:
-                            return None
-                        if char_byte in (b'\r', b'\n'):
-                            if echo:
-                                self.send(b'\r\n')
-                            break
-                        elif char_byte in (b'\x08', b'\x7f'):
-                            if line_buffer:
-                                deleted_char = line_buffer.pop()
-                                if echo:
-                                    width = unicodedata.east_asian_width(
-                                        deleted_char)
-                                    char_width = 2 if width in (
-                                        'F', 'W', 'A') else 1
-                                    backspaces = b'\x08' * char_width
-                                    self.send(
-                                        backspaces + (b' ' * char_width) + backspaces)
-                        else:
-                            try:
-                                decoded_char = decoder.decode(char_byte)
-                                if decoded_char:
-                                    line_buffer.append(decoded_char)
-                                    if echo:
-                                        self.send(decoded_char.encode('utf-8'))
-                            except UnicodeDecodeError:
-                                decoder.reset()
-                                continue
-                except socket.timeout:
-                    logging.info(
-                        f"Input timeout (normal operation) (SID: {self.handler.sid})")
-                except Exception as e:
-                    logging.error(
-                        f"Error in process_input (SID: {self.handler.sid}): {e}")
-                    return None
-                remaining = decoder.decode(b'', final=True)
-                if remaining:
-                    line_buffer.append(remaining)
-                return "".join(line_buffer)
-
-            def process_input(self):
-                return self._process_input_internal(echo=True)
-
-            def hide_process_input(self):
-                return self._process_input_internal(echo=False)
-
-        self.channel = WebChannel(self, self.ip_address)
+        self.is_mobile = False
+        # クライアントのUIを制御するためのカスタムエスケープシーケンスのパターン
+        # これらはBPS遅延の影響を受けずに一括で送信する必要がある
+        self.control_sequence_pattern = re.compile(
+            r'('
+            r'\x1b\]GRBBS;[^\x07]*\x07'  # OSC: LINE_EDITなど
+            r'|\x1b_GRBBS_DOWNLOAD;[^\x1b]*\x1b\\'  # APC: ファイルダウンロード
+            r'|\x1b\[\?\d+[hl]'  # DEC Private Mode: UIボタンの表示/非表示
+            r')'
+        )
+        self.channel = self.WebChannel(self, self.ip_address)
         self.socketio.start_background_task(self._sender_worker)
         self.socketio.start_background_task(self._bbs_main_loop)
+
+    class WebChannel:
+        def __init__(self, handler_instance, ip_addr):
+            self.handler = handler_instance
+            self.ip_address = ip_addr
+            self.recv_buffer = b''
+            self.active = True
+            self._timeout = None
+
+        def settimeout(self, timeout):
+            self._timeout = timeout
+
+        def send(self, data):
+            if isinstance(data, bytes):
+                text_to_send = data.decode('utf-8', 'ignore')
+            else:
+                text_to_send = str(data)
+            if self.handler.is_logging:
+                self.handler.log_buffer.append(text_to_send)
+            self.handler.output_queue.append(text_to_send)
+
+        def recv(self, n):
+            while len(self.recv_buffer) < n and self.active:
+                if not self.handler.input_queue:
+                    if not self.handler.input_event.wait(timeout=self._timeout):
+                        raise socket.timeout("timed out")
+                    self.handler.input_event.clear()
+                    if not self.active:
+                        break
+                try:
+                    data_str = self.handler.input_queue.popleft()
+                    self.recv_buffer += data_str.encode('utf-8')
+                except IndexError:
+                    continue
+            if not self.active and not self.recv_buffer:
+                return b''
+            ret = self.recv_buffer[:n]
+            self.recv_buffer = self.recv_buffer[n:]
+            return ret
+
+        def getpeername(self):
+            return (self.ip_address, 12345)
+
+        def close(self):
+            self.active = False
+            self.handler.input_event.set()
+
+        def _process_input_internal(self, echo=True):
+            line_buffer = []
+            decoder = codecs.getincrementaldecoder('utf-8')('ignore')
+            try:
+                while self.active:
+                    char_byte = self.recv(1)
+                    if not char_byte:
+                        return None
+                    if char_byte in (b'\r', b'\n'):
+                        if echo:
+                            self.send(b'\r\n')
+                        break
+                    elif char_byte in (b'\x08', b'\x7f'):
+                        if line_buffer:
+                            deleted_char = line_buffer.pop()
+                            if echo:
+                                width = unicodedata.east_asian_width(
+                                    deleted_char)
+                                char_width = 2 if width in (
+                                    'F', 'W', 'A') else 1
+                                backspaces = b'\x08' * char_width
+                                self.send(
+                                    backspaces + (b' ' * char_width) + backspaces)
+                    else:
+                        try:
+                            decoded_char = decoder.decode(char_byte)
+                            if decoded_char:
+                                line_buffer.append(decoded_char)
+                                if echo:
+                                    self.send(decoded_char.encode('utf-8'))
+                        except UnicodeDecodeError:
+                            decoder.reset()
+                            continue
+            except socket.timeout:
+                logging.info(
+                    f"Input timeout (normal operation) (SID: {self.handler.sid})")
+            except Exception as e:
+                logging.error(
+                    f"Error in process_input (SID: {self.handler.sid}): {e}")
+                return None
+            remaining = decoder.decode(b'', final=True)
+            if remaining:
+                line_buffer.append(remaining)
+            return "".join(line_buffer)
+
+        def process_input(self):
+            return self._process_input_internal(echo=True)
+
+        def hide_process_input(self):
+            return self._process_input_internal(echo=False)
+
+        def process_multiline_input(self):
+            """
+            Triggers the multiline editor on the web client and waits for the result.
+            Webクライアントのマルチラインエディタを起動し、結果を待ち受けます。
+            """
+            # Send a special escape sequence to open the multiline editor
+            self.send(b'\x1b[?2034h')
+            # Wait for the input to be populated by the socket event handler
+            # 5分間のタイムアウト
+            if not self.handler.input_event.wait(timeout=300):
+                self.send(
+                    b'\r\n\x1b[31m[Error] Input timed out.\x1b[0m\r\n')
+                return None
+            self.handler.input_event.clear()
+            # The full text is now in the input queue
+            return self.handler.input_queue.popleft()
 
     def _sender_worker(self):
         while not self.stop_worker_event.is_set():
             try:
-                text = self.output_queue.popleft()
-                if self.bps_delay > 0:
-                    for char in text:
-                        if self.stop_worker_event.is_set():
-                            break
-                        self.socketio.emit('server_output', char, to=self.sid)
-                        self.socketio.sleep(self.bps_delay)
-                else:
-                    self.socketio.emit('server_output', text, to=self.sid)
+                text_to_send = self.output_queue.popleft()
+
+                # テキストを制御シーケンスと通常のテキストに分割
+                parts = self.control_sequence_pattern.split(text_to_send)
+
+                for part in parts:
+                    if not part:
+                        continue
+
+                    # partが制御シーケンスと完全に一致するかチェック
+                    if self.control_sequence_pattern.fullmatch(part):
+                        # 制御シーケンスは遅延なしで即時送信
+                        self.socketio.emit('server_output', part, to=self.sid)
+                    else:
+                        # 通常のテキストはBPS設定に従って送信
+                        if self.bps_delay > 0:
+                            for char in part:
+                                if self.stop_worker_event.is_set():
+                                    break
+                                self.socketio.emit(
+                                    'server_output', char, to=self.sid)
+                                self.socketio.sleep(self.bps_delay)
+                        else:
+                            self.socketio.emit(
+                                'server_output', part, to=self.sid)
             except IndexError:
-                self.socketio.sleep(0.01)
+                self.socketio.sleep(0.01)  # キューが空の場合は少し待つ
 
     def stop_worker(self):
         self.main_thread_active = False

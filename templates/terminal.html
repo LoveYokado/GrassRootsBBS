@@ -956,6 +956,25 @@
             grid-template-columns: repeat(3, 1fr);
         }
 
+        /* --- モバイル確認コントロール --- */
+        #mobile-confirm-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        #mobile-confirm-controls.visible {
+            display: grid;
+        }
+
         /* --- モバイルトップメニューコントロール --- */
         #mobile-top-menu-controls {
             display: none;
@@ -1003,6 +1022,7 @@
         #mobile-mail-controls.theme-green .mobile-btn,
         #mobile-plugin-menu-controls.theme-green .mobile-btn,
         #mobile-bbs-entry-controls.theme-green .mobile-btn,
+        #mobile-confirm-controls.theme-green .mobile-btn,
         #mobile-top-menu-controls.theme-green .mobile-btn {
             background-color: #000000;
             border-color: #00FF00;
@@ -1012,6 +1032,7 @@
         #mobile-mail-controls.theme-green .mobile-btn:active,
         #mobile-plugin-menu-controls.theme-green .mobile-btn:active,
         #mobile-bbs-entry-controls.theme-green .mobile-btn:active,
+        #mobile-confirm-controls.theme-green .mobile-btn:active,
         #mobile-top-menu-controls.theme-green .mobile-btn:active {
             background-color: #00FF00;
             color: #000000;
@@ -1020,6 +1041,7 @@
         #mobile-mail-controls.theme-amber .mobile-btn,
         #mobile-plugin-menu-controls.theme-amber .mobile-btn,
         #mobile-bbs-entry-controls.theme-amber .mobile-btn,
+        #mobile-confirm-controls.theme-amber .mobile-btn,
         #mobile-top-menu-controls.theme-amber .mobile-btn {
             background-color: #1a1000;
             border-color: #FFB000;
@@ -1029,6 +1051,7 @@
         #mobile-mail-controls.theme-amber .mobile-btn:active,
         #mobile-plugin-menu-controls.theme-amber .mobile-btn:active,
         #mobile-bbs-entry-controls.theme-amber .mobile-btn:active,
+        #mobile-confirm-controls.theme-amber .mobile-btn:active,
         #mobile-top-menu-controls.theme-amber .mobile-btn:active {
             background-color: #FFB000;
             color: #1a1000;
@@ -1188,6 +1211,11 @@
         <button class="mobile-btn" id="bbs-entry-btn-exit">Exit</button>
     </div>
 
+    <div id="mobile-confirm-controls">
+        <button class="mobile-btn" id="confirm-btn-y">Yes</button>
+        <button class="mobile-btn" id="confirm-btn-n">No</button>
+    </div>
+
     <div id="mobile-top-menu-controls">
         <button class="mobile-btn" id="top-btn-bbs">BBS</button>
         <button class="mobile-btn" id="top-btn-chat">Chat</button>
@@ -1226,6 +1254,8 @@
             <button id="line-editor-close-btn" class="popup-close-btn">&times;</button>
         </div>
         <div class="popup-content">
+            <label id="line-editor-prompt" for="line-editor-input"
+                style="display: block; margin-bottom: 5px; color: #504b38;"></label>
             <input type="text" id="line-editor-input" maxlength="256">
             <div>
                 <button id="line-editor-insert-btn">{{
@@ -1616,7 +1646,7 @@
             const chatControls = document.getElementById('mobile-chat-controls');
             const userprefControls = document.getElementById('mobile-userpref-controls');
             const mailControls = document.getElementById('mobile-mail-controls');
-            const bbsEntryControls = document.getElementById('mobile-bbs-entry-controls');
+            const bbsEntryControls = document.getElementById('mobile-bbs-entry-controls'); // prettier-ignore
             const topMenuControls = document.getElementById('mobile-top-menu-controls');
             const pluginMenuControls = document.getElementById('mobile-plugin-menu-controls');
 
@@ -1969,12 +1999,9 @@
 
         multilineEditorInsertBtn.addEventListener('click', () => {
             const textToInsert = multilineEditorInput.value;
-            if (textToInsert) {
-                const lines = textToInsert.split('\n');
-                lines.forEach(line => {
-                    socket.emit('client_input', line + '\r');
-                });
-            }
+            socket.emit('multiline_input_submit', {
+                content: textToInsert
+            });
             closeMultilineEditor();
         });
 
@@ -1993,12 +2020,10 @@
 
         lineEditorInsertBtn.addEventListener('click', () => {
             const textToInsert = lineEditorInput.value;
-            if (textToInsert) {
-                if (lineEditorHistory.length === 0 || lineEditorHistory[lineEditorHistory.length - 1] !== textToInsert) {
-                    lineEditorHistory.push(textToInsert);
-                }
-                socket.emit('client_input', textToInsert);
+            if (lineEditorHistory.length === 0 || lineEditorHistory[lineEditorHistory.length - 1] !== textToInsert) {
+                lineEditorHistory.push(textToInsert);
             }
+            socket.emit('client_input', textToInsert + '\r'); // Add newline to terminate process_input on server
             closeLineEditor();
         });
 
@@ -2093,11 +2118,30 @@
 
         popupCloseBtn.addEventListener('click', closePopup);
         popupOverlay.addEventListener('click', closePopup);
-        lineEditorCloseBtn.addEventListener('click', closeLineEditor);
-        lineEditorCancelBtn.addEventListener('click', closeLineEditor);
-        lineEditorOverlay.addEventListener('click', closeLineEditor);
-        multilineEditorCloseBtn.addEventListener('click', closeMultilineEditor);
-        multilineEditorCancelBtn.addEventListener('click', closeMultilineEditor);
+        lineEditorCloseBtn.addEventListener('click', () => {
+            socket.emit('client_input', '\r'); // Also treat close as cancel
+            closeLineEditor();
+        });
+        lineEditorCancelBtn.addEventListener('click', () => {
+            socket.emit('client_input', '\r'); // Send empty input to cancel
+            closeLineEditor();
+        });
+        lineEditorOverlay.addEventListener('click', () => {
+            socket.emit('client_input', '\r'); // Also treat overlay click as cancel
+            closeLineEditor();
+        });
+        multilineEditorCloseBtn.addEventListener('click', () => {
+            socket.emit('multiline_input_submit', { content: '' }); // Send empty content to cancel
+            closeMultilineEditor();
+        });
+        multilineEditorCancelBtn.addEventListener('click', () => {
+            socket.emit('multiline_input_submit', { content: '' }); // Send empty content to cancel
+            closeMultilineEditor();
+        });
+        multilineEditorOverlay.addEventListener('click', () => {
+            socket.emit('multiline_input_submit', { content: '' }); // Also treat overlay click as cancel
+            closeMultilineEditor();
+        });
         multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
         logViewerCloseBtn.addEventListener('click', closeLogViewer);
         logViewerOverlay.addEventListener('click', closeLogViewer);
@@ -2168,7 +2212,8 @@
                 document.getElementById('mobile-mail-controls'),
                 document.getElementById('mobile-bbs-entry-controls'),
                 document.getElementById('mobile-top-menu-controls'),
-                document.getElementById('mobile-plugin-menu-controls')
+                document.getElementById('mobile-plugin-menu-controls'),
+                document.getElementById('mobile-confirm-controls')
             ];
             const monitorScreen = document.querySelector('.monitor-screen');
 
@@ -2357,6 +2402,67 @@
                 data = data.replace(attachmentUiHidePattern, '');
 
             }
+
+            const multilineEditorPattern = /\x1b\[\?2034(h|l)/;
+            const multilineMatch = data.match(multilineEditorPattern);
+            if (multilineMatch) {
+                if (multilineMatch[1] === 'h') {
+                    openMultilineEditor();
+                } else { // 'l' for hide
+                    closeMultilineEditor();
+                }
+                data = data.replace(multilineEditorPattern, '');
+            }
+
+            const lineEditorPattern = /\x1b\]GRBBS;LINE_EDIT;(.*?);(.*?)\x07/;
+            const lineEditorMatch = data.match(lineEditorPattern);
+            if (lineEditorMatch) {
+                const promptB64 = lineEditorMatch[1];
+                const valueB64 = lineEditorMatch[2];
+                try {
+                    openLineEditor(
+                        b64DecodeUnicode(promptB64),
+                        b64DecodeUnicode(valueB64)
+                    );
+                } catch (e) { console.error("Failed to open line editor with decoded data:", e); }
+                data = data.replace(lineEditorPattern, '');
+            }
+
+            const confirmButtonsPattern = /\x1b\]GRBBS;CONFIRM_BUTTONS;(.*?);(.*?)\x07/;
+            const confirmButtonsMatch = data.match(confirmButtonsPattern);
+            if (confirmButtonsMatch) {
+                const yesLabelB64 = confirmButtonsMatch[1];
+                const noLabelB64 = confirmButtonsMatch[2];
+                try {
+                    document.getElementById('confirm-btn-y').textContent = b64DecodeUnicode(yesLabelB64);
+                    document.getElementById('confirm-btn-n').textContent = b64DecodeUnicode(noLabelB64);
+                } catch (e) {
+                    console.error("Failed to set confirm button labels:", e);
+                    document.getElementById('confirm-btn-y').textContent = 'Yes';
+                    document.getElementById('confirm-btn-n').textContent = 'No';
+                }
+                data = data.replace(confirmButtonsPattern, '');
+            }
+
+            const confirmControlPattern = /\x1b\[\?2035(h|l)/;
+            const confirmMatch = data.match(confirmControlPattern);
+            if (confirmMatch) {
+                const mobileControls = document.getElementById('mobile-confirm-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (confirmMatch[1] === 'h') {
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else {
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(confirmControlPattern, '');
+                updateTerminalLayout();
+            }
+
             term.write(data);
         });
 
@@ -2541,6 +2647,10 @@
         socket.on('connect', () => {
             loadSettings();
 
+            // 画面幅をチェックしてクライアントモードをサーバーに通知
+            const isMobile = window.matchMedia("(max-width: 992px)").matches;
+            socket.emit('set_client_mode', { is_mobile: isMobile });
+
             const urlParams = new URLSearchParams(window.location.search);
             const shortcut = urlParams.get('shortcut');
             if (shortcut) {
@@ -2724,6 +2834,10 @@
                 const btn = document.getElementById(id);
                 if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
             }
+
+            // 確認ボタンのイベントリスナー
+            document.getElementById('confirm-btn-y').addEventListener('click', () => { socket.emit('client_input', 'y\r'); });
+            document.getElementById('confirm-btn-n').addEventListener('click', () => { socket.emit('client_input', 'n\r'); });
         });
 
         window.addEventListener('resize', debounce(updateTerminalLayout, 100));

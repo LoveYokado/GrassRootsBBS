@@ -324,3 +324,29 @@ def init_events(socketio, app):
                 logging.info(
                     f"保留中の添付ファイルをクリアしました: {handler.pending_attachment.get('original_filename')} (User: {handler.user_session.get('username')})")
                 handler.pending_attachment = None
+
+    @socketio.on('set_client_mode')
+    def handle_set_client_mode(data):
+        """
+        Receives the client's display mode (mobile or desktop).
+        クライアントの表示モード（モバイルかデスクトップか）を受け取ります。
+        """
+        sid = request.sid
+        handler = terminal_handler.client_states.get(sid)
+        if handler:
+            handler.is_mobile = data.get('is_mobile', False)
+            logging.info(
+                f"Client mode set for SID {sid}: is_mobile={handler.is_mobile}")
+
+    @socketio.on('multiline_input_submit')
+    def handle_multiline_input_submit(data):
+        """
+        Receives the content from the web multiline editor and puts it into the handler's input queue.
+        Webのマルチラインエディタからコンテンツを受け取り、ハンドラの入力キューに入れます。
+        """
+        sid = request.sid
+        handler = terminal_handler.client_states.get(sid)
+        if handler:
+            content = data.get('content', '')
+            handler.input_queue.append(content)
+            handler.input_event.set()
