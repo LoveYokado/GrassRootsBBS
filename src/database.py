@@ -45,6 +45,7 @@ access_logs = None
 board_permissions = None
 push_subscriptions = None
 passkeys = None
+bbs_list_manager = None
 initializer = None
 
 
@@ -1157,6 +1158,60 @@ class PasskeyManager:
                 conn.close()
 
 
+class BBSListManager:
+    """'bbs_list' テーブルに関連する全てのデータベース操作を管理します。"""
+
+    def __init__(self, db_manager_instance):
+        self._db = db_manager_instance
+
+    def get_all(self):
+        """登録されているすべてのBBSリンクを取得する"""
+        query = "SELECT id, name, url, description, source FROM bbs_list ORDER BY name"
+        return self._db.execute_query(query, fetch='all')
+
+    def add(self, name, url, description, source='sysop'):
+        """新しいBBSリンクをデータベースに追加する"""
+        query = "INSERT INTO bbs_list (name, url, description, source, created_at) VALUES (%s, %s, %s, %s, %s)"
+        params = (name, url, description, source, int(time.time()))
+        try:
+            result = self._db.execute_query(query, params)
+            return result is not None
+        except mysql.connector.Error as e:
+            if e.errno == 1062:  # Duplicate entry for a UNIQUE key
+                logging.warning(
+                    f"BBSリンクの追加に失敗しました: URL '{url}' は既に存在します。")
+            else:
+                logging.error(f"BBSリンクの追加に失敗しました: {e}")
+            return False
+
+    def update(self, link_id, name, url, description):
+        """指定されたIDのBBSリンクを更新する"""
+        query = "UPDATE bbs_list SET name = %s, url = %s, description = %s WHERE id = %s"
+        params = (name, url, description, link_id)
+        return self._db.execute_query(query, params) is not None
+
+    def delete(self, link_id):
+        """指定されたIDのBBSリンクを削除する"""
+        query = "DELETE FROM bbs_list WHERE id = %s"
+        conn = self._db.get_connection()
+        cursor = None
+        try:
+            cursor = conn.cursor()
+            cursor.execute(query, (link_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        except mysql.connector.Error as e:
+            logging.error(f"BBSリンクの削除に失敗しました: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+
 class DatabaseInitializer:
     """データベースの初期セットアップとマイグレーションを管理します。"""
 
@@ -1463,6 +1518,29 @@ class DatabaseInitializer:
                 """
                 cursor.execute(create_query)
                 logging.info("データベースマイグレーション: 'access_logs'テーブルを作成しました。")
+            # --- bbs_listテーブルの存在チェックと作成 ---
+            cursor.execute("SHOW TABLES LIKE 'bbs_list'")
+            if not cursor.fetchone():
+                create_query = """
+                CREATE TABLE `bbs_list` (
+                    `id` INT PRIMARY KEY AUTO_INCREMENT,
+                    `name` VARCHAR(255) NOT NULL,
+                    `url` VARCHAR(2048) NOT NULL UNIQUE,
+                    `description` TEXT,
+                    `source` VARCHAR(10) NOT NULL DEFAULT 'sysop',
+                    `created_at` INT NOT NULL
+                )
+                """
+                cursor.execute(create_query)
+                logging.info("データベースマイグレーション: 'bbs_list'テーブルを作成しました。")
+            else:
+                # テーブルは存在するが、カラムが存在しない場合に対応
+                cursor.execute("SHOW COLUMNS FROM `bbs_list` LIKE 'source'")
+                if not cursor.fetchone():
+                    alter_query = "ALTER TABLE `bbs_list` ADD COLUMN `source` VARCHAR(10) NOT NULL DEFAULT 'sysop' AFTER `description`"
+                    cursor.execute(alter_query)
+                    logging.info(
+                        "データベースマイグレーション: 'bbs_list'テーブルに'source'カラムを追加しました。")
 
         except Exception as e:
             logging.error(f"Database migration failed: {e}", exc_info=True)
@@ -1487,6 +1565,7 @@ access_logs = AccessLogManager(db_manager)
 board_permissions = BoardPermissionManager(db_manager)
 push_subscriptions = PushSubscriptionManager(db_manager)
 passkeys = PasskeyManager(db_manager)
+bbs_list_manager = BBSListManager(db_manager)
 initializer = DatabaseInitializer(db_manager)
 
 # --- Top-level Wrapper Functions / トップレベルラッパー関数 ---
@@ -1808,6 +1887,28 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
 
 def apply_migrations():
     return initializer.apply_migrations()
+
+
+# --- BBS List Functions ---
+
+def get_bbs_links():
+    """登録されているすべてのBBSリンクを取得する"""
+    return bbs_list_manager.get_all()
+
+
+def add_bbs_link(name, url, description, source='sysop'):
+    """新しいBBSリンクをデータベースに追加する"""
+    return bbs_list_manager.add(name, url, description, source)
+
+
+def update_bbs_link(link_id, name, url, description):
+    """指定されたIDのBBSリンクを更新する"""
+    return bbs_list_manager.update(link_id, name, url, description)
+
+
+def delete_bbs_link(link_id):
+    """指定されたIDのBBSリンクを削除する"""
+    return bbs_list_manager.delete(link_id)
 
 
 def init_app(app):

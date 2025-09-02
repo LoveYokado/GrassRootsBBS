@@ -18,7 +18,10 @@
 # ==============================================================================
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g
+
+
 from ..decorators import sysop_required
+from .. import util, database
 import json
 import os
 from datetime import datetime, timedelta
@@ -34,6 +37,39 @@ import shutil
 # All routes defined in this file will be prefixed with /admin.
 # このファイルで定義される全てのルートは /admin プレフィックスが付きます。
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+@admin_bp.route('/bbs_list', methods=['GET', 'POST'])
+@sysop_required
+def bbs_list():
+    """BBSリンクの管理ページ。"""
+    if request.method == 'POST':
+        action = request.form.get('action')
+        link_id = request.form.get('id')
+        name = request.form.get('name')
+        url = request.form.get('url')
+        description = request.form.get('description', '')
+
+        if action == 'add':
+            if name and url:
+                if database.add_bbs_link(name, url, description):
+                    flash('BBS link added successfully.', 'success')
+                else:
+                    flash('Failed to add BBS link. URL might already exist.', 'danger')
+            else:
+                flash('Name and URL are required.', 'warning')
+        elif action == 'delete':
+            if link_id:
+                if database.delete_bbs_link(link_id):
+                    flash('BBS link deleted successfully.', 'success')
+                else:
+                    flash('Failed to delete BBS link.', 'danger')
+        return redirect(url_for('admin.bbs_list'))
+
+    links = database.get_bbs_links()
+    title = util.get_text_by_key(
+        'admin.bbs_list.title', session.get('menu_mode', '2'), 'BBS List Management')
+    return render_template('admin/bbs_list.html', title=title, links=links)
 
 
 # --- Backup Directory Configuration / バックアップディレクトリ設定 ---

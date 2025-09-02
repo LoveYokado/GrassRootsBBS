@@ -600,6 +600,8 @@ sysop_menu:
       □[bdel]  掲示板削除                      [udel]   会員抹消                 ■
       ■[bmod]  掲示板総合設定変更              [uadd]   会員登録                 □
       □[osign] オンラインサインアップ設定      [passkey] Passkey管理             ■
+      ■[lsbl]  BBSリスト一覧                   [addbl]  BBSリスト追加            □
+      □[modbl] BBSリスト編集                   [delbl]  BBSリスト削除            ■
       ■[mcnf]  トップメニューの会員レベル設定                                    □
       □[cshow] 設定一覧表示                    [lgmc]   ログインメッセージ変更   ■
       ■[halt]  システム強制終了                                                  □
@@ -619,6 +621,10 @@ sysop_menu:
       [uadd]  会員登録
       [udel]  会員抹消
       [passkey] Passkey管理
+      [lsbl]  BBSリスト一覧
+      [addbl] BBSリスト追加
+      [modbl] BBSリスト編集 
+      [delbl] BBSリスト削除
       [chulv] ユーザーレベル変更
       [osign] オンラインサインアップ設定
       [ulist] 会員一覧表示
@@ -650,6 +656,7 @@ sysop_menu:
       | lgmc    | Change Login Message: Update login msg    |
       | halt    | Force Shutdown: Terminate system          |
       +---------+-------------------------------------------+
+    mode_3: "" # Mode 3 can be added later if needed
   system_quit:
     header:
       mode_1: "** システムを停止します **\r\n"
@@ -942,6 +949,63 @@ sysop_menu:
       mode_1: "掲示板 '{shortcut_id}' の設定を更新しました。\r\n"
       mode_2: "掲示板 '{shortcut_id}' の設定を更新しました。\r\n"
       mode_3: "Successfully updated settings for board '{shortcut_id}'.\r\n"
+  bbs_list:
+    list_header:
+      mode_1: "--- BBSリンク一覧 ---"
+      mode_2: "--- BBSリンク一覧 ---"
+      mode_3: "--- BBS Link List ---"
+    no_links:
+      mode_1: "登録されているBBSリンクはありません。"
+      mode_2: "登録されているBBSリンクはありません。"
+      mode_3: "No BBS links are registered."
+    add_name_prompt:
+      mode_1: "BBS名: "
+      mode_2: "BBS名: "
+      mode_3: "BBS Name: "
+    add_url_prompt:
+      mode_1: "URL: "
+      mode_2: "URL: "
+      mode_3: "URL: "
+    add_desc_prompt:
+      mode_1: "解説: "
+      mode_2: "解説: "
+      mode_3: "Description: "
+    add_success:
+      mode_1: "BBSリンクを追加しました。"
+      mode_2: "BBSリンクを追加しました。"
+      mode_3: "BBS link added successfully."
+    add_failed:
+      mode_1: "BBSリンクの追加に失敗しました。URLが重複している可能性があります。"
+      mode_2: "BBSリンクの追加に失敗しました。URLが重複している可能性があります。"
+      mode_3: "Failed to add BBS link. The URL may already exist."
+    modify_id_prompt:
+      mode_1: "編集するリンクのIDを入力してください: "
+      mode_2: "編集するリンクのIDを入力してください: "
+      mode_3: "Enter the ID of the link to modify: "
+    modify_success:
+      mode_1: "BBSリンクを更新しました。"
+      mode_2: "BBSリンクを更新しました。"
+      mode_3: "BBS link updated successfully."
+    modify_failed:
+      mode_1: "BBSリンクの更新に失敗しました。"
+      mode_2: "BBSリンクの更新に失敗しました。"
+      mode_3: "Failed to update BBS link."
+    delete_id_prompt:
+      mode_1: "削除するリンクのIDを入力してください: "
+      mode_2: "削除するリンクのIDを入力してください: "
+      mode_3: "Enter the ID of the link to delete: "
+    confirm_delete_yn:
+      mode_1: "本当にID {id} のリンクを削除しますか？ (y/N): "
+      mode_2: "本当にID {id} のリンクを削除しますか？ (y/N): "
+      mode_3: "Are you sure you want to delete the link with ID {id}? (y/N): "
+    delete_success:
+      mode_1: "BBSリンクを削除しました。"
+      mode_2: "BBSリンクを削除しました。"
+      mode_3: "BBS link deleted successfully."
+    delete_failed:
+      mode_1: "BBSリンクの削除に失敗しました。IDを確認してください。"
+      mode_2: "BBSリンクの削除に失敗しました。IDを確認してください。"
+      mode_3: "Failed to delete BBS link. Please check the ID."
   toggle_online_signup:
     confirm:
       mode_1: "オンラインサインアップは現在「{current_status}」です。「{new_status}」に変更しますか？ (y/N): "
@@ -2293,6 +2357,10 @@ auth:
       mode_1: "アクセスログ"
       mode_2: "アクセスログ"
       mode_3: "Access Log"
+    bbs_list_management:
+      mode_1: "BBSリスト管理"
+      mode_2: "BBSリスト管理"
+      mode_3: "BBS List Management"
   dashboard:
     title:
       mode_1: "ダッシュボード"
@@ -2359,6 +2427,17 @@ auth:
       mode_1: "{count}人のオンラインユーザーにメッセージを送信しました。"
       mode_2: "{count}人のオンラインユーザーにメッセージを送信しました。"
       mode_3: "Broadcast message sent to {count} online users."
+  bbs_list:
+    title:
+      mode_1: "BBSリスト管理"
+      mode_2: "BBSリスト管理"
+      mode_3: "BBS List Management"
+    description:
+      mode_1: "F7キーのBBSリストメニューに表示される外部リンクを管理します。"
+      mode_2: "F7キーのBBSリストメニューに表示される外部リンクを管理します。"
+      mode_3: "Manage the list of external BBS links that appear in the F7 BBS List menu."
+    # Future keys for this page can be added here.
+    # このページの将来的なキーはここに追加できます。
   config_editor:
     title:
       mode_1: "設定ファイルエディタ"

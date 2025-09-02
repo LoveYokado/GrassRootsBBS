@@ -188,27 +188,27 @@
         }
 
         .action-link-delete {
-            background: none;
-            border: none;
-            color: #ff6b6b;
-            /* より明るい赤色に変更 */
+            background-color: #dc3545;
+            color: white;
+            border: 1px solid #c82333;
+            border-radius: 3px;
+            padding: 2px 8px;
             cursor: pointer;
-            padding: 0;
             font-family: inherit;
-            font-size: inherit;
-            text-decoration: underline;
+            font-size: 0.9em;
+            text-decoration: none;
         }
 
         .action-link-restore {
-            background: none;
-            border: none;
-            color: #28a745;
-            /* 緑色 */
+            background-color: #28a745;
+            color: white;
+            border: 1px solid #218838;
+            border-radius: 3px;
+            padding: 2px 8px;
             cursor: pointer;
-            padding: 0;
             font-family: inherit;
-            font-size: inherit;
-            text-decoration: underline;
+            font-size: 0.9em;
+            text-decoration: none;
         }
 
         .danger-zone {
@@ -352,6 +352,10 @@
                 Management') }}</a>
             <a href="{{ url_for('admin.article_search') }}">{{ g.texts.get('nav', {}).get('article_management', 'Article
                 Management') }}</a>
+            <a href="{{ url_for('admin.bbs_list') }}"
+                class="{{ 'active' if request.endpoint == 'admin.bbs_list' else '' }}">
+                {{ g.texts.get('nav', {}).get('bbs_list_management', 'BBS List Management') }}
+            </a>
         </div>
         <div class="nav-row">
             <a href="{{ url_for('admin.system_settings') }}">{{ g.texts.get('nav', {}).get('system_settings', 'System

@@ -27,6 +27,104 @@ import json
 from . import util, database
 
 
+def _handle_list_bbs_links(chan, _sysop_login_id, menu_mode):
+    """BBSリンクの一覧を表示する"""
+    util.send_text_by_key(chan, "sysop_menu.bbs_list.list_header", menu_mode)
+    links = database.get_bbs_links()
+    if not links:
+        util.send_text_by_key(chan, "sysop_menu.bbs_list.no_links", menu_mode)
+        return
+    for link in links:
+        chan.send(
+            f"ID: {link['id']:<3} | Name: {link['name']:<20} | URL: {link['url']}\r\n".encode('utf-8'))
+        if link['description']:
+            chan.send(f"      Desc: {link['description']}\r\n".encode('utf-8'))
+    chan.send(b'\r\n')
+
+
+def _handle_add_bbs_link(chan, _sysop_login_id, menu_mode):
+    """BBSリンクを追加する"""
+    util.send_text_by_key(
+        chan, "sysop_menu.bbs_list.add_name_prompt", menu_mode, add_newline=False)
+    name = chan.process_input()
+    if not name or not name.strip():
+        util.send_text_by_key(chan, "common_messages.cancel", menu_mode)
+        return
+
+    util.send_text_by_key(
+        chan, "sysop_menu.bbs_list.add_url_prompt", menu_mode, add_newline=False)
+    url = chan.process_input()
+    if not url or not url.strip():
+        util.send_text_by_key(chan, "common_messages.cancel", menu_mode)
+        return
+
+    util.send_text_by_key(
+        chan, "sysop_menu.bbs_list.add_desc_prompt", menu_mode, add_newline=False)
+    description = chan.process_input()  # 空でもOK
+
+    if database.add_bbs_link(name.strip(), url.strip(), description.strip()):
+        util.send_text_by_key(
+            chan, "sysop_menu.bbs_list.add_success", menu_mode)
+    else:
+        util.send_text_by_key(
+            chan, "sysop_menu.bbs_list.add_failed", menu_mode)
+
+
+def _handle_modify_bbs_link(chan, sysop_login_id, menu_mode):
+    """BBSリンクを編集する"""
+    _handle_list_bbs_links(chan, sysop_login_id, menu_mode)
+    util.send_text_by_key(
+        chan, "sysop_menu.bbs_list.modify_id_prompt", menu_mode, add_newline=False)
+    link_id_str = chan.process_input()
+    if not link_id_str or not link_id_str.strip().isdigit():
+        util.send_text_by_key(chan, "common_messages.cancel", menu_mode)
+        return
+
+    link_id = int(link_id_str.strip())
+    # ここでは簡略化のため、更新用の新しい情報をすべて入力させます
+    util.send_text_by_key(
+        chan, "sysop_menu.bbs_list.add_name_prompt", menu_mode, add_newline=False)
+    name = chan.process_input()
+    util.send_text_by_key(
+        chan, "sysop_menu.bbs_list.add_url_prompt", menu_mode, add_newline=False)
+    url = chan.process_input()
+    util.send_text_by_key(
+        chan, "sysop_menu.bbs_list.add_desc_prompt", menu_mode, add_newline=False)
+    description = chan.process_input()
+
+    if database.update_bbs_link(link_id, name.strip(), url.strip(), description.strip()):
+        util.send_text_by_key(
+            chan, "sysop_menu.bbs_list.modify_success", menu_mode)
+    else:
+        util.send_text_by_key(
+            chan, "sysop_menu.bbs_list.modify_failed", menu_mode)
+
+
+def _handle_delete_bbs_link(chan, sysop_login_id, menu_mode):
+    """BBSリンクを削除する"""
+    _handle_list_bbs_links(chan, sysop_login_id, menu_mode)
+    util.send_text_by_key(
+        chan, "sysop_menu.bbs_list.delete_id_prompt", menu_mode, add_newline=False)
+    link_id_str = chan.process_input()
+    if not link_id_str or not link_id_str.strip().isdigit():
+        util.send_text_by_key(chan, "common_messages.cancel", menu_mode)
+        return
+
+    link_id = int(link_id_str.strip())
+    util.send_text_by_key(
+        chan, "sysop_menu.bbs_list.confirm_delete_yn", menu_mode, id=link_id, add_newline=False)
+    confirm = chan.process_input()
+    if confirm and confirm.strip().lower() == 'y':
+        if database.delete_bbs_link(link_id):
+            util.send_text_by_key(
+                chan, "sysop_menu.bbs_list.delete_success", menu_mode)
+        else:
+            util.send_text_by_key(
+                chan, "sysop_menu.bbs_list.delete_failed", menu_mode)
+    else:
+        util.send_text_by_key(chan, "common_messages.cancel", menu_mode)
+
+
 def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
     """
     Displays the SysOp menu and dispatches commands based on user input.
@@ -43,6 +141,10 @@ def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
         'bdel': delete_board,
         'bmod': change_board_full_settings,
         'udel': user_delete,
+        'lsbl': _handle_list_bbs_links,
+        'addbl': _handle_add_bbs_link,
+        'modbl': _handle_modify_bbs_link,
+        'delbl': _handle_delete_bbs_link,
         'passkey': manage_passkeys_by_sysop,
         'uadd': user_register,
         'passwd': change_user_password_by_sysop,
