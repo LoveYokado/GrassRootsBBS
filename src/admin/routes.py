@@ -608,11 +608,11 @@ def edit_board(board_id):
             user_map = {user['name'].upper(): user['id'] for user in all_users}
 
             invalid_names = []
-            for name in operator_names:
-                if name in user_map:
-                    new_operator_ids.append(user_map[name])
+            for op_name in operator_names:
+                if op_name in user_map:
+                    new_operator_ids.append(user_map[op_name])
                 else:
-                    invalid_names.append(name)
+                    invalid_names.append(op_name)
 
             if invalid_names:
                 flash(
@@ -623,15 +623,15 @@ def edit_board(board_id):
         permission_users_str = request.form.get('permission_users', '').strip()
         new_permission_user_ids = []
         if permission_users_str:
-            permission_user_names = [name.strip().upper()
-                                     for name in permission_users_str.split(',') if name.strip()]
+            permission_user_names = [perm_user_name.strip().upper()
+                                     for perm_user_name in permission_users_str.split(',') if perm_user_name.strip()]
             # user_map is already available from operator processing
             invalid_perm_names = []
-            for name in permission_user_names:
-                if name in user_map:
-                    new_permission_user_ids.append(user_map[name])
+            for perm_user_name in permission_user_names:
+                if perm_user_name in user_map:
+                    new_permission_user_ids.append(user_map[perm_user_name])
                 else:
-                    invalid_perm_names.append(name)
+                    invalid_perm_names.append(perm_user_name)
             if invalid_perm_names:
                 flash(
                     f"The following B/W list user names were not found: {', '.join(invalid_perm_names)}", 'danger')
@@ -1095,41 +1095,21 @@ def broadcast():
             'flash_empty', 'Message cannot be empty.'), 'warning')
         return redirect(url_for('admin.dashboard'))
 
-    # terminal_handlerから直接client_statesを取得
-    from .. import terminal_handler
-    online_clients = terminal_handler.client_states
+    online_members = terminal_handler.get_webapp_online_members()
 
-    if not online_clients:
+    if not online_members:
         flash(g.texts.get('broadcast', {}).get(
             'flash_no_users', 'No users are currently online.'), 'info')
         return redirect(url_for('admin.dashboard'))
 
     sender_name = session.get('username', 'SYSOP')
-    broadcast_message_body = f"<{sender_name}> {message}"
     count = 0
-
-    # オンラインの全クライアントにメッセージを送信
-    for sid, handler in online_clients.copy().items():
-        try:
-            target_chan = handler.channel
-            target_menu_mode = handler.user_session.get('menu_mode', '2')
-
-            # システムメッセージ用の共通ラッパーを取得
-            wrapper_format_string = util.get_text_by_key(
-                "chat.broadcast_chatsystem_message_format", target_menu_mode
-            )
-            if wrapper_format_string:
-                formatted_message = wrapper_format_string.format(
-                    message=broadcast_message_body)
-            else:
-                formatted_message = f"System: {broadcast_message_body}"
-
-            # メッセージを送信
-            message_payload = f"\r\n{formatted_message}\r\n"
-            target_chan.send(message_payload.encode('utf-8'))
+    for sid, member_data in online_members.items():
+        recipient_name = member_data.get('username')
+        if recipient_name:
+            database.save_telegram(
+                sender_name, recipient_name, message, int(time.time()))
             count += 1
-        except Exception as e:
-            logging.error(f"ブロードキャストメッセージの送信中にエラー (SID: {sid}): {e}")
 
     if count > 0:
         success_message = g.texts.get('broadcast', {}).get(
