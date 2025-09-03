@@ -682,28 +682,61 @@ def _get_recipients(chan, menu_mode):
         current_recipient_comment = userdata[
             'comment'] if userdata['comment'] else "(No comment)"
 
-        chan.send(f"\"{current_recipient_comment}\"\r\n".encode('utf-8'))
-        util.send_text_by_key(
-            chan, "mail_handler.recipient_yn", menu_mode, add_newline=False
+        is_mobile_web_client = (
+            isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and
+            getattr(chan.handler, 'is_mobile', False)
         )
-        ans = chan.process_input()
+
+        def get_confirm_input(prompt_key):
+            """汎用の確認プロンプト処理"""
+            confirm_input_raw = None
+            if is_mobile_web_client:
+                yes_label = util.get_text_by_key(
+                    "common_messages.yes_button", menu_mode, default_value="Yes")
+                no_label = util.get_text_by_key(
+                    "common_messages.no_button", menu_mode, default_value="No")
+                yes_label_b64 = base64.b64encode(
+                    yes_label.encode('utf-8')).decode('utf-8')
+                no_label_b64 = base64.b64encode(
+                    no_label.encode('utf-8')).decode('utf-8')
+                chan.send(
+                    f'\x1b]GRBBS;CONFIRM_BUTTONS;{yes_label_b64};{no_label_b64}\x07'.encode('utf-8'))
+                chan.send(b'\x1b[?2035h')
+
+            try:
+                util.send_text_by_key(
+                    chan, prompt_key, menu_mode, add_newline=False)
+                confirm_input_raw = chan.process_input()
+            finally:
+                if is_mobile_web_client:
+                    chan.send(b'\x1b[?2035l')
+
+            return confirm_input_raw
+
+        chan.send(f"\"{current_recipient_comment}\"\r\n".encode('utf-8'))
+
+        # 宛先確認
+        ans = get_confirm_input("mail_handler.recipient_yn")
         if ans is None:
             return None
 
         if ans.lower().strip() == 'y':
             recipient_info_list.append(
                 (current_recipient_name, current_recipient_comment))
-            util.send_text_by_key(
-                chan, "mail_handler.send_another_yn", menu_mode, add_newline=False
-            )
-            add_more_ans = chan.process_input()
+
+            # 他の宛先を追加するか確認
+            add_more_ans = get_confirm_input("mail_handler.send_another_yn")
             if add_more_ans is None:
                 return None
 
             if add_more_ans.lower().strip() == 'y':
                 continue
             else:
+                # 他の宛先を追加しない場合は、ここでリストを返して終了
                 return recipient_info_list
+        else:
+            # 最初の宛先確認で 'y' 以外が入力された場合もループを継続
+            continue
 
 
 def _get_subject(chan, menu_mode):
