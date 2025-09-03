@@ -2711,33 +2711,7 @@
             // --- 自動スクロール & レイアウト補正ロジック ---
             const buffer = term.buffer.active;
             // 処理前に、ユーザーが既に一番下までスクロールしているか確認
-            const isScrolledToBottom = buffer.viewportY + term.rows >= buffer.baseY + buffer.length;
-
-            if ('visualViewport' in window) {
-                const vv = window.visualViewport;
-                const isMobile = window.matchMedia("(max-width: 992px)").matches;
-                const isKeyboardVisible = (window.innerHeight - vv.height) > 80;
-
-                if (isMobile && isKeyboardVisible) {
-                    // キーボード表示中は、表示領域の高さをキーボードの上端までに制限する
-                    document.body.style.height = `${vv.height}px`;
-                    document.querySelector('.monitor-screen').style.paddingBottom = '0px';
-                    // DOMの更新を待ってからターミナルのリサイズを実行
-                    setTimeout(() => {
-                        try {
-                            fitAddon.fit();
-                        } catch (e) {
-                            console.error("fitAddon.fit() failed during server_output:", e);
-                        }
-                    }, 0);
-                }
-            }
-
-            term.write(data);
-
-            if (isScrolledToBottom) {
-                term.scrollToBottom();
-            }
+            const isScrolledToBottom = buffer.viewportY + term.rows >= buffer.baseY + buffer.length; term.write(data); if (isScrolledToBottom) { term.scrollToBottom(); }
         });
 
         socket.on('bbs_link_submission_result', (data) => {
@@ -3127,32 +3101,45 @@
 
         window.addEventListener('resize', debounce(updateTerminalLayout, 100));
 
+        // --- visualViewport APIによるキーボード表示対応 ---
         if ('visualViewport' in window) {
             const vv = window.visualViewport;
+            const monitorScreen = document.querySelector('.monitor-screen');
 
-            const handleViewportResize = () => {
+            const handleViewportResize = (event) => {
                 const isMobile = window.matchMedia("(max-width: 992px)").matches;
                 if (!isMobile) {
                     document.body.style.height = '';
+                    monitorScreen.style.paddingBottom = '';
                     return;
                 }
-                document.body.style.height = `${vv.height}px`;
 
-                const keyboardHeight = window.innerHeight - vv.height;
+                const viewportHeight = event ? event.target.height : vv.height;
+
+                // ビューポートの高さにbodyを合わせることで、キーボード表示時に画面が追従するようにする
+                document.body.style.height = `${viewportHeight}px`;
+
+                // キーボードが表示されているか判定 (経験的に80px以上の差があればキーボードと見なす)
+                const keyboardHeight = window.innerHeight - viewportHeight;
                 const isKeyboardVisible = keyboardHeight > 80;
-                const monitorScreen = document.querySelector('.monitor-screen');
 
                 if (isKeyboardVisible) {
+                    // キーボード表示時は、モバイル操作パネル分のpaddingをなくす
                     monitorScreen.style.paddingBottom = '0px';
+                    window.scrollTo(0, 0); // キーボード表示時に画面上部にスクロール
                 } else {
+                    // キーボード非表示時は、モバイル操作パネルの高さを取得してpaddingを復元
+                    document.body.style.height = ''; // 通常の高さに戻す
                     const storedHeight = monitorScreen.dataset.controlsHeight;
                     if (storedHeight) {
                         monitorScreen.style.paddingBottom = `${storedHeight}px`;
                     }
                 }
-                setTimeout(() => { try { fitAddon.fit(); } catch (e) { /* ignore */ } }, 100);
+                // レイアウト変更後にターミナルのサイズを再計算
+                setTimeout(() => { try { fitAddon.fit(); } catch (e) { console.error("fitAddon.fit() failed on viewport resize:", e); } }, 100);
             };
             vv.addEventListener('resize', handleViewportResize);
+            handleViewportResize(); // 初期ロード時にも実行
         }
     </script>
 
