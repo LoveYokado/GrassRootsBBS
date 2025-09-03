@@ -3,12 +3,6 @@
 
 # ==============================================================================
 # Mail Handler
-#
-# This module provides the user interface and logic for the internal mail
-# system. It includes:
-# - An interactive, list-based mail viewer (`MailViewer`).
-# - Functions for composing and sending new mail.
-# - Handlers for reading mail in a sequential or list-based manner.
 # ==============================================================================
 #
 # ==============================================================================
@@ -16,9 +10,13 @@
 #
 # このモジュールは、内部メールシステムのユーザーインターフェースとロジックを
 # 提供します。以下の機能を含みます:
-# - 対話的でリストベースのメールビューア (`MailViewer`)
-# - 新規メールの作成と送信機能
-# - 順次読み出しまたはリスト形式でのメール閲覧機能
+#
+# - MailViewerクラス:
+#   - 対話的なリスト形式のメールビューア。
+#   - 受信箱/送信箱の切り替え、メールの閲覧、削除（論理削除）などの操作を提供。
+# - メール作成・送信関数群:
+#   - 宛先、件名、本文を対話的に入力し、メールを送信する一連の処理。
+#   - モバイルクライアント向けに、マルチラインエディタや確認ボタンの表示にも対応。
 # ==============================================================================
 
 import datetime
@@ -102,7 +100,11 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
 
 
 class MailViewer:
-    """メール一覧の表示と、その中での対話的な操作を管理するクラス。"""
+    """
+    メール一覧の表示と、その中での対話的な操作を管理するクラスです。
+    ユーザーが 'l' コマンドで一覧表示を選択した際にインスタンス化されます。
+    受信箱と送信箱の表示切り替え、カーソル移動、メールの閲覧・削除などを行います。
+    """
 
     def __init__(self, chan, login_id, menu_mode, user_id):
         self.chan = chan
@@ -132,7 +134,10 @@ class MailViewer:
         }
 
     def _display_mail_header_line(self, mail_data):
-        """指定されたメールデータ一件のヘッダ情報（1行）を表示します。"""
+        """
+        指定されたメールデータ一件のヘッダ情報（1行）を整形して表示します。
+        `format_mail_header_str` を内部で利用します。
+        """
         header_line = format_mail_header_str(
             mail_data, self.view_mode, self.mail_count_digits)
         if header_line:
@@ -159,7 +164,7 @@ class MailViewer:
     def _reload_mails(self, keep_index=True):
         """
         データベースからメールリストを再読み込みし、表示を更新します。
-        カーソル位置の維持や、未読メールへのジャンプもここで行います。
+        既読状態の変更を反映させたり、未読メールへジャンプしたりする際に呼び出されます。
         """
         current_mail_id = None
         if self.mails and 0 <= self.current_index < len(self.mails):
@@ -205,7 +210,11 @@ class MailViewer:
             return False
 
     def _get_key_input(self):
-        """チャンネルから1キー入力を取得し、矢印キーなどの特殊キーを解釈して文字列として返します。"""
+        """
+        チャンネルから1キー入力を取得し、矢印キーなどの特殊キーを解釈して
+        統一された文字列 (e.g., "KEY_UP") として返します。
+        これにより、キー入力の処理を簡潔に記述できます。
+        """
         try:
             data = self.chan.recv(1)
             if not data:
@@ -239,7 +248,10 @@ class MailViewer:
             return None
 
     def run(self):
-        """メールビューアのメインループを開始し、ユーザー入力を待ち受けます。"""
+        """
+        メールビューアのメインループを開始します。
+        ユーザーからのキー入力を待ち受け、対応する処理を呼び出します。
+        """
         # モバイル用の操作ボタンを表示
         self.chan.send(b'\x1b[?2024h')
 
@@ -284,7 +296,10 @@ class MailViewer:
         return "back_to_top"
 
     def _move_cursor_up(self):
-        """カーソルを一つ上に移動します。"""
+        """
+        カーソルを一つ上に移動し、移動先のヘッダを表示します。
+        リストの先頭より上には移動できません。
+        """
         if not self.mails:
             self.chan.send(b'\a')
             return
@@ -295,7 +310,10 @@ class MailViewer:
             self.chan.send(b'\a')
 
     def _move_cursor_down(self):
-        """カーソルを一つ下に移動します。"""
+        """
+        カーソルを一つ下に移動し、移動先のヘッダを表示します。
+        リストの末尾より下には移動できません。
+        """
         if not self.mails:
             self.chan.send(b'\a')
             return
@@ -306,7 +324,11 @@ class MailViewer:
             self.chan.send(b'\a')
 
     def _read_selected_mail(self, advance_cursor_after=False):
-        """現在カーソルがあるメールを読み、必要に応じてカーソルを進めます。"""
+        """
+        現在カーソルがあるメールを読み込みます。
+        本文表示後、メールリストを再読み込みして既読状態を反映させ、
+        必要に応じてカーソルを一つ進めます。
+        """
         if not (self.mails and 0 <= self.current_index < len(self.mails)):
             self.chan.send(b'\a')
             return
@@ -351,15 +373,23 @@ class MailViewer:
         self._display_current_header()
 
     def _read_selected_mail_and_stay(self):
-        """選択されているメールを読み、カーソル位置は変更しません。"""
+        """
+        選択されているメールを読み込みます。カーソル位置は変更しません。
+        Enterキーなどで呼び出されます。
+        """
         self._read_selected_mail(advance_cursor_after=False)
 
     def _read_and_move_down(self):
-        """選択されているメールを読み、カーソルを一つ下に進めます。"""
+        """
+        選択されているメールを読み込み、カーソルを一つ下に進めます。
+        'l'キーなどで呼び出されます。
+        """
         self._read_selected_mail(advance_cursor_after=True)
 
     def _read_and_move_up(self):
-        """カーソルを一つ上に移動し、その位置のメールを読みます。"""
+        """
+        カーソルを一つ上に移動し、その位置のメールを読み込みます。「読み戻り」機能です。
+        """
         if not self.mails:
             self.chan.send(b'\a')
             return
@@ -370,7 +400,10 @@ class MailViewer:
             self.chan.send(b'\a')
 
     def _toggle_delete(self):
-        """選択されているメールの削除状態（論理削除）を切り替えます。"""
+        """
+        選択されているメールの削除状態（論理削除）を切り替えます。
+        '*'キーで呼び出されます。
+        """
         if not (self.mails and 0 <= self.current_index < len(self.mails)):
             self.chan.send(b'\a')
             return
@@ -390,7 +423,10 @@ class MailViewer:
             self._display_current_header()
 
     def _switch_view_mode(self):
-        """受信箱 (inbox) と送信箱 (outbox) の表示を切り替えます。"""
+        """
+        受信箱 (inbox) と送信箱 (outbox) の表示を切り替えます。
+        's'キーで呼び出されます。
+        """
         self.view_mode = 'outbox' if self.view_mode == 'inbox' else 'inbox'
         self._reload_mails(keep_index=False)
         # ヘッダ表示
@@ -403,7 +439,10 @@ class MailViewer:
         self._display_current_header()
 
     def _write_mail(self):
-        """メール作成画面を呼び出し、完了後に一覧をリロードします。"""
+        """
+        メール作成画面 (`mail_write`) を呼び出します。
+        作成完了後に一覧をリロードして、最新の状態を反映します。
+        """
         self.chan.send(b'\r\n')
         mail_write(self.chan, self.login_id, self.menu_mode)
         self._reload_mails(keep_index=False)
@@ -417,7 +456,10 @@ class MailViewer:
         self._display_current_header()
 
     def _read_all_from_current(self):
-        """現在カーソルがある位置から、リストの最後までメールを連続表示します。"""
+        """
+        現在カーソルがある位置から、リストの最後までメールを連続で表示します。
+        「連続読み」機能です。
+        """
         if not self.mails or self.current_index == len(self.mails):
             self.chan.send(b'\a')
             return
@@ -442,7 +484,10 @@ class MailViewer:
         self._display_current_header()
 
     def _display_title_list(self):
-        """現在カーソルがある位置から、リストの最後までメールのヘッダのみを一覧表示します。"""
+        """
+        現在カーソルがある位置から、リストの最後までメールのヘッダのみを一覧表示します。
+        「タイトル一覧」機能です。
+        """
         if not self.mails or self.current_index == len(self.mails):
             self.chan.send(b'\a')
             return
@@ -464,7 +509,10 @@ class MailViewer:
         self._display_current_header()
 
     def _display_help(self):
-        """メールビューアの操作ヘルプを表示します。"""
+        """
+        メールビューアの操作ヘルプを表示します。
+        '?'キーで呼び出されます。
+        """
         self.chan.send(b'\r\n')
         util.send_text_by_key(
             self.chan, "mail_handler.mail_help", self.menu_mode)
@@ -479,7 +527,11 @@ class MailViewer:
 
 
 def mail(chan, login_id, menu_mode):
-    """メール機能のメインエントリーポイント。書き込み、受信、一覧表示のメニューを提供します。"""
+    """
+    メール機能のメインエントリーポイントです。
+    トップメニューから 'M' が選択されたときに呼び出されます。
+    書き込み、受信、一覧表示のメニューを提供します。
+    """
     user_id = database.get_user_id_from_user_name(login_id)
     if user_id is None:
         util.send_text_by_key(
@@ -604,14 +656,17 @@ def mail(chan, login_id, menu_mode):
 
 
 def display_mail_header(chan, mail_data, view_mode='inbox', mail_id_width=5):
-    """指定されたメールデータ一件のヘッダ情報（1行）を表示します。"""
+    """
+    指定されたメールデータ一件のヘッダ情報（1行）を整形して表示します。
+    主に連続読み (`mail` 関数の 'r' 選択時) で使用されます。
+    """
     header_line = format_mail_header_str(mail_data, view_mode, mail_id_width)
     if header_line:
         chan.send((header_line + "\r\n").encode('utf-8'))
 
 
 def display_mail_content(chan, mail_data, recipient_user_id_pk, view_mode='inbox', menu_mode='2'):
-    """メールの内容を表示し、受信箱の場合は既読にマークします。"""
+    """メールの本文を表示し、受信箱の場合は既読にマークします。"""
     try:
         if not mail_data:
             util.send_text_by_key(
@@ -652,7 +707,11 @@ def display_mail_content(chan, mail_data, recipient_user_id_pk, view_mode='inbox
 
 
 def _get_recipients(chan, menu_mode):
-    """宛先をユーザーから取得し、検証してリストとして返します。複数宛先に対応しています。"""
+    """
+    宛先をユーザーから対話的に取得し、検証してリストとして返します。
+    複数宛先にも対応しており、一人入力するごとに続けて入力するか確認します。
+    モバイルクライアントの場合はYes/Noボタンを表示します。
+    """
     recipient_info_list = []  # 複数宛先に対応
     while True:
         util.send_text_by_key(
@@ -688,7 +747,10 @@ def _get_recipients(chan, menu_mode):
         )
 
         def get_confirm_input(prompt_key):
-            """汎用の確認プロンプト処理"""
+            """
+            Yes/No確認プロンプトを表示し、ユーザーの入力を取得する汎用ヘルパー関数です。
+            モバイルクライアントの場合は、Yes/Noボタンを表示するエスケープシーケンスを送信します。
+            """
             confirm_input_raw = None
             if is_mobile_web_client:
                 yes_label = util.get_text_by_key(
@@ -740,7 +802,10 @@ def _get_recipients(chan, menu_mode):
 
 
 def _get_subject(chan, menu_mode):
-    """件名をユーザーから取得し、長さを検証して返します。"""
+    """
+    件名をユーザーから対話的に取得します。
+    設定された最大長を超えた場合は、自動的に切り詰めます。
+    """
     limits_config = util.app_config.get('limits', {})
     mail_subject_max_len = limits_config.get('mail_subject_max_length', 100)
     util.send_text_by_key(
@@ -758,7 +823,11 @@ def _get_subject(chan, menu_mode):
 
 
 def _get_body(chan, menu_mode):
-    """本文をユーザーから取得し、長さを検証して返します。"""
+    """
+    本文をユーザーから対話的に取得します。
+    モバイルクライアントの場合はマルチラインエディタを、それ以外はインラインエディタを使用します。
+    設定された最大長を超えた場合は、自動的に切り詰めます。
+    """
     limits_config = util.app_config.get('limits', {})
     mail_body_max_len = limits_config.get('mail_body_max_length', 4096)
     util.send_text_by_key(
@@ -798,7 +867,10 @@ def _get_body(chan, menu_mode):
 
 
 def _save_mails_to_db(sender_id, recipient_info_list, subject, body, ip_address=None):
-    """複数の宛先に対してメールをデータベースに保存します。"""
+    """
+    複数の宛先に対して、それぞれメールをデータベースに保存します。
+    一回の送信操作で複数の宛先に同じ内容のメールを送るために使用されます。
+    """
     try:
         sent_at = int(time.time())
         for rec_name, _ in recipient_info_list:
@@ -818,7 +890,11 @@ def _save_mails_to_db(sender_id, recipient_info_list, subject, body, ip_address=
 
 
 def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, body, ip_address=None):
-    """送信内容の最終確認画面を表示し、ユーザーの同意を得てからDBに保存します。"""
+    """
+    送信内容の最終確認画面を表示し、ユーザーの同意を得てからDBに保存します。
+    モバイルクライアントの場合はYes/Noボタンを表示します。
+    ユーザーが 'y' を入力した場合に `_save_mails_to_db` を呼び出します。
+    """
     util.send_text_by_key(
         chan, "mail_handler.confirm_send", menu_mode)
 
@@ -884,7 +960,11 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
 
 
 def mail_write(chan, login_id, menu_mode='2'):
-    """メール作成のメインハンドラ。宛先、件名、本文の入力を順に受け付け、送信します。"""
+    """
+    メール作成のメインハンドラです。
+    宛先、件名、本文の入力を順に受け付け、最終確認を経てメールを送信します。
+    一連の入力処理は `_get_recipients`, `_get_subject`, `_get_body` に分割されています。
+    """
     recipient_info_list = _get_recipients(chan, menu_mode)
     if not recipient_info_list:  # キャンセルまたは切断
         return

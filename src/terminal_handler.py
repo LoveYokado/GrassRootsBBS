@@ -13,10 +13,11 @@
 # ==============================================================================
 # Webターミナルセッションハンドラ
 #
-# このモジュールは、個々のWebターミナルセッションを管理するための中核的な
-# ロジックを含んでいます。BBSのメインループと単一クライアントのI/Oを統括する
-# WebTerminalHandlerクラスや、接続されている全クライアントのグローバルな
-# 状態管理が含まれます。
+# このモジュールは、個々のWebターミナルセッションを管理するための中核ロジックを
+# 含んでいます。主な責務は以下の通りです:
+# - WebTerminalHandlerクラス: 各クライアントのセッション状態を管理し、BBSの
+#   メインループとI/Oを統括します。
+# - グローバルな状態管理: 接続されている全クライアントの状態を追跡します。
 # ==============================================================================
 
 import logging
@@ -128,10 +129,7 @@ class WebTerminalHandler:
 
         @self.socketio.on('get_bbs_list')
         def handle_get_bbs_list():
-            """
-            クライアント(F7キーポップアップ)からのBBSリスト要求に応答します。
-            データベースから承認済みのリンクを取得し、クライアントに送信します。
-            """
+            """F7キーで開かれるBBSリストポップアップからのデータ要求を処理します。"""
             if not self.user_session.get('user_id'):
                 return  # 未認証の場合は何もしない
 
@@ -145,11 +143,7 @@ class WebTerminalHandler:
 
         @self.socketio.on('submit_bbs_link')
         def handle_submit_bbs_link(data):
-            """
-            ユーザーからのBBSリンク申請を処理します。
-            受け取ったデータを検証し、'pending'ステータスでデータベースに保存します。
-            処理結果をクライアントに返します。
-            """
+            """BBSリストポップアップからの新規リンク申請を処理します。"""
             user_id = self.user_session.get('user_id')
             if not user_id:
                 return
@@ -265,25 +259,13 @@ class WebTerminalHandler:
             return self._process_input_internal(echo=True)
 
         def hide_process_input(self):
-            """
-            クライアントから1行入力を受け取るが、エコーバックしないパスワード入力用。
-            クライアントにアスタリスク表示を促すイベントを発行する。
-            """
-            # クライアントにパスワード入力モード開始を通知
-            self.handler.socketio.emit(
-                'start_password_input', to=self.handler.sid)
-            try:
-                # サーバー側ではエコーバックしない入力処理を呼び出す
-                return self._process_input_internal(echo=False)
-            finally:
-                # 処理が完了したら、必ずパスワード入力モード終了を通知
-                self.handler.socketio.emit(
-                    'end_password_input', to=self.handler.sid)
+            return self._process_input_internal(echo=False)
 
         def process_multiline_input(self):
             """
-            Triggers the multiline editor on the web client and waits for the result.
-            Webクライアントのマルチラインエディタを起動し、結果を待ち受けます。
+            Webクライアントのマルチラインエディタを起動し、その結果を待ち受けます。
+            サーバー側から `\x1b[?2034h` を送信してエディタを開き、
+            クライアント側は `multiline_input_submit` イベントで結果を返します。
             """
             # Send a special escape sequence to open the multiline editor
             self.send(b'\x1b[?2034h')

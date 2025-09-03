@@ -2229,7 +2229,7 @@
         }
 
         /**
-         * BBSリストのポップアップを閉じます。
+         * BBSリストのポップアップ（F7キー）を閉じます。
          */
         function closeBbsListPopup() {
             bbsListOverlay.classList.remove('visible');
@@ -2240,7 +2240,9 @@
         bbsListOverlay.addEventListener('click', closeBbsListPopup);
 
         /**
-         * 「Jump to BBS」ボタンがクリックされたときの処理。新しいタブでURLを開きます。
+         * BBSリストポップアップ内の「Jump to BBS」ボタンがクリックされたときの処理です。
+         * 選択されたBBSのURLを新しいタブで開きます。
+         * @listens bbsListJumpBtn:click
          */
         bbsListJumpBtn.addEventListener('click', () => {
             const url = bbsListJumpBtn.dataset.url;
@@ -2250,8 +2252,9 @@
         });
 
         /**
-         * サーバーからBBSリストデータを受け取ったときの処理。
-         * リストを動的に生成します。
+         * サーバーからBBSリストデータ (`bbs_list_data` イベント) を受け取ったときの処理です。
+         * 受け取ったデータからBBSのリストを動的に生成し、ポップアップ内に表示します。
+         * @listens socket:bbs_list_data
          */
         socket.on('bbs_list_data', (data) => {
             currentBbsLinks = data.links || [];
@@ -2273,7 +2276,9 @@
         });
 
         /**
-         * 「Submit New Link」ボタンがクリックされたときの処理。申請用ポップアップを開きます。
+         * BBSリストポップアップ内の「Submit New Link」ボタンがクリックされたときの処理です。
+         * 新しいBBSリンクを申請するためのポップアップを開きます。
+         * @listens bbs-list-submit-new-btn:click
          */
         document.getElementById('bbs-list-submit-new-btn').addEventListener('click', () => {
             bbsSubmissionName.value = '';
@@ -2284,7 +2289,7 @@
         });
 
         /**
-         * リンク申請用ポップアップを閉じます。
+         * BBSリンク申請用ポップアップを閉じます。
          */
         function closeBbsSubmissionPopup() {
             bbsSubmissionOverlay.classList.remove('visible');
@@ -2294,8 +2299,10 @@
         bbsSubmissionCloseBtn.addEventListener('click', closeBbsSubmissionPopup);
         bbsSubmissionOverlay.addEventListener('click', closeBbsSubmissionPopup);
         /**
-         * 申請フォームの「Submit for Approval」ボタンがクリックされたときの処理。
-         * 入力内容をサーバーに送信します。
+         * BBSリンク申請フォームの「Submit for Approval」ボタンがクリックされたときの処理です。
+         * 入力された内容をサーバーに `submit_bbs_link` イベントで送信します。
+         * @listens bbs-submission-submit-btn:click
+         * @fires submit_bbs_link
          */
         document.getElementById('bbs-submission-submit-btn').addEventListener('click', () => {
             const name = bbsSubmissionName.value.trim();
@@ -2386,8 +2393,9 @@
         logViewerCloseBtn.addEventListener('click', closeLogViewer);
         logViewerOverlay.addEventListener('click', closeLogViewer);
         /**
-         * BBSリストの項目がクリックされたときの処理。
-         * 右側の詳細ペインを更新し、「Jump」ボタンを有効化します。
+         * BBSリストポップアップ内のリスト項目（BBS名ボタン）がクリックされたときの処理です。
+         * 右側の詳細表示ペインを更新し、「Jump to BBS」ボタンを有効化します。
+         * @listens bbsStationsList:click
          */
         bbsStationsList.addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
@@ -3065,7 +3073,7 @@
                 'userpref-btn-8': '8',
                 'userpref-btn-9': '9',
                 'userpref-btn-0': '0',
-                'userpref-btn-backspace': '\x7f', // Backspace character(DEL)
+                'userpref-btn-backspace': '\x7f', // Backspace (DEL)
                 'userpref-btn-help': '?',
                 'userpref-btn-enter': '\r',
             };
@@ -3125,7 +3133,7 @@
                 'plugin-btn-7': '7',
                 'plugin-btn-8': '8',
                 'plugin-btn-9': '9',
-                'plugin-btn-backspace': '\x7f', // Backspace character(DEL)
+                'plugin-btn-backspace': '\x7f', // Backspace (DEL)
                 'plugin-btn-0': '0',
                 'plugin-btn-help': '?',
                 'plugin-btn-enter': '\r',

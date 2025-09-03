@@ -8,20 +8,20 @@
 # application. It uses a connection pool for efficient database connections
 # and provides a set of manager classes, each responsible for a specific
 # database table (e.g., users, boards).
-#
-# For backward compatibility and ease of use, top-level functions are provided
-# as wrappers around the manager class methods.
 # ==============================================================================
 #
 # ==============================================================================
 # データベースアクセス層
 #
 # このモジュールは、GrassRootsBBSアプリケーションの全てのデータベース対話を
-# カプセル化します。効率的なデータベース接続のためにコネクションプールを使用し、
-# 各テーブル（例: users, boards）に対応するマネージャクラス群を提供します。
+# カプセル化します。
 #
-# 後方互換性と使いやすさのため、トップレベル関数が各マネージャクラスの
-# メソッドのラッパーとして提供されています。
+# 主な特徴:
+# - コネクションプール: 効率的なデータベース接続を管理します。
+# - マネージャクラス: 各テーブル（例: users, boards）に対応する操作をクラスに
+#   まとめ、コードの責務を明確にします。
+# - ラッパー関数: 後方互換性と簡易なアクセスのため、各マネージャクラスのメソッドを
+#   呼び出すトップレベル関数を提供します。
 # ==============================================================================
 
 import mysql.connector
@@ -32,7 +32,8 @@ import os
 
 import time  # For timestamp in some functions
 
-# グローバルインスタンスの宣言 (後で初期化される)
+# --- グローバルインスタンス ---
+# アプリケーション全体で共有されるシングルトン的なインスタンス群です。
 db_manager = None
 users = None
 boards = None
@@ -1603,19 +1604,19 @@ class DatabaseInitializer:
                 # カラムの存在チェックと追加
                 cursor.execute("SHOW COLUMNS FROM `bbs_list`")
                 columns = [row['Field'].lower() for row in cursor.fetchall()]
-                # sourceカラム: リンクの提供元 (sysop/user)
+                # sourceカラム: リンクの提供元 ('sysop' または 'user')
                 if 'source' not in columns:
                     alter_query = "ALTER TABLE `bbs_list` ADD COLUMN `source` VARCHAR(10) NOT NULL DEFAULT 'sysop' AFTER `description`"
                     cursor.execute(alter_query)
                     logging.info(
                         "データベースマイグレーション: 'bbs_list'テーブルに'source'カラムを追加しました。")
-                # statusカラム: 承認状態 (pending/approved/rejected)
+                # statusカラム: 承認状態 ('pending', 'approved', 'rejected')
                 if 'status' not in columns:
                     alter_query = "ALTER TABLE `bbs_list` ADD COLUMN `status` VARCHAR(10) NOT NULL DEFAULT 'pending' AFTER `source`"
                     cursor.execute(alter_query)
                     logging.info(
                         "データベースマイグレーション: 'bbs_list'テーブルに'status'カラムを追加しました。")
-                # submitted_byカラム: 申請者のユーザーID
+                # submitted_byカラム: リンクを申請したユーザーのID (usersテーブルの外部キー)
                 if 'submitted_by' not in columns:
                     alter_query = "ALTER TABLE `bbs_list` ADD COLUMN `submitted_by` INT AFTER `status`"
                     cursor.execute(alter_query)
@@ -1991,13 +1992,13 @@ def delete_bbs_link(link_id):
     return bbs_list_manager.delete(link_id)
 
 
-def get_all_bbs_links_for_admin(sort_by='status', order='asc') -> list:
+def get_all_bbs_links_for_admin(sort_by: str = 'status', order: str = 'asc') -> list:
     """管理画面用に、ソート順を指定して全てのBBSリンクを取得します。"""
     return bbs_list_manager.get_all_for_admin(sort_by, order)
 
 
 def update_bbs_link_status(link_id: int, status: str) -> bool:
-    """指定されたBBSリンクのステータスを更新します。"""
+    """指定されたBBSリンクの承認ステータスを更新します。"""
     return bbs_list_manager.update_status(link_id, status)
 
 

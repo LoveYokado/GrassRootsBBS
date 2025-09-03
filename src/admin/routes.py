@@ -12,9 +12,9 @@
 # ==============================================================================
 # 管理画面ルート定義
 #
-# このファイルは、GrassRootsBBS管理画面の全てのWebルートを定義します。
-# Flaskのブループリント機能を使用してこれらのルートをグループ化し、
-# メインのFlaskアプリケーションに登録します。
+# このファイルは、GrassRootsBBSのWeb管理画面における全てのルート(URL)を定義します。
+# FlaskのBlueprint機能を利用して、管理画面関連のルートを '/admin' プレフィックスで
+# グループ化し、コードのモジュール性を高めています。
 # ==============================================================================
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g
@@ -43,9 +43,9 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @sysop_required
 def bbs_list():
     """
-    BBSリンクの管理ページ。
-    GETリクエストではリンク一覧を表示し、
-    POSTリクエストでは追加、削除、承認、却下などの操作を処理します。
+    BBSリンクの管理ページです。
+    - GET: 登録されている外部リンクの一覧を表示します。
+    - POST: リンクの追加、削除、承認状態の変更などの操作を処理します。
     """
     # POSTリクエスト: フォームからのアクションを処理
     if request.method == 'POST':
@@ -118,9 +118,9 @@ def bbs_list():
 @sysop_required
 def edit_bbs_link(link_id):
     """
-    BBSリンクの編集ページ。
-    GETリクエストでは指定されたIDのリンク情報をフォームに表示し、
-    POSTリクエストではフォームから送信された内容でリンク情報を更新します。
+    BBSリンクの編集ページです。
+    - GET: 指定されたIDのリンク情報をフォームに表示します。
+    - POST: フォームから送信された内容でリンク情報を更新します。
     """
     # 編集対象のリンク情報を取得
     link = database.bbs_list_manager.get_by_id(link_id)
@@ -177,11 +177,10 @@ def _process_texts_for_mode(node, menu_mode):
 @admin_bp.before_request
 def load_admin_texts():
     """
-    管理画面への各リクエストの前に、ユーザーの言語設定に応じたテキストをロードします。
-    ロードされたテキストは、リクエスト中のみ有効なグローバル変数 `g.texts` に格納されます。
-
-    Before each request to the admin panel, load texts corresponding to the user's language setting.
-    The loaded texts are stored in `g.texts`, a global variable available only during the request.
+    管理画面への各リクエストの前に実行されるフックです。
+    ユーザーの言語設定（menu_mode）に応じて、textdata.yamlから適切なテキストを読み込み、
+    リクエスト中のみ有効なグローバル変数 `g.texts` に格納します。
+    これにより、テンプレート内で言語設定に応じたテキストを簡単に利用できます。
     """
     menu_mode = session.get('menu_mode', '3')  # デフォルトは英語モード
     # adminセクションのテキストをロードし、指定されたmenu_modeのテキストを抽出
@@ -192,7 +191,11 @@ def load_admin_texts():
 @admin_bp.route('/')
 @sysop_required
 def dashboard():
-    """管理画面のダッシュボードを表示します。"""
+    """
+    管理画面のメインページであるダッシュボードを表示します。
+    システムの統計情報、オンラインユーザー数、システムヘルス（CPU, メモリ, ディスク使用率）、
+    最近のアクティビティグラフなどを集約して表示します。
+    """
     # オンラインメンバーの数を取得
     online_count = len(terminal_handler.get_webapp_online_members())
 
@@ -252,7 +255,10 @@ def dashboard():
 @admin_bp.route('/who')
 @sysop_required
 def who_online():
-    """オンラインユーザーの詳細一覧ページを表示します。"""
+    """
+    現在オンラインのユーザー一覧ページを表示します。
+    各ユーザーの接続時間やIPアドレスなどの詳細情報を確認でき、セッションを強制切断(kick)することも可能です。
+    """
     online_members_raw = terminal_handler.get_webapp_online_members()
 
     # データを整形し、接続時間を計算
@@ -295,7 +301,10 @@ def who_online():
 @admin_bp.route('/who/kick/<sid>', methods=['POST'])
 @sysop_required
 def kick_user(sid):
-    """指定されたSIDのユーザーセッションを強制的に切断します。"""
+    """
+    指定されたセッションID(sid)を持つユーザーの接続を強制的に切断します。
+    主に 'who_online' ページから呼び出されます。
+    """
     from ..factory import socketio
 
     online_members = terminal_handler.get_webapp_online_members()
@@ -320,7 +329,10 @@ def kick_user(sid):
 @admin_bp.route('/users')
 @sysop_required
 def user_list():
-    """ユーザー一覧ページを表示します。"""
+    """
+    登録されている全ユーザーの一覧ページを表示します。
+    ユーザー名やメールアドレスでの検索、各カラムでのソート機能を提供します。
+    """
     # クエリパラメータからソート順と検索語を取得
     sort_by = request.args.get('sort_by', 'id')
     order = request.args.get('order', 'asc')
@@ -339,7 +351,11 @@ def user_list():
 @admin_bp.route('/users/new', methods=['GET', 'POST'])
 @sysop_required
 def new_user():
-    """新規ユーザー作成ページを表示し、作成処理を行います。"""
+    """
+    新規ユーザー作成ページです。
+    - GET: ユーザー作成フォームを表示します。
+    - POST: フォームから送信された情報で新しいユーザーをデータベースに登録します。
+    """
     if request.method == 'POST':
         username = request.form.get('name', '').strip().upper()
         password = request.form.get('password')
@@ -375,7 +391,11 @@ def new_user():
 @admin_bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_user(user_id):
-    """ユーザー編集ページを表示し、更新処理を行います。"""
+    """
+    既存ユーザーの編集ページです。
+    - GET: 指定されたユーザーIDの情報をフォームに表示します。
+    - POST: フォームから送信された内容でユーザー情報を更新します。
+    """
     # This key is used in the template, so we get it here for convenience
     edit_user_texts = g.texts.get('admin_edit_user', {})
 
@@ -421,7 +441,10 @@ def edit_user(user_id):
 @admin_bp.route('/users/edit/<int:user_id>/delete_passkey/<int:passkey_id>', methods=['POST'])
 @sysop_required
 def delete_user_passkey(user_id, passkey_id):
-    """Deletes a specific Passkey for a user."""
+    """
+    指定されたユーザーの、特定のPasskeyを削除します。
+    ユーザー編集画面から呼び出されます。
+    """
     if database.delete_passkey_by_id_and_user_id(passkey_id, user_id):
         flash(g.texts.get('admin_edit_user', {}).get(
             'flash_passkey_deleted', "Passkey has been deleted."), 'success')
@@ -463,7 +486,11 @@ def delete_user(user_id):
 @admin_bp.route('/boards')
 @sysop_required
 def board_list():
-    """掲示板一覧ページを表示します。"""
+    """
+    登録されている全掲示板の一覧ページを表示します。
+    IDや名前での検索、各カラムでのソート機能を提供します。
+    オペレーター名はIDからユーザー名に変換して表示します。
+    """
     # クエリパラメータからソート順と検索語を取得
     sort_by = request.args.get('sort_by', 'shortcut_id')
     order = request.args.get('order', 'asc')
@@ -518,7 +545,11 @@ def board_list():
 @admin_bp.route('/boards/new', methods=['GET', 'POST'])
 @sysop_required
 def new_board():
-    """新規掲示板作成ページを表示し、作成処理を行います。"""
+    """
+    新規掲示板作成ページです。
+    - GET: 掲示板作成フォームを表示します。
+    - POST: フォームから送信された情報で新しい掲示板をデータベースに登録します。
+    """
     if request.method == 'POST':
         # フォームからデータを取得
         shortcut_id = request.form.get('shortcut_id', '').strip()
@@ -574,7 +605,11 @@ def new_board():
 @admin_bp.route('/boards/edit/<int:board_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_board(board_id):
-    """掲示板編集ページを表示し、更新処理を行います。"""
+    """
+    既存の掲示板の編集ページです。
+    - GET: 指定された掲示板IDの情報をフォームに表示します。
+    - POST: フォームから送信された内容で掲示板情報を更新します。
+    """
     board = database.get_board_by_id(board_id)
     if not board:
         flash(f"Board with ID {board_id} not found.", 'danger')
@@ -706,7 +741,10 @@ def edit_board(board_id):
 @admin_bp.route('/boards/delete/<int:board_id>', methods=['POST'])
 @sysop_required
 def delete_board(board_id):
-    """指定された掲示板と関連するすべての記事を削除します。"""
+    """
+    指定された掲示板をデータベースから物理削除します。
+    この掲示板に投稿されたすべての記事や権限設定も同時に削除されます。
+    """
     board_to_delete = database.get_board_by_id(board_id)
 
     if not board_to_delete:
@@ -725,7 +763,10 @@ def delete_board(board_id):
 @admin_bp.route('/articles', methods=['GET'])
 @sysop_required
 def article_search():
-    """記事検索ページを表示し、検索結果を返します。"""
+    """
+    全掲示板を横断して記事を検索するページです。
+    キーワード（タイトル・本文）や投稿者名で検索できます。
+    """
     keyword = request.args.get('q', '')
     author_name = request.args.get('author', '')
 
@@ -772,7 +813,10 @@ def article_search():
 @admin_bp.route('/articles/delete/<int:article_id>', methods=['POST'])
 @sysop_required
 def delete_article(article_id):
-    """記事の削除フラグをトグルします（論理削除/復元）。"""
+    """
+    指定された記事の削除フラグをトグルします（論理削除/復元）。
+    削除済みの記事は復元され、未削除の記事は削除済み状態になります。
+    """
     article = database.get_article_by_id(article_id)
     if not article:
         flash(f"Article ID {article_id} not found.", 'danger')
@@ -796,7 +840,10 @@ def delete_article(article_id):
 @admin_bp.route('/articles/bulk-action', methods=['POST'])
 @sysop_required
 def bulk_action_articles():
-    """選択された複数の記事を一括で論理削除または復元します。"""
+    """
+    記事検索結果ページで選択された複数の記事に対して、
+    一括で論理削除または復元を実行します。
+    """
     action = request.form.get('action')
     selected_ids_str = request.form.getlist('selected_articles')
 
@@ -828,7 +875,11 @@ def bulk_action_articles():
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @sysop_required
 def system_settings():
-    """システム全体のアクセスレベルなどの設定ページを表示し、更新処理を行います。"""
+    """
+    システム全体の設定ページです。
+    - GET: 現在のサーバー設定（各機能の最低アクセスレベルなど）を表示します。
+    - POST: フォームから送信された内容でサーバー設定を更新します。
+    """
     pref_names = ['bbs', 'chat', 'mail', 'telegram', 'userpref',
                   'who', 'default_exploration_list', 'hamlet', 'login_message']
 
@@ -870,7 +921,11 @@ def system_settings():
 @admin_bp.route('/backup', methods=['GET', 'POST'])
 @sysop_required
 def backup_management():
-    """バックアップの管理ページを表示し、スケジュールの保存も処理します。"""
+    """
+    バックアップ管理ページです。
+    - GET: 既存のバックアップファイル一覧と、自動バックアップのスケジュール設定を表示します。
+    - POST: 自動バックアップのスケジュール設定を保存します。
+    """
     if request.method == 'POST':
         # スケジュール保存リクエストを処理
         if request.form.get('action') == 'save_schedule':
@@ -910,7 +965,10 @@ def backup_management():
 @admin_bp.route('/backup/create', methods=['POST'])
 @sysop_required
 def create_backup_route():
-    """手動で新しいバックアップを作成するルートです。"""
+    """
+    手動で新しいバックアップを作成します。
+    バックアップ管理ページから呼び出されます。
+    """
     try:
         # バックアップ作成処理を呼び出す
         filename = backup_util.create_backup()
@@ -928,7 +986,10 @@ def create_backup_route():
 @admin_bp.route('/backup/download/<path:filename>')
 @sysop_required
 def download_backup(filename):
-    """指定されたバックアップファイルをダウンロードさせます。"""
+    """
+    指定されたバックアップファイルをクライアントにダウンロードさせます。
+    ディレクトリトラバーサル攻撃を防ぐため、`send_from_directory` を使用します。
+    """
     # send_from_directory はディレクトリトラバーサル攻撃から保護してくれます
     return send_from_directory(BACKUP_DIR, filename, as_attachment=True)
 
@@ -936,7 +997,10 @@ def download_backup(filename):
 @admin_bp.route('/backup/delete/<path:filename>', methods=['POST'])
 @sysop_required
 def delete_backup(filename):
-    """指定されたバックアップファイルをサーバーから削除します。"""
+    """
+    指定されたバックアップファイルをサーバーから物理削除します。
+    バックアップ管理ページから呼び出されます。
+    """
     try:
         filepath = os.path.join(BACKUP_DIR, filename)
         # パストラバーサル攻撃のチェック
@@ -958,7 +1022,11 @@ def delete_backup(filename):
 @admin_bp.route('/backup/restore/<path:filename>', methods=['POST'])
 @sysop_required
 def restore_from_backup(filename):
-    """指定されたバックアップファイルからデータをリストアし、サーバーを再起動します。"""
+    """
+    指定されたバックアップファイルからデータをリストアします。
+    リストア処理が完了すると、サーバーは自動的に再起動されます。
+    この操作は非常に破壊的であり、現在のデータは上書きされます。
+    """
     try:
         # リストア処理を呼び出す
         success = backup_util.restore_from_backup(filename)
@@ -985,7 +1053,11 @@ def restore_from_backup(filename):
 @admin_bp.route('/wipe-data', methods=['POST'])
 @sysop_required
 def wipe_all_data():
-    """すべてのBBSデータを削除し、データベースを再初期化してサーバーを再起動します。"""
+    """
+    データベース内のすべてのBBS関連データを消去し、初期状態に戻します。
+    処理完了後、サーバーは自動的に再起動されます。
+    この操作は元に戻すことができず、非常に危険です。
+    """
     try:
         # 重要な操作なので、セッションのユーザーが本当にシスオペか再確認
         if session.get('userlevel', 0) < 5:
@@ -1015,7 +1087,10 @@ def wipe_all_data():
 @admin_bp.route('/plugins')
 @sysop_required
 def plugin_management():
-    """インストールされているプラグインの一覧と状態を表示します。"""
+    """
+    インストールされているプラグインの一覧と、それぞれの有効/無効状態を表示します。
+    プラグインの状態はデータベースに保存されます。
+    """
     all_plugins = plugin_manager.get_all_available_plugins()
     return render_template('admin/plugin_list.html', title='Plugin Management', plugins=all_plugins)
 
@@ -1023,7 +1098,10 @@ def plugin_management():
 @admin_bp.route('/plugins/toggle', methods=['POST'])
 @sysop_required
 def toggle_plugin_status():
-    """指定されたプラグインの有効/無効状態をデータベースに保存します。"""
+    """
+    指定されたプラグインの有効/無効状態を切り替えます。
+    変更を適用するには、通常サーバーの再起動が必要です。
+    """
     plugin_id = request.form.get('plugin_id')
     action = request.form.get('action')
 
@@ -1045,7 +1123,11 @@ def toggle_plugin_status():
 @admin_bp.route('/config-editor', methods=['GET', 'POST'])
 @sysop_required
 def config_editor():
-    """config.tomlファイルをWeb UIから直接編集・保存する機能を提供します。"""
+    """
+    設定ファイル `config.toml` をWeb UIから直接編集・保存する機能を提供します。
+    保存前にTOML形式の構文チェックを行いますが、設定値の誤りはアプリケーションの
+    動作に影響を与える可能性があるため、注意が必要です。
+    """
     config_path = os.path.join(
         backup_util.PROJECT_ROOT, 'setting', 'config.toml')
 
@@ -1087,7 +1169,10 @@ def config_editor():
 @admin_bp.route('/broadcast', methods=['POST'])
 @sysop_required
 def broadcast():
-    """オンライン中の全ユーザーに電報機能を使ってメッセージを一斉送信します。"""
+    """
+    オンライン中の全ユーザーに対して、メッセージを一斉送信（ブロードキャスト）します。
+    内部的には、各ユーザーに電報を送信する形で実装されています。
+    """
     message = request.form.get('message', '').strip()
 
     if not message:
@@ -1125,7 +1210,10 @@ def broadcast():
 @admin_bp.route('/restart', methods=['POST'])
 @sysop_required
 def restart_server():
-    """Gunicornワーカープロセスを終了させ、Dockerによる再起動を促します。"""
+    """
+    サーバープロセスを再起動します。
+    Gunicornワーカープロセスを終了させることで、Dockerやsystemdなどのプロセス管理ツールによる自動再起動を促します。
+    """
     flash_message = g.texts.get('system_actions', {}).get(
         'flash_restarting', 'Server is restarting... Please reload the page to reconnect.')
     flash(flash_message, 'warning')
@@ -1147,7 +1235,10 @@ def restart_server():
 @admin_bp.route('/access-log')
 @sysop_required
 def access_log_viewer():
-    """データベースに記録されたアクセスログを検索・表示します。"""
+    """
+    データベースに記録されたアクセスログを閲覧するページです。
+    IPアドレス、ユーザー名、イベントタイプでログをフィルタリングできます。
+    """
     # 検索フォームからのパラメータを取得
     search_ip = request.args.get('ip', '')
     search_user = request.args.get('user', '')
