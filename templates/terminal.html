@@ -2703,7 +2703,36 @@
                 updateTerminalLayout();
             }
 
+            // --- 自動スクロール & レイアウト補正ロジック ---
+            const buffer = term.buffer.active;
+            // 処理前に、ユーザーが既に一番下までスクロールしているか確認
+            const isScrolledToBottom = buffer.viewportY + term.rows >= buffer.baseY + buffer.length;
+
+            if ('visualViewport' in window) {
+                const vv = window.visualViewport;
+                const isMobile = window.matchMedia("(max-width: 992px)").matches;
+                const isKeyboardVisible = (window.innerHeight - vv.height) > 80;
+
+                if (isMobile && isKeyboardVisible) {
+                    // キーボード表示中は、表示領域の高さをキーボードの上端までに制限する
+                    document.body.style.height = `${vv.height}px`;
+                    document.querySelector('.monitor-screen').style.paddingBottom = '0px';
+                    // DOMの更新を待ってからターミナルのリサイズを実行
+                    setTimeout(() => {
+                        try {
+                            fitAddon.fit();
+                        } catch (e) {
+                            console.error("fitAddon.fit() failed during server_output:", e);
+                        }
+                    }, 0);
+                }
+            }
+
             term.write(data);
+
+            if (isScrolledToBottom) {
+                term.scrollToBottom();
+            }
         });
 
         socket.on('bbs_link_submission_result', (data) => {

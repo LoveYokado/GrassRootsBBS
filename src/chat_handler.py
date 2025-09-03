@@ -360,8 +360,7 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
 
             # --- ルームロック機能 ---
             elif user_input.lower() == "!l":
-                # 部屋をロック。途中入室は今のところ未実装。一瞬鍵を開けてから入室することにする。
-                message_for_log_and_broadcast_body = None
+                # 部屋をロック。
                 lock_successful = False
 
                 with chat_rooms_lock:
@@ -391,7 +390,6 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
             # --- ルームアンロック機能 ---
             elif user_input.lower() == "!u":
                 # 部屋をアンロック。
-                message_to_log_and_broadcast_unlock = None
                 unlock_successful = False
 
                 with chat_rooms_lock:

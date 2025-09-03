@@ -265,7 +265,20 @@ class WebTerminalHandler:
             return self._process_input_internal(echo=True)
 
         def hide_process_input(self):
-            return self._process_input_internal(echo=False)
+            """
+            クライアントから1行入力を受け取るが、エコーバックしないパスワード入力用。
+            クライアントにアスタリスク表示を促すイベントを発行する。
+            """
+            # クライアントにパスワード入力モード開始を通知
+            self.handler.socketio.emit(
+                'start_password_input', to=self.handler.sid)
+            try:
+                # サーバー側ではエコーバックしない入力処理を呼び出す
+                return self._process_input_internal(echo=False)
+            finally:
+                # 処理が完了したら、必ずパスワード入力モード終了を通知
+                self.handler.socketio.emit(
+                    'end_password_input', to=self.handler.sid)
 
         def process_multiline_input(self):
             """
