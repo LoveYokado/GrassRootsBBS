@@ -26,9 +26,10 @@ import time
 import logging
 import socket
 import textwrap
+import base64
 
 from . import util
-from . import database
+from . import database, terminal_handler
 
 
 def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
@@ -729,15 +730,33 @@ def _get_body(chan, menu_mode):
     mail_body_max_len = limits_config.get('mail_body_max_length', 4096)
     util.send_text_by_key(
         chan, "mail_handler.enter_body", menu_mode, max_len=mail_body_max_len)
-    message_lines = []
-    while True:
-        line = chan.process_input()
-        if line is None:
-            return None
-        if line == '^':
-            break
-        message_lines.append(line)
-    message = '\r\n'.join(message_lines)
+
+    is_mobile_web_client = (
+        isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and
+        getattr(chan.handler, 'is_mobile', False)
+    )
+
+    message = ""
+    if is_mobile_web_client:
+        # モバイルWebクライアントの場合はマルチラインエディタを呼び出す
+        body = chan.process_multiline_input()
+        if body is None:
+            return None  # タイムアウトまたはエラー
+        # 入力された内容をターミナルにエコーバック
+        chan.send(body.replace('\n', '\r\n').encode('utf-8') + b'\r\n')
+        message = body
+    else:
+        # --- 従来のインラインエディタを使用する場合 ---
+        message_lines = []
+        while True:
+            line = chan.process_input()
+            if line is None:
+                return None
+            if line == '^':
+                break
+            message_lines.append(line)
+        message = '\r\n'.join(message_lines)
+
     if len(message) > mail_body_max_len:
         message = message[:mail_body_max_len]
         util.send_text_by_key(
@@ -781,9 +800,36 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
     for line in body.splitlines():
         chan.send(f"{line}\r\n".encode('utf-8'))
 
-    util.send_text_by_key(
-        chan, "mail_handler.confirm_send_yn", menu_mode, add_newline=False)
-    confirm_input_raw = chan.process_input()
+    is_mobile_web_client = (
+        isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and
+        getattr(chan.handler, 'is_mobile', False)
+    )
+
+    confirm_input_raw = None
+    if is_mobile_web_client:
+        # Get localized button labels
+        yes_label = util.get_text_by_key(
+            "common_messages.yes_button", menu_mode, default_value="Yes")
+        no_label = util.get_text_by_key(
+            "common_messages.no_button", menu_mode, default_value="No")
+        # Base64 encode them
+        yes_label_b64 = base64.b64encode(
+            yes_label.encode('utf-8')).decode('utf-8')
+        no_label_b64 = base64.b64encode(
+            no_label.encode('utf-8')).decode('utf-8')
+        # Send command to set labels and show buttons
+        chan.send(
+            f'\x1b]GRBBS;CONFIRM_BUTTONS;{yes_label_b64};{no_label_b64}\x07'.encode('utf-8'))
+        chan.send(b'\x1b[?2035h')
+
+    try:
+        util.send_text_by_key(
+            chan, "mail_handler.confirm_send_yn", menu_mode, add_newline=False)
+        confirm_input_raw = chan.process_input()
+    finally:
+        if is_mobile_web_client:
+            chan.send(b'\x1b[?2035l')
+
     if confirm_input_raw is None:
         logging.warning(f"メール送信確認中に切断されました({login_id})")
         return
@@ -792,7 +838,6 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
     if confirm_input != 'y':
         util.send_text_by_key(chan, "mail_handler.send_cancelled", menu_mode)
         return
-
     sender_id = database.get_user_id_from_user_name(login_id)
     if sender_id is None:
         util.send_text_by_key(chan, "common_messages.error", menu_mode)

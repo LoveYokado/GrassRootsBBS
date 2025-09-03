@@ -2143,6 +2143,14 @@ common_messages:
     mode_1: "よろしいですか? (Y または N): "
     mode_2: "よろしいですか? (Y または N): "
     mode_3: "Are you sure? (Y or N): "
+  yes_button:
+    mode_1: "はい"
+    mode_2: "はい"
+    mode_3: "Yes"
+  no_button:
+    mode_1: "いいえ"
+    mode_2: "いいえ"
+    mode_3: "No"
   database_update_error:
     mode_1: "データベース更新中にエラーが発生しました。\r\n"
     mode_2: "データベース更新中にエラーが発生しました。\r\n"
