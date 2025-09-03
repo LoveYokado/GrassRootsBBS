@@ -3105,31 +3105,29 @@
         if ('visualViewport' in window) {
             const vv = window.visualViewport;
             const monitorScreen = document.querySelector('.monitor-screen');
+            const monitorChassis = document.querySelector('.monitor-chassis');
 
             const handleViewportResize = (event) => {
                 const isMobile = window.matchMedia("(max-width: 992px)").matches;
                 if (!isMobile) {
-                    document.body.style.height = '';
+                    monitorChassis.style.height = '';
                     monitorScreen.style.paddingBottom = '';
                     return;
                 }
 
-                const viewportHeight = event ? event.target.height : vv.height;
-
-                // ビューポートの高さにbodyを合わせることで、キーボード表示時に画面が追従するようにする
-                document.body.style.height = `${viewportHeight}px`;
+                const viewportHeight = vv.height;
 
                 // キーボードが表示されているか判定 (経験的に80px以上の差があればキーボードと見なす)
                 const keyboardHeight = window.innerHeight - viewportHeight;
                 const isKeyboardVisible = keyboardHeight > 80;
 
                 if (isKeyboardVisible) {
-                    // キーボード表示時は、モバイル操作パネル分のpaddingをなくす
+                    // キーボード表示時: ターミナル全体の高さを表示領域に合わせ、操作パネル分の余白をなくす
+                    monitorChassis.style.height = `${viewportHeight}px`;
                     monitorScreen.style.paddingBottom = '0px';
-                    window.scrollTo(0, 0); // キーボード表示時に画面上部にスクロール
                 } else {
-                    // キーボード非表示時は、モバイル操作パネルの高さを取得してpaddingを復元
-                    document.body.style.height = ''; // 通常の高さに戻す
+                    // キーボード非表示時: 高さを元に戻し、操作パネル用の余白を復元
+                    monitorChassis.style.height = '';
                     const storedHeight = monitorScreen.dataset.controlsHeight;
                     if (storedHeight) {
                         monitorScreen.style.paddingBottom = `${storedHeight}px`;
@@ -3139,7 +3137,6 @@
                 setTimeout(() => { try { fitAddon.fit(); } catch (e) { console.error("fitAddon.fit() failed on viewport resize:", e); } }, 100);
             };
             vv.addEventListener('resize', handleViewportResize);
-            handleViewportResize(); // 初期ロード時にも実行
         }
     </script>
 
