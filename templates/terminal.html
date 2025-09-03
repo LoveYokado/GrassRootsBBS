@@ -3105,29 +3105,30 @@
         if ('visualViewport' in window) {
             const vv = window.visualViewport;
             const monitorScreen = document.querySelector('.monitor-screen');
-            const monitorChassis = document.querySelector('.monitor-chassis');
 
             const handleViewportResize = (event) => {
                 const isMobile = window.matchMedia("(max-width: 992px)").matches;
                 if (!isMobile) {
-                    monitorChassis.style.height = '';
+                    document.body.style.height = '';
                     monitorScreen.style.paddingBottom = '';
                     return;
                 }
 
                 const viewportHeight = vv.height;
+                const initialHeight = window.innerHeight;
 
                 // キーボードが表示されているか判定 (経験的に80px以上の差があればキーボードと見なす)
-                const keyboardHeight = window.innerHeight - viewportHeight;
+                const keyboardHeight = initialHeight - viewportHeight;
                 const isKeyboardVisible = keyboardHeight > 80;
 
                 if (isKeyboardVisible) {
-                    // キーボード表示時: ターミナル全体の高さを表示領域に合わせ、操作パネル分の余白をなくす
-                    monitorChassis.style.height = `${viewportHeight}px`;
+                    // キーボード表示時: bodyの高さをビューポートに合わせ、操作パネル分の余白をなくす
+                    document.body.style.height = `${viewportHeight}px`;
                     monitorScreen.style.paddingBottom = '0px';
+                    window.scrollTo(0, 0); // iOSでキーボード表示時に画面が上にずれる問題への対策
                 } else {
-                    // キーボード非表示時: 高さを元に戻し、操作パネル用の余白を復元
-                    monitorChassis.style.height = '';
+                    // キーボード非表示時: bodyの高さを元に戻し、操作パネル用の余白を復元
+                    document.body.style.height = '';
                     const storedHeight = monitorScreen.dataset.controlsHeight;
                     if (storedHeight) {
                         monitorScreen.style.paddingBottom = `${storedHeight}px`;
@@ -3137,274 +3138,273 @@
                 setTimeout(() => { try { fitAddon.fit(); } catch (e) { console.error("fitAddon.fit() failed on viewport resize:", e); } }, 100);
             };
             vv.addEventListener('resize', handleViewportResize);
-        }
     </script>
 
     <script>
-        /**
-         * Base64URL文字列をArrayBufferに変換。
-         * @param {string} base64urlString
-         * @returns {ArrayBuffer}
-         */
-        function base64urlToBuffer(base64urlString) {
-            const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            const outputArray = new Uint8Array(rawData.length);
-            for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
-            }
-            return outputArray.buffer;
-        }
-
-        /**
-         * ArrayBufferをBase64URL文字列に変換。
-         * @param {ArrayBuffer} buffer
-         * @returns {string}
-         */
-        function bufferToBase64url(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let str = '';
-            for (const charCode of bytes) {
-                str += String.fromCharCode(charCode);
-            }
-            const base64 = window.btoa(str);
-            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-        }
-    </script>
-
-    <script>
-        /**
-         * 新しいPasskeyの登録フローを開始。
-         */
-        async function registerNewPasskey() {
-            let options;
-            try {
-                const resp = await fetch("{{ url_for('web.passkey_register_options') }}", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                });
-                options = await resp.json();
-            } catch (e) {
-                alert(`Could not get registration options: ${e}`);
-                return;
-            }
-
-            options.challenge = base64urlToBuffer(options.challenge);
-            options.user.id = base64urlToBuffer(options.user.id);
-            if (options.excludeCredentials) {
-                for (let cred of options.excludeCredentials) {
-                    cred.id = base64urlToBuffer(cred.id);
-                }
-            }
-
-            let credential;
-            try {
-                credential = await navigator.credentials.create({
-                    publicKey: options
-                });
-            } catch (e) {
-                if (e.name === "NotAllowedError") {
-                    alert("Passkeyの登録がキャンセルされたか、許可されませんでした。\n\n" +
-                        "・操作をキャンセルした場合、このメッセージは正常です。\n" +
-                        "・このデバイスに既にこのサイトのPasskeyが登録されている場合、一度削除してから再試行する必要があるかもしれません。");
-                } else {
-                    alert(`Could not create credential: ${e}`);
-                }
-                return;
-            }
-
-            const nickname = prompt("このPasskeyのニックネームを入力してください (例: 私のiPhone, 仕事用PCなど):", "My Passkey");
-            if (!nickname) {
-                alert("登録をキャンセルしました。");
-                return;
-            }
-
-            const attestationResponse = {
-                id: credential.id,
-                rawId: bufferToBase64url(credential.rawId),
-                response: {
-                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
-                    attestationObject: bufferToBase64url(credential.response.attestationObject),
-                },
-                type: credential.type,
-            };
-
-            try {
-                const verificationResp = await fetch("{{ url_for('web.passkey_verify_registration') }}", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        credential: attestationResponse,
-                        nickname: nickname
-                    }),
-                });
-                const verificationJSON = await verificationResp.json();
-                if (verificationJSON && verificationJSON.verified) {
-                    alert("Passkeyの登録に成功しました！");
-                } else {
-                    throw new Error(verificationJSON.error || "Verification failed.");
-                }
-            } catch (e) {
-                alert(`Error during verification: ${e.message}`);
-            }
-        }
-    </script>
-
-    <script>
-        function openNav() {
-            document.getElementById("sidenav").style.width = "250px";
-        }
-
-        function closeNav() {
-            document.getElementById("sidenav").style.width = "0";
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const hamburgerBtn = document.getElementById('hamburger-btn');
-            if (hamburgerBtn) {
-                hamburgerBtn.addEventListener('click', openNav);
-            }
-
-            const sidenav = document.getElementById('sidenav');
-            const closeBtn = document.createElement('a');
-            closeBtn.href = 'javascript:void(0)';
-            closeBtn.className = 'closebtn';
-            closeBtn.innerHTML = '&times;';
-            closeBtn.onclick = closeNav;
-            sidenav.appendChild(closeBtn);
-
-            for (const fkeyId in fkeyDefinitions) {
-                const definition = fkeyDefinitions[fkeyId];
-                const link = document.createElement('a');
-                link.href = 'javascript:void(0)';
-                link.textContent = definition.label;
-
-                if (definition.action === 'toggle_logging') {
-                    link.id = 'sidenav-log-btn';
-                }
-
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (definition.action === 'open_popup') { openPopup(); }
-                    else if (definition.action === 'toggle_logging') { socket.emit('toggle_logging'); }
-                    else if (definition.action === 'open_line_editor') { openLineEditor(); }
-                    else if (definition.action === 'open_multiline_editor') { openMultilineEditor(); }
-                    else if (definition.action === 'open_log_viewer') { openLogViewer(); }
-                    else if (definition.action === 'redirect') { window.location.href = definition.value; }
-                    else if (definition.action === 'open_bbs_list') {
-                        openBbsListPopup();
-                    }
-
-                    closeNav();
-                });
-                sidenav.appendChild(link);
-            }
-
-            // --- 画面右上の「一番下に移動」ボタンのイベントリスナー ---
-            const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
-            if (scrollToBottomBtn) {
-                scrollToBottomBtn.addEventListener('click', () => {
-                    term.scrollToBottom();
-                });
-            }
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const vapidPublicKey = '{{ vapid_public_key }}';
-            const enablePushButton = document.getElementById('enable-push-btn');
-            const pushStatus = document.getElementById('push-status');
-
-            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                if (pushStatus) {
-                    pushStatus.textContent = 'Push Notifications are not supported by this browser.';
-                }
-                if (enablePushButton) {
-                    enablePushButton.disabled = true;
-                }
-                return;
-            }
-
-            function urlBase64ToUint8Array(base64String) {
-                const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            /**
+             * Base64URL文字列をArrayBufferに変換。
+             * @param {string} base64urlString
+             * @returns {ArrayBuffer}
+             */
+            function base64urlToBuffer(base64urlString) {
+                const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
                 const rawData = window.atob(base64);
                 const outputArray = new Uint8Array(rawData.length);
                 for (let i = 0; i < rawData.length; ++i) {
                     outputArray[i] = rawData.charCodeAt(i);
                 }
-                return outputArray;
+                return outputArray.buffer;
             }
 
-            async function subscribeUser() {
-                try {
-                    const registration = await navigator.serviceWorker.ready;
-                    const subscription = await registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-                    });
-
-                    await fetch('/push/subscribe', {
-                        method: 'POST',
-                        body: JSON.stringify(subscription),
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-
-                } catch (err) {
-                    console.error('Failed to subscribe the user: ', err);
-                    let errorMessage = textData.push_failed;
-                    if (Notification.permission === 'denied') {
-                        errorMessage = textData.push_denied;
-                    } else if (err.name === 'NotAllowedError') {
-                        errorMessage = textData.push_failed;
-                    } else if (err.message) {
-                        errorMessage += ` (${err.name}: ${err.message})`;
-                    }
-                    pushStatus.textContent = errorMessage;
+            /**
+             * ArrayBufferをBase64URL文字列に変換。
+             * @param {ArrayBuffer} buffer
+             * @returns {string}
+             */
+            function bufferToBase64url(buffer) {
+                const bytes = new Uint8Array(buffer);
+                let str = '';
+                for (const charCode of bytes) {
+                    str += String.fromCharCode(charCode);
                 }
-                updatePushButton();
+                const base64 = window.btoa(str);
+                return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+            }
+    </script>
+
+    <script>
+            /**
+             * 新しいPasskeyの登録フローを開始。
+             */
+            async function registerNewPasskey() {
+                let options;
+                try {
+                    const resp = await fetch("{{ url_for('web.passkey_register_options') }}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    options = await resp.json();
+                } catch (e) {
+                    alert(`Could not get registration options: ${e}`);
+                    return;
+                }
+
+                options.challenge = base64urlToBuffer(options.challenge);
+                options.user.id = base64urlToBuffer(options.user.id);
+                if (options.excludeCredentials) {
+                    for (let cred of options.excludeCredentials) {
+                        cred.id = base64urlToBuffer(cred.id);
+                    }
+                }
+
+                let credential;
+                try {
+                    credential = await navigator.credentials.create({
+                        publicKey: options
+                    });
+                } catch (e) {
+                    if (e.name === "NotAllowedError") {
+                        alert("Passkeyの登録がキャンセルされたか、許可されませんでした。\n\n" +
+                            "・操作をキャンセルした場合、このメッセージは正常です。\n" +
+                            "・このデバイスに既にこのサイトのPasskeyが登録されている場合、一度削除してから再試行する必要があるかもしれません。");
+                    } else {
+                        alert(`Could not create credential: ${e}`);
+                    }
+                    return;
+                }
+
+                const nickname = prompt("このPasskeyのニックネームを入力してください (例: 私のiPhone, 仕事用PCなど):", "My Passkey");
+                if (!nickname) {
+                    alert("登録をキャンセルしました。");
+                    return;
+                }
+
+                const attestationResponse = {
+                    id: credential.id,
+                    rawId: bufferToBase64url(credential.rawId),
+                    response: {
+                        clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+                        attestationObject: bufferToBase64url(credential.response.attestationObject),
+                    },
+                    type: credential.type,
+                };
+
+                try {
+                    const verificationResp = await fetch("{{ url_for('web.passkey_verify_registration') }}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            credential: attestationResponse,
+                            nickname: nickname
+                        }),
+                    });
+                    const verificationJSON = await verificationResp.json();
+                    if (verificationJSON && verificationJSON.verified) {
+                        alert("Passkeyの登録に成功しました！");
+                    } else {
+                        throw new Error(verificationJSON.error || "Verification failed.");
+                    }
+                } catch (e) {
+                    alert(`Error during verification: ${e.message}`);
+                }
+            }
+    </script>
+
+    <script>
+            function openNav() {
+                document.getElementById("sidenav").style.width = "250px";
             }
 
-            async function unsubscribeUser() {
-                try {
-                    const registration = await navigator.serviceWorker.ready;
-                    const subscription = await registration.pushManager.getSubscription();
-                    if (subscription) {
-                        await fetch('/push/unsubscribe', {
+            function closeNav() {
+                document.getElementById("sidenav").style.width = "0";
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const hamburgerBtn = document.getElementById('hamburger-btn');
+                if (hamburgerBtn) {
+                    hamburgerBtn.addEventListener('click', openNav);
+                }
+
+                const sidenav = document.getElementById('sidenav');
+                const closeBtn = document.createElement('a');
+                closeBtn.href = 'javascript:void(0)';
+                closeBtn.className = 'closebtn';
+                closeBtn.innerHTML = '&times;';
+                closeBtn.onclick = closeNav;
+                sidenav.appendChild(closeBtn);
+
+                for (const fkeyId in fkeyDefinitions) {
+                    const definition = fkeyDefinitions[fkeyId];
+                    const link = document.createElement('a');
+                    link.href = 'javascript:void(0)';
+                    link.textContent = definition.label;
+
+                    if (definition.action === 'toggle_logging') {
+                        link.id = 'sidenav-log-btn';
+                    }
+
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        if (definition.action === 'open_popup') { openPopup(); }
+                        else if (definition.action === 'toggle_logging') { socket.emit('toggle_logging'); }
+                        else if (definition.action === 'open_line_editor') { openLineEditor(); }
+                        else if (definition.action === 'open_multiline_editor') { openMultilineEditor(); }
+                        else if (definition.action === 'open_log_viewer') { openLogViewer(); }
+                        else if (definition.action === 'redirect') { window.location.href = definition.value; }
+                        else if (definition.action === 'open_bbs_list') {
+                            openBbsListPopup();
+                        }
+
+                        closeNav();
+                    });
+                    sidenav.appendChild(link);
+                }
+
+                // --- 画面右上の「一番下に移動」ボタンのイベントリスナー ---
+                const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
+                if (scrollToBottomBtn) {
+                    scrollToBottomBtn.addEventListener('click', () => {
+                        term.scrollToBottom();
+                    });
+                }
+            });
+    </script>
+    <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const vapidPublicKey = '{{ vapid_public_key }}';
+                const enablePushButton = document.getElementById('enable-push-btn');
+                const pushStatus = document.getElementById('push-status');
+
+                if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                    if (pushStatus) {
+                        pushStatus.textContent = 'Push Notifications are not supported by this browser.';
+                    }
+                    if (enablePushButton) {
+                        enablePushButton.disabled = true;
+                    }
+                    return;
+                }
+
+                function urlBase64ToUint8Array(base64String) {
+                    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+                    const rawData = window.atob(base64);
+                    const outputArray = new Uint8Array(rawData.length);
+                    for (let i = 0; i < rawData.length; ++i) {
+                        outputArray[i] = rawData.charCodeAt(i);
+                    }
+                    return outputArray;
+                }
+
+                async function subscribeUser() {
+                    try {
+                        const registration = await navigator.serviceWorker.ready;
+                        const subscription = await registration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+                        });
+
+                        await fetch('/push/subscribe', {
                             method: 'POST',
-                            body: JSON.stringify({ endpoint: subscription.endpoint }),
+                            body: JSON.stringify(subscription),
                             headers: { 'Content-Type': 'application/json' }
                         });
-                        await subscription.unsubscribe();
+
+                    } catch (err) {
+                        console.error('Failed to subscribe the user: ', err);
+                        let errorMessage = textData.push_failed;
+                        if (Notification.permission === 'denied') {
+                            errorMessage = textData.push_denied;
+                        } else if (err.name === 'NotAllowedError') {
+                            errorMessage = textData.push_failed;
+                        } else if (err.message) {
+                            errorMessage += ` (${err.name}: ${err.message})`;
+                        }
+                        pushStatus.textContent = errorMessage;
                     }
-                } catch (err) {
-                    console.error('Error unsubscribing', err);
-                    pushStatus.textContent = 'Failed to disable notifications.';
+                    updatePushButton();
                 }
+
+                async function unsubscribeUser() {
+                    try {
+                        const registration = await navigator.serviceWorker.ready;
+                        const subscription = await registration.pushManager.getSubscription();
+                        if (subscription) {
+                            await fetch('/push/unsubscribe', {
+                                method: 'POST',
+                                body: JSON.stringify({ endpoint: subscription.endpoint }),
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                            await subscription.unsubscribe();
+                        }
+                    } catch (err) {
+                        console.error('Error unsubscribing', err);
+                        pushStatus.textContent = 'Failed to disable notifications.';
+                    }
+                    updatePushButton();
+                }
+
+                async function updatePushButton() {
+                    const registration = await navigator.serviceWorker.ready;
+                    const subscription = await registration.pushManager.getSubscription();
+
+                    enablePushButton.removeEventListener('click', subscribeUser);
+                    enablePushButton.removeEventListener('click', unsubscribeUser);
+
+                    if (subscription) {
+                        pushStatus.textContent = 'Push notifications are enabled.';
+                        enablePushButton.textContent = textData.push_disable;
+                        enablePushButton.addEventListener('click', unsubscribeUser);
+                    } else {
+                        pushStatus.textContent = '';
+                        enablePushButton.textContent = textData.push_enable;
+                        enablePushButton.addEventListener('click', subscribeUser);
+                    }
+                    enablePushButton.disabled = false;
+                }
+
                 updatePushButton();
-            }
-
-            async function updatePushButton() {
-                const registration = await navigator.serviceWorker.ready;
-                const subscription = await registration.pushManager.getSubscription();
-
-                enablePushButton.removeEventListener('click', subscribeUser);
-                enablePushButton.removeEventListener('click', unsubscribeUser);
-
-                if (subscription) {
-                    pushStatus.textContent = 'Push notifications are enabled.';
-                    enablePushButton.textContent = textData.push_disable;
-                    enablePushButton.addEventListener('click', unsubscribeUser);
-                } else {
-                    pushStatus.textContent = '';
-                    enablePushButton.textContent = textData.push_enable;
-                    enablePushButton.addEventListener('click', subscribeUser);
-                }
-                enablePushButton.disabled = false;
-            }
-
-            updatePushButton();
-        });
+            });
     </script>
 </body>
 
