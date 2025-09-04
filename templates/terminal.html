@@ -624,6 +624,11 @@
                 /* モバイルで表示 */
             }
 
+            #dip-switch-container {
+                display: none;
+                /* モバイルではDIPスイッチを非表示 */
+            }
+
             #multiline-editor-window,
             #log-viewer-window {
                 width: 95vw;
@@ -729,18 +734,6 @@
                 display: none !important;
             }
 
-            /* デスクトップでは設定ボタンを非表示にし、DIPスイッチのみにします */
-            #theme-selector,
-            #font-selector,
-            #fontsize-selector,
-            #speed-selector,
-            #effect-selector {
-                display: none;
-            }
-
-            #popup-window {
-                min-width: 780px;
-            }
         }
 
         .xterm-viewport::-webkit-scrollbar {
