@@ -646,6 +646,11 @@
                 box-sizing: border-box;
             }
 
+            #function-keys-container {
+                display: none;
+                /* 狭い画面ではファンクションキーを非表示 */
+            }
+
 
             #hamburger-btn {
                 display: block;
@@ -765,6 +770,11 @@
             #mobile-top-menu-controls,
             #mobile-plugin-menu-controls {
                 display: none !important;
+            }
+
+            /* デスクトップでは設定ポップアップの幅を確保 */
+            #popup-window {
+                min-width: 650px;
             }
 
         }
