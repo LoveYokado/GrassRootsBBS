@@ -8,12 +8,7 @@
 
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
 
-    <link rel="manifest" href="{{ url_for('web.manifest') }}">
-    <meta name="theme-color" content="#282c34">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="GR-BBS">
+
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1494,12 +1489,6 @@
                 <button class="effect-btn" data-effect="scanline">{{
                     util.get_text_by_key('terminal_ui.settings_popup.effect_scanline', menu_mode) }}</button>
             </div>
-            <div id="push-notification-settings">
-                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.push_header', menu_mode) }}</h3>
-                <button id="enable-push-btn">{{ util.get_text_by_key('terminal_ui.settings_popup.push_enable_button',
-                    menu_mode) }}</button>
-                <p id="push-status" style="font-size: 0.8em; margin-top: 5px; color: #504b38;"></p>
-            </div>
             <div id="dip-switch-container">
                 <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.dip_switch_header', menu_mode) }}</h3>
                 <div class="dip-switch-panel">
@@ -1636,28 +1625,13 @@
 
     <script>
         const textData = {
-            push_enable: "{{ util.get_text_by_key('terminal_ui.settings_popup.push_enable_button', menu_mode) }}",
-            push_disable: "{{ util.get_text_by_key('terminal_ui.settings_popup.push_disable_button', menu_mode) }}",
-            push_denied: "{{ util.get_text_by_key('terminal_ui.settings_popup.push_denied_message', menu_mode) }}",
-            push_failed: "{{ util.get_text_by_key('terminal_ui.settings_popup.push_failed_message', menu_mode) }}",
             log_logging_now: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.logging_now', menu_mode) }}",
             log_loading_current: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.loading_log', menu_mode) }}",
             log_loading_file: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.loading_file', menu_mode) }}",
             log_no_files: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.no_log_files', menu_mode) }}"
         };
 
-        // Service Workerの登録
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register("{{ url_for('web.service_worker') }}")
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
-            });
-        }
+
 
         const themes = {
             default: {
@@ -2968,16 +2942,6 @@
             }
         });
 
-        navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data && event.data.type === 'execute_shortcut') {
-                const url = new URL(event.data.url, window.location.origin);
-                const shortcut = url.searchParams.get('shortcut');
-                if (shortcut) {
-                    const command = `;${shortcut}\r`;
-                    socket.emit('client_input', command);
-                }
-            }
-        });
 
         function makePopupDraggable(popup) {
             const header = popup.querySelector('.popup-header');
@@ -3348,103 +3312,7 @@
             }
         });
     </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const vapidPublicKey = '{{ vapid_public_key }}';
-            const enablePushButton = document.getElementById('enable-push-btn');
-            const pushStatus = document.getElementById('push-status');
 
-            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-                if (pushStatus) {
-                    pushStatus.textContent = 'Push Notifications are not supported by this browser.';
-                }
-                if (enablePushButton) {
-                    enablePushButton.disabled = true;
-                }
-                return;
-            }
-
-            function urlBase64ToUint8Array(base64String) {
-                const padding = '='.repeat((4 - base64String.length % 4) % 4);
-                const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-                const rawData = window.atob(base64);
-                const outputArray = new Uint8Array(rawData.length);
-                for (let i = 0; i < rawData.length; ++i) {
-                    outputArray[i] = rawData.charCodeAt(i);
-                }
-                return outputArray;
-            }
-
-            async function subscribeUser() {
-                try {
-                    const registration = await navigator.serviceWorker.ready;
-                    const subscription = await registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-                    });
-
-                    await fetch('/push/subscribe', {
-                        method: 'POST',
-                        body: JSON.stringify(subscription),
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-
-                } catch (err) {
-                    console.error('Failed to subscribe the user: ', err);
-                    let errorMessage = textData.push_failed;
-                    if (Notification.permission === 'denied') {
-                        errorMessage = textData.push_denied;
-                    } else if (err.name === 'NotAllowedError') {
-                        errorMessage = textData.push_failed;
-                    } else if (err.message) {
-                        errorMessage += ` (${err.name}: ${err.message})`;
-                    }
-                    pushStatus.textContent = errorMessage;
-                }
-                updatePushButton();
-            }
-
-            async function unsubscribeUser() {
-                try {
-                    const registration = await navigator.serviceWorker.ready;
-                    const subscription = await registration.pushManager.getSubscription();
-                    if (subscription) {
-                        await fetch('/push/unsubscribe', {
-                            method: 'POST',
-                            body: JSON.stringify({ endpoint: subscription.endpoint }),
-                            headers: { 'Content-Type': 'application/json' }
-                        });
-                        await subscription.unsubscribe();
-                    }
-                } catch (err) {
-                    console.error('Error unsubscribing', err);
-                    pushStatus.textContent = 'Failed to disable notifications.';
-                }
-                updatePushButton();
-            }
-
-            async function updatePushButton() {
-                const registration = await navigator.serviceWorker.ready;
-                const subscription = await registration.pushManager.getSubscription();
-
-                enablePushButton.removeEventListener('click', subscribeUser);
-                enablePushButton.removeEventListener('click', unsubscribeUser);
-
-                if (subscription) {
-                    pushStatus.textContent = 'Push notifications are enabled.';
-                    enablePushButton.textContent = textData.push_disable;
-                    enablePushButton.addEventListener('click', unsubscribeUser);
-                } else {
-                    pushStatus.textContent = '';
-                    enablePushButton.textContent = textData.push_enable;
-                    enablePushButton.addEventListener('click', subscribeUser);
-                }
-                enablePushButton.disabled = false;
-            }
-
-            updatePushButton();
-        });
-    </script>
 </body>
 
 </html>
