@@ -1961,8 +1961,7 @@
         const term = new Terminal({
             cursorBlink: true,
             fontSize: 16,
-            // モバイルではスクロールバックを有効にし、PCでは無効にします
-            scrollback: isMobileForTermInit ? 1000 : 0,
+            scrollback: 1000, // ターミナルのスクロールバックを1000行に設定
         });
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
