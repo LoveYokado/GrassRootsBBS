@@ -613,10 +613,6 @@
                 box-sizing: border-box;
             }
 
-            #function-keys-container {
-                display: none;
-                /* 狭い画面ではファンクションキーを非表示 */
-            }
 
             #hamburger-btn {
                 display: block;
@@ -2862,7 +2858,7 @@
 
             // フォント
             const isMobileForLoad = window.matchMedia("(max-width: 992px)").matches;
-            const defaultFontSize = isMobileForLoad ? '28' : '12';
+            const defaultFontSize = isMobileForLoad ? '28' : '16';
             const savedFontName = localStorage.getItem('terminalFont') || 'M PLUS 1m';
             applyFont(savedFontName);
 
