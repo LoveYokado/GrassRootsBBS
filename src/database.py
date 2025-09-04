@@ -1523,6 +1523,26 @@ class DatabaseInitializer:
         try:
             cursor = conn.cursor(dictionary=True)
 
+            # --- passkeysテーブルの存在チェックと作成 ---
+            cursor.execute("SHOW TABLES LIKE 'passkeys'")
+            if not cursor.fetchone():
+                create_query = """
+                CREATE TABLE passkeys (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    user_id INT NOT NULL,
+                    credential_id VARBINARY(255) UNIQUE NOT NULL,
+                    public_key VARBINARY(255) NOT NULL,
+                    sign_count INT UNSIGNED NOT NULL DEFAULT 0,
+                    transports JSON,
+                    created_at INT,
+                    last_used_at INT,
+                    nickname VARCHAR(255),
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+                """
+                cursor.execute(create_query)
+                logging.info("データベースマイグレーション: 'passkeys'テーブルを作成しました。")
+
             # --- pluginsテーブルの存在チェックと作成 ---
             cursor.execute("SHOW TABLES LIKE 'plugins'")
             if not cursor.fetchone():

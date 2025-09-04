@@ -59,8 +59,11 @@ def generate_registration_options_for_user(user_id, username):
 
     # このユーザーが既に登録しているキーを、重複登録しないように除外リストとして渡します。
     existing_keys = database.get_passkeys_by_user(user_id)
+    if existing_keys is None:
+        existing_keys = []  # DBエラーなどでNoneが返ってきた場合は空リストとして扱う
+
     exclude_credentials = [
-        {"type": "public-key", "id": key["credential_id"]} for key in existing_keys
+        {"type": "public-key", "id": key["credential_id"]} for key in existing_keys or []
     ]
 
     options = generate_registration_options(
