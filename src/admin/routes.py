@@ -259,6 +259,10 @@ def who_online():
     現在オンラインのユーザー一覧ページを表示します。
     各ユーザーの接続時間やIPアドレスなどの詳細情報を確認でき、セッションを強制切断(kick)することも可能です。
     """
+    # ページネーションとソートのパラメータを取得
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
+
     online_members_raw = terminal_handler.get_webapp_online_members()
 
     # データを整形し、接続時間を計算
@@ -288,13 +292,39 @@ def who_online():
 
     next_order = 'desc' if order == 'asc' else 'asc'
 
+    # ページネーション処理
+    total_items = len(online_list)
+    total_pages = (total_items + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_list = online_list[start:end]
+
+    search_params = {
+        'sort_by': sort_by,
+        'order': order,
+        'per_page': per_page
+    }
+    search_params_for_per_page = {
+        k: v for k, v in search_params.items() if k != 'per_page'}
+
+    pagination = {
+        'page': page,
+        'per_page': per_page,
+        'total_items': total_items,
+        'total_pages': total_pages,
+        'has_prev': page > 1,
+        'has_next': page < total_pages
+    }
+
     return render_template(
         'admin/who_online.html',
         title=g.texts.get('who_online', {}).get('title', "Who's Online"),
-        online_list=online_list,
+        online_list=paginated_list,
+        pagination=pagination,
         sort_by=sort_by,
-        order=order,
-        next_order=next_order
+        order=order, next_order=next_order,
+        search_params=search_params,
+        search_params_for_per_page=search_params_for_per_page
     )
 
 
@@ -333,7 +363,9 @@ def user_list():
     登録されている全ユーザーの一覧ページを表示します。
     ユーザー名やメールアドレスでの検索、各カラムでのソート機能を提供します。
     """
-    # クエリパラメータからソート順と検索語を取得
+    # ページネーション、ソート、検索のパラメータを取得
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
     sort_by = request.args.get('sort_by', 'id')
     order = request.args.get('order', 'asc')
     search_term = request.args.get('q', '')
@@ -341,11 +373,43 @@ def user_list():
     # 次のソート順を計算
     next_order = 'desc' if order == 'asc' else 'asc'
 
-    users = database.get_all_users(
-        sort_by=sort_by, order=order, search_term=search_term)
+    try:
+        users, total_items = database.get_all_users(
+            page=page,
+            per_page=per_page,
+            sort_by=sort_by,
+            order=order,
+            search_term=search_term
+        )
+        total_pages = (total_items + per_page - 1) // per_page
+    except Exception as e:
+        flash(f"Error retrieving user list: {e}", 'danger')
+        users = []
+        total_items = 0
+        total_pages = 0
+
+    search_params = {
+        'q': search_term,
+        'sort_by': sort_by,
+        'order': order,
+        'per_page': per_page
+    }
+    search_params_for_per_page = {
+        k: v for k, v in search_params.items() if k != 'per_page'}
+
+    pagination = {
+        'page': page,
+        'per_page': per_page,
+        'total_items': total_items,
+        'total_pages': total_pages,
+        'has_prev': page > 1,
+        'has_next': page < total_pages
+    }
+
     return render_template(
-        'admin/user_list.html', title='User Management', users=users,
-        sort_by=sort_by, order=order, next_order=next_order, search_term=search_term)
+        'admin/user_list.html', title='User Management', users=users, pagination=pagination,
+        sort_by=sort_by, order=order, next_order=next_order, search_params=search_params,
+        search_params_for_per_page=search_params_for_per_page)
 
 
 @admin_bp.route('/users/new', methods=['GET', 'POST'])
@@ -1247,7 +1311,7 @@ def access_log_viewer():
     # ソート用のパラメータを取得
     sort_by = request.args.get('sort_by', 'timestamp')  # デフォルトはtimestamp
     order = request.args.get('order', 'desc')  # デフォルトは降順
-    per_page = 50  # 1ページあたりのログ数
+    per_page = request.args.get('per_page', 15, type=int)
 
     try:
         logs, total_items = database.get_access_logs(
@@ -1272,8 +1336,13 @@ def access_log_viewer():
         'user': search_user,
         'event': search_event,
         'sort_by': sort_by,
-        'order': order
+        'order': order,
+        'per_page': per_page
     }
+
+    # プルダウンメニュー用に、per_pageを除いた辞書を作成
+    search_params_for_per_page = search_params.copy()
+    search_params_for_per_page.pop('per_page', None)
 
     # ページネーション情報をテンプレートに渡す
     pagination = {
@@ -1288,5 +1357,5 @@ def access_log_viewer():
     # 次のソート順を計算
     next_order = 'desc' if order == 'asc' else 'asc'
 
-    return render_template('admin/log_viewer.html', title=g.texts.get('access_log', {}).get('title', 'Access Log Viewer'), logs=logs, search_params=search_params, pagination=pagination,
+    return render_template('admin/log_viewer.html', title=g.texts.get('access_log', {}).get('title', 'Access Log Viewer'), logs=logs, search_params=search_params, search_params_for_per_page=search_params_for_per_page, pagination=pagination,
                            sort_by=sort_by, order=order, next_order=next_order)

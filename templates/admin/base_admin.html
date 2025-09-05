@@ -383,6 +383,60 @@
             background-color: #dc3545;
             /* Bootstrap's danger red */
         }
+
+        /* --- Pagination Styles --- */
+        .pagination {
+            margin: 1em 0;
+            text-align: center;
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1em;
+        }
+
+        .pagination-links {
+            display: inline-block;
+        }
+
+
+        .page-link {
+            color: #00cc66;
+            /* 明るい緑 */
+            text-decoration: none;
+            padding: 0.3em 0.6em;
+            margin: 0 0.1em;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .page-link:hover {
+            background-color: #005500;
+            border-color: #00cc66;
+            color: #00ff99;
+        }
+
+        .page-link.current {
+            font-weight: bold;
+            color: #00FF00;
+            text-decoration: none;
+            animation: blinker 1.5s linear infinite;
+        }
+
+        .page-link.nav-link {
+            background-color: #00FF00;
+            color: #000000;
+            font-weight: bold;
+        }
+
+        @keyframes blinker {
+            50% {
+                opacity: 0.3;
+            }
+        }
     </style>
 
     {{ util.get_tracking_code() | safe }}

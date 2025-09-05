@@ -276,7 +276,7 @@ class UserManager:
             params = [f"%{search_word}%", f"%{search_word}%"]
         return self._db.execute_query(query, tuple(params), fetch='all')
 
-    def get_all(self, sort_by='id', order='asc', search_term=None):
+    def get_all(self, page=1, per_page=15, sort_by='id', order='asc', search_term=None):
         """管理画面用に、ソート・検索機能付きで全ユーザーのリストを取得します。"""
         allowed_columns = ['id', 'name', 'level',
                            'email', 'registdate', 'lastlogin']
@@ -294,11 +294,26 @@ class UserManager:
             search_pattern = f"%{search_term}%"
             params.extend([search_pattern, search_pattern])
 
-        query = "SELECT id, name, level, registdate, lastlogin, comment, email FROM users"
+        where_sql = ""
         if where_clauses:
-            query += " WHERE " + " AND ".join(where_clauses)
+            where_sql = " WHERE " + " AND ".join(where_clauses)
+
+        # 総件数を取得
+        count_query = f"SELECT COUNT(*) as total FROM users{where_sql}"
+        total_count_result = self._db.execute_query(
+            count_query, tuple(params), fetch='one')
+        total_items = total_count_result['total'] if total_count_result else 0
+
+        # データを取得
+        query = f"SELECT id, name, level, registdate, lastlogin, comment, email FROM users{where_sql}"
         query += f" ORDER BY {sort_by} {order}"
-        return self._db.execute_query(query, tuple(params), fetch='all')
+
+        offset = (page - 1) * per_page
+        query += " LIMIT %s OFFSET %s"
+        params.extend([per_page, offset])
+
+        users = self._db.execute_query(query, tuple(params), fetch='all')
+        return users, total_items
 
     def get_sysop_user_id(self):
         """システムオペレーター（レベル5）のユーザーIDを取得します（最初の1件）。"""
@@ -1748,8 +1763,8 @@ def get_memberlist(search_word=None):
     return users.get_memberlist(search_word)
 
 
-def get_all_users(sort_by='id', order='asc', search_term=None):
-    return users.get_all(sort_by, order, search_term)
+def get_all_users(page=1, per_page=15, sort_by='id', order='asc', search_term=None):
+    return users.get_all(page=page, per_page=per_page, sort_by=sort_by, order=order, search_term=search_term)
 
 
 def get_sysop_user_id():
