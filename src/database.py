@@ -965,12 +965,8 @@ class AccessLogManager:
                   username, event_type, message)
         self._db.execute_query(query, params)
 
-    def get_logs(self, limit=200, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
+    def get_logs(self, page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
         """アクセスログを検索・取得します。"""
-        query = """
-            SELECT id, timestamp, ip_address, user_id, username, event_type, message
-            FROM access_logs
-        """
         where_clauses = []
         params = []
 
@@ -986,8 +982,22 @@ class AccessLogManager:
             where_clauses.append("event_type = %s")
             params.append(event_type)
 
+        where_sql = ""
         if where_clauses:
-            query += " WHERE " + " AND ".join(where_clauses)
+            where_sql = " WHERE " + " AND ".join(where_clauses)
+
+        # 総件数を取得するクエリ
+        count_query = f"SELECT COUNT(*) as total FROM access_logs{where_sql}"
+        total_count_result = self._db.execute_query(
+            count_query, tuple(params), fetch='one')
+        total_items = total_count_result['total'] if total_count_result else 0
+
+        # データを取得するクエリ
+        query = f"""
+            SELECT id, timestamp, ip_address, user_id, username, event_type, message
+            FROM access_logs
+            {where_sql}
+        """
 
         allowed_sort_columns = ['timestamp',
                                 'ip_address', 'username', 'event_type']
@@ -997,10 +1007,13 @@ class AccessLogManager:
         if order.lower() not in ['asc', 'desc']:
             order = 'desc'
 
-        query += f" ORDER BY {sort_by} {order} LIMIT %s"
-        params.append(limit)
+        offset = (page - 1) * per_page
+        query += f" ORDER BY {sort_by} {order} LIMIT %s OFFSET %s"
+        params.extend([per_page, offset])
 
-        return self._db.execute_query(query, tuple(params), fetch='all')
+        logs = self._db.execute_query(query, tuple(params), fetch='all')
+
+        return logs, total_items
 
 
 class BoardPermissionManager:
@@ -1908,8 +1921,8 @@ def log_access_event(ip_address, event_type, user_id=None, username=None, messag
     return access_logs.log_event(ip_address, event_type, user_id, username, message)
 
 
-def get_access_logs(limit=200, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
-    return access_logs.get_logs(limit, ip_address, username, event_type, sort_by, order)
+def get_access_logs(page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
+    return access_logs.get_logs(page, per_page, ip_address, username, event_type, sort_by, order)
 
 
 def get_board_permissions(board_id_pk):

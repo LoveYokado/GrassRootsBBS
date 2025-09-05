@@ -62,5 +62,39 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <div class="pagination" style="margin-top: 1em; text-align: center;">
+        {% if pagination.total_pages > 1 %}
+        <a href="{{ url_for('admin.access_log_viewer', page=1, **search_params) }}" class="page-link" {% if not
+            pagination.has_prev %}style="visibility: hidden;" {% endif %}>&laquo; First</a>
+        <a href="{{ url_for('admin.access_log_viewer', page=pagination.page - 1, **search_params) }}" class="page-link"
+            {% if not pagination.has_prev %}style="visibility: hidden;" {% endif %}>&lsaquo; Prev</a>
+
+        {% set start_page = [1, pagination.page - 2] | max %}
+        {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+        {% if start_page > 1 %}
+        <span class="page-link">...</span>
+        {% endif %}
+
+        {% for p in range(start_page, end_page + 1) %}
+        {% if p == pagination.page %}
+        <span class="page-link current" style="font-weight: bold; text-decoration: none; color: #fff;">{{ p }}</span>
+        {% else %}
+        <a href="{{ url_for('admin.access_log_viewer', page=p, **search_params) }}" class="page-link">{{ p }}</a>
+        {% endif %}
+        {% endfor %}
+
+        {% if end_page < pagination.total_pages %} <span class="page-link">...</span>
+            {% endif %}
+
+            <a href="{{ url_for('admin.access_log_viewer', page=pagination.page + 1, **search_params) }}"
+                class="page-link" {% if not pagination.has_next %}style="visibility: hidden;" {% endif %}>Next
+                &rsaquo;</a>
+            <a href="{{ url_for('admin.access_log_viewer', page=pagination.total_pages, **search_params) }}"
+                class="page-link" {% if not pagination.has_next %}style="visibility: hidden;" {% endif %}>Last
+                &raquo;</a>
+            {% endif %}
+    </div>
 </div>
 {% endblock %}
