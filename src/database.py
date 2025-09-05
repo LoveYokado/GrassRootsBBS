@@ -276,7 +276,7 @@ class UserManager:
             params = [f"%{search_word}%", f"%{search_word}%"]
         return self._db.execute_query(query, tuple(params), fetch='all')
 
-    def get_all(self, sort_by='id', order='asc', search_term=None):
+    def get_all(self, page=1, per_page=15, sort_by='id', order='asc', search_term=None):
         """管理画面用に、ソート・検索機能付きで全ユーザーのリストを取得します。"""
         allowed_columns = ['id', 'name', 'level',
                            'email', 'registdate', 'lastlogin']
@@ -294,11 +294,26 @@ class UserManager:
             search_pattern = f"%{search_term}%"
             params.extend([search_pattern, search_pattern])
 
-        query = "SELECT id, name, level, registdate, lastlogin, comment, email FROM users"
+        where_sql = ""
         if where_clauses:
-            query += " WHERE " + " AND ".join(where_clauses)
+            where_sql = " WHERE " + " AND ".join(where_clauses)
+
+        # 総件数を取得
+        count_query = f"SELECT COUNT(*) as total FROM users{where_sql}"
+        total_count_result = self._db.execute_query(
+            count_query, tuple(params), fetch='one')
+        total_items = total_count_result['total'] if total_count_result else 0
+
+        # データを取得
+        query = f"SELECT id, name, level, registdate, lastlogin, comment, email FROM users{where_sql}"
         query += f" ORDER BY {sort_by} {order}"
-        return self._db.execute_query(query, tuple(params), fetch='all')
+
+        offset = (page - 1) * per_page
+        query += " LIMIT %s OFFSET %s"
+        params.extend([per_page, offset])
+
+        users = self._db.execute_query(query, tuple(params), fetch='all')
+        return users, total_items
 
     def get_sysop_user_id(self):
         """システムオペレーター（レベル5）のユーザーIDを取得します（最初の1件）。"""
@@ -426,7 +441,7 @@ class BoardManager:
         self._db.update_record(
             'boards', {'last_posted_at': timestamp}, {'id': board_id_pk})
 
-    def get_all_for_sysop_list(self, sort_by='shortcut_id', order='asc', search_term=None):
+    def get_all_for_sysop_list(self, page=1, per_page=15, sort_by='shortcut_id', order='asc', search_term=None):
         """管理画面用に、ソート・検索機能付きで全掲示板のリストを取得します。"""
         allowed_columns = [
             'shortcut_id', 'name', 'board_type', 'status', 'last_posted_at',
@@ -446,6 +461,18 @@ class BoardManager:
             search_pattern = f"%{search_term}%"
             params.extend([search_pattern, search_pattern])
 
+        where_sql = ""
+        if where_clauses:
+            # count query doesn't use alias
+            where_sql = " WHERE " + \
+                " AND ".join(where_clauses).replace('b.', '')
+
+        # 総件数を取得
+        count_query = f"SELECT COUNT(*) as total FROM boards{where_sql}"
+        total_count_result = self._db.execute_query(
+            count_query, tuple(params), fetch='one')
+        total_items = total_count_result['total'] if total_count_result else 0
+
         query = """
             SELECT
                 b.id, b.shortcut_id, b.name, b.operators, b.default_permission, b.status,
@@ -461,8 +488,15 @@ class BoardManager:
         """
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
+
         query += f" ORDER BY {sort_by} {order}"
-        return self._db.execute_query(query, tuple(params), fetch='all')
+
+        offset = (page - 1) * per_page
+        query += " LIMIT %s OFFSET %s"
+        params.extend([per_page, offset])
+
+        boards = self._db.execute_query(query, tuple(params), fetch='all')
+        return boards, total_items
 
 
 class ArticleManager:
@@ -636,7 +670,7 @@ class ArticleManager:
         """
         return self._db.execute_query(query, (days - 1,), fetch='all')
 
-    def search_all(self, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc'):
+    def search_all(self, page=1, per_page=15, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc'):
         """管理画面用に、全記事を対象にキーワードや投稿者で検索します。"""
         allowed_columns = ['created_at', 'board_name', 'title']
         if sort_by not in allowed_columns:
@@ -658,6 +692,14 @@ class ArticleManager:
             where_clauses.append("a.user_id = %s")
             params.append(author_name_guest)
 
+        where_sql = ""
+        if where_clauses:
+            where_sql = " WHERE " + " AND ".join(where_clauses)
+
+        count_query = f"SELECT COUNT(a.id) as total FROM articles a{where_sql}"
+        total_count_result = self._db.execute_query(
+            count_query, tuple(params), fetch='one')
+        total_items = total_count_result['total'] if total_count_result else 0
         query = """
             SELECT
                 a.id, a.board_id, a.article_number, a.user_id, a.title, a.body, a.created_at, a.is_deleted,
@@ -665,17 +707,19 @@ class ArticleManager:
             FROM articles a
             JOIN boards b ON a.board_id = b.id
         """
-        if where_clauses:
-            query += " WHERE " + " AND ".join(where_clauses)
+        query += where_sql
 
         sort_column_map = {'created_at': 'a.created_at',
                            'board_name': 'b.name', 'title': 'a.title'}
         db_sort_by = sort_column_map.get(sort_by, 'a.created_at')
 
         query += f" ORDER BY {db_sort_by} {order}"
-        query += " LIMIT 100"
+        offset = (page - 1) * per_page
+        query += " LIMIT %s OFFSET %s"
+        params.extend([per_page, offset])
 
-        return self._db.execute_query(query, tuple(params), fetch='all')
+        articles = self._db.execute_query(query, tuple(params), fetch='all')
+        return articles, total_items
 
     def get_total_count(self):
         """登録されている総記事数を取得します。"""
@@ -965,12 +1009,8 @@ class AccessLogManager:
                   username, event_type, message)
         self._db.execute_query(query, params)
 
-    def get_logs(self, limit=200, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
+    def get_logs(self, page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
         """アクセスログを検索・取得します。"""
-        query = """
-            SELECT id, timestamp, ip_address, user_id, username, event_type, message
-            FROM access_logs
-        """
         where_clauses = []
         params = []
 
@@ -986,8 +1026,22 @@ class AccessLogManager:
             where_clauses.append("event_type = %s")
             params.append(event_type)
 
+        where_sql = ""
         if where_clauses:
-            query += " WHERE " + " AND ".join(where_clauses)
+            where_sql = " WHERE " + " AND ".join(where_clauses)
+
+        # 総件数を取得するクエリ
+        count_query = f"SELECT COUNT(*) as total FROM access_logs{where_sql}"
+        total_count_result = self._db.execute_query(
+            count_query, tuple(params), fetch='one')
+        total_items = total_count_result['total'] if total_count_result else 0
+
+        # データを取得するクエリ
+        query = f"""
+            SELECT id, timestamp, ip_address, user_id, username, event_type, message
+            FROM access_logs
+            {where_sql}
+        """
 
         allowed_sort_columns = ['timestamp',
                                 'ip_address', 'username', 'event_type']
@@ -997,10 +1051,13 @@ class AccessLogManager:
         if order.lower() not in ['asc', 'desc']:
             order = 'desc'
 
-        query += f" ORDER BY {sort_by} {order} LIMIT %s"
-        params.append(limit)
+        offset = (page - 1) * per_page
+        query += f" ORDER BY {sort_by} {order} LIMIT %s OFFSET %s"
+        params.extend([per_page, offset])
 
-        return self._db.execute_query(query, tuple(params), fetch='all')
+        logs = self._db.execute_query(query, tuple(params), fetch='all')
+
+        return logs, total_items
 
 
 class BoardPermissionManager:
@@ -1187,7 +1244,7 @@ class BBSListManager:
         query = "SELECT id, name, url, description, source FROM bbs_list WHERE status = 'approved' ORDER BY name"
         return self._db.execute_query(query, fetch='all')
 
-    def get_all_for_admin(self, sort_by='status', order='asc'):
+    def get_all_for_admin(self, page=1, per_page=15, sort_by='status', order='asc'):
         """
         管理画面用に、ソート機能付きで全てのステータスのBBSリンクを取得します。
         申請者名も結合して取得します。
@@ -1207,6 +1264,12 @@ class BBSListManager:
         if order.lower() not in ['asc', 'desc']:
             order = 'asc'
 
+        # 総件数を取得
+        count_query = "SELECT COUNT(*) as total FROM bbs_list"
+        total_count_result = self._db.execute_query(
+            count_query, fetch='one')
+        total_items = total_count_result['total'] if total_count_result else 0
+
         # LEFT JOINを使用して、ユーザーIDから申請者名を取得
         query = f"""
             SELECT bl.id, bl.name, bl.url, bl.description, bl.source, bl.status, bl.created_at, u.name as submitted_by_name
@@ -1214,7 +1277,12 @@ class BBSListManager:
             LEFT JOIN users u ON bl.submitted_by = u.id
             ORDER BY {sort_column} {order}, bl.created_at DESC
         """
-        return self._db.execute_query(query, fetch='all')
+        offset = (page - 1) * per_page
+        query += " LIMIT %s OFFSET %s"
+        params = (per_page, offset)
+
+        links = self._db.execute_query(query, params, fetch='all')
+        return links, total_items
 
     def add(self, name, url, description, source='sysop', submitted_by=None):
         """
@@ -1735,8 +1803,8 @@ def get_memberlist(search_word=None):
     return users.get_memberlist(search_word)
 
 
-def get_all_users(sort_by='id', order='asc', search_term=None):
-    return users.get_all(sort_by, order, search_term)
+def get_all_users(page=1, per_page=15, sort_by='id', order='asc', search_term=None):
+    return users.get_all(page=page, per_page=per_page, sort_by=sort_by, order=order, search_term=search_term)
 
 
 def get_sysop_user_id():
@@ -1800,8 +1868,8 @@ def update_board_last_posted_at(board_id_pk, timestamp=None):
     return boards.update_last_posted_at(board_id_pk, timestamp)
 
 
-def get_all_boards_for_sysop_list(sort_by='shortcut_id', order='asc', search_term=None):
-    return boards.get_all_for_sysop_list(sort_by, order, search_term)
+def get_all_boards_for_sysop_list(page=1, per_page=15, sort_by='shortcut_id', order='asc', search_term=None):
+    return boards.get_all_for_sysop_list(page, per_page, sort_by, order, search_term)
 
 
 def get_articles_by_board_id(board_id_pk, order_by="created_at ASC, article_number ASC", include_deleted=False):
@@ -1852,8 +1920,8 @@ def get_daily_article_posts(days=7):
     return articles.get_daily_posts(days)
 
 
-def search_all_articles(keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc'):
-    return articles.search_all(keyword, author_id, author_name_guest, sort_by, order)
+def search_all_articles(page=1, per_page=15, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc'):
+    return articles.search_all(page=page, per_page=per_page, keyword=keyword, author_id=author_id, author_name_guest=author_name_guest, sort_by=sort_by, order=order)
 
 
 def get_total_article_count():
@@ -1908,8 +1976,8 @@ def log_access_event(ip_address, event_type, user_id=None, username=None, messag
     return access_logs.log_event(ip_address, event_type, user_id, username, message)
 
 
-def get_access_logs(limit=200, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
-    return access_logs.get_logs(limit, ip_address, username, event_type, sort_by, order)
+def get_access_logs(page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
+    return access_logs.get_logs(page, per_page, ip_address, username, event_type, sort_by, order)
 
 
 def get_board_permissions(board_id_pk):
@@ -2012,9 +2080,9 @@ def delete_bbs_link(link_id):
     return bbs_list_manager.delete(link_id)
 
 
-def get_all_bbs_links_for_admin(sort_by: str = 'status', order: str = 'asc') -> list:
+def get_all_bbs_links_for_admin(page=1, per_page=15, sort_by: str = 'status', order: str = 'asc'):
     """管理画面用に、ソート順を指定して全てのBBSリンクを取得します。"""
-    return bbs_list_manager.get_all_for_admin(sort_by, order)
+    return bbs_list_manager.get_all_for_admin(page, per_page, sort_by, order)
 
 
 def update_bbs_link_status(link_id: int, status: str) -> bool:

@@ -44,43 +44,119 @@
     </form>
 </div>
 
-<h2>Existing Backups</h2>
-<table>
-    <thead>
-        <tr>
-            <th>Filename</th>
-            <th>Created At</th>
-            <th>Size</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for backup in backups %}
-        <tr>
-            <td>{{ backup.filename }}</td>
-            <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-            <td>{{ backup.size }}</td>
-            <td>
-                <a href="{{ url_for('admin.download_backup', filename=backup.filename) }}">Download</a> |
-                <form method="post" action="{{ url_for('admin.delete_backup', filename=backup.filename) }}"
-                    style="display: inline;"
-                    onsubmit="return confirm('Are you sure you want to delete the backup file \'{{ backup.filename }}\'? This action cannot be undone.');">
-                    <button type="submit" class="action-link-delete">Delete</button>
-                </form> |
-                <form method="post" action="{{ url_for('admin.restore_from_backup', filename=backup.filename) }}"
-                    style="display: inline;"
-                    onsubmit="return confirm('Are you sure you want to restore from backup \'{{ backup.filename }}\'?\n\nAll current data (users, boards, attachments) will be overwritten and lost.\n\nThis action cannot be undone.') && confirm('Final confirmation. Are you sure you want to proceed? The server will restart automatically after the restore.');">
-                    <button type="submit" class="action-link-restore">Restore</button>
-                </form>
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="4">No backups available.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-archive me-1"></i>
+        Existing Backups
+    </div>
+    <div class="card-body">
+        <div class="pagination-controls">
+            <div class="pagination-links">
+                {% if pagination.total_pages > 1 %}
+                <a href="{{ url_for('admin.backup_management', page=1, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+                <a href="{{ url_for('admin.backup_management', page=pagination.page - 1, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+                {% set start_page = [1, pagination.page - 2] | max %}
+                {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+                {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+                {% for p in range(start_page, end_page + 1) %}
+                {% if p == pagination.page %}<span class="page-link current">{{ p }}</span>
+                {% else %}<a href="{{ url_for('admin.backup_management', page=p, **search_params) }}"
+                    class="page-link">{{ p }}</a>
+                {% endif %}{% endfor %}
+
+                {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+                    <a href="{{ url_for('admin.backup_management', page=pagination.page + 1, **search_params) }}"
+                        class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next &rsaquo;</a>
+                    <a href="{{ url_for('admin.backup_management', page=pagination.total_pages, **search_params) }}"
+                        class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
+                    {% endif %}
+            </div>
+            <select class="per-page-select" onchange="location = this.value;">
+                {% for num in [15, 30, 50, 100] %}<option
+                    value="{{ url_for('admin.backup_management', per_page=num, **search_params_for_per_page) }}" {% if
+                    pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>{% endfor %}
+            </select>
+        </div>
+
+        <table style="margin-top: 1em; margin-bottom: 1em;">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Created At</th>
+                    <th>Size</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for backup in backups %}
+                <tr>
+                    <td>{{ backup.filename }}</td>
+                    <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ backup.size }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.download_backup', filename=backup.filename) }}">Download</a> |
+                        <form method="post" action="{{ url_for('admin.delete_backup', filename=backup.filename) }}"
+                            style="display: inline;"
+                            onsubmit="return confirm('Are you sure you want to delete the backup file \'{{ backup.filename }}\'? This action cannot be undone.');">
+                            <button type="submit" class="action-link-delete">Delete</button>
+                        </form> |
+                        <form method="post"
+                            action="{{ url_for('admin.restore_from_backup', filename=backup.filename) }}"
+                            style="display: inline;"
+                            onsubmit="return confirm('Are you sure you want to restore from backup \'{{ backup.filename }}\'?\n\nAll current data (users, boards, attachments) will be overwritten and lost.\n\nThis action cannot be undone.') && confirm('Final confirmation. Are you sure you want to proceed? The server will restart automatically after the restore.');">
+                            <button type="submit" class="action-link-restore">Restore</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4">No backups available.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pagination-controls">
+            <div class="pagination-links">
+                {% if pagination.total_pages > 1 %}
+                <a href="{{ url_for('admin.backup_management', page=1, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+                <a href="{{ url_for('admin.backup_management', page=pagination.page - 1, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+                {% set start_page = [1, pagination.page - 2] | max %}
+                {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+                {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+                {% for p in range(start_page, end_page + 1) %}
+                {% if p == pagination.page %}<span class="page-link current">{{ p }}</span>
+                {% else %}<a href="{{ url_for('admin.backup_management', page=p, **search_params) }}"
+                    class="page-link">{{ p }}</a>
+                {% endif %}{% endfor %}
+
+                {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+                    <a href="{{ url_for('admin.backup_management', page=pagination.page + 1, **search_params) }}"
+                        class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next &rsaquo;</a>
+                    <a href="{{ url_for('admin.backup_management', page=pagination.total_pages, **search_params) }}"
+                        class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
+                    {% endif %}
+            </div>
+            <select class="per-page-select" onchange="location = this.value;">
+                {% for num in [15, 30, 50, 100] %}<option
+                    value="{{ url_for('admin.backup_management', per_page=num, **search_params_for_per_page) }}" {% if
+                    pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>{% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
 
 <div class="danger-zone">
     <h2>Danger Zone</h2>

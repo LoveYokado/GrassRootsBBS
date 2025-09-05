@@ -6,7 +6,40 @@
 <h1>{{ title }}</h1>
 <p>List of currently connected users. You can sort by column headers or kick a user's session.</p>
 
-<table>
+<div class="pagination-controls">
+    <div class="pagination-links">
+        {% if pagination.total_pages > 1 %}
+        <a href="{{ url_for('admin.who_online', page=1, **search_params) }}"
+            class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+        <a href="{{ url_for('admin.who_online', page=pagination.page - 1, **search_params) }}"
+            class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+        {% set start_page = [1, pagination.page - 2] | max %}
+        {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+        {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+        {% for p in range(start_page, end_page + 1) %}
+        {% if p == pagination.page %}<span class="page-link current">{{ p }}</span>
+        {% else %}<a href="{{ url_for('admin.who_online', page=p, **search_params) }}" class="page-link">{{ p }}</a>
+        {% endif %}{% endfor %}
+
+        {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+            <a href="{{ url_for('admin.who_online', page=pagination.page + 1, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next &rsaquo;</a>
+            <a href="{{ url_for('admin.who_online', page=pagination.total_pages, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
+            {% endif %}
+    </div>
+    <select class="per-page-select" onchange="location = this.value;">
+        {% for num in [15, 30, 50, 100] %}<option
+            value="{{ url_for('admin.who_online', per_page=num, **search_params_for_per_page) }}" {% if
+            pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>{% endfor %}
+    </select>
+</div>
+
+<table style="margin-top: 1em; margin-bottom: 1em;">
     <thead>
         <tr>
             <th><a
@@ -57,5 +90,38 @@
         {% endfor %}
     </tbody>
 </table>
+
+<div class="pagination-controls" style="margin-top: 1em;">
+    <div class="pagination-links">
+        {% if pagination.total_pages > 1 %}
+        <a href="{{ url_for('admin.who_online', page=1, **search_params) }}"
+            class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+        <a href="{{ url_for('admin.who_online', page=pagination.page - 1, **search_params) }}"
+            class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+        {% set start_page = [1, pagination.page - 2] | max %}
+        {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+        {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+        {% for p in range(start_page, end_page + 1) %}
+        {% if p == pagination.page %}<span class="page-link current">{{ p }}</span>
+        {% else %}<a href="{{ url_for('admin.who_online', page=p, **search_params) }}" class="page-link">{{ p }}</a>
+        {% endif %}{% endfor %}
+
+        {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+            <a href="{{ url_for('admin.who_online', page=pagination.page + 1, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next &rsaquo;</a>
+            <a href="{{ url_for('admin.who_online', page=pagination.total_pages, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
+            {% endif %}
+    </div>
+    <select class="per-page-select" onchange="location = this.value;">
+        {% for num in [15, 30, 50, 100] %}<option
+            value="{{ url_for('admin.who_online', per_page=num, **search_params_for_per_page) }}" {% if
+            pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>{% endfor %}
+    </select>
+</div>
 
 {% endblock %}

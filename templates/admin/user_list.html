@@ -3,77 +3,151 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block content %}
-<h1>{{ title }}</h1>
+<div>
+    <h1>{{ title }}</h1>
+    <p>Displays a list of all registered users. You can search for users by name or email.</p>
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
-    <div class="form-actions">
-        <a href="{{ url_for('admin.new_user') }}" style="background-color: #007bff; color: white; font-weight: bold;">+
-            Add New User</a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
+        <form method="get" action="{{ url_for('admin.user_list') }}" style="display: flex; gap: 1em;">
+            <input type="text" name="q" value="{{ search_term or '' }}" placeholder="Search by name or email...">
+            <div class="form-actions">
+                <button type="submit">Search</button>
+                <a href="{{ url_for('admin.user_list') }}">Clear</a>
+            </div>
+        </form>
+        <a href="{{ url_for('admin.new_user') }}" class="form-actions" style="padding: 10px 15px;">Add New User</a>
     </div>
-    <form method="get" action="{{ url_for('admin.user_list') }}" style="display: flex; gap: 8px;">
-        <input type="text" name="q" placeholder="Search by Name or Email..." value="{{ search_term or '' }}"
-            style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
-        <button type="submit" style="background-color: #6c757d; color: white;">Search</button>
-    </form>
-</div>
 
-<table>
-    <thead>
-        <tr>
-            <th><a
-                    href="{{ url_for('admin.user_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', q=search_term) }}">No
-                    {% if sort_by == 'id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-            <th><a
-                    href="{{ url_for('admin.user_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', q=search_term) }}">ID
-                    {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-            <th><a
-                    href="{{ url_for('admin.user_list', sort_by='level', order=next_order if sort_by == 'level' else 'asc', q=search_term) }}">Level
-                    {% if sort_by == 'level' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-            <th><a
-                    href="{{ url_for('admin.user_list', sort_by='email', order=next_order if sort_by == 'email' else 'asc', q=search_term) }}">Email
-                    {% if sort_by == 'email' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-            <th><a
-                    href="{{ url_for('admin.user_list', sort_by='registdate', order=next_order if sort_by == 'registdate' else 'asc', q=search_term) }}">Created
-                    At {% if sort_by == 'registdate' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-            <th><a
-                    href="{{ url_for('admin.user_list', sort_by='lastlogin', order=next_order if sort_by == 'lastlogin' else 'asc', q=search_term) }}">Last
-                    Login {% if sort_by == 'lastlogin' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for user in users %}
-        <tr>
-            <td>{{ user.id }}</td>
-            <td>{{ user.name }}</td>
-            <td>{{ user.level }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.registdate|int|timestamp_to_datetime if user.registdate else 'N/A' }}</td>
-            <td>
-                {% if user.lastlogin and user.lastlogin > 0 %}
-                {{ user.lastlogin|int|timestamp_to_datetime }}
-                {% else %}
-                Never
+    <div class="pagination-controls">
+        <div class="pagination-links">
+            {% if pagination.total_pages > 1 %}
+            <a href="{{ url_for('admin.user_list', page=1, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+            <a href="{{ url_for('admin.user_list', page=pagination.page - 1, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+            {% set start_page = [1, pagination.page - 2] | max %}
+            {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+            {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+            {% for p in range(start_page, end_page + 1) %}
+            {% if p == pagination.page %}
+            <span class="page-link current">{{ p }}</span>
+            {% else %}
+            <a href="{{ url_for('admin.user_list', page=p, **search_params) }}" class="page-link">{{ p }}</a>
+            {% endif %}
+            {% endfor %}
+
+            {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+                <a href="{{ url_for('admin.user_list', page=pagination.page + 1, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next &rsaquo;</a>
+                <a href="{{ url_for('admin.user_list', page=pagination.total_pages, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
                 {% endif %}
-            </td>
-            <td>
-                <a href="{{ url_for('admin.edit_user', user_id=user.id) }}">Edit</a>
-                {% if user.name.upper() != session.get('username').upper() and user.name.upper() != 'GUEST' %}
-                |
-                <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}"
-                    style="display: inline;"
-                    onsubmit="return confirm('Are you sure you want to delete user \'{{ user.name }}\'? This action cannot be undone.');">
-                    <button type="submit" class="action-link-delete">Delete</button>
-                </form>
+        </div>
+        <select class="per-page-select" onchange="location = this.value;">
+            {% for num in [15, 30, 50, 100] %}
+            <option value="{{ url_for('admin.user_list', per_page=num, **search_params_for_per_page) }}" {% if
+                pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <table style="margin-top: 1em; margin-bottom: 1em;">
+        <thead>
+            <tr>
+                <th><a
+                        href="{{ url_for('admin.user_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">ID
+                        {% if sort_by == 'id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.user_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Name
+                        {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.user_list', sort_by='level', order=next_order if sort_by == 'level' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Level
+                        {% if sort_by == 'level' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.user_list', sort_by='email', order=next_order if sort_by == 'email' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Email
+                        {% if sort_by == 'email' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th>Comment</th>
+                <th><a
+                        href="{{ url_for('admin.user_list', sort_by='registdate', order=next_order if sort_by == 'registdate' else 'desc', q=search_params.q, per_page=search_params.per_page) }}">Registered
+                        {% if sort_by == 'registdate' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.user_list', sort_by='lastlogin', order=next_order if sort_by == 'lastlogin' else 'desc', q=search_params.q, per_page=search_params.per_page) }}">Last
+                        Login {% if sort_by == 'lastlogin' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.name }}</td>
+                <td>{{ user.level }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.comment }}</td>
+                <td>{{ user.registdate|int|timestamp_to_datetime if user.registdate else 'N/A' }}</td>
+                <td>
+                    {% if user.lastlogin and user.lastlogin > 0 %}
+                    {{ user.lastlogin|int|timestamp_to_datetime }}
+                    {% else %}
+                    Never
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{{ url_for('admin.edit_user', user_id=user.id) }}">Edit</a>
+                    {% if user.name.upper() != session.get('username').upper() and user.name.upper() != 'GUEST' %}
+                    |
+                    <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}"
+                        style="display: inline;"
+                        onsubmit="return confirm('Are you sure you want to delete user \'{{ user.name }}\'? This action cannot be undone.');">
+                        <button type="submit" class="action-link-delete">Delete</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="pagination-controls" style="margin-top: 1em;">
+        <div class="pagination-links">
+            {% if pagination.total_pages > 1 %}
+            <a href="{{ url_for('admin.user_list', page=1, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+            <a href="{{ url_for('admin.user_list', page=pagination.page - 1, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+            {% set start_page = [1, pagination.page - 2] | max %}
+            {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+            {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+            {% for p in range(start_page, end_page + 1) %}
+            {% if p == pagination.page %}
+            <span class="page-link current">{{ p }}</span>
+            {% else %}
+            <a href="{{ url_for('admin.user_list', page=p, **search_params) }}" class="page-link">{{ p }}</a>
+            {% endif %}
+            {% endfor %}
+
+            {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+                <a href="{{ url_for('admin.user_list', page=pagination.page + 1, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next &rsaquo;</a>
+                <a href="{{ url_for('admin.user_list', page=pagination.total_pages, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
                 {% endif %}
-            </td>
-        </tr>
-        {% else %}
-        <tr>
-            <td colspan="7">No users found.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        </div>
+        <select class="per-page-select" onchange="location = this.value;">
+            {% for num in [15, 30, 50, 100] %}
+            <option value="{{ url_for('admin.user_list', per_page=num, **search_params_for_per_page) }}" {% if
+                pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
 
 {% endblock %}
