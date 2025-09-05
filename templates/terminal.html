@@ -2928,6 +2928,33 @@
             setTimeout(() => { isDipSwitchUpdating = false; }, 50);
         });
 
+        function saveDipSwitchSettings() {
+            const settings = {};
+            document.querySelectorAll('.dip-switch-group').forEach(group => {
+                const groupName = group.dataset.group;
+                settings[groupName] = {};
+                group.querySelectorAll('input[type="checkbox"]').forEach(sw => {
+                    settings[groupName][sw.id] = sw.checked;
+                });
+            });
+            localStorage.setItem('dipSwitchSettings', JSON.stringify(settings));
+        }
+
+        function loadDipSwitchSettings() {
+            const savedSettings = localStorage.getItem('dipSwitchSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                for (const groupName in settings) {
+                    for (const switchId in settings[groupName]) {
+                        const switchEl = document.getElementById(switchId);
+                        if (switchEl) {
+                            switchEl.checked = settings[groupName][switchId];
+                        }
+                    }
+                }
+            }
+        }
+
         socket.on('connect', () => {
             loadSettings();
 
@@ -2944,6 +2971,10 @@
                     window.history.replaceState({}, document.title, "/");
                 }, 500);
             }
+
+            // DIPスイッチの状態を復元してから、UIに反映させる
+            loadDipSwitchSettings();
+            document.querySelector('.dip-switch-panel').dispatchEvent(new Event('change', { bubbles: true }));
         });
 
         // --- ポップアップウィンドウのドラッグ移動機能 ---
@@ -2983,6 +3014,7 @@
         // --- DOM読み込み完了後の初期化処理 ---
         document.addEventListener('DOMContentLoaded', () => {
             loadSettings();
+            loadDipSwitchSettings(); // ページ読み込み時にDIPスイッチ設定を復元
             updateTerminalLayout();
 
             if (term.textarea) {
@@ -2992,6 +3024,12 @@
                     }, 0);
                 });
             }
+
+            // DIPスイッチの変更を検知して設定を保存
+            document.querySelector('.dip-switch-panel').addEventListener('change', () => {
+                // isDipSwitchUpdatingフラグが立っている間は保存しない（無限ループ防止）
+                if (!isDipSwitchUpdating) saveDipSwitchSettings();
+            });
         });
 
         // --- 設定ポップアップ内のタブ切り替え機能 ---
