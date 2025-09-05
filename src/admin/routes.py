@@ -99,18 +99,43 @@ def bbs_list():
         return redirect(url_for('admin.bbs_list'))
 
     # GETリクエスト: 一覧表示
-    # ソート順のパラメータを取得
+    # ページネーションとソートのパラメータを取得
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
     sort_by = request.args.get('sort_by', 'status')
     order = request.args.get('order', 'asc')
     # 次のクリックでソート順を逆にするための準備
     next_order = 'desc' if order == 'asc' else 'asc'
 
-    links = database.get_all_bbs_links_for_admin(sort_by=sort_by, order=order)
+    try:
+        links, total_items = database.get_all_bbs_links_for_admin(
+            page=page, per_page=per_page, sort_by=sort_by, order=order)
+        total_pages = (total_items + per_page - 1) // per_page
+    except Exception as e:
+        flash(f"Error retrieving BBS link list: {e}", 'danger')
+        links = []
+        total_items = 0
+        total_pages = 0
+
+    search_params = {
+        'sort_by': sort_by,
+        'order': order,
+        'per_page': per_page
+    }
+    search_params_for_per_page = {
+        k: v for k, v in search_params.items() if k != 'per_page'}
+
+    pagination = {
+        'page': page, 'per_page': per_page, 'total_items': total_items,
+        'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages
+    }
+
     title = util.get_text_by_key(
         'admin.bbs_list.title', session.get('menu_mode', '2'), 'BBS List Management')
     return render_template(
-        'admin/bbs_list.html', title=title, links=links,
-        sort_by=sort_by, order=order, next_order=next_order
+        'admin/bbs_list.html', title=title, links=links, pagination=pagination,
+        sort_by=sort_by, order=order, next_order=next_order,
+        search_params=search_params, search_params_for_per_page=search_params_for_per_page
     )
 
 
@@ -556,6 +581,8 @@ def board_list():
     オペレーター名はIDからユーザー名に変換して表示します。
     """
     # クエリパラメータからソート順と検索語を取得
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
     sort_by = request.args.get('sort_by', 'shortcut_id')
     order = request.args.get('order', 'asc')
     search_term = request.args.get('q', '')
@@ -563,8 +590,29 @@ def board_list():
     # 次のソート順を計算
     next_order = 'desc' if order == 'asc' else 'asc'
 
-    boards_from_db = database.get_all_boards_for_sysop_list(
-        sort_by=sort_by, order=order, search_term=search_term)
+    try:
+        boards_from_db, total_items = database.get_all_boards_for_sysop_list(
+            page=page, per_page=per_page, sort_by=sort_by, order=order, search_term=search_term)
+        total_pages = (total_items + per_page - 1) // per_page
+    except Exception as e:
+        flash(f"Error retrieving board list: {e}", 'danger')
+        boards_from_db = []
+        total_items = 0
+        total_pages = 0
+
+    search_params = {
+        'q': search_term,
+        'sort_by': sort_by,
+        'order': order,
+        'per_page': per_page
+    }
+    search_params_for_per_page = {
+        k: v for k, v in search_params.items() if k != 'per_page'}
+
+    pagination = {
+        'page': page, 'per_page': per_page, 'total_items': total_items,
+        'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages
+    }
 
     enriched_boards = []
 
@@ -602,8 +650,9 @@ def board_list():
             'operator_names_str', ''), reverse=(order == 'desc'))
 
     return render_template(
-        'admin/board_list.html', title='Board Management', boards=enriched_boards,
-        sort_by=sort_by, order=order, next_order=next_order, search_term=search_term)
+        'admin/board_list.html', title='Board Management', boards=enriched_boards, pagination=pagination,
+        sort_by=sort_by, order=order, next_order=next_order, search_params=search_params,
+        search_params_for_per_page=search_params_for_per_page)
 
 
 @admin_bp.route('/boards/new', methods=['GET', 'POST'])
@@ -831,10 +880,14 @@ def article_search():
     全掲示板を横断して記事を検索するページです。
     キーワード（タイトル・本文）や投稿者名で検索できます。
     """
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
     keyword = request.args.get('q', '')
     author_name = request.args.get('author', '')
 
     articles = []
+    total_items = 0
+    total_pages = 0
     if keyword or author_name:
         author_id = None
         author_name_guest = None
@@ -845,11 +898,15 @@ def article_search():
             else:
                 author_name_guest = author_name
 
-        articles_from_db = database.search_all_articles(
+        articles_from_db, total_items = database.search_all_articles(
+            page=page,
+            per_page=per_page,
             keyword=keyword,
             author_id=author_id,
             author_name_guest=author_name_guest
         )
+
+        total_pages = (total_items + per_page - 1) // per_page
 
         if articles_from_db:
             user_ids_to_fetch = {art['user_id'] for art in articles_from_db if str(
@@ -867,9 +924,25 @@ def article_search():
                     mutable_art['author_display_name'] = user_id_str
                 articles.append(mutable_art)
 
+    search_params = {
+        'q': keyword,
+        'author': author_name,
+        'per_page': per_page
+    }
+    search_params_for_per_page = {
+        k: v for k, v in search_params.items() if k != 'per_page'}
+
+    pagination = {
+        'page': page, 'per_page': per_page, 'total_items': total_items,
+        'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages
+    }
+
     return render_template('admin/article_search.html',
                            title='Article Management',
                            articles=articles,
+                           pagination=pagination,
+                           search_params=search_params,
+                           search_params_for_per_page=search_params_for_per_page,
                            search_keyword=keyword,
                            search_author=author_name)
 
@@ -990,6 +1063,10 @@ def backup_management():
     - GET: 既存のバックアップファイル一覧と、自動バックアップのスケジュール設定を表示します。
     - POST: 自動バックアップのスケジュール設定を保存します。
     """
+    # ページネーションのパラメータを取得
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
+
     if request.method == 'POST':
         # スケジュール保存リクエストを処理
         if request.form.get('action') == 'save_schedule':
@@ -1021,9 +1098,33 @@ def backup_management():
                 except OSError:
                     continue
     except Exception as e:
-        flash(f'Error retrieving backup list: {e}', 'error')
+        flash(f'Error retrieving backup list: {e}', 'danger')
 
-    return render_template('admin/backup.html', title="Backup Management", backups=backups, schedule_settings=schedule_settings)
+    # ページネーション処理
+    total_items = len(backups)
+    total_pages = (total_items + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_backups = backups[start:end]
+
+    # テンプレートに渡すパラメータを準備
+    search_params = {
+        'per_page': per_page
+    }
+    search_params_for_per_page = {}  # No other params to pass
+
+    pagination = {
+        'page': page,
+        'per_page': per_page,
+        'total_items': total_items,
+        'total_pages': total_pages,
+        'has_prev': page > 1,
+        'has_next': page < total_pages
+    }
+
+    return render_template('admin/backup.html', title="Backup Management", backups=paginated_backups,
+                           pagination=pagination, search_params=search_params,
+                           search_params_for_per_page=search_params_for_per_page, schedule_settings=schedule_settings)
 
 
 @admin_bp.route('/backup/create', methods=['POST'])
@@ -1155,8 +1256,33 @@ def plugin_management():
     インストールされているプラグインの一覧と、それぞれの有効/無効状態を表示します。
     プラグインの状態はデータベースに保存されます。
     """
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
+
     all_plugins = plugin_manager.get_all_available_plugins()
-    return render_template('admin/plugin_list.html', title='Plugin Management', plugins=all_plugins)
+
+    # ページネーション処理
+    total_items = len(all_plugins)
+    total_pages = (total_items + per_page - 1) // per_page
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_plugins = all_plugins[start:end]
+
+    search_params = {
+        'per_page': per_page
+    }
+    search_params_for_per_page = {}  # No other params to pass
+
+    pagination = {
+        'page': page,
+        'per_page': per_page,
+        'total_items': total_items,
+        'total_pages': total_pages,
+        'has_prev': page > 1,
+        'has_next': page < total_pages
+    }
+
+    return render_template('admin/plugin_list.html', title='Plugin Management', plugins=paginated_plugins, pagination=pagination, search_params=search_params, search_params_for_per_page=search_params_for_per_page)
 
 
 @admin_bp.route('/plugins/toggle', methods=['POST'])

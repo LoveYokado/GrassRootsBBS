@@ -30,7 +30,42 @@
         <button type="submit" name="action" value="restore" style="background-color: #28a745; color: white;">Restore
             Selected</button>
     </div>
-    <table>
+
+    <div class="pagination-controls">
+        <div class="pagination-links">
+            {% if pagination.total_pages > 1 %}
+            <a href="{{ url_for('admin.article_search', page=1, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+            <a href="{{ url_for('admin.article_search', page=pagination.page - 1, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+            {% set start_page = [1, pagination.page - 2] | max %}
+            {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+            {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+            {% for p in range(start_page, end_page + 1) %}
+            {% if p == pagination.page %}<span class="page-link current">{{ p }}</span>
+            {% else %}<a href="{{ url_for('admin.article_search', page=p, **search_params) }}" class="page-link">{{ p
+                }}</a>
+            {% endif %}{% endfor %}
+
+            {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+                <a href="{{ url_for('admin.article_search', page=pagination.page + 1, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next &rsaquo;</a>
+                <a href="{{ url_for('admin.article_search', page=pagination.total_pages, **search_params) }}"
+                    class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
+                {% endif %}
+        </div>
+        <select class="per-page-select" onchange="location = this.value;">
+            {% for num in [15, 30, 50, 100] %}<option
+                value="{{ url_for('admin.article_search', per_page=num, **search_params_for_per_page) }}" {% if
+                pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>{% endfor %}
+        </select>
+    </div>
+
+    <table style="margin-top: 1em; margin-bottom: 1em;">
         <thead>
             <tr>
                 <th><input type="checkbox" id="select-all-articles"></th>
@@ -48,7 +83,7 @@
             <tr {% if article.is_deleted %}style="text-decoration: line-through; color: #aaa;" {% endif %}>
                 <td><input type="checkbox" name="selected_articles" value="{{ article.id }}" class="article-checkbox">
                 </td>
-                <td><a href="{{ url_for('index', shortcut=article.board_shortcut_id) }}" target="_blank">{{
+                <td><a href="{{ url_for('web.index', shortcut=article.board_shortcut_id) }}" target="_blank">{{
                         article.board_name }}</a></td>
                 <td>{{ article.article_number }}</td>
                 <td><a href="{{ url_for('admin.article_search', author=article.author_display_name) }}">{{
@@ -76,6 +111,41 @@
         </tbody>
     </table>
 </form>
+
+<div class="pagination-controls">
+    <div class="pagination-links">
+        {% if pagination.total_pages > 1 %}
+        <a href="{{ url_for('admin.article_search', page=1, **search_params) }}"
+            class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+        <a href="{{ url_for('admin.article_search', page=pagination.page - 1, **search_params) }}"
+            class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+        {% set start_page = [1, pagination.page - 2] | max %}
+        {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+        {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+        {% for p in range(start_page, end_page + 1) %}
+        {% if p == pagination.page %}<span class="page-link current">{{ p }}</span>
+        {% else %}<a href="{{ url_for('admin.article_search', page=p, **search_params) }}" class="page-link">{{ p
+            }}</a>
+        {% endif %}{% endfor %}
+
+        {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+            <a href="{{ url_for('admin.article_search', page=pagination.page + 1, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next &rsaquo;</a>
+            <a href="{{ url_for('admin.article_search', page=pagination.total_pages, **search_params) }}"
+                class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
+            {% endif %}
+    </div>
+    <select class="per-page-select" onchange="location = this.value;">
+        {% for num in [15, 30, 50, 100] %}<option
+            value="{{ url_for('admin.article_search', per_page=num, **search_params_for_per_page) }}" {% if
+            pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>{% endfor %}
+    </select>
+</div>
+
 <script>
     document.getElementById('select-all-articles').addEventListener('change', function (e) {
         const checkboxes = document.querySelectorAll('.article-checkbox');

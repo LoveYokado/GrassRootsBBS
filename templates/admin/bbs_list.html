@@ -41,30 +41,64 @@
             Existing BBS Links
         </div>
         <div class="card-body">
+            <div class="pagination-controls">
+                <div class="pagination-links">
+                    {% if pagination.total_pages > 1 %}
+                    <a href="{{ url_for('admin.bbs_list', page=1, **search_params) }}"
+                        class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+                    <a href="{{ url_for('admin.bbs_list', page=pagination.page - 1, **search_params) }}"
+                        class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+                    {% set start_page = [1, pagination.page - 2] | max %}
+                    {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+                    {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+                    {% for p in range(start_page, end_page + 1) %}
+                    {% if p == pagination.page %}<span class="page-link current">{{ p }}</span>
+                    {% else %}<a href="{{ url_for('admin.bbs_list', page=p, **search_params) }}" class="page-link">{{ p
+                        }}</a>
+                    {% endif %}{% endfor %}
+
+                    {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+                        <a href="{{ url_for('admin.bbs_list', page=pagination.page + 1, **search_params) }}"
+                            class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next &rsaquo;</a>
+                        <a href="{{ url_for('admin.bbs_list', page=pagination.total_pages, **search_params) }}"
+                            class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
+                        {% endif %}
+                </div>
+                <select class="per-page-select" onchange="location = this.value;">
+                    {% for num in [15, 30, 50, 100] %}<option
+                        value="{{ url_for('admin.bbs_list', per_page=num, **search_params_for_per_page) }}" {% if
+                        pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>{% endfor %}
+                </select>
+            </div>
             <div class="table-responsive">
-                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0"
+                    style="margin-top: 1em; margin-bottom: 1em;">
                     <thead>
                         <tr>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc') }}">ID
+                                    href="{{ url_for('admin.bbs_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', per_page=search_params.per_page) }}">ID
                                     {% if sort_by == 'id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc') }}">Name
+                                    href="{{ url_for('admin.bbs_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', per_page=search_params.per_page) }}">Name
                                     {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='url', order=next_order if sort_by == 'url' else 'asc') }}">URL
+                                    href="{{ url_for('admin.bbs_list', sort_by='url', order=next_order if sort_by == 'url' else 'asc', per_page=search_params.per_page) }}">URL
                                     {% if sort_by == 'url' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
                             <th>Description</th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='status', order=next_order if sort_by == 'status' else 'asc') }}">Status
+                                    href="{{ url_for('admin.bbs_list', sort_by='status', order=next_order if sort_by == 'status' else 'asc', per_page=search_params.per_page) }}">Status
                                     {% if sort_by == 'status' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='submitted_by', order=next_order if sort_by == 'submitted_by' else 'asc') }}">Submitted
+                                    href="{{ url_for('admin.bbs_list', sort_by='submitted_by', order=next_order if sort_by == 'submitted_by' else 'asc', per_page=search_params.per_page) }}">Submitted
                                     By {% if sort_by == 'submitted_by' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
                                     %}</a>
                             </th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='created_at', order=next_order if sort_by == 'created_at' else 'asc') }}">Created
+                                    href="{{ url_for('admin.bbs_list', sort_by='created_at', order=next_order if sort_by == 'created_at' else 'asc', per_page=search_params.per_page) }}">Created
                                     At {% if sort_by == 'created_at' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
                                     %}</a>
                             </th>
@@ -130,6 +164,40 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                <div class="pagination-controls">
+                    <div class="pagination-links">
+                        {% if pagination.total_pages > 1 %}
+                        <a href="{{ url_for('admin.bbs_list', page=1, **search_params) }}"
+                            class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&laquo; First</a>
+                        <a href="{{ url_for('admin.bbs_list', page=pagination.page - 1, **search_params) }}"
+                            class="page-link nav-link {{ 'invisible' if not pagination.has_prev }}">&lsaquo; Prev</a>
+
+                        {% set start_page = [1, pagination.page - 2] | max %}
+                        {% set end_page = [pagination.total_pages, pagination.page + 2] | min %}
+
+                        {% if start_page > 1 %}<span class="page-link">...</span>{% endif %}
+
+                        {% for p in range(start_page, end_page + 1) %}
+                        {% if p == pagination.page %}<span class="page-link current">{{ p }}</span>
+                        {% else %}<a href="{{ url_for('admin.bbs_list', page=p, **search_params) }}"
+                            class="page-link">{{ p }}</a>
+                        {% endif %}{% endfor %}
+
+                        {% if end_page < pagination.total_pages %}<span class="page-link">...</span>{% endif %}
+
+                            <a href="{{ url_for('admin.bbs_list', page=pagination.page + 1, **search_params) }}"
+                                class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Next
+                                &rsaquo;</a>
+                            <a href="{{ url_for('admin.bbs_list', page=pagination.total_pages, **search_params) }}"
+                                class="page-link nav-link {{ 'invisible' if not pagination.has_next }}">Last &raquo;</a>
+                            {% endif %}
+                    </div>
+                    <select class="per-page-select" onchange="location = this.value;">
+                        {% for num in [15, 30, 50, 100] %}<option
+                            value="{{ url_for('admin.bbs_list', per_page=num, **search_params_for_per_page) }}" {% if
+                            pagination.per_page==num %}selected{% endif %}>{{ num }} / page</option>{% endfor %}
+                    </select>
+                </div>
             </div>
         </div>
     </div>
