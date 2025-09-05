@@ -38,6 +38,21 @@ from cryptography.hazmat.primitives import serialization
 _master_text_data_cache = None
 
 
+def get_tracking_code():
+    """
+    トラッキングコードファイルを読み込んで、その内容を返します。
+    ファイルが存在しない場合や読み込みに失敗した場合は空文字列を返します。
+    """
+    try:
+        with open('setting/trackingcode.txt', 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        return ""  # ファイルがなくてもエラーにしない
+    except Exception as e:
+        logging.error(f"トラッキングコードの読み込みに失敗しました: {e}")
+        return ""
+
+
 def load_app_config_from_path(config_file_path):
     """
     Initializes the global `app_config` dictionary from a specified TOML file path.
