@@ -302,8 +302,17 @@ def passkey_verify_login():
 @login_required
 def download_attachment(filename):
     """Serves a previously uploaded attachment file for download."""
+    # データベースから添付ファイル名に一致する記事情報を取得
+    article = database.get_article_by_attachment_filename(filename)
+    if article and article.get('attachment_originalname'):
+        # 元のファイル名が存在すれば、それをダウンロード時のファイル名として使用
+        download_name = article['attachment_originalname']
+    else:
+        # 見つからない場合は、サーバー上のファイル名をそのまま使用
+        download_name = filename
+
     attachment_dir = current_app.config.get('ATTACHMENT_DIR')
-    return send_from_directory(attachment_dir, filename, as_attachment=True)
+    return send_from_directory(attachment_dir, filename, as_attachment=True, download_name=download_name)
 
 
 @web_bp.route('/download_log/<path:filename>')

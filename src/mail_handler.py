@@ -895,7 +895,7 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
     モバイルクライアントの場合はYes/Noボタンを表示します。
     ユーザーが 'y' を入力した場合に `_save_mails_to_db` を呼び出します。
     """
-    from flask import escape
+    from markupsafe import escape
     util.send_text_by_key(
         chan, "mail_handler.confirm_send", menu_mode)
 
