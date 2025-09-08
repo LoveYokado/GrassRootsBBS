@@ -304,6 +304,21 @@ def init_events(socketio, app):
             with open(save_path, 'wb') as f:
                 f.write(file_data)
 
+            # --- ClamAVによるウイルススキャン ---
+            is_safe, scan_message = util.scan_file_with_clamav(save_path)
+            if not is_safe:
+                logging.warning(
+                    f"ウイルスが検出されました: {filename} (User: {handler.user_session.get('username')}). Reason: {scan_message}")
+                try:
+                    os.remove(save_path)  # 検出されたファイルを削除
+                except OSError as e:
+                    logging.error(f"ウイルス検出後のファイル削除に失敗: {e}")
+                # エラーメッセージをクライアントに送信
+                error_msg = f"ウイルスが検出されたため、アップロードは拒否されました。({scan_message})"
+                handler.pending_attachment = {'error': error_msg}
+                emit('attachment_upload_error', {'message': error_msg})
+                return
+
             handler.pending_attachment = {
                 'unique_filename': unique_filename,
                 'original_filename': safe_original_filename,

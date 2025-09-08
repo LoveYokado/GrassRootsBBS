@@ -1,0 +1,108 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4">{{ title }}</h1>
+    <p>{{ g.texts.get('attachment_management', {}).get('description', 'View and manage all uploaded attachments.') }}
+    </p>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-file-alt mr-1"></i>
+            Uploaded Files
+        </div>
+        <div class="card-body">
+            {% include 'admin/_pagination.html' %}
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0"
+                    style="margin-top: 1em; margin-bottom: 1em;">
+                    <thead>
+                        <tr>
+                            <th><a
+                                    href="{{ url_for('admin.attachment_list', sort_by='created_at', order=next_order if sort_by == 'created_at' else 'desc', **search_params_for_per_page) }}">Timestamp
+                                    {% if sort_by == 'created_at' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a>
+                            </th>
+                            <th><a
+                                    href="{{ url_for('admin.attachment_list', sort_by='attachment_originalname', order=next_order if sort_by == 'attachment_originalname' else 'asc', **search_params_for_per_page) }}">Original
+                                    Filename
+                                    {% if sort_by == 'attachment_originalname' %}{{ '▲' if order == 'asc' else '▼' }}{%
+                                    endif %}</a>
+                            </th>
+                            <th><a
+                                    href="{{ url_for('admin.attachment_list', sort_by='attachment_size', order=next_order if sort_by == 'attachment_size' else 'desc', **search_params_for_per_page) }}">Size
+                                    {% if sort_by == 'attachment_size' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                    %}</a>
+                            </th>
+                            <th>Author</th>
+                            <th><a
+                                    href="{{ url_for('admin.attachment_list', sort_by='board_name', order=next_order if sort_by == 'board_name' else 'asc', **search_params_for_per_page) }}">Board
+                                    {% if sort_by == 'board_name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a>
+                            </th>
+                            <th>Scan Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for attachment in attachments %}
+                        <tr>
+                            <td>{{ util.format_timestamp(attachment.created_at) }}</td>
+                            <td>
+                                <a href="{{ url_for('web.download_attachment', filename=attachment.attachment_filename) }}"
+                                    title="Download: {{ attachment.attachment_originalname }}">
+                                    <i class="fas fa-download mr-1"></i>{{ attachment.attachment_originalname }}
+                                </a>
+                            </td>
+                            <td>{{ util.format_file_size(attachment.attachment_size) }}</td>
+                            <td>{{ attachment.author_display_name }}</td>
+                            <td>
+                                <a href="{{ url_for('admin.edit_board', board_id=attachment.board_id) }}"
+                                    title="Go to board settings">
+                                    {{ attachment.board_name }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if attachment.scan_status == 'safe' %}
+                                <span class="badge badge-success" title="{{ attachment.scan_message }}">
+                                    <i class="fas fa-check-circle mr-1"></i>Safe
+                                </span>
+                                {% elif attachment.scan_status == 'infected' %}
+                                <span class="badge badge-danger" title="{{ attachment.scan_message }}">
+                                    <i class="fas fa-exclamation-triangle mr-1"></i>Infected
+                                </span>
+                                {% else %}
+                                <span class="badge badge-secondary" title="{{ attachment.scan_message }}">
+                                    <i class="fas fa-question-circle mr-1"></i>Unknown
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin.article_search', q='id:' ~ attachment.id) }}"
+                                    class="action-link-view" title="View original post">
+                                    View Post
+                                </a>
+                                {# 添付ファイルのみを削除する機能は、記事との整合性が難しいため、
+                                元記事を削除することで対応する運用とします。
+                                <form method="post"
+                                    action="{{ url_for('admin.delete_attachment', attachment_id=attachment.id) }}"
+                                    style="display:inline;">
+                                    <button type="submit" class="action-link-delete"
+                                        onclick="return confirm('Are you sure you want to delete this attachment?');">
+                                        Delete</button>
+                                </form> #}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No attachments found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% include 'admin/_pagination.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

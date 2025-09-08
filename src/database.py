@@ -645,7 +645,7 @@ class ArticleManager:
 
         query = f"""
             SELECT
-                p.id, p.article_number, p.user_id, p.title, p.body, p.created_at, p.is_deleted, p.ip_address,
+                p.*,
                 (SELECT COUNT(*) FROM articles AS r WHERE r.parent_article_id = p.id {deleted_cond}) AS reply_count
             FROM articles AS p
             WHERE p.board_id = %s AND p.parent_article_id IS NULL {deleted_cond}
@@ -741,6 +741,47 @@ class ArticleManager:
         result = self._db.execute_query(
             query, (parent_article_id_pk,), fetch='one')
         return result['count'] if result else 0
+
+    def get_all_with_attachments(self, page=1, per_page=15, sort_by='created_at', order='desc'):
+        """管理画面用に、添付ファイルを持つ全ての記事を取得します。"""
+        allowed_sort_columns = {
+            'created_at', 'board_name', 'title', 'attachment_originalname', 'attachment_size'}
+        if sort_by not in allowed_sort_columns:
+            sort_by = 'created_at'
+        if order.lower() not in ['asc', 'desc']:
+            order = 'desc'
+
+        # WHERE句
+        where_sql = " WHERE a.attachment_filename IS NOT NULL"
+
+        # 総件数を取得
+        count_query = f"SELECT COUNT(a.id) as total FROM articles a{where_sql}"
+        total_count_result = self._db.execute_query(count_query, fetch='one')
+        total_items = total_count_result['total'] if total_count_result else 0
+
+        # データを取得
+        query = """
+            SELECT
+                a.id, a.board_id, a.article_number, a.user_id, a.title,
+                a.created_at, a.is_deleted,
+                a.attachment_filename, a.attachment_originalname, a.attachment_size,
+                b.name as board_name, b.shortcut_id as board_shortcut_id
+            FROM articles a
+            JOIN boards b ON a.board_id = b.id
+        """
+        query += where_sql
+
+        sort_column_map = {'created_at': 'a.created_at', 'board_name': 'b.name', 'title': 'a.title',
+                           'attachment_originalname': 'a.attachment_originalname', 'attachment_size': 'a.attachment_size'}
+        db_sort_by = sort_column_map.get(sort_by, 'a.created_at')
+
+        query += f" ORDER BY {db_sort_by} {order}"
+        offset = (page - 1) * per_page
+        query += " LIMIT %s OFFSET %s"
+        params = [per_page, offset]
+
+        articles = self._db.execute_query(query, tuple(params), fetch='all')
+        return articles, total_items
 
 
 class MailManager:
@@ -1928,6 +1969,10 @@ def search_all_articles(page=1, per_page=15, keyword=None, author_id=None, autho
 
 def get_total_article_count():
     return articles.get_total_count()
+
+
+def get_all_articles_with_attachments(page=1, per_page=15, sort_by='created_at', order='desc'):
+    return articles.get_all_with_attachments(page=page, per_page=per_page, sort_by=sort_by, order=order)
 
 
 def get_total_unread_mail_count(user_id_pk):

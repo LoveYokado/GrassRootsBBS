@@ -25,7 +25,18 @@ services:
         condition: service_healthy # mariadbのhealthcheckが成功するまで待機
       redis:
         condition: service_started # redisは起動するだけでOK
+    networks:
+      - grbbs-net
     restart: unless-stopped
+
+  clamav:
+    image: clamav/clamav:latest
+    container_name: clamav
+    restart: always
+    volumes:
+      - ./data/attachments:/scandir:ro # スキャン対象ディレクトリを読み取り専用でマウント
+    networks:
+      - grbbs-net
 
   mariadb:
     image: mariadb:10.6 # 特定のバージョンを指定することを推奨
@@ -43,13 +54,20 @@ services:
         interval: 10s # 10秒ごとにチェック
         timeout: 5s   # 5秒でタイムアウト
         retries: 5    # 5回リトライ
+    networks:
+      - grbbs-net
 
   redis:
     image: "redis:alpine"
     restart: unless-stopped
     volumes:
       - redis_data:/data
+    networks:
+      - grbbs-net
 
 volumes:
   redis_data:
   mariadb_data:
+
+networks:
+  grbbs-net:

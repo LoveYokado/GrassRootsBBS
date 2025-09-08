@@ -93,6 +93,13 @@ schedule = "0 3 * * *"
 # これを超えた最も古いバックアップは自動的に削除されます
 max_backups = 7
 
+[clamav]
+# ClamAVによるウイルススキャンを有効にするか
+enabled = true
+# ClamAVデーモン(clamd)のホスト名（Dockerコンテナ名）
+host = "clamav"
+port = 3310
+
 [backup]
 # バックアップ関連のパス設定
 # パスはプロジェクトルートからの相対パスで指定します

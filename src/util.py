@@ -32,6 +32,7 @@ import string
 import json
 import base64
 from pywebpush import webpush, WebPushException
+import socket
 from cryptography.hazmat.primitives import serialization
 
 # --- Global Variables / グローバル変数 ---
@@ -899,3 +900,43 @@ def send_push_notification(subscription_info_json, payload_json):
     except Exception as e:
         logging.error(f"プッシュ通知送信中に予期せぬエラー: {e}", exc_info=True)
         return False
+
+
+def scan_file_with_clamav(filepath):
+    """
+    指定されたファイルをClamAVデーモン(clamd)を使ってスキャンします。
+
+    :param filepath: スキャンするファイルの絶対パス。
+    :return: (is_safe, message) のタプル。
+             is_safe: Trueなら安全、Falseならウイルス検出またはエラー。
+             message: スキャンの結果メッセージ。
+    """
+    clamav_config = app_config.get('clamav', {})
+    if not clamav_config.get('enabled', False):
+        return True, "ClamAV scan is disabled."
+
+    host = clamav_config.get('host', 'localhost')
+    port = clamav_config.get('port', 3310)
+    timeout = 10  # タイムアウトを10秒に設定
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(timeout)
+            sock.connect((host, port))
+            # clamdにINSTREAMコマンドを送信
+            sock.sendall(b'zINSTREAM\0')
+            with open(filepath, 'rb') as f:
+                # ファイルをチャンクで送信
+                while True:
+                    chunk = f.read(2048)
+                    if not chunk:
+                        break
+                    size = len(chunk).to_bytes(4, 'big')
+                    sock.sendall(size + chunk)
+            sock.sendall((0).to_bytes(4, 'big'))  # ストリームの終わりを通知
+            response = sock.recv(1024).decode('utf-8').strip()
+            is_safe = "OK" in response
+            return is_safe, response
+    except Exception as e:
+        logging.error(f"ClamAVスキャン中にエラーが発生しました: {e}", exc_info=True)
+        return False, f"ClamAV scan error: {e}"

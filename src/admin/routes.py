@@ -1011,6 +1011,71 @@ def bulk_action_articles():
     return redirect(request.referrer or url_for('admin.article_search'))
 
 
+@admin_bp.route('/attachments')
+@sysop_required
+def attachment_list():
+    """
+    アップロードされた全添付ファイルの一覧とウイルススキャン結果を表示します。
+    """
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
+    sort_by = request.args.get('sort_by', 'created_at')
+    order = request.args.get('order', 'desc')
+
+    next_order = 'desc' if order == 'asc' else 'asc'
+
+    try:
+        articles_with_attachments, total_items = database.get_all_articles_with_attachments(
+            page=page, per_page=per_page, sort_by=sort_by, order=order)
+        total_pages = (total_items + per_page - 1) // per_page
+    except Exception as e:
+        flash(f"Error retrieving attachment list: {e}", 'danger')
+        articles_with_attachments = []
+        total_items = 0
+        total_pages = 0
+
+    enriched_attachments = []
+    if articles_with_attachments:
+        # 投稿者IDを一度に取得
+        user_ids_to_fetch = {art['user_id'] for art in articles_with_attachments if str(
+            art['user_id']).isdigit()}
+        id_to_name_map = database.get_user_names_from_user_ids(
+            list(user_ids_to_fetch))
+
+        attachment_dir = util.app_config.get('WEBAPP', {}).get(
+            'ATTACHMENT_UPLOAD_DIR', 'data/attachments')
+
+        for art in articles_with_attachments:
+            mutable_art = dict(art)
+            # 投稿者名
+            user_id_str = str(mutable_art['user_id'])
+            if user_id_str.isdigit():
+                mutable_art['author_display_name'] = id_to_name_map.get(
+                    int(user_id_str), f"(ID:{user_id_str})")
+            else:
+                mutable_art['author_display_name'] = user_id_str
+
+            # ウイルススキャン
+            filepath = os.path.join(attachment_dir, art['attachment_filename'])
+            is_safe, scan_message = util.scan_file_with_clamav(filepath)
+            mutable_art['scan_status'] = 'safe' if is_safe else 'infected'
+            mutable_art['scan_message'] = scan_message
+
+            enriched_attachments.append(mutable_art)
+
+    search_params = {'sort_by': sort_by, 'order': order, 'per_page': per_page}
+    # ソート用のリンクを生成する際に、重複するキーを除外した辞書を作成
+    search_params_for_per_page = {
+        k: v for k, v in search_params.items() if k not in ['per_page', 'sort_by', 'order']}
+
+    pagination = {'page': page, 'per_page': per_page, 'total_items': total_items,
+                  'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages}
+
+    return render_template('admin/attachment_list.html', title='Attachment Management', attachments=enriched_attachments,
+                           pagination=pagination, sort_by=sort_by, order=order, next_order=next_order,
+                           search_params=search_params, search_params_for_per_page=search_params_for_per_page)
+
+
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @sysop_required
 def system_settings():
@@ -1440,6 +1505,9 @@ def access_log_viewer():
     sort_by = request.args.get('sort_by', 'timestamp')  # デフォルトはtimestamp
     order = request.args.get('order', 'desc')  # デフォルトは降順
     per_page = request.args.get('per_page', 15, type=int)
+    # pageが1未満にならないようにする
+    if page < 1:
+        page = 1
 
     try:
         logs, total_items = database.get_access_logs(
