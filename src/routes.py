@@ -137,6 +137,14 @@ def login():
         password = request.form.get('password')
         error = None
         is_guest = username == 'GUEST'
+        use_passkey = not password  # パスワードが空ならPasskey認証とみなす
+
+        # Passkey認証フローを開始するためのリダイレクト
+        if use_passkey and not is_guest:
+            # JavaScriptでPasskeyフローをトリガーするために、ユーザー名をセッションに一時保存してリダイレクト
+            session['passkey_login_username'] = username
+            # ログインページにリダイレクトし、クライアント側でJSを実行させる
+            return redirect(url_for('web.login'))
 
         if not is_guest and session.get('lockout_expiration', 0) > time.time():
             remaining_time = session.get('lockout_expiration', 0) - time.time()
@@ -196,7 +204,11 @@ def login():
             logging.warning(f"WebUI Login Failed: {username}")
             return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message)
 
-    return render_template('login.html', page_title=page_title, logo_path=logo_path, message=message)
+    # Passkey認証フローのためにリダイレクトされてきた場合の処理
+    passkey_username = session.pop('passkey_login_username', None)
+
+    return render_template('login.html', page_title=page_title, logo_path=logo_path,
+                           message=message, passkey_username_for_js=passkey_username)
 
 
 @web_bp.route('/logout')

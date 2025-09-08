@@ -130,6 +130,11 @@
             transform: translateY(1px);
         }
 
+        .passkey-button {
+            width: 100%;
+            margin-top: 10px;
+        }
+
         .button-container {
             display: flex;
             gap: 10px;
@@ -197,18 +202,11 @@
         <form id="login-form" method="post">
             <input type="text" id="username" name="username" placeholder="Username" required
                 autocomplete="username webauthn">
-            <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password">
-            <div class="form-group" style="text-align: left; margin-bottom: 15px;">
-                <label for="use-passkey" style="display: inline-flex; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="use-passkey" name="use_passkey" style="width: auto; margin-right: 8px;">
-                    {{ util.get_text_by_key('login.use_passkey_checkbox', session.get('menu_mode', '2'), 'Use Passkey
-                    instead of
-                    password') }}
-                </label>
-            </div>
+            <input type="password" id="password" name="password" placeholder="Password (or leave blank for Passkey)"
+                autocomplete="current-password">
             <button type="submit" id="login-button">Login</button>
         </form>
-        <div class="form-group" style="text-align: center; margin-top: 15px;">
+        <div>
             <button id="passkey-login-btn" class="passkey-button">{{ util.get_text_by_key('login.passkey_login_button',
                 session.get('menu_mode', '2'), 'Login with Passkey') }}</button>
         </div>
@@ -247,25 +245,17 @@
             return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
         }
 
+        // ページ読み込み時に、サーバーからPasskey認証用のユーザー名が渡されていれば認証を開始
+        document.addEventListener('DOMContentLoaded', () => {
+            const passkeyUsername = "{{ passkey_username_for_js or '' }}";
+            if (passkeyUsername) {
+                startPasskeyLogin(passkeyUsername);
+            }
+        });
+
         // 「Passkeyでログイン」ボタンのイベントリスナー (ユーザー名なし)
         document.getElementById('passkey-login-btn').addEventListener('click', async () => {
             await startPasskeyLogin(); // ユーザー名なしで認証を開始
-        });
-
-        // ログインフォームの送信イベント
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const usePasskeyCheckbox = document.getElementById('use-passkey');
-            const usernameInput = document.getElementById('username');
-            const username = usernameInput.value;
-
-            if (usePasskeyCheckbox.checked) {
-                // Passkey認証 (ユーザー名あり)
-                await startPasskeyLogin(username);
-            } else {
-                // パスワード認証
-                document.getElementById('login-form').submit();
-            }
         });
 
         async function startPasskeyLogin(username = '') {
@@ -277,7 +267,6 @@
 
             let options;
             try {
-                // ユーザー名が空文字列の場合、サーバーはDiscoverable Credential用のオプションを返す
                 // ユーザー名が空文字列の場合、サーバーはDiscoverable Credential用のオプションを返す
                 const resp = await fetch("{{ url_for('web.passkey_login_options') }}", {
                     method: 'POST',
