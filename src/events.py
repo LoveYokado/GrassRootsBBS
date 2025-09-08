@@ -24,6 +24,8 @@ import logging
 import os
 import glob
 import uuid
+import json
+import shutil
 from werkzeug.utils import secure_filename
 
 from . import terminal_handler, util
@@ -308,11 +310,37 @@ def init_events(socketio, app):
             is_safe, scan_message = util.scan_file_with_clamav(save_path)
             if not is_safe:
                 logging.warning(
-                    f"ウイルスが検出されました: {filename} (User: {handler.user_session.get('username')}). Reason: {scan_message}")
+                    f"ウイルス検出: {filename} (User: {handler.user_session.get('username')}). Reason: {scan_message}")
+                # --- 隔離処理 ---
+                quarantine_dir_rel = util.app_config.get('clamav', {}).get(
+                    'quarantine_directory', 'data/quarantine')
+                quarantine_dir_abs = os.path.join(
+                    current_app.config['PROJECT_ROOT'], quarantine_dir_rel)
                 try:
-                    os.remove(save_path)  # 検出されたファイルを削除
+                    log_entry = {
+                        'timestamp': int(util.time.time()),
+                        'unique_filename': unique_filename,
+                        'original_filename': safe_original_filename,
+                        'size': len(file_data),
+                        'user_id': handler.user_session.get('user_id'),
+                        'username': handler.user_session.get('username'),
+                        'board_shortcut_id': board_config.get('shortcut_id', 'N/A'),
+                        'board_name': board_config.get('name', 'N/A'),
+                        'scan_result': scan_message,
+                    }
+                    log_file_path = os.path.join(
+                        quarantine_dir_abs, 'quarantine_log.json')
+                    with open(log_file_path, 'a', encoding='utf-8') as f:
+                        f.write(json.dumps(log_entry) + '\n')
+
+                    # ファイルを隔離ディレクトリに移動
+                    shutil.move(save_path, os.path.join(
+                        quarantine_dir_abs, unique_filename))
+                    logging.info(
+                        f"ファイルを隔離しました: {unique_filename} -> {quarantine_dir_abs}")
                 except OSError as e:
-                    logging.error(f"ウイルス検出後のファイル削除に失敗: {e}")
+                    logging.error(f"ウイルス検出後のファイル隔離に失敗: {e}")
+
                 # エラーメッセージをクライアントに送信
                 error_msg = f"ウイルスが検出されたため、アップロードは拒否されました。({scan_message})"
                 handler.pending_attachment = {'error': error_msg}

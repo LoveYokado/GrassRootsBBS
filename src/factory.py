@@ -77,6 +77,12 @@ def create_app():
         ATTACHMENT_DIR = os.path.join(PROJECT_ROOT, ATTACHMENT_DIR)
     os.makedirs(ATTACHMENT_DIR, exist_ok=True)
     os.makedirs(APP_LOG_DIR, exist_ok=True)
+    # 隔離ディレクトリの作成
+    QUARANTINE_DIR = app.config.get('CLAMAV', {}).get(
+        'QUARANTINE_DIRECTORY', 'data/quarantine')
+    if not os.path.isabs(QUARANTINE_DIR):
+        QUARANTINE_DIR = os.path.join(PROJECT_ROOT, QUARANTINE_DIR)
+    os.makedirs(QUARANTINE_DIR, exist_ok=True)
     os.makedirs(SESSION_LOG_DIR, exist_ok=True)
     app.config['ATTACHMENT_DIR'] = ATTACHMENT_DIR
     app.config['SESSION_LOG_DIR'] = SESSION_LOG_DIR
