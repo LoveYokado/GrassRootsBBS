@@ -672,7 +672,7 @@ class ArticleManager:
         """
         return self._db.execute_query(query, (days - 1,), fetch='all')
 
-    def search_all(self, page=1, per_page=15, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc'):
+    def search_all(self, page=1, per_page=15, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc', article_id=None):
         """管理画面用に、全記事を対象にキーワードや投稿者で検索します。"""
         allowed_sort_columns = {'created_at', 'board_name', 'title'}
         if sort_by not in allowed_sort_columns:
@@ -683,16 +683,20 @@ class ArticleManager:
         params = []
         where_clauses = []
 
-        if keyword:
-            where_clauses.append("(a.title LIKE %s OR a.body LIKE %s)")
-            params.extend([f"%{keyword}%", f"%{keyword}%"])
+        if article_id is not None:
+            where_clauses.append("a.id = %s")
+            params.append(article_id)
+        else:
+            if keyword:
+                where_clauses.append("(a.title LIKE %s OR a.body LIKE %s)")
+                params.extend([f"%{keyword}%", f"%{keyword}%"])
 
-        if author_id is not None:
-            where_clauses.append("a.user_id = %s")
-            params.append(str(author_id))
-        elif author_name_guest:
-            where_clauses.append("a.user_id = %s")
-            params.append(author_name_guest)
+            if author_id is not None:
+                where_clauses.append("a.user_id = %s")
+                params.append(str(author_id))
+            elif author_name_guest:
+                where_clauses.append("a.user_id = %s")
+                params.append(author_name_guest)
 
         where_sql = ""
         if where_clauses:
@@ -1963,8 +1967,8 @@ def get_daily_article_posts(days=7):
     return articles.get_daily_posts(days)
 
 
-def search_all_articles(page=1, per_page=15, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc'):
-    return articles.search_all(page=page, per_page=per_page, keyword=keyword, author_id=author_id, author_name_guest=author_name_guest, sort_by=sort_by, order=order)
+def search_all_articles(page=1, per_page=15, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc', article_id=None):
+    return articles.search_all(page=page, per_page=per_page, keyword=keyword, author_id=author_id, author_name_guest=author_name_guest, sort_by=sort_by, order=order, article_id=article_id)
 
 
 def get_total_article_count():

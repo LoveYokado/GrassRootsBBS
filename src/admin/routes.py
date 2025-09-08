@@ -733,7 +733,6 @@ def edit_board(board_id):
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         kanban_body = request.form.get('kanban_body', '').strip()
-        board_type = request.form.get('board_type', 'simple')
         default_permission = request.form.get('default_permission', 'open')
         read_level = request.form.get('read_level', 1, type=int)
         write_level = request.form.get('write_level', 1, type=int)
@@ -793,13 +792,13 @@ def edit_board(board_id):
             return render_template('admin/edit_board.html', title='Edit Board', board=board)
 
         updates = {
-            'name': name, 'description': description, 'kanban_body': kanban_body, 'board_type': board_type,
+            'name': name, 'description': description, 'kanban_body': kanban_body,
             'default_permission': default_permission, 'read_level': read_level, 'write_level': write_level,
             'allow_attachments': allow_attachments, 'allowed_extensions': allowed_extensions,
             'max_attachment_size_mb': max_attachment_size_mb,
             'operators': json.dumps(new_operator_ids),
             'max_threads': max_threads,
-            'max_replies': max_replies if board_type == 'thread' else 0
+            'max_replies': max_replies if board.get('board_type') == 'thread' else 0
         }
 
         if database.update_record('boards', updates, {'id': board_id}):
@@ -890,6 +889,8 @@ def article_search():
     articles = []
     total_items = 0
     total_pages = 0
+    article_id_search = None
+
     if keyword or author_name:
         author_id = None
         author_name_guest = None
@@ -900,12 +901,20 @@ def article_search():
             else:
                 author_name_guest = author_name
 
+        # ID検索の処理
+        if keyword and keyword.lower().startswith('id:'):
+            try:
+                article_id_search = int(keyword.split(':')[1])
+            except (ValueError, IndexError):
+                article_id_search = None
+
         articles_from_db, total_items = database.search_all_articles(
             page=page,
             per_page=per_page,
             keyword=keyword,
             author_id=author_id,
-            author_name_guest=author_name_guest
+            author_name_guest=author_name_guest,
+            article_id=article_id_search
         )
 
         total_pages = (total_items + per_page - 1) // per_page

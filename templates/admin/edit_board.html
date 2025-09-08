@@ -25,10 +25,8 @@
     </div>
     <div class="form-group">
         <label for="board_type">Board Type</label>
-        <select id="board_type" name="board_type">
-            <option value="simple" {% if board.board_type=='simple' %}selected{% endif %}>Simple (レスなし)</option>
-            <option value="thread" {% if board.board_type=='thread' %}selected{% endif %}>Thread (レスあり)</option>
-        </select>
+        <input type="text" id="board_type" name="board_type" value="{{ board.board_type }}" readonly>
+        <small>Board type cannot be changed after creation.</small>
     </div>
     <div class="form-group">
         <label for="default_permission">Default Permission</label>
