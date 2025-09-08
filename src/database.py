@@ -443,12 +443,14 @@ class BoardManager:
 
     def get_all_for_sysop_list(self, page=1, per_page=15, sort_by='shortcut_id', order='asc', search_term=None):
         """管理画面用に、ソート・検索機能付きで全掲示板のリストを取得します。"""
-        allowed_columns = [
+        allowed_sort_columns = {
             'shortcut_id', 'name', 'board_type', 'status', 'last_posted_at',
             'read_level', 'write_level', 'default_permission', 'allow_attachments', 'post_count'
-        ]
-        if sort_by not in allowed_columns:
+        }
+        if sort_by not in allowed_sort_columns:
             sort_by = 'shortcut_id'
+        if order.lower() not in ['asc', 'desc']:
+            order = 'asc'
 
         if order.lower() not in ['asc', 'desc']:
             order = 'asc'
@@ -672,8 +674,8 @@ class ArticleManager:
 
     def search_all(self, page=1, per_page=15, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc'):
         """管理画面用に、全記事を対象にキーワードや投稿者で検索します。"""
-        allowed_columns = ['created_at', 'board_name', 'title']
-        if sort_by not in allowed_columns:
+        allowed_sort_columns = {'created_at', 'board_name', 'title'}
+        if sort_by not in allowed_sort_columns:
             sort_by = 'created_at'
         if order.lower() not in ['asc', 'desc']:
             order = 'desc'

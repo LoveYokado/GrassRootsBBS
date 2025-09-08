@@ -170,6 +170,27 @@ def create_app():
             except ValueError:
                 abort(403)
 
+    @app.after_request
+    def add_security_headers(response):
+        # CSP: インラインスクリプトを許可しつつ、信頼できるソースからのスクリプトとスタイルのみを許可
+        csp = (
+            "default-src 'self';"
+            "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net;"
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com;"
+            "font-src 'self' https://fonts.gstatic.com;"
+            "img-src 'self' data:;"
+            "connect-src 'self' wss: ws:;"  # WebSocket接続を許可
+            "frame-ancestors 'none';"  # クリックジャッキング対策
+            "form-action 'self';"
+            "base-uri 'self';"
+        )
+        response.headers['Content-Security-Policy'] = csp
+        # その他の推奨セキュリティヘッダー
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'DENY'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        return response
+
     # --- Initialize SocketIO ---
     allowed_origins_str = os.getenv('SOCKETIO_ALLOWED_ORIGINS', app.config.get(
         'WEBAPP', {}).get('ORIGIN', 'http://localhost:5000'))

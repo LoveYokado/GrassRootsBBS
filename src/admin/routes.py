@@ -752,8 +752,10 @@ def edit_board(board_id):
         if operators_str:
             operator_names = [name.strip().upper()
                               for name in operators_str.split(',') if name.strip()]
-            all_users = database.get_all_users()
-            user_map = {user['name'].upper(): user['id'] for user in all_users}
+            all_users, _ = database.get_all_users(
+                per_page=9999)  # Get all users
+            user_map = {user['name'].upper(): user['id']
+                        for user in all_users} if all_users else {}
 
             invalid_names = []
             for op_name in operator_names:

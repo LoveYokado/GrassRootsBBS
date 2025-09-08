@@ -169,6 +169,10 @@ def login():
                         return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
 
             if not is_guest:
+                # セッション固定化攻撃対策: ログイン成功時にセッションを再生成
+                session.clear()
+                session.permanent = True
+
                 session['login_attempts'] = 0
                 session['lockout_expiration'] = 0
 
@@ -276,6 +280,10 @@ def passkey_verify_login():
     user_data = passkey_handler.verify_authentication_for_user(
         credential_json, challenge_bytes, request.url_root.rstrip('/'))
     if user_data:
+        # セッション固定化攻撃対策: ログイン成功時にセッションを再生成
+        session.clear()
+        session.permanent = True
+
         session['lastlogin'] = user_data.get('lastlogin', 0)
         session['user_id'] = user_data['id']
         session['username'] = user_data['name']

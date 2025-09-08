@@ -24,6 +24,7 @@ import logging
 import os
 import glob
 import uuid
+from werkzeug.utils import secure_filename
 
 from . import terminal_handler, util
 
@@ -133,8 +134,8 @@ def init_events(socketio, app):
                 timestamp = util.datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 display_name_for_log = handler.user_session.get(
                     'display_name', handler.user_session.get('username'))
-                safe_display_name = display_name_for_log.replace(
-                    '(', '_').replace(')', '')
+                # ファイル名を無害化
+                safe_display_name = secure_filename(display_name_for_log)
                 filename = f"{bbs_name}_{safe_display_name}_{timestamp}.log"  # noqa
                 filepath = os.path.join(
                     current_app.config['SESSION_LOG_DIR'], filename)
@@ -274,6 +275,9 @@ def init_events(socketio, app):
         if len(file_data) > max_size_bytes:
             message = f'ファイルサイズが大きすぎます ({max_size_mb}MBまで)。'
 
+        # ファイル名を無害化してから拡張子チェックを行う
+        safe_original_filename = secure_filename(filename)
+
         if not message:
             allowed_extensions_str = board_config.get('allowed_extensions')
             if allowed_extensions_str is None:
@@ -281,7 +285,8 @@ def init_events(socketio, app):
                     'allowed_attachment_extensions', '')
             allowed_extensions = {ext.strip().lower()
                                   for ext in allowed_extensions_str.split(',') if ext.strip()}
-            file_ext = os.path.splitext(filename)[1].lstrip('.').lower()
+            file_ext = os.path.splitext(safe_original_filename)[
+                1].lstrip('.').lower()
             if allowed_extensions and file_ext not in allowed_extensions:
                 message = f'許可されていないファイル形式です。({", ".join(sorted(list(allowed_extensions)))})'
 
@@ -290,7 +295,7 @@ def init_events(socketio, app):
             emit('attachment_upload_error', {'message': message})
             return
 
-        _, ext = os.path.splitext(filename)
+        _, ext = os.path.splitext(safe_original_filename)
         unique_filename = f"{uuid.uuid4()}{ext}"
         attachment_dir = current_app.config.get('ATTACHMENT_DIR')
         save_path = os.path.join(attachment_dir, unique_filename)
@@ -301,7 +306,7 @@ def init_events(socketio, app):
 
             handler.pending_attachment = {
                 'unique_filename': unique_filename,
-                'original_filename': filename,
+                'original_filename': safe_original_filename,
                 'filepath': save_path,
                 'size': len(file_data)
             }

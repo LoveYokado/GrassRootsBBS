@@ -895,6 +895,7 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
     モバイルクライアントの場合はYes/Noボタンを表示します。
     ユーザーが 'y' を入力した場合に `_save_mails_to_db` を呼び出します。
     """
+    from flask import escape
     util.send_text_by_key(
         chan, "mail_handler.confirm_send", menu_mode)
 
@@ -906,7 +907,8 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
     util.send_text_by_key(chan, "mail_handler.subject",
                           menu_mode, subject=subject)
     util.send_text_by_key(chan, "mail_handler.body", menu_mode)
-    for line in body.splitlines():
+    # XSS対策: ユーザーが入力した本文をエスケープしてから表示
+    for line in str(escape(body)).splitlines():
         chan.send(f"{line}\r\n".encode('utf-8'))
 
     is_mobile_web_client = (
