@@ -194,15 +194,24 @@
         {% if error %}
         <p class="error">{{ error }}</p>
         {% endif %}
-        <form method="post">
+        <form id="login-form" method="post">
             <input type="text" id="username" name="username" placeholder="Username" required
                 autocomplete="username webauthn">
             <input type="password" id="password" name="password" placeholder="Password" autocomplete="current-password">
-            <div class="button-container">
-                <button type="submit">Login</button>
-                <button type="button" id="passkey-login-btn">Passkey Login</button>
+            <div class="form-group" style="text-align: left; margin-bottom: 15px;">
+                <label for="use-passkey" style="display: inline-flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="use-passkey" name="use_passkey" style="width: auto; margin-right: 8px;">
+                    {{ util.get_text_by_key('login.use_passkey_checkbox', session.get('menu_mode', '2'), 'Use Passkey
+                    instead of
+                    password') }}
+                </label>
             </div>
+            <button type="submit" id="login-button">Login</button>
         </form>
+        <div class="form-group" style="text-align: center; margin-top: 15px;">
+            <button id="passkey-login-btn" class="passkey-button">{{ util.get_text_by_key('login.passkey_login_button',
+                session.get('menu_mode', '2'), 'Login with Passkey') }}</button>
+        </div>
     </div>
     <script>
         if ('serviceWorker' in navigator) {
@@ -238,34 +247,58 @@
             return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
         }
 
-        async function loginWithPasskey() {
-            const usernameInput = document.getElementById('username');
-            const username = usernameInput.value.toUpperCase();
-            if (!username) {
-                alert('Please enter your username to use a Passkey.');
-                usernameInput.focus();
-                return;
-            }
+        // 「Passkeyでログイン」ボタンのイベントリスナー (ユーザー名なし)
+        document.getElementById('passkey-login-btn').addEventListener('click', async () => {
+            await startPasskeyLogin(); // ユーザー名なしで認証を開始
+        });
 
-            // サーバーから認証オプションを取得
+        // ログインフォームの送信イベント
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const usePasskeyCheckbox = document.getElementById('use-passkey');
+            const usernameInput = document.getElementById('username');
+            const username = usernameInput.value;
+
+            if (usePasskeyCheckbox.checked) {
+                // Passkey認証 (ユーザー名あり)
+                await startPasskeyLogin(username);
+            } else {
+                // パスワード認証
+                document.getElementById('login-form').submit();
+            }
+        });
+
+        async function startPasskeyLogin(username = '') {
+            const loginButton = document.getElementById('login-button');
+            const passkeyLoginButton = document.getElementById('passkey-login-btn');
+            loginButton.disabled = true;
+            passkeyLoginButton.disabled = true;
+            loginButton.textContent = 'お待ち下さい...';
+
             let options;
             try {
-                const resp = await fetch("{{ url_for('web.passkey_auth_options') }}", {
+                // ユーザー名が空文字列の場合、サーバーはDiscoverable Credential用のオプションを返す
+                // ユーザー名が空文字列の場合、サーバーはDiscoverable Credential用のオプションを返す
+                const resp = await fetch("{{ url_for('web.passkey_login_options') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username }),
+                    body: JSON.stringify({ username: username.toUpperCase() }),
                 });
                 if (!resp.ok) {
-                    const err = await resp.json();
-                    throw new Error(err.error || 'Could not get authentication options.');
-                }
+                    const errorData = await resp.json();
+                    throw new Error(errorData.error || 'Failed to get login options.');
+                } // prettier-ignore
                 options = await resp.json();
+                loginButton.disabled = false;
+                passkeyLoginButton.disabled = false;
             } catch (e) {
-                alert(`Error: ${e.message}`);
+                alert(`Passkeyオプションの取得に失敗しました: ${e.message}`);
+                loginButton.disabled = false;
+                loginButton.textContent = 'Login';
+                passkeyLoginButton.disabled = false;
                 return;
             }
 
-            // データをブラウザAPI用に変換
             options.challenge = base64urlToBuffer(options.challenge);
             if (options.allowCredentials) {
                 for (let cred of options.allowCredentials) {
@@ -273,47 +306,52 @@
                 }
             }
 
-            // ブラウザAPIを呼び出して認証
             let credential;
             try {
                 credential = await navigator.credentials.get({ publicKey: options });
             } catch (e) {
-                alert(`Authentication failed: ${e.name}`);
+                // ユーザーによるキャンセルはよくあることなので、エラー表示は控えめにする
+                if (e.name !== "NotAllowedError") {
+                    alert(`Passkey認証に失敗しました: ${e.name}`);
+                }
+                loginButton.disabled = false;
+                loginButton.textContent = 'Login';
+                passkeyLoginButton.disabled = false;
                 return;
             }
 
-            // サーバー送信用にデータを変換
-            const authenticationResponse = {
+            const credentialForServer = {
                 id: credential.id,
                 rawId: bufferToBase64url(credential.rawId),
                 response: {
                     clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
                     authenticatorData: bufferToBase64url(credential.response.authenticatorData),
-                    signature: bufferToBase64url(credential.response.signature),
                     userHandle: credential.response.userHandle ? bufferToBase64url(credential.response.userHandle) : null,
+                    signature: bufferToBase64url(credential.response.signature),
                 },
                 type: credential.type,
             };
 
-            // サーバーに検証をリクエスト
             try {
-                const verificationResp = await fetch("{{ url_for('web.passkey_verify_auth') }}", {
+                const verificationResp = await fetch("{{ url_for('web.passkey_verify_login') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ credential: authenticationResponse }),
+                    body: JSON.stringify(credentialForServer),
                 });
                 const verificationJSON = await verificationResp.json();
                 if (verificationJSON && verificationJSON.verified) {
-                    window.location.href = "{{ url_for('web.index') }}";
+                    window.location.href = "{{ url_for('web.index') }}"; // ログイン成功
+
                 } else {
-                    throw new Error(verificationJSON.error || "Authentication failed on server.");
+                    throw new Error(verificationJSON.error || "サーバーでの認証に失敗しました。");
                 }
             } catch (e) {
-                alert(`Error during verification: ${e.message}`);
+                alert(`Passkey認証に失敗しました: ${e.message}`);
+                loginButton.disabled = false;
+                passkeyLoginButton.disabled = false;
+                loginButton.textContent = 'Login';
             }
         }
-
-        document.getElementById('passkey-login-btn').addEventListener('click', loginWithPasskey);
     </script>
 </body>
 

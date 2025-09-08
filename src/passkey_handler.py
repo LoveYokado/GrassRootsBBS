@@ -131,22 +131,27 @@ def verify_registration_for_user(user_id, credential, expected_challenge, expect
 def generate_authentication_options_for_user(username):
     """指定されたユーザーのPasskey認証オプションを生成します。"""
     rp_id, _ = _get_rp_info()
+    allow_credentials = []
 
-    user = database.get_user_auth_info(username)
-    if not user:
-        return None
+    # ユーザー名が指定されている場合、そのユーザーのキーのみを許可
+    if username:
+        user = database.get_user_auth_info(username)
+        if not user:
+            return None
 
-    passkeys = database.get_passkeys_by_user(user['id'])
-    if not passkeys:
-        return None
+        passkeys = database.get_passkeys_by_user(user['id'])
+        if not passkeys:
+            return None
 
-    options = generate_authentication_options(
-        rp_id=rp_id,
-        allow_credentials=[
+        allow_credentials = [
             PublicKeyCredentialDescriptor(
                 type=PublicKeyCredentialType.PUBLIC_KEY, id=pk["credential_id"])
             for pk in passkeys
-        ],
+        ]
+
+    options = generate_authentication_options(
+        rp_id=rp_id,
+        allow_credentials=allow_credentials,
         user_verification=UserVerificationRequirement.PREFERRED,
     )
 

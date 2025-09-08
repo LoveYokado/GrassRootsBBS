@@ -240,27 +240,27 @@ def passkey_verify_registration():
         return jsonify({"verified": False, "error": "Verification failed on server"}), 400
 
 
-@web_bp.route('/passkey/auth-options', methods=['POST'])
+@web_bp.route('/passkey/login-options', methods=['POST'])
 @extensions.limiter.limit("20 per minute")
-def passkey_auth_options():
+def passkey_login_options():
     """API endpoint to generate options for Passkey authentication."""
     username = request.get_json().get('username', '').upper()
     options_json_str = passkey_handler.generate_authentication_options_for_user(
         username)
     if not options_json_str:
-        return jsonify({"error": "User not found or no passkeys registered"}), 400
+        return jsonify({"error": "User not found or no passkeys registered for that user."}), 400
     options_dict = json.loads(options_json_str)
-    session["passkey_authentication_challenge"] = options_dict.get("challenge")
+    session["passkey_login_challenge"] = options_dict.get("challenge")
     return Response(options_json_str, mimetype='application/json')
 
 
-@web_bp.route('/passkey/verify-auth', methods=['POST'])
+@web_bp.route('/passkey/verify-login', methods=['POST'])
 @extensions.limiter.limit("10 per minute")
-def passkey_verify_auth():
+def passkey_verify_login():
     """API endpoint to verify a Passkey authentication response and log the user in."""
-    challenge_str = session.pop("passkey_authentication_challenge", None)
+    challenge_str = session.pop("passkey_login_challenge", None)
     challenge_bytes = base64url_to_bytes(challenge_str)
-    credential_json = json.dumps(request.get_json()['credential'])
+    credential_json = json.dumps(request.get_json())
     user_data = passkey_handler.verify_authentication_for_user(
         credential_json, challenge_bytes, request.url_root.rstrip('/'))
     if user_data:
