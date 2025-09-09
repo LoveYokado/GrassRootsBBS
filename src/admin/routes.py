@@ -1149,8 +1149,6 @@ def system_settings():
     - GET: 現在のサーバー設定（各機能の最低アクセスレベルなど）を表示します。
     - POST: フォームから送信された内容でサーバー設定を更新します。
     """
-    pref_names = ['bbs', 'chat', 'mail', 'telegram', 'userpref',
-                  'who', 'default_exploration_list', 'hamlet', 'login_message']
 
     if request.method == 'POST':
         # フォームからデータを取得
@@ -1171,9 +1169,8 @@ def system_settings():
             if not (0 <= settings_to_update[key] <= 5):
                 flash(
                     f"Invalid level for {key}. Must be between 0 and 5.", 'danger')
-                pref_list = database.read_server_pref()
-                current_settings = dict(
-                    zip(pref_names, pref_list)) if pref_list else {}
+                # エラー時も現在の設定値をフォームに再表示するため、DBから読み込む
+                current_settings = database.read_server_pref() or {}
                 return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
 
         if database.update_record('server_pref', settings_to_update, {'id': 1}):
@@ -1182,9 +1179,13 @@ def system_settings():
             flash('Failed to update system settings.', 'danger')
         return redirect(url_for('admin.system_settings'))
 
-    pref_list = database.read_server_pref()
-    current_settings = dict(zip(pref_names, pref_list)) if pref_list else {}
-    return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
+    # 掲示板ID一括取得ボタン用に、全掲示板のショートカットIDを取得
+    all_boards, _ = database.get_all_boards_for_sysop_list(per_page=9999)
+    all_board_ids = [board['shortcut_id']
+                     for board in all_boards] if all_boards else []
+
+    current_settings = database.read_server_pref() or {}
+    return render_template('admin/system_settings.html', title='System Settings', settings=current_settings, all_board_ids=all_board_ids)
 
 
 @admin_bp.route('/backup', methods=['GET', 'POST'])

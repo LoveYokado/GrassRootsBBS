@@ -54,7 +54,11 @@
                     rows="5">{{ settings.get('login_message', '') }}</textarea>
             </div>
             <div class="form-group">
-                <label for="default_exploration_list">Default Exploration List (comma-separated)</label>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="default_exploration_list">Default Exploration List (comma-separated)</label>
+                    <button type="button" id="fill-board-ids-btn" class="action-link-edit"
+                        style="margin-bottom: 0.5em;">Fill with all board IDs</button>
+                </div>
                 <textarea id="default_exploration_list" name="default_exploration_list"
                     rows="5">{{ settings.get('default_exploration_list', '') }}</textarea>
             </div>
@@ -66,4 +70,16 @@
         <button type="submit" style="background-color: #28a745; color: white;">Save Changes</button>
     </div>
 </form>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.getElementById('fill-board-ids-btn').addEventListener('click', function () {
+        const boardIds = {{ all_board_ids | tojson
+    }};
+    const textarea = document.getElementById('default_exploration_list');
+    textarea.value = boardIds.join(',');
+    });
+</script>
 {% endblock %}
