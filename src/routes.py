@@ -301,18 +301,25 @@ def passkey_verify_login():
 @web_bp.route('/attachments/<path:filename>')
 @login_required
 def download_attachment(filename):
-    """Serves a previously uploaded attachment file for download."""
-    # データベースから添付ファイル名に一致する記事情報を取得
-    article = database.get_article_by_attachment_filename(filename)
-    if article and article.get('attachment_originalname'):
-        # 元のファイル名が存在すれば、それをダウンロード時のファイル名として使用
+    """Serves a previously uploaded attachment or its thumbnail."""
+    is_thumbnail = filename.startswith('thumbnails/')
+    actual_filename = filename.replace(
+        'thumbnails/', '') if is_thumbnail else filename
+
+    # データベースからファイル名に一致する記事情報を取得
+    article = database.get_article_by_attachment_filename(actual_filename)
+
+    if not is_thumbnail and article and article.get('attachment_originalname'):
+        # 元のファイルをダウンロードする場合、元のファイル名を使用
         download_name = article['attachment_originalname']
+        as_attachment = True
     else:
-        # 見つからない場合は、サーバー上のファイル名をそのまま使用
-        download_name = filename
+        # サムネイル表示またはDBに情報がない場合は、そのまま表示
+        download_name = None
+        as_attachment = False
 
     attachment_dir = current_app.config.get('ATTACHMENT_DIR')
-    return send_from_directory(attachment_dir, filename, as_attachment=True, download_name=download_name)
+    return send_from_directory(attachment_dir, filename, as_attachment=as_attachment, download_name=download_name)
 
 
 @web_bp.route('/download_log/<path:filename>')

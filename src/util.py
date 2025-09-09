@@ -32,6 +32,7 @@ import string
 import json
 import base64
 from pywebpush import webpush, WebPushException
+from PIL import Image
 import socket
 from cryptography.hazmat.primitives import serialization
 
@@ -940,3 +941,37 @@ def scan_file_with_clamav(filepath):
     except Exception as e:
         logging.error(f"ClamAVスキャン中にエラーが発生しました: {e}", exc_info=True)
         return False, f"ClamAV scan error: {e}"
+
+
+def create_thumbnail(original_path, thumbnail_path, size=(100, 100)):
+    """
+    指定された画像ファイルからサムネイルを生成します。
+
+    :param original_path: 元の画像ファイルのパス。
+    :param thumbnail_path: サムネイルを保存するパス。
+    :param size: サムネイルの最大サイズ (幅, 高さ) のタプル。
+    :return: 成功した場合はTrue、失敗した場合はFalse。
+    """
+    # サムネイルを保存するディレクトリが存在しない場合は作成
+    thumbnail_dir = os.path.dirname(thumbnail_path)
+    os.makedirs(thumbnail_dir, exist_ok=True)
+
+    try:
+        with Image.open(original_path) as img:
+            # 画像の向きをEXIF情報に基づいて補正
+            if hasattr(img, '_getexif'):
+                exif = img._getexif()
+                if exif:
+                    orientation = exif.get(0x0112)
+                    if orientation == 3:
+                        img = img.rotate(180, expand=True)
+                    elif orientation == 6:
+                        img = img.rotate(270, expand=True)
+                    elif orientation == 8:
+                        img = img.rotate(90, expand=True)
+            img.thumbnail(size)
+            img.save(thumbnail_path, "JPEG")
+        return True
+    except IOError as e:
+        logging.error(f"サムネイルの作成に失敗しました: {e} (Path: {original_path})")
+        return False

@@ -54,10 +54,22 @@
                         <tr>
                             <td>{{ util.format_timestamp(attachment.created_at) }}</td>
                             <td>
+                                {% set is_image = attachment.attachment_originalname.lower().endswith(('.png', '.jpg',
+                                '.jpeg', '.gif', '.bmp')) %}
+                                {% if is_image %}
                                 <a href="{{ url_for('web.download_attachment', filename=attachment.attachment_filename) }}"
-                                    title="Download: {{ attachment.attachment_originalname }}">
-                                    <i class="fas fa-download mr-1"></i>{{ attachment.attachment_originalname }}
+                                    target="_blank" title="View full image: {{ attachment.attachment_originalname }}">
+                                    <img src="{{ url_for('web.download_attachment', filename='thumbnails/' + attachment.attachment_filename) }}"
+                                        alt="Thumbnail"
+                                        style="width: 30px; height: auto; border-radius: 3px; margin-right: 10px; vertical-align: middle;">
                                 </a>
+                                {% endif %}
+                                <div style="display: inline-block; vertical-align: middle;">
+                                    <a href="{{ url_for('web.download_attachment', filename=attachment.attachment_filename) }}"
+                                        title="Download: {{ attachment.attachment_originalname }}">
+                                        <i class="fas fa-download mr-1"></i>{{ attachment.attachment_originalname }}
+                                    </a>
+                                </div>
                             </td>
                             <td>{{ util.format_file_size(attachment.attachment_size) }}</td>
                             <td>{{ attachment.author_display_name }}</td>

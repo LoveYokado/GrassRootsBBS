@@ -357,6 +357,18 @@ def init_events(socketio, app):
                 emit('attachment_upload_error', {'message': error_msg})
                 return
 
+            # --- サムネイル生成 ---
+            is_image = safe_original_filename.lower().endswith(
+                ('.png', '.jpg', '.jpeg', '.gif', '.bmp'))
+            if is_image:
+                thumbnail_dir_rel = util.app_config.get('WEBAPP', {}).get(
+                    'THUMBNAIL_DIR', 'data/attachments/thumbnails')
+                thumbnail_dir_abs = os.path.join(
+                    current_app.config['PROJECT_ROOT'], thumbnail_dir_rel)
+                thumbnail_path = os.path.join(
+                    thumbnail_dir_abs, unique_filename)
+                util.create_thumbnail(save_path, thumbnail_path)
+
             handler.pending_attachment = {
                 'unique_filename': unique_filename,
                 'original_filename': safe_original_filename,
