@@ -63,12 +63,11 @@ class CommandHandler:
         self.user_id_pk = user_data.get('id')
         self.userlevel = user_data.get('level', 0)
         self.last_login_timestamp = 0
-        if user_data.get('lastlogin') is not None:
-            try:
-                self.last_login_timestamp = int(user_data['lastlogin'])
-            except (ValueError, TypeError):
-                logging.warning(
-                    f"CommandHandler.__init__: lastlogin field for user {login_id} is not a valid integer: {user_data['lastlogin']}. Defaulting to 0.")
+        try:
+            self.last_login_timestamp = int(user_data.get('lastlogin', 0))
+        except (ValueError, TypeError):
+            logging.warning(
+                f"CommandHandler.__init__: lastlogin field for user {login_id} is not a valid integer: {user_data.get('lastlogin')}. Defaulting to 0.")
 
         # 既読情報は専用の関数で取得（JSONパースのため）
         self.user_read_progress_map = database.get_user_read_progress(
@@ -103,8 +102,7 @@ class CommandHandler:
         current_read_article_number = self.user_read_progress_map.get(
             str(board_id_pk), 0)
         if article_number > current_read_article_number:
-            self.user_read_progress_map[str(board_id_pk)] = article_number
-            # dbnameは不要になった
+            self.user_read_progress_map[str(board_id_pk)] = article_number  # noqa
             database.update_user_read_progress(
                 self.user_id_pk, self.user_read_progress_map)
 
@@ -139,7 +137,6 @@ class CommandHandler:
             return
 
         board_name_display = self.current_board['name'] if 'name' in self.current_board else 'unknown board'
-        # 説明表示が必要ならコメント外す
         util.send_text_by_key(
             self.chan, "bbs.current_board_header",
             self.menu_mode, board_name=board_name_display
@@ -314,9 +311,7 @@ class CommandHandler:
                 user_id_from_article = article['user_id']
                 display_sender_name = ""
                 try:
-                    # user_idが数値に変換できるか試す (登録ユーザー)
                     user_id_int = int(user_id_from_article)
-                    # dbnameは不要になった
                     user_name = database.get_user_name_from_user_id(
                         user_id_int)
                     display_sender_name = user_name if user_name else "(Unknown)"
@@ -376,7 +371,6 @@ class CommandHandler:
         while True:
             util.prompt_handler(self.chan, self.login_id, self.menu_mode)
             key_input = None
-            decoded_char_for_check = None  # 番号ジャンプ用数字判定
             try:
                 # Gunicornのタイムアウト(デフォルト30秒)より短いタイムアウトを設定
                 self.chan.settimeout(25.0)
@@ -387,12 +381,6 @@ class CommandHandler:
                     logging.info(
                         f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
                     return  # 切断
-
-                # ASCIIデコード判定
-                try:
-                    decoded_char_for_check = data.decode('ascii')
-                except UnicodeDecodeError:
-                    decoded_char_for_check = None  # 失敗したとき
 
                 if data == b'\x1b':  # esc - 矢印の可能性
                     self.chan.settimeout(0.05)  # 短いタイムアウトを設定
@@ -450,8 +438,14 @@ class CommandHandler:
             if key_input is None:  # キーが取得できなかった場合 (通常は発生しないはず)
                 continue
 
+            decoded_char_for_check = None
+            try:
+                decoded_char_for_check = data.decode('ascii')
+            except UnicodeDecodeError:
+                pass  # 非ASCII文字はNoneのまま
+
             # 数字キーによる記事ジャンプ処理
-            if decoded_char_for_check and decoded_char_for_check.isdigit():
+            if decoded_char_for_check is not None and decoded_char_for_check.isdigit():
                 num_input_buffer = decoded_char_for_check
                 self.chan.send(data)  # 最初の数字をエコー
 
@@ -492,8 +486,6 @@ class CommandHandler:
                                 break
                         if target_article_index != -1:
                             current_index = target_article_index
-                            # self.read_article(target_article_number, show_header=True, show_back_prompt=True) # 本文読み込みはしない
-                            # reload_articles_display(keep_index=True) # リスト全体の再読み込みも不要
                             # ジャンプ先表示前にリストヘッダを再表示
                             util.send_text_by_key(
                                 self.chan, "bbs.article_list_header", self.menu_mode)
@@ -507,7 +499,7 @@ class CommandHandler:
                             self.chan, "common_messages.invalid_input", self.menu_mode)
                         display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
-                continue  # 数字ジャンプ処理後はループの先頭へ
+                continue
             elif decoded_char_for_check == '"':  # タイトル検索
                 self.chan.send(b'"\r\n')  # 入力された " をエコーバックして改行
                 util.send_text_by_key(
@@ -591,7 +583,7 @@ class CommandHandler:
 
                 if not search_term:
                     util.send_text_by_key(
-                        self.chan, "bbs.article_list_header", self.menu_mode)
+                        self.chan, "bbs.article_list_header", self.menu_mode)  # noqa
                     display_current_article_header()
                     self.just_displayed_header_from_tail_h = False
                     continue
@@ -604,7 +596,6 @@ class CommandHandler:
                     for article_item in all_articles_from_db_for_search:
                         title_to_check = (
                             article_item['title'] if article_item['title'] else "").lower()
-                        # sqlite3.Rowからは辞書形式でアクセス
                         body_from_row = article_item['body']
                         body_to_check = (
                             body_from_row if body_from_row else "").lower()
@@ -762,7 +753,6 @@ class CommandHandler:
 
             # --- 記事の削除/復元 ---
             elif key_input == "*":
-                # ゲストは削除/復元機能を使えないようにしないとね
                 if self.login_id.upper() == 'GUEST':
                     self.chan.send(b'\a')  # ビープ音
                     display_current_article_header()
@@ -903,12 +893,9 @@ class CommandHandler:
                     start_idx = 0  # 先頭マーカーなら0から
 
                 self.chan.send(b'\r\n')
-                if board_type == 'thread':
-                    util.send_text_by_key(
-                        self.chan, "bbs.thread_list_header", self.menu_mode)
-                else:
-                    util.send_text_by_key(
-                        self.chan, "bbs.article_list_header", self.menu_mode)
+                header_key = "bbs.thread_list_header" if board_type == 'thread' else "bbs.article_list_header"
+                util.send_text_by_key(self.chan, header_key, self.menu_mode)
+
                 for i in range(start_idx, len(articles)):
                     article = articles[i]
                     # 左寄せ、指定幅
@@ -952,7 +939,6 @@ class CommandHandler:
                     display_sender_name = ""
                     try:
                         user_id_int = int(user_id_from_article)
-                        # dbnameは不要になった
                         user_name = database.get_user_name_from_user_id(
                             user_id_int)
                         display_sender_name = user_name if user_name else "(Unknown)"
@@ -1540,8 +1526,6 @@ class CommandHandler:
             if reply_choice and reply_choice.strip().lower() == 'r':
                 self._reply_to_article(article)
                 # 返信後は記事一覧に戻るため、ここで処理を終了
-                # 注意: 現状では返信内容は即時反映されません。一度掲示板を抜けて入り直すと表示されます。
-                #      この動作は今後のステップで改善される可能性があります。
                 return
 
         # 記事本文表示後、既読として記録
@@ -1944,12 +1928,10 @@ def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_add
                 return
             loop_result = handler.command_loop()  # "empty_exit" or None
             if loop_result == "empty_exit":
-                # 1階層戻ることを呼び出し元に伝える
                 return "back_one_level"
             else:  # None (切断) の場合
                 return None
-        else:
-            # TODO: textdata.yaml に追加
+        else:  # 掲示板が見つからない場合
             util.send_text_by_key(
                 chan, "bbs.board_not_found", menu_mode, shortcut_id=shortcut_id)
     else:

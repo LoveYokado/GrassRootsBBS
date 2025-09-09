@@ -131,7 +131,7 @@ def show_member_list(chan, login_id, current_menu_mode, user_data):
     util.send_text_by_key(
         chan, "user_pref_menu.member_list.search_prompt", current_menu_mode, add_newline=False)
     search_word = chan.process_input()
-    member_list = database.get_memberlist(search_word)
+    member_list = database.get_memberlist(search_word)  # noqa
     if member_list:
         # ヘッダーを追加して見やすくする
         header = f"{'NAME':<20} {'COMMENT'}\r\n"
@@ -458,7 +458,7 @@ def edit_blacklist(chan, login_id, current_menu_mode, user_data):
 
     if current_blacklist_str:
         current_user_id_strs = [uid_str.strip(
-        ) for uid_str in current_blacklist_str.split(',') if uid_str.strip().isdigit()]
+        ) for uid_str in current_blacklist_str.split(',') if uid_str.strip().isdigit()]  # noqa
         display_login_ids = []
 
         if current_user_id_strs:
@@ -519,7 +519,6 @@ def edit_blacklist(chan, login_id, current_menu_mode, user_data):
 
             if target_login_id_str == login_id:
                 continue
-
             target_login_id_upper = target_login_id_str.upper()
             target_user_id_from_db = database.get_user_id_from_user_name(
                 target_login_id_upper)
@@ -552,7 +551,6 @@ def register_exploration_list(chan, login_id, current_menu_mode, user_data):
     """Registers a custom exploration list for the user."""
     user_id = user_data.get('id')
 
-    # util.pyの共通関数を呼び出す。保存処理はラムダ式で渡す。
     def save_func(exploration_list_str): return database.set_user_exploration_list(
         user_id, exploration_list_str)
     util.prompt_and_save_exploration_list(
@@ -563,7 +561,6 @@ def register_exploration_list(chan, login_id, current_menu_mode, user_data):
 def read_exploration_list(chan, login_id, current_menu_mode, user_data):
     """Displays the user's custom exploration list."""
     user_id = user_data.get('id')
-    # dbnameは不要になった
     exploration_list_str = database.get_user_exploration_list(user_id)
     util.display_exploration_list(chan, exploration_list_str)
     return None

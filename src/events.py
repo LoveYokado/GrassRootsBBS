@@ -138,7 +138,7 @@ def init_events(socketio, app):
                     'display_name', handler.user_session.get('username'))
                 # ファイル名を無害化
                 safe_display_name = secure_filename(display_name_for_log)
-                filename = f"{bbs_name}_{safe_display_name}_{timestamp}.log"  # noqa
+                filename = f"{bbs_name}_{safe_display_name}_{timestamp}.log"
                 filepath = os.path.join(
                     current_app.config['SESSION_LOG_DIR'], filename)
                 try:

@@ -326,7 +326,7 @@ def change_login_message(chan, _sysop_login_id, current_menu_mode):
 
     # 確認
     util.send_text_by_key(chan, "common_messages.confirm_yn",
-                          current_menu_mode, add_newline=False)
+                          current_menu_mode, add_newline=False)  # noqa
     final_confirm = chan.process_input()
 
     if final_confirm is None or final_confirm.strip().lower() != 'y':
@@ -336,7 +336,6 @@ def change_login_message(chan, _sysop_login_id, current_menu_mode):
 
     # DBを更新
     try:
-        # MariaDB用の関数を呼び出す。server_prefテーブルは1行しかなく、id=1と仮定
         database.update_record(
             'server_pref', {'login_message': new_login_message}, {'id': 1})
         util.send_text_by_key(
@@ -392,13 +391,11 @@ def user_list(chan, _sysop_login_id, current_menu_mode):
     try:
         users = database.get_all_users()
         if users:
-            # util.send_text_by_key がヘッダーと上の区切り線を出力するため、冗長な区切り線送信を削除
             util.send_text_by_key(
                 chan, "sysop_menu.user_list.header", current_menu_mode)
             for user in users:
                 regdt_str = util.format_timestamp(user['registdate'])
                 lastlogin_str = util.format_timestamp(user['lastlogin'])
-
                 comment_str = user['comment'] if user['comment'] else ''
                 email_str = user['email'] if user['email'] else ''
                 # chan.send にはバイト列を渡す必要があるため、文字列をエンコードする

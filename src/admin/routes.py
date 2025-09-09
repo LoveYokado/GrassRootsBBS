@@ -15,13 +15,6 @@
 # このファイルは、GrassRootsBBSのWeb管理画面における全てのルート(URL)を定義します。
 # FlaskのBlueprint機能を利用して、管理画面関連のルートを '/admin' プレフィックスで
 # グループ化し、コードのモジュール性を高めています。
-# ==============================================================================
-
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g, current_app
-
-
-from ..decorators import sysop_required
-from .. import util, database
 import json
 import os
 from datetime import datetime, timedelta
@@ -29,6 +22,9 @@ import time
 import logging
 from .. import database, util, backup_util, plugin_manager, terminal_handler
 import psutil
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g, current_app
+from ..decorators import sysop_required
+
 import toml
 import shutil
 
@@ -1092,7 +1088,7 @@ def attachment_list():
                 quarantined_files.sort(key=lambda x: x.get(
                     'timestamp', 0), reverse=True)
     except (json.JSONDecodeError, IOError) as e:
-        flash(f"Could not read quarantine log: {e}", 'danger')
+        flash(f"Could not read quarantine log: {e}", 'danger')  # noqa
 
     search_params = {'sort_by': sort_by, 'order': order, 'per_page': per_page}
     search_params_for_per_page = {k: v for k,

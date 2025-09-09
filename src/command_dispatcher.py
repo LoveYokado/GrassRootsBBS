@@ -105,9 +105,6 @@ def handle_sysop_menu(context):
 def handle_bbs(context):
     """'b' コマンドを処理し、電子掲示板機能を開始します。"""
     context['chan'].send(b'\x1b[?2031l')
-    # bbs_handler.handle_bbs_menu に処理を移譲する。
-    # shortcut_id=None で呼び出すと、階層メニューが表示される。
-    # bbs_handler側でモバイルボタンの表示/非表示を制御する。
     bbs_handler.handle_bbs_menu(
         context['chan'], context['login_id'], context['display_name'],
         context['menu_mode'], shortcut_id=None, ip_address=context['addr'][0]

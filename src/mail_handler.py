@@ -42,11 +42,8 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
     SUBJECT_WIDTH = 31
 
     mail_id = mail_data['id']
-    try:
-        sent_dt = datetime.datetime.fromtimestamp(mail_data['sent_at'])
-        date_str = sent_dt.strftime('%y-%m-%d %H:%M:%S')
-    except (ValueError, OSError, TypeError):
-        date_str = "---/--/-- --:--:--"
+    date_str = util.format_timestamp(
+        mail_data.get('sent_at'), date_format='%y-%m-%d %H:%M:%S', default_str="---/--/-- --:--:--")
 
     subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
     mail_id_str = f"{mail_id:0{mail_id_width}d}"
@@ -78,7 +75,6 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
     # --- Determine sender/recipient name ---
     display_name = ""
     if view_mode == 'inbox':
-        # JOINで事前に取得した sender_name を利用する
         sender_name_raw = mail_data.get('sender_name')
         if sender_name_raw and sender_name_raw.upper() == 'GUEST' and mail_data.get('sender_ip_address'):
             display_name = util.get_display_name(
@@ -86,7 +82,6 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
         else:
             display_name = sender_name_raw if sender_name_raw else "(不明)"
     else:  # outbox
-        # JOINで事前に取得した recipient_name を利用する
         recipient_name = mail_data.get('recipient_name')
         display_name = recipient_name if recipient_name else "(不明)"
 
@@ -94,7 +89,6 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
     display_name_final = util.shorten_text_by_slicing(
         display_name, width=SENDER_RCPT_WIDTH)
 
-    # --- Format the final output string ---
     # The gap between name and status mark is one space
     return f"{mail_id_str}  {date_str}  {display_name_final:<{SENDER_RCPT_WIDTH}} {status_mark_char}{display_subject_final}"
 
@@ -666,7 +660,6 @@ def display_mail_header(chan, mail_data, view_mode='inbox', mail_id_width=5):
 
 
 def display_mail_content(chan, mail_data, recipient_user_id_pk, view_mode='inbox', menu_mode='2'):
-    """メールの本文を表示し、受信箱の場合は既読にマークします。"""
     try:
         if not mail_data:
             util.send_text_by_key(
@@ -674,7 +667,7 @@ def display_mail_content(chan, mail_data, recipient_user_id_pk, view_mode='inbox
             )  # メールが見つかりません
             return False, False
 
-        mail_id = mail_data['id']  # Get mail_id from the data
+        mail_id = mail_data['id']
         body = mail_data['body'] if mail_data['body'] else "(本文なし)"
 
         # ユーザーが入力した改行を維持しつつ、長い行を折り返す
@@ -691,14 +684,10 @@ def display_mail_content(chan, mail_data, recipient_user_id_pk, view_mode='inbox
                 for wrapped_line in wrapped_lines:
                     chan.send(wrapped_line.encode('utf-8') + b'\r\n')
 
-        # 既読にする(inbox only)
         marked_as_read = False
-        if view_mode == 'inbox':  # recipient_deleted == 0 のメールのみがここに到達する想定
-            # is_read == 0 の条件は mark_mail_as_read 側では不要 (UPDATE文が対象を見つけられないだけ)
-            # ここで条件分岐すると、何らかの理由で is_read が予期せぬ値だった場合にスキップされる可能性がある
+        if view_mode == 'inbox':
             if database.mark_mail_as_read(mail_id, recipient_user_id_pk):
                 marked_as_read = True
-            # mark_mail_as_read 内でエラーログは出力される
         return True, marked_as_read
 
     except Exception as e:

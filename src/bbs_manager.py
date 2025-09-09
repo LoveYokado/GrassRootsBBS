@@ -37,8 +37,6 @@ class BoardManager:
         pass
 
     def load_boards_from_config(self):
-        """bbs.yaml から掲示板情報を読み込み、DBと同期します。（現在未使用）"""
-        # This function is currently not called from anywhere.
         paths_config = util.app_config.get('paths', {})
         bbs_config_path = paths_config.get('bbs_sync_config')
         bbs_config_data = util.load_yaml_file_for_shortcut(bbs_config_path)
@@ -56,17 +54,11 @@ class BoardManager:
                     if not shortcut_id:
                         logging.warning(f"IDが未定義の掲示板項目がありました: {item_data}")
                         continue
-
-                    # bbs.yaml の name は直接文字列
                     board_name_from_yml = item_data.get("name")
-                    if board_name_from_yml is None:  # name がない場合はIDを使うなどフォールバック
+                    if board_name_from_yml is None:
                         board_name_from_yml = shortcut_id
                         logging.warning(
                             f"掲示板 {shortcut_id} の name が未定義です。IDを使用します。")
-
-                    # bbs.yaml からは shortcut_id のみを取得。name, description はDBで管理。
-                    # operators, default_permission はDBで直接管理 (sysop_menu.mkbd で初期設定)
-                    # category_id, display_order も bbs.yaml で管理
 
                     processed_shortcuts.add(shortcut_id)
                 elif item_data.get("type") == "child" and "items" in item_data:
@@ -75,18 +67,14 @@ class BoardManager:
 
         for category in bbs_config_data.get("categories", []):
             category_id = category.get("id")
-            # カテゴリ自体の情報をDBに入れるかは別途検討
             _parse_items(category.get("items", []), category_id)
 
-        # 現状の方針では、この関数は主に「bbs.yamlに定義されているがDBにない掲示板がないか」のチェックや、
-        # 「DBには存在するがbbs.yamlのどこにも属していない掲示板がないか」のチェックになるかもしれません。
         logging.info(
             f"bbs.yamlから {len(processed_shortcuts)} 件の掲示板ショートカットIDを認識しました: {processed_shortcuts}")
-        return True  # 仮
+        return True
 
     def get_board_info(self, shortcut_id):
         """指定されたショートカットIDの掲示板情報をDBから取得します。"""
-        # database.py は直接辞書を返すため、dict()変換は不要
         return database.get_board_by_shortcut_id(shortcut_id)
 
 
@@ -99,8 +87,6 @@ class ArticleManager:
 
     def get_articles_by_board(self, board_id, include_deleted=False):
         """指定された掲示板の投稿一覧を取得します。"""
-        # board_idはboardsテーブルの主キー(id)
-        # 投稿順（古いものが先）で取得
         return database.get_articles_by_board_id(board_id, order_by="created_at ASC, article_number ASC", include_deleted=include_deleted)
 
     def get_new_articles(self, board_id, last_login_timestamp):
@@ -109,8 +95,6 @@ class ArticleManager:
 
     def get_article_by_number(self, board_id, article_number, include_deleted=False):
         """指定された記事番号の記事を取得します。"""
-        # board_idはboardsテーブルの主キー(id)
-        # self.dbname は不要になったため、直接 database モジュールを呼び出す
         return database.get_article_by_board_and_number(
             board_id, article_number, include_deleted=include_deleted)
 
@@ -131,7 +115,6 @@ class ArticleManager:
             if parent_article_id is not None:
                 next_article_number = None  # 返信には記事番号を割り当てない
             else:
-                # トランザクション内で次の記事番号を取得
                 query_next_num = "SELECT COALESCE(MAX(article_number), 0) + 1 FROM articles WHERE board_id = %s"
                 cursor.execute(query_next_num, (board_id_pk,))
                 result = cursor.fetchone()
@@ -187,20 +170,9 @@ class ArticleManager:
         """指定された親記事の返信をすべて取得します。"""
         return database.get_replies_for_article(parent_article_id, include_deleted)
 
-    def update_article(self, article_id, title, body):
-        """記事を更新します。（現在未使用）"""
-        # TODO: 実装
-        pass
-
     def toggle_delete_article(self, article_id):
         """記事の削除フラグをトグルします（論理削除）。"""
         return database.toggle_article_deleted_status(article_id)
-
-    def search_articles(self, board_id, keyword, search_body=False):
-        """記事を検索します（タイトルまたは本文）。（現在未使用）"""
-        # TODO: 検索機能の実装時に include_deleted を考慮する
-        # TODO: 実装
-        pass
 
     def get_thread_count(self, board_id_pk):
         """指定された掲示板の現在のスレッド数を取得します（削除済みは除く）。"""
@@ -231,7 +203,7 @@ class PermissionManager:
         3. 掲示板の指定されたレベルキー (read_level/write_level) とユーザーレベルを比較。
         """
         if user_level >= 5:
-            return True
+            return True  # SysOpは常に許可
 
         board_id_pk = board_info.get("id")
         required_level = board_info.get(level_key, 1)  # デフォルトはレベル1
@@ -239,20 +211,12 @@ class PermissionManager:
         user_specific_perm = database.get_user_permission_for_board(
             board_id_pk, str(user_id_pk))
 
-        # 優先順位: 1. deny, 2. allow, 3. level check
         if user_specific_perm == "deny":
             return False
         if user_specific_perm == "allow":
             return True
 
-        return user_level >= required_level
-
-    def check_permission(self, board_id, user_id, action):
-        """
-        指定されたアクションの実行権限があるかチェックします。
-        将来的に詳細な権限管理に使用する予定です。
-        """
-        return True
+        return user_level >= required_level  # レベルチェック
 
     def can_view_board(self, board_info, user_id_pk, user_level):
         """指定された掲示板の閲覧権限があるかチェックします。"""
@@ -260,7 +224,6 @@ class PermissionManager:
 
     def can_write_to_board(self, board_info, user_id_pk, user_level):
         """指定された掲示板の書き込み権限があるかチェックします。"""
-        # シグオペは汎用チェックの前に特別に許可する
         try:
             operator_ids_json = board_info.get('operators', '[]')
             operator_ids = json.loads(operator_ids_json)
@@ -269,8 +232,7 @@ class PermissionManager:
         except (json.JSONDecodeError, TypeError):
             pass  # エラー対策
 
-        # 汎用チェックを呼び出す
-        return self._check_generic_permission(board_info, user_id_pk, user_level, 'write_level')
+        return self._check_generic_permission(board_info, user_id_pk, user_level, 'write_level')  # noqa
 
     def can_delete_article(self, article_data, user_id_pk, user_level):
         """指定された記事の削除/復元権限があるかチェックします。"""
@@ -278,13 +240,10 @@ class PermissionManager:
             return False
 
         # シスオペ (レベル5以上) は常に権限あり
-        if user_level >= 5:
+        if user_level >= 5:  # noqa
             return True
 
-        # 記事の投稿者本人かチェック
         try:
-            # article_data['user_id'] は TEXT 型の可能性があるため int に変換
-            # user_id_pk は users.id (INTEGER)
             article_owner_id = int(article_data['user_id'])
             if article_owner_id == user_id_pk:
                 return True
@@ -297,27 +256,13 @@ class PermissionManager:
     def can_view_deleted_article_content(self, article_data, user_id_pk, user_level):
         """削除された記事の内容（タイトルや本文）を閲覧する権限があるかチェックします。"""
         if not article_data or article_data.get('is_deleted') != 1:
-            # 削除されていない記事、またはデータがない場合は権限チェックの対象外
             return True
 
-        # シスオペ (レベル5以上) は常に権限あり
         if user_level >= 5:
             return True
 
-        # 記事の投稿者本人かチェック
         try:
             article_owner_id = int(article_data['user_id'])
             return article_owner_id == user_id_pk
         except (ValueError, TypeError, KeyError):
-            # GUEST(hash) やIDがない場合は本人ではない
             return False
-
-    def get_permission_list(self, board_id):
-        """指定された掲示板のパーミッションリストを取得します。（現在未使用）"""
-        # TODO: 実装
-        pass
-
-    def update_permission_list(self, board_id, user_id, permission_type):
-        """指定された掲示板のパーミッションリストを更新します。（現在未使用）"""
-        # permission_type: "allow" (ホワイトリスト), "deny" (ブラックリスト)
-        pass
