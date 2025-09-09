@@ -2,16 +2,21 @@
 
 {% block title %}{{ title }}{% endblock %}
 
+{% block scripts %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <h1 class="mt-4">{{ title }}</h1>
     <p>{{ g.texts.get('attachment_management', {}).get('description', 'View and manage all uploaded attachments.') }}
     </p>
 
+    <!-- Uploaded Files -->
     <div class="card mb-4">
         <div class="card-header">
-            <i class="fas fa-file-alt mr-1"></i>
-            Uploaded Files
+            <i class="fas fa-file-alt mr-1"></i> Uploaded Files
         </div>
         <div class="card-body">
             {% include 'admin/_pagination.html' %}
@@ -82,15 +87,6 @@
                                     class="action-link-view" title="View original post">
                                     View Post
                                 </a>
-                                {# 添付ファイルのみを削除する機能は、記事との整合性が難しいため、
-                                元記事を削除することで対応する運用とします。
-                                <form method="post"
-                                    action="{{ url_for('admin.delete_attachment', attachment_id=attachment.id) }}"
-                                    style="display:inline;">
-                                    <button type="submit" class="action-link-delete"
-                                        onclick="return confirm('Are you sure you want to delete this attachment?');">
-                                        Delete</button>
-                                </form> #}
                             </td>
                         </tr>
                         {% else %}
@@ -104,5 +100,65 @@
             {% include 'admin/_pagination.html' %}
         </div>
     </div>
+
+    <!-- Quarantined Files -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-bug mr-1"></i> Quarantined Files
+            {% if quarantined_files %}
+            <span class="badge badge-danger ml-1">{{ quarantined_files|length }}</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Original Filename</th>
+                            <th>Size</th>
+                            <th>Uploaded By</th>
+                            <th>Attempted Board</th>
+                            <th>Virus Signature</th>
+                            <th style="width: 10%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in quarantined_files %}
+                        <tr>
+                            <td>{{ util.format_timestamp(file.timestamp) }}</td>
+                            <td>
+                                <i class="fas fa-file-excel text-danger mr-1"></i>{{ file.original_filename }}
+                                <br><small class="text-muted">{{ file.unique_filename }}</small>
+                            </td>
+                            <td>{{ util.format_file_size(file.size) }}</td>
+                            <td>{{ file.username or '(Unknown)' }}</td>
+                            <td>{{ file.board_name or '(N/A)' }}</td>
+                            <td>
+                                <span class="badge badge-danger" title="{{ file.scan_result }}">
+                                    {{ file.scan_result.split(' ')[0] }}
+                                </span>
+                            </td>
+                            <td>
+                                <form
+                                    action="{{ url_for('admin.delete_quarantined_file', filename=file.unique_filename) }}"
+                                    method="post" style="display:inline;">
+                                    <button type="submit" class="action-link-delete"
+                                        onclick="return confirm('Are you sure you want to permanently delete this quarantined file? This action cannot be undone.');">
+                                        Delete File</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">No files in quarantine.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
+
 {% endblock %}

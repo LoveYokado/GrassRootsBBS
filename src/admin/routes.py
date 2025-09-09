@@ -17,7 +17,7 @@
 # グループ化し、コードのモジュール性を高めています。
 # ==============================================================================
 
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g, current_app
 
 
 from ..decorators import sysop_required
@@ -122,8 +122,9 @@ def bbs_list():
         'order': order,
         'per_page': per_page
     }
-    search_params_for_per_page = {
-        k: v for k, v in search_params.items() if k != 'per_page'}
+    # ページネーションのプルダウン用に、per_page以外のクエリパラメータを渡す
+    search_params_for_per_page = {k: v for k,
+                                  v in request.args.items() if k != 'per_page'}
 
     pagination = {
         'page': page, 'per_page': per_page, 'total_items': total_items,
@@ -329,8 +330,9 @@ def who_online():
         'order': order,
         'per_page': per_page
     }
-    search_params_for_per_page = {
-        k: v for k, v in search_params.items() if k != 'per_page'}
+    # ページネーションのプルダウン用に、per_page以外のクエリパラメータを渡す
+    search_params_for_per_page = {k: v for k,
+                                  v in request.args.items() if k != 'per_page'}
 
     pagination = {
         'page': page,
@@ -419,8 +421,9 @@ def user_list():
         'order': order,
         'per_page': per_page
     }
-    search_params_for_per_page = {
-        k: v for k, v in search_params.items() if k != 'per_page'}
+    # ページネーションのプルダウン用に、per_page以外のクエリパラメータを渡す
+    search_params_for_per_page = {k: v for k,
+                                  v in request.args.items() if k != 'per_page'}
 
     pagination = {
         'page': page,
@@ -606,8 +609,9 @@ def board_list():
         'order': order,
         'per_page': per_page
     }
-    search_params_for_per_page = {
-        k: v for k, v in search_params.items() if k != 'per_page'}
+    # ページネーションのプルダウン用に、per_page以外のクエリパラメータを渡す
+    search_params_for_per_page = {k: v for k,
+                                  v in request.args.items() if k != 'per_page'}
 
     pagination = {
         'page': page, 'per_page': per_page, 'total_items': total_items,
@@ -940,8 +944,9 @@ def article_search():
         'author': author_name,
         'per_page': per_page
     }
-    search_params_for_per_page = {
-        k: v for k, v in search_params.items() if k != 'per_page'}
+    # ページネーションのプルダウン用に、per_page以外のクエリパラメータを渡す
+    search_params_for_per_page = {k: v for k,
+                                  v in request.args.items() if k != 'per_page'}
 
     pagination = {
         'page': page, 'per_page': per_page, 'total_items': total_items,
@@ -1072,17 +1077,72 @@ def attachment_list():
 
             enriched_attachments.append(mutable_art)
 
+    # --- 隔離されたファイルの読み込み ---
+    quarantined_files = []
+    quarantine_dir_rel = util.app_config.get('clamav', {}).get(
+        'quarantine_directory', 'data/quarantine')
+    quarantine_dir_abs = os.path.join(
+        current_app.config['PROJECT_ROOT'], quarantine_dir_rel)
+    log_file_path = os.path.join(quarantine_dir_abs, 'quarantine_log.json')
+    try:
+        if os.path.exists(log_file_path):
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                quarantined_files = json.load(f)
+            if isinstance(quarantined_files, list):
+                quarantined_files.sort(key=lambda x: x.get(
+                    'timestamp', 0), reverse=True)
+    except (json.JSONDecodeError, IOError) as e:
+        flash(f"Could not read quarantine log: {e}", 'danger')
+
     search_params = {'sort_by': sort_by, 'order': order, 'per_page': per_page}
-    # ソート用のリンクを生成する際に、重複するキーを除外した辞書を作成
-    search_params_for_per_page = {
-        k: v for k, v in search_params.items() if k not in ['per_page', 'sort_by', 'order']}
+    search_params_for_per_page = {k: v for k,
+                                  v in request.args.items() if k != 'per_page'}
 
     pagination = {'page': page, 'per_page': per_page, 'total_items': total_items,
                   'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages}
 
-    return render_template('admin/attachment_list.html', title='Attachment Management', attachments=enriched_attachments,
+    return render_template('admin/attachment_list.html', title='Attachment Management', attachments=enriched_attachments, quarantined_files=quarantined_files,
                            pagination=pagination, sort_by=sort_by, order=order, next_order=next_order,
                            search_params=search_params, search_params_for_per_page=search_params_for_per_page)
+
+
+@admin_bp.route('/attachments/quarantine/delete/<path:filename>', methods=['POST'])
+@sysop_required
+def delete_quarantined_file(filename):
+    """Deletes a specific file from the quarantine directory and its log entry."""
+    quarantine_dir_rel = util.app_config.get('clamav', {}).get(
+        'quarantine_directory', 'data/quarantine')
+    quarantine_dir_abs = os.path.join(
+        current_app.config['PROJECT_ROOT'], quarantine_dir_rel)
+    filepath = os.path.join(quarantine_dir_abs, filename)
+    log_file_path = os.path.join(quarantine_dir_abs, 'quarantine_log.json')
+
+    # 1. Delete the physical file
+    try:
+        if os.path.exists(filepath) and os.path.isfile(filepath):
+            os.remove(filepath)
+    except OSError as e:
+        flash(f"Error deleting file '{filename}': {e}", 'danger')
+        return redirect(url_for('admin.attachment_list'))
+
+    # 2. Remove the entry from the log file
+    try:
+        if os.path.exists(log_file_path):
+            with open(log_file_path, 'r+', encoding='utf-8') as f:
+                logs = json.load(f)
+                # Keep all logs that do NOT match the filename
+                updated_logs = [log for log in logs if log.get(
+                    'unique_filename') != filename]
+                f.seek(0)
+                f.truncate()
+                json.dump(updated_logs, f, indent=4)
+            flash(
+                f"Quarantined file '{filename}' and its log entry have been deleted.", 'success')
+    except (IOError, json.JSONDecodeError) as e:
+        flash(
+            f"File was deleted, but failed to update quarantine log: {e}", 'danger')
+
+    return redirect(url_for('admin.attachment_list'))
 
 
 @admin_bp.route('/settings', methods=['GET', 'POST'])

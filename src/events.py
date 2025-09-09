@@ -330,8 +330,18 @@ def init_events(socketio, app):
                     }
                     log_file_path = os.path.join(
                         quarantine_dir_abs, 'quarantine_log.json')
-                    with open(log_file_path, 'a', encoding='utf-8') as f:
-                        f.write(json.dumps(log_entry) + '\n')
+                    logs = []
+                    if os.path.exists(log_file_path):
+                        try:
+                            with open(log_file_path, 'r', encoding='utf-8') as f:
+                                logs = json.load(f)
+                                if not isinstance(logs, list):
+                                    logs = []
+                        except (json.JSONDecodeError, IOError):
+                            logs = []
+                    logs.append(log_entry)
+                    with open(log_file_path, 'w', encoding='utf-8') as f:
+                        json.dump(logs, f, indent=4)
 
                     # ファイルを隔離ディレクトリに移動
                     shutil.move(save_path, os.path.join(
