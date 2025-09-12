@@ -22,7 +22,7 @@
 import textwrap
 
 
-def handle_plugin_menu(chan, context):
+def handle_plugin_menu(context):
     """
     Displays the plugin menu and executes a plugin based on user selection.
     It also controls the visibility of mobile-specific buttons.
@@ -32,13 +32,16 @@ def handle_plugin_menu(chan, context):
     # 循環インポートを避けるため、関数内でインポートする
     from . import plugin_manager, util
 
+    # contextオブジェクトからchanを取得
+    chan = context.chan
+
     # モバイル用のプラグインメニューボタンを表示
     chan.send(b'\x1b[?2032h')
     try:
         while chan.active:
             plugins = plugin_manager.get_loaded_plugins()
             # Get current menu mode from context
-            menu_mode = context.get('menu_mode', '2')
+            menu_mode = context.menu_mode
 
             # Display menu header
             chan.send(b'\r\n')  # Add a newline for better readability
@@ -58,7 +61,7 @@ def handle_plugin_menu(chan, context):
                 chan.send(f"{description}\r\n".encode('utf-8'))
 
             # Check for new mail/telegrams for consistency with other menus
-            util.prompt_handler(chan, context.get('login_id'), menu_mode)
+            util.prompt_handler(chan, context.login_id, menu_mode)
 
             util.send_text_by_key(  # Display prompt
                 chan, "plugin_menu.select_prompt", menu_mode, add_newline=False)

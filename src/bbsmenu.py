@@ -199,12 +199,6 @@ def _perform_exploration(chan, login_id, display_name, user_id_pk, user_level, m
         chan, "explore_new_articles.start_message", menu_mode
     )
 
-    # 探索リスト取得
-    exploration_list_str = database.get_user_exploration_list(user_id_pk)
-    if not exploration_list_str:
-        server_prefs = database.read_server_pref()
-        exploration_list_str = server_prefs.get('default_exploration_list', '')
-
     if not exploration_list_str:
         util.send_text_by_key(
             chan, "auto_download.no_exploration_list", menu_mode)

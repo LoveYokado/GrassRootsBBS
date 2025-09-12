@@ -236,10 +236,8 @@ class CommandHandler:
             total_articles = len(articles)
             last_read_article_number = self.user_read_progress_map.get(
                 str(board_id_pk), 0)
-            unread_articles_count = 0
-            for article in articles:
-                if article['article_number'] > last_read_article_number:
-                    unread_articles_count += 1
+            unread_articles_count = sum(
+                1 for article in articles if article['article_number'] > last_read_article_number)
 
             new_idx = 0
             if articles:  # 記事が1件以上ある場合のみインデックスを考慮
