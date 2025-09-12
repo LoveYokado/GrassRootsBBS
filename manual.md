@@ -1,14 +1,16 @@
-# GrassRootsBBS 運用マニュアル
+# GrassRootsBBS Manual
 
-このドキュメントは、GrassRootsBBS をホストとして運用する方向けの基本的な使い方を説明します。
+このドキュメントは、GrassRootsBBS のセットアップ、管理、利用方法について説明します。
 
-## 1. 初回起動とシスオペ設定
+---
 
-BBS を初めて起動する前に、いくつかの重要な設定を行う必要があります。
+## 1. Installation & Setup / インストールとセットアップ
 
-### 1.1. 環境変数の設定
+このセクションでは、サーバーを起動して BBS を運用可能にするまでの手順を説明します。
 
-プロジェクトのルートディレクトリにある `.env` ファイルを編集（または作成）し、シスオペ（システム管理者）のアカウント情報を設定します。
+### 1.1. 環境変数の設定 (`.env`)
+
+プロジェクトのルートディレクトリに `.env` ファイルを作成し、システム管理者（シスオペ）のアカウント情報を設定します。
 
 ```bash
 # .env ファイルの例
@@ -21,7 +23,7 @@ GRASSROOTSBBS_SYSOP_EMAIL=your_email@example.com
 - `GRASSROOTSBBS_SYSOP_PASSWORD`: シスオペの初期パスワードです。ログイン後、速やかに変更してください。
 - `GRASSROOTSBBS_SYSOP_EMAIL`: シスオペのメールアドレスです。オンラインサインアップの通知などに使用されます。
 
-### 1.2. ドメイン名の設定 (任意)
+### 1.2. ドメイン名の設定 (`config.toml`)
 
 プッシュ通知や Passkey などの機能で外部連携を行う場合、`setting/config.toml` ファイル内のドメイン名を設定する必要があります。
 
@@ -29,7 +31,7 @@ GRASSROOTSBBS_SYSOP_EMAIL=your_email@example.com
 # setting/config.toml
 
 [webapp]
-ORIGIN = "http://your.bbs.domain:5000" # WebターミナルのURL
+ORIGIN = "http://your.bbs.domain:5000" # Webターミナルや管理画面にアクセスする際のURL
 ```
 
 ### 1.3. サーバーの起動

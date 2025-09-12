@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GrassRootsBBS 運用マニュアル</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2em auto;
+            padding: 2em;
+            background-color: #2a2a2a;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #00ff99;
+            border-bottom: 2px solid #005533;
+            padding-bottom: 0.3em;
+            margin-top: 1.5em;
+        }
+
+        h1 {
+            text-align: center;
+            border-bottom: none;
+            font-size: 2.5em;
+        }
+
+        code {
+            background-color: #111;
+            color: #ffc107;
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-family: "Courier New", Courier, monospace;
+        }
+
+        pre {
+            background-color: #111;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 1em;
+            overflow-x: auto;
+        }
+
+        pre code {
+            padding: 0;
+            background-color: transparent;
+            color: #e0e0e0;
+        }
+
+        a {
+            color: #87cefa;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        ul,
+        ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 0.5em;
+        }
+
+        strong {
+            color: #00ff99;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>GrassRootsBBS 運用マニュアル</h1>
+        <p>このドキュメントは、GrassRootsBBSのセットアップ、管理、利用方法について説明します。</p>
+
+        <hr style="border-color: #005533; margin: 2em 0;">
+
+        <h2>1. Installation &amp; Setup / インストールとセットアップ</h2>
+        <p>このセクションでは、サーバーを起動してBBSを運用可能にするまでの手順を説明します。</p>
+
+        <h3>1.1. 環境変数の設定 (<code>.env</code>)</h3>
+        <p>プロジェクトのルートディレクトリに <code>.env</code> ファイルを作成し、システム管理者（シスオペ）のアカウント情報を設定します。</p>
+        <pre><code># .env ファイルの例
+GRASSROOTSBBS_SYSOP_ID=your_sysop_id
+GRASSROOTSBBS_SYSOP_PASSWORD=your_strong_password
+GRASSROOTSBBS_SYSOP_EMAIL=your_email@example.com</code></pre>
+        <ul>
+            <li><code>GRASSROOTSBBS_SYSOP_ID</code>: シスオペのログインIDです。</li>
+            <li><code>GRASSROOTSBBS_SYSOP_PASSWORD</code>: シスオペの初期パスワードです。ログイン後、速やかに変更してください。</li>
+            <li><code>GRASSROOTSBBS_SYSOP_EMAIL</code>: シスオペのメールアドレスです。オンラインサインアップの通知などに使用されます。</li>
+        </ul>
+
+        <h3>1.2. ドメイン名の設定 (<code>config.toml</code>)</h3>
+        <p>Passkey認証などの機能を利用するには、BBSにアクセスするためのドメイン（またはIPアドレス）を設定する必要があります。<code>setting/config.toml</code>
+            ファイルを編集してください。</p>
+        <pre><code># setting/config.toml
+
+[webapp]
+ORIGIN = "http://your.bbs.domain:5000"</code></pre>
+
+        <h3>1.3. サーバーの起動</h3>
+        <p>設定が完了したら、Docker Composeを使ってBBSを起動します。</p>
+        <pre><code>docker-compose up --build -d</code></pre>
+        <p>初回起動時に、データベースのテーブル作成と、<code>.env</code> で設定したシスオペアカウントの作成が自動的に行われます。</p>
+
+        <hr style="border-color: #005533; margin: 2em 0;">
+
+        <h2>2. For System Operators / 管理者向けマニュアル</h2>
+        <p>このセクションでは、BBSの管理と運営に関するタスクを説明します。</p>
+
+        <h3>2.1. 管理画面へのアクセス</h3>
+        <p>シスオペは、以下のURLからWebベースの管理画面にアクセスできます。</p>
+        <ul>
+            <li><code>http://&lt;サーバーのIPアドレス&gt;:5000/admin</code></li>
+        </ul>
+        <p>ログイン後、ユーザー管理、掲示板管理、システム設定など、BBSのあらゆる側面を直感的に管理できます。</p>
+
+        <h3>2.2. 掲示板とチャットルームの構成</h3>
+        <p>Webターミナル上でのメニュー構造は、以下のYAMLファイルを編集することで定義します。</p>
+        <ul>
+            <li><strong>掲示板</strong>: <code>setting/bbs_mode3.yaml</code></li>
+            <li><strong>チャット</strong>: <code>setting/chatroom.yaml</code></li>
+        </ul>
+
+        <h3>2.3. 掲示板の作成と編集</h3>
+        <p>YAML ファイルに掲示板を追加するだけでは不十分です。管理画面から、実際に掲示板のデータを作成する必要があります。</p>
+        <ol>
+            <li>管理画面にログインし、「Board Management」に移動します。</li>
+            <li>「+ Add New Board」ボタンをクリックします。</li>
+            <li>YAMLファイルで定義した <code>id</code> と同じ「Shortcut ID」や、掲示板名、権限などを設定して保存します。</li>
+        </ol>
+
+        <h3>2.4. ログインメッセージの変更</h3>
+        <p>管理画面の「System Settings」ページから、ユーザーがログインした際に表示されるメッセージを編集できます。</p>
+
+        <h3>2.5. バックアップ</h3>
+        <p>管理画面の「Data Management」ページから、手動でバックアップを作成したり、古いバックアップを復元・削除したりできます。また、自動バックアップのスケジュールもこの画面で設定可能です。</p>
+        <pre><code># setting/config.toml
+[backup]
+max_backups = 7 # 自動クリーンアップで保持するバックアップの最大数</code></pre>
+
+        <hr style="border-color: #005533; margin: 2em 0;">
+
+        <h2>3. For Users / ユーザー向けマニュアル</h2>
+        <p>このセクションでは、BBSの基本的な使い方を説明します。</p>
+
+        <h3>3.1. BBSへのアクセス</h3>
+        <p>Webブラウザから以下のURLにアクセスしてBBSを利用します。</p>
+        <ul>
+            <li><code>http://&lt;サーバーのIPアドレス&gt;:5000</code></li>
+        </ul>
+        <p>BBSのログイン画面が表示されたら、ユーザーIDとパスワード、またはPasskeyを使用してログインしてください。</p>
+
+        <h3>3.2. 主な機能</h3>
+        <h4>掲示板 (BBS)</h4>
+        <ul>
+            <li><strong>読み書き</strong>: <code>r</code> で記事一覧を読み、<code>w</code> で新しい記事を投稿します。</li>
+            <li><strong>探索リスト</strong>: 記事一覧画面で <code>@</code> を押すと、その掲示板を「探索リスト」に追加/削除できます。トップメニューの <code>n</code>
+                (新アーティクル探索) などで、リストに登録した掲示板だけを効率的に巡回できます。</li>
+            <li><strong>ファイル添付</strong>: 記事投稿時、本文入力後にファイルを添付できます。添付できるファイルの種類やサイズは、管理画面の各掲示板編集ページ、または
+                <code>config.toml</code> で設定可能です。</li>
+        </ul>
+
+        <h4>チャット (Chat)</h4>
+        <ul>
+            <li><strong>入室</strong>: メニューからチャットルームを選択して入室します。</li>
+            <li><strong>コマンド</strong>: チャット中に <code>!?</code> を入力すると、利用可能なコマンド（退室、オンラインメンバー表示など）のヘルプが表示されます。</li>
+        </ul>
+
+        <h4>Passkey (パスワードレス認証)</h4>
+        <p>Webターミナルでログイン後、ユーザー設定 (<code>u</code> コマンド) の「Passkey
+            管理」から、顔認証や指紋認証、USBセキュリティキーなどを使ってログインするためのPasskeyを登録できます。登録後は、パスワードなしで安全にログインできるようになります。</p>
+
+    </div>
+</body>
+
+</html>
