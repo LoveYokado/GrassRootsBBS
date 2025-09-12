@@ -1715,11 +1715,10 @@ class CommandHandler:
 
         is_mobile_web_client = False
         try:
+            is_mobile_web_client = self.chan.handler.is_mobile
             util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
-
             limits_config = util.app_config.get('limits', {})
             title_max_len = limits_config.get('bbs_title_max_length', 100)
-
             # --- タイトル入力 (常にインライン) ---
             self.chan.send(b'\x1b[?2024l')  # メインのBBSボタンを非表示
             if parent_article:
@@ -1753,11 +1752,6 @@ class CommandHandler:
             body_max_len = limits_config.get('bbs_body_max_length', 8192)
             util.send_text_by_key(
                 self.chan, "bbs.post_body", self.menu_mode, max_len=body_max_len)
-
-            is_mobile_web_client = (
-                isinstance(self.chan, terminal_handler.WebTerminalHandler.WebChannel) and
-                getattr(self.chan.handler, 'is_mobile', False)
-            )
 
             if is_mobile_web_client:
                 # --- ポップアップエディタを使用する場合 ---
@@ -1943,10 +1937,16 @@ def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_add
                 util.send_text_by_key(chan, "common_messages.error", menu_mode)
                 return "back_to_top"
 
-            # manual_menu_handler を呼び出す
-            selected_board_id = manual_menu_handler.process_manual_menu(
-                chan, login_id, menu_mode, manual_bbs_config_path, "main_bbs_menu", "bbs"
-            )
+            # モバイル用の操作ボタンを表示
+            chan.send(b'\x1b[?2028h')
+            try:
+                # manual_menu_handler を呼び出す
+                selected_board_id = manual_menu_handler.process_manual_menu(
+                    chan, login_id, menu_mode, manual_bbs_config_path, "main_bbs_menu", "bbs"
+                )
+            finally:
+                # メニューを抜けたら必ずボタンを非表示にする
+                chan.send(b'\x1b[?2028l')
 
             if selected_board_id and selected_board_id not in ["exit_bbs_menu", "back_to_top", None]:
                 # ボードIDが返ってきたら、そのボードに移動
