@@ -314,4 +314,54 @@ td a:hover {
   border-bottom: 0;
 }
 
+/* --- Pagination Styles --- */
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5em 0;
+}
+
+.pagination-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.2em;
+}
+
+.page-link {
+  color: #00cc66;
+  text-decoration: none;
+  padding: 0.3em 0.6em;
+  margin: 0 0.1em;
+  border: 1px solid transparent;
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.page-link:hover {
+  background-color: #005500;
+  border-color: #00cc66;
+  color: #00ff99;
+}
+
+.page-link.current {
+  font-weight: bold;
+  color: #00ff00;
+  text-decoration: none;
+  animation: blinker 1.5s linear infinite;
+}
+
+.page-link.nav-link {
+  background-color: transparent;
+  color: #00ff00;
+  border: 1px solid #005500;
+}
+
+.page-link.nav-link:hover {
+  background-color: #005500;
+  border-color: #00ff99;
+}
+
 /* Other specific styles can be added here */
