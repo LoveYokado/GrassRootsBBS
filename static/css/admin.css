@@ -70,16 +70,16 @@ h5 {
 }
 
 /* Table Styles */
-table {
+.table {
   width: 100%;
   border-collapse: collapse;
   /* Bootstrapのスタイルを上書き */
-  background-color: #2a2a2a !important;
+  background-color: #2a2a2a;
   box-shadow: none;
 }
 
-th,
-td {
+.table th,
+.table td {
   border: 1px solid #444;
   padding: 12px;
   text-align: left;
@@ -101,7 +101,7 @@ th a:hover {
   text-decoration: underline;
 }
 
-tr:nth-child(even) {
+.table tr:nth-child(even) {
   background-color: #333333;
 }
 
@@ -286,22 +286,27 @@ td a:hover {
 
 .nav-tabs .nav-link {
   border: 1px solid transparent;
-  color: #00ff00;
+  color: #008800; /* 非選択タブの文字色を暗いグリーンに */
   border-radius: 0;
 }
 
 .nav-tabs .nav-link:hover {
   border-color: #555;
+  color: #00cc66; /* ホバー時の文字色を少し明るく */
 }
 
 .nav-tabs .nav-link.active {
-  color: #fff;
+  color: #00ff00; /* 選択中タブの文字色を明るいグリーンに */
   background-color: #3e3e3e;
   border-color: #444 #444 #3e3e3e;
+  font-weight: bold;
 }
 
 .tab-content {
-  padding-top: 1rem;
+  /* タブ内のテーブルが他のページと同じスタイルになるように調整 */
+  background-color: #2a2a2a;
+  border: none;
+  padding: 0;
 }
 
 .nav-tabs.card-header-tabs {
