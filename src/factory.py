@@ -1,23 +1,6 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Application Factory
-#
-# This module contains the create_app function, which is responsible for
-# creating and configuring the Flask application instance. This includes
-# loading configuration, initializing extensions like SocketIO and the database,
-# and registering blueprints.
-# ==============================================================================
-#
-# ==============================================================================
-# アプリケーションファクトリ
-#
-# このモジュールは、Flaskアプリケーションインスタンスの作成と設定を担当する
-# create_app 関数を含んでいます。設定の読み込み、SocketIOやデータベースなどの
-# 拡張機能の初期化、ブループリントの登録などを行います。
-# ==============================================================================
-
 import datetime
 import ipaddress
 import logging
@@ -44,7 +27,6 @@ socketio = SocketIO()
 
 def create_app():
     """Create and configure an instance of the Flask application."""
-    # --- Path and Directory Setup ---
     _current_dir = os.path.dirname(os.path.abspath(__file__))
     PROJECT_ROOT = os.path.dirname(_current_dir)
     APP_LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
@@ -53,7 +35,6 @@ def create_app():
     app = Flask(__name__, static_folder='../static',
                 template_folder='../templates')
 
-    # --- Configuration Loading ---
     config_path = os.path.join(PROJECT_ROOT, 'setting', 'config.toml')
     util.load_app_config_from_path(config_path)
     uppercase_config = {key.upper(): value for key,
@@ -61,12 +42,10 @@ def create_app():
     app.config.from_mapping(uppercase_config)
     app.config['PROJECT_ROOT'] = PROJECT_ROOT
 
-    # --- Middleware and Basic Configuration ---
     app.wsgi_app = ProxyFix(
         app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     app.secret_key = secrets.token_hex(16)
 
-    # --- Directory Setup ---
     ATTACHMENT_DIR = app.config.get('WEBAPP', {}).get(
         'ATTACHMENT_UPLOAD_DIR', 'data/attachments')
     if not os.path.isabs(ATTACHMENT_DIR):
@@ -82,7 +61,6 @@ def create_app():
     app.config['ATTACHMENT_DIR'] = ATTACHMENT_DIR
     app.config['SESSION_LOG_DIR'] = SESSION_LOG_DIR
 
-    # --- Logging Configuration ---
     access_logger = logging.getLogger('grbbs.access')
     access_logger.setLevel(logging.INFO)
     access_handler = RotatingFileHandler(
@@ -102,10 +80,8 @@ def create_app():
     logging.getLogger().addHandler(error_handler)
     logging.getLogger().setLevel(logging.INFO)
 
-    # --- Database Initialization ---
     database.init_app(app)
 
-    # --- Initialize Other Extensions ---
     app.config.setdefault('RATELIMIT_STORAGE_URI', os.getenv(
         'REDIS_URL', 'redis://localhost:6379/0').replace('/0', '/1'))
     ratelimit_config = app.config.get('RATELIMIT', {})
@@ -117,7 +93,6 @@ def create_app():
 
     plugin_manager.load_plugins()
 
-    # --- Session Configuration ---
     redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
     app.config['SESSION_TYPE'] = 'redis'
     app.config['SESSION_REDIS'] = redis.from_url(redis_url)
@@ -126,34 +101,27 @@ def create_app():
     app.config['SESSION_KEY_PREFIX'] = 'grbbs_'
     Session(app)
 
-    # --- Security Config ---
     app.config['MAX_LOGIN_ATTEMPTS'] = app.config.get(
         'SECURITY', {}).get('MAX_PASSWORD_ATTEMPTS', 3)
     app.config['LOCKOUT_TIME_SECONDS'] = app.config.get(
         'SECURITY', {}).get('LOCKOUT_TIME_SECONDS', 300)
 
-    # --- Register Blueprints ---
     app.register_blueprint(web_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
-    # --- Register Error Handlers ---
     errors.register_error_handlers(app)
 
-    # --- Register Context Processors and Template Filters ---
     @app.context_processor
     def inject_util():
         return dict(util=util)
 
     @app.template_filter('timestamp_to_datetime')
     def timestamp_to_datetime_filter(ts):
-        if not ts or not isinstance(ts, (int, float)) or ts <= 0:
-            return "N/A"
         try:
             return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
         except (ValueError, OSError):
             return "Invalid Date"
 
-    # --- Register Request Hooks ---
     @app.before_request
     def restrict_admin_access_by_ip():
         if request.path.startswith('/admin'):
@@ -193,7 +161,6 @@ def create_app():
         response.headers['X-XSS-Protection'] = '1; mode=block'
         return response
 
-    # --- Initialize SocketIO ---
     allowed_origins_str = os.getenv('SOCKETIO_ALLOWED_ORIGINS', app.config.get(
         'WEBAPP', {}).get('ORIGIN', 'http://localhost:5000'))
     allowed_origins = allowed_origins_str.split(
@@ -202,7 +169,6 @@ def create_app():
                       cors_allowed_origins=allowed_origins)
     init_events(socketio, app)
 
-    # --- Initialize Scheduler ---
     def scheduled_backup_job():
         with app.app_context():
             logging.info("Starting scheduled backup job...")

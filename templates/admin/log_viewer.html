@@ -3,7 +3,7 @@
 {% block title %}{{ g.texts.get('access_log', {}).get('title', 'Access Log Viewer') }}{% endblock %}
 
 {% block scripts %}
-{{ super() }}
+{# This block is intentionally left empty to inherit scripts from base_admin.html #}
 {% endblock %}
 
 {% block content %}
@@ -12,7 +12,6 @@
     <p>{{ g.texts.get('access_log', {}).get('description', 'Displays recent access logs. Newest logs are shown at the
         top.') }}</p>
 
-    <!-- 検索フォーム -->
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-search mr-1"></i> Search Logs
@@ -43,7 +42,6 @@
         </div>
     </div>
 
-    <!-- タブナビゲーション -->
     <div class="card mb-4">
         <div class="card-header">
             <ul class="nav nav-tabs card-header-tabs" id="logTabs" role="tablist">
@@ -65,7 +63,6 @@
             </ul>
         </div>
         <div class="tab-content" id="logTabsContent">
-            <!-- Access Logs タブ -->
             <div class="tab-pane fade show active" id="access" role="tabpanel" aria-labelledby="access-tab">
                 <div class="card-body">
                     {% include 'admin/_pagination.html' %}
@@ -117,7 +114,6 @@
                 </div>
             </div>
 
-            <!-- Error Logs タブ -->
             <div class="tab-pane fade" id="error" role="tabpanel" aria-labelledby="error-tab">
                 <div class="card-body">
                     <div class="table-responsive">

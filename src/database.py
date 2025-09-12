@@ -1,29 +1,6 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Database Access Layer
-#
-# This module encapsulates all database interactions for the GrassRootsBBS
-# application. It uses a connection pool for efficient database connections
-# and provides a set of manager classes, each responsible for a specific
-# database table (e.g., users, boards).
-# ==============================================================================
-#
-# ==============================================================================
-# データベースアクセス層
-#
-# このモジュールは、GrassRootsBBSアプリケーションの全てのデータベース対話を
-# カプセル化します。
-#
-# 主な特徴:
-# - コネクションプール: 効率的なデータベース接続を管理します。
-# - マネージャクラス: 各テーブル（例: users, boards）に対応する操作をクラスに
-#   まとめ、コードの責務を明確にします。
-# - ラッパー関数: 後方互換性と簡易なアクセスのため、各マネージャクラスのメソッドを
-#   呼び出すトップレベル関数を提供します。
-# ==============================================================================
-
 import mysql.connector
 from mysql.connector import pooling
 import logging
@@ -32,8 +9,6 @@ import os
 
 import time  # For timestamp in some functions
 
-# --- グローバルインスタンス ---
-# アプリケーション全体で共有されるシングルトン的なインスタンス群です。
 db_manager = None
 users = None
 boards = None
@@ -58,8 +33,6 @@ class DBManager:
     _pool = None
 
     def __init__(self):
-        # コンストラクタが複数回呼ばれてもプールを再初期化しないようにします。
-        # 明示的に init_pool を呼ぶことで再初期化は可能です。
         if DBManager._pool is not None:
             logging.warning(
                 "DBManager already initialized. Skipping re-initialization.")
@@ -193,8 +166,6 @@ class UserManager:
         """ユーザー名のリストから、複数のユーザー情報を一括で取得します。"""
         if not usernames:
             return []
-        # 大文字小文字を区別しないように、DB側でUPPER()を使うこともできますが、
-        # Python側で大文字に統一して渡す方がシンプルです。
         placeholders = ','.join(['%s'] * len(usernames))
         query = f"SELECT name, comment FROM users WHERE name IN ({placeholders})"
         params = tuple(name.upper() for name in usernames)
@@ -222,8 +193,7 @@ class UserManager:
     def register(self, username, hashed_password, salt, comment, level=0, menu_mode='2', telegram_restriction=0, email=''):
         """新しいユーザーをデータベースに登録します。"""
         query = """
-            INSERT INTO users (
-                name, password, salt, registdate, level, lastlogin, lastlogout,
+            INSERT INTO users (name, password, salt, registdate, level, lastlogin, lastlogout,
                 comment, email, menu_mode, telegram_restriction, blacklist,
                 exploration_list, read_progress
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -476,7 +446,6 @@ class BoardManager:
 
         where_sql = ""
         if where_clauses:
-            # count query doesn't use alias
             where_sql = " WHERE " + \
                 " AND ".join(where_clauses).replace('b.', '')
 
@@ -487,8 +456,7 @@ class BoardManager:
         total_items = total_count_result['total'] if total_count_result else 0
 
         query = """
-            SELECT
-                b.id, b.shortcut_id, b.name, b.operators, b.default_permission, b.status,
+            SELECT b.id, b.shortcut_id, b.name, b.operators, b.default_permission, b.status,
                 b.last_posted_at, b.read_level, b.write_level, b.board_type,
                 b.allow_attachments, b.allowed_extensions, b.max_attachment_size_mb,
                 (
@@ -865,8 +833,7 @@ class MailManager:
     def get_for_view(self, user_id_pk, view_mode):
         """受信箱または送信箱の一覧を取得します。"""
         if view_mode == 'inbox':
-            query = """
-                SELECT
+            query = """                SELECT
                     m.id, m.sender_id, m.subject, m.body, m.is_read, m.sent_at, m.recipient_deleted, m.sender_ip_address,
                     u.name AS sender_name
                 FROM mails AS m
@@ -875,8 +842,7 @@ class MailManager:
                 ORDER BY m.sent_at ASC
             """
         else:
-            query = """
-                SELECT
+            query = """                SELECT
                     m.id, m.recipient_id, m.subject, m.body, m.is_read, m.sent_at, m.sender_deleted,
                     u.name AS recipient_name
                 FROM mails AS m
@@ -1282,14 +1248,7 @@ class BBSListManager:
 
     def get_by_id(self, link_id):
         """
-        指定されたIDのBBSリンクを1件取得します。
-        主に編集画面で特定のリンク情報を表示するために使用されます。
-
-        Args:
-            link_id (int): 取得するBBSリンクのID。
-
-        Returns:
-            dict or None: リンク情報を含む辞書、または見つからない場合はNone。
+        指定されたIDのBBSリンクを1件取得します。主に編集画面で使用されます。
         """
         query = "SELECT * FROM bbs_list WHERE id = %s"
         return self._db.execute_query(query, (link_id,), fetch='one')
@@ -1297,7 +1256,7 @@ class BBSListManager:
     def get_approved(self):
         """
         承認済み(approved)のすべてのBBSリンクを取得します。
-        F7キーのBBSリストなど、ユーザーに表示する際に使用されます。
+        F7キーのBBSリストなどで使用されます。
         """
         query = "SELECT id, name, url, description, source FROM bbs_list WHERE status = 'approved' ORDER BY name"
         return self._db.execute_query(query, fetch='all')
@@ -1305,20 +1264,16 @@ class BBSListManager:
     def get_all_for_admin(self, page=1, per_page=15, sort_by='status', order='asc'):
         """
         管理画面用に、ソート機能付きで全てのステータスのBBSリンクを取得します。
-        申請者名も結合して取得します。
         """
-        # SQLインジェクションを防ぐため、ソート可能なカラムをホワイトリストで管理
         allowed_columns = {
             'id': 'bl.id',
             'name': 'bl.name',
             'url': 'bl.url',
             'status': 'bl.status',
             'submitted_by': 'submitted_by_name',
-            'created_at': 'bl.created_at'
-        }
+            'created_at': 'bl.created_at'}
         sort_column = allowed_columns.get(sort_by, 'bl.status')
 
-        # asc/desc以外の値が指定された場合は 'asc' にフォールバック
         if order.lower() not in ['asc', 'desc']:
             order = 'asc'
 
@@ -1328,7 +1283,6 @@ class BBSListManager:
             count_query, fetch='one')
         total_items = total_count_result['total'] if total_count_result else 0
 
-        # LEFT JOINを使用して、ユーザーIDから申請者名を取得
         query = f"""
             SELECT bl.id, bl.name, bl.url, bl.description, bl.source, bl.status, bl.created_at, u.name as submitted_by_name
             FROM bbs_list bl
@@ -1344,10 +1298,8 @@ class BBSListManager:
 
     def add(self, name, url, description, source='sysop', submitted_by=None):
         """
-        新しいBBSリンクをデータベースに追加します。
-        sourceが'sysop'の場合は自動的に'approved'に、それ以外は'pending'になります。
+        新しいBBSリンクをDBに追加します。'sysop'による追加は自動承認されます。
         """
-        # シスオペによる追加は即時承認、ユーザーによる申請は承認待ち
         status = 'approved' if source == 'sysop' else 'pending'
         query = "INSERT INTO bbs_list (name, url, description, source, status, submitted_by, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)"
         params = (name, url, description, source,
@@ -1371,8 +1323,7 @@ class BBSListManager:
 
     def update_status(self, link_id, status):
         """
-        指定されたIDのBBSリンクのステータス（承認状態）を更新します。
-        'approved', 'rejected', 'pending' 以外のステータスは無効です。
+        指定されたIDのBBSリンクのステータスを更新します。
         """
         if status not in ['approved', 'rejected', 'pending']:
             logging.warning(f"無効なステータスが指定されました: {status}")
@@ -1423,7 +1374,6 @@ class DatabaseInitializer:
         """全てのテーブルを作成し、デフォルトデータ（シスオペ、ゲストユーザーなど）を挿入します。"""
         # utilモジュールはdatabase.pyの外部にあるため、ここでインポートする
         from . import util
-
         try:
             # テーブル作成クエリ
             create_queries = [
@@ -1776,9 +1726,6 @@ class DatabaseInitializer:
                 conn.close()
 
 
-# --- Global Instance Initialization / グローバルインスタンスの初期化 ---
-# 他のモジュールから `database.users.get_auth_info()` のようにアクセスされる
-# シングルトン的なインスタンス群。
 db_manager = DBManager()
 users = UserManager(db_manager)
 boards = BoardManager(db_manager)
@@ -1786,7 +1733,6 @@ articles = ArticleManager(db_manager)
 mails = MailManager(db_manager)
 telegrams = TelegramManager(db_manager)
 server_prefs = ServerPrefManager(db_manager)
-# Renamed to avoid conflict with plugin_manager.py
 plugins = PluginManagerDB(db_manager)
 access_logs = AccessLogManager(db_manager)
 board_permissions = BoardPermissionManager(db_manager)
@@ -1794,15 +1740,6 @@ push_subscriptions = PushSubscriptionManager(db_manager)
 passkeys = PasskeyManager(db_manager)
 bbs_list_manager = BBSListManager(db_manager)
 initializer = DatabaseInitializer(db_manager)
-
-# --- Top-level Wrapper Functions / トップレベルラッパー関数 ---
-# The following functions are wrappers around the manager class methods.
-# They provide a simple, flat API for other modules and maintain backward
-# compatibility with older parts of the codebase.
-#
-# 以下の関数は、各マネージャクラスのメソッドのラッパーです。
-# これらは他のモジュールにシンプルなフラットAPIを提供し、
-# コードベースの古い部分との後方互換性を維持します。
 
 
 def init_connection_pool(pool_name, pool_size, db_config):
@@ -2159,13 +2096,7 @@ def update_bbs_link_status(link_id: int, status: str) -> bool:
 def init_app(app):
     """
     Flaskアプリケーションインスタンスを使用してデータベースを初期化します。
-    コネクションプールの設定、マイグレーションの適用、初回セットアップが含まれます。
-
-    Initializes the database using the Flask application instance.
-    This includes setting up the connection pool, applying migrations,
-    and performing initial setup.
     """
-    # 1. 設定の読み込み (Load configuration)
     db_config_from_file = app.config.get('DATABASE', {})
     db_config = {
         'host': os.getenv('DB_HOST', db_config_from_file.get('host', 'localhost')),
@@ -2177,14 +2108,11 @@ def init_app(app):
         'autocommit': False
     }
 
-    # 2. コネクションプールの初期化 (Initialize connection pool)
     init_connection_pool(pool_name="grbbs_pool",
                          pool_size=5, db_config=db_config)
 
-    # 3. マイグレーションの適用 (Apply migrations)
     apply_migrations()
 
-    # 4. 初回セットアップの確認と実行 (Check and run initial setup)
     if not check_database_initialized():
         from . import util  # 循環インポートを避ける
         util.initialize_database_and_sysop()

@@ -2,7 +2,6 @@
 body {
   font-family: sans-serif;
   margin: 0;
-  /* Bootstrapの背景色を強制的に上書き */
   background-color: #000000 !important;
   color: #00ff00 !important;
 }
@@ -12,7 +11,6 @@ body {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2em 2em 120px 2em;
-  /* 下部ナビゲーションの高さ分 */
 }
 
 h1,
@@ -33,11 +31,8 @@ h5 {
   padding: 10px 0;
   display: flex;
   flex-direction: column;
-  /* 縦に並べる */
   align-items: center;
-  /* 中央寄せ */
   gap: 5px;
-  /* 行間のギャップ */
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3);
   z-index: 100;
 }
