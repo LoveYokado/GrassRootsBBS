@@ -1572,7 +1572,7 @@ bbs:
       [S]                 シグ看板
       [T]                 タイトル一覧
       [?]                 説明
-      [U]Sysop            B/Wリスト編集
+      [B]Sysop            B/Wリスト編集
       [C]Sysop            シグオペ変更
       [G]Sysop/Sigop      シグ看板編集
       -----------------------------------
@@ -1601,7 +1601,7 @@ bbs:
       [S]                : シグ看板
       [T]                : タイトル一覧
       [?]                : 説明
-      [U]Sysop           : B/Wリスト編集
+      [B]Sysop           : B/Wリスト編集
       [C]Sysop           : シグオペ変更
       [G]Sysop/Sigop     : シグ看板編集
       ----------------------------------------------------
@@ -1627,7 +1627,7 @@ bbs:
       | T                  | Title List: Show all post titles        |
       | ?                  | Help: Display this help menu            |
       | S                  | SIG Banner: View SIG board info         |
-      | U (Sysop)          | Edit B/W List: Manage block/allow lists |
+      | B (Sysop)          | Edit B/W List: Manage block/allow lists |
       | C (Sysop)          | Change SIG Operator: Update SIG admin   |
       | G (Sysop/Sigop)    | Edit SIG Banner: Modify SIG info        |
       +--------------------+-----------------------------------------+

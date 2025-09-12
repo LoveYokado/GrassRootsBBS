@@ -39,25 +39,32 @@ def who_menu(chan, online_members_dict, current_menu_mode):
                               current_menu_mode)
         return
 
-    # online_members_dict のキーはSID。ループ変数を sid に変更して明確化
+    # 最初にオンラインメンバーのログインIDリストを作成
+    online_login_ids = [
+        member_data.get("username")
+        for member_data in online_members_dict.values()
+        if member_data.get("username")
+    ]
+
+    # ログインIDリストを使って、必要なユーザー情報をDBから一括で取得
+    users_data_map = {
+        user['name']: user for user in database.get_users_by_names(online_login_ids)
+    } if online_login_ids else {}
+
     for sid, member_data in online_members_dict.items():
         display_name = member_data.get("display_name")
-        login_id = member_data.get("username")  # 実際のログインIDを取得
+        login_id = member_data.get("username")
 
         if not display_name or not login_id:
             continue  # 必要なデータがなければスキップ
 
-        # who_menu.header の NAME 列の幅に合わせる
         display_name_short = util.shorten_text_by_slicing(
             display_name, width=22)
 
-        # コメントはDBから取得する必要がある
-        user_db_data = database.get_user_auth_info(login_id)  # 正しいlogin_idを使用
-        comment = user_db_data['comment'] if user_db_data and user_db_data['comment'] is not None else ''
-        # コメントも長すぎるとレイアウトが崩れるため短縮
+        user_db_data = users_data_map.get(login_id)
+        comment = user_db_data.get('comment', '') if user_db_data else ''
         comment_short = util.shorten_text_by_slicing(comment, width=50)
 
-        # ヘッダーのフォーマットに合わせて表示
         chan.send(
             f"{display_name_short:<22} {comment_short}\r\n".encode('utf-8'))
     util.send_text_by_key(chan, "who_menu.footer", current_menu_mode)

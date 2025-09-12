@@ -978,7 +978,7 @@ class CommandHandler:
                 continue
 
             # --- B/Wリスト編集 (SysOp/SigOpのみ) ---
-            elif key_input == "u":
+            elif key_input == "b":
                 self.edit_board_userlist()
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False

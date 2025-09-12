@@ -200,6 +200,17 @@ class UserManager:
         params = tuple(name.upper() for name in usernames)
         return self._db.execute_query(query, params, fetch='all')
 
+    def get_users_by_names(self, usernames):
+        """ユーザー名のリストから、複数のユーザー情報を一括で取得します。"""
+        if not usernames:
+            return []
+        # 大文字小文字を区別しないように、DB側でUPPER()を使うこともできますが、
+        # Python側で大文字に統一して渡す方がシンプルです。
+        placeholders = ','.join(['%s'] * len(usernames))
+        query = f"SELECT name, comment FROM users WHERE name IN ({placeholders})"
+        params = tuple(name.upper() for name in usernames)
+        return self._db.execute_query(query, params, fetch='all')
+
     def get_total_count(self):
         """登録されている総ユーザー数を取得します。"""
         query = "SELECT COUNT(*) as count FROM users"
@@ -1839,6 +1850,10 @@ def get_user_name_from_user_id(user_id):
 
 def get_user_names_from_user_ids(user_ids):
     return users.get_names_from_ids(user_ids)
+
+
+def get_users_by_names(usernames):
+    return users.get_users_by_names(usernames)
 
 
 def get_users_by_names(usernames):
