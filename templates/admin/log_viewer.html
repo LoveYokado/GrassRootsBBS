@@ -1,70 +1,175 @@
 {% extends "admin/base_admin.html" %}
 
+{% block title %}{{ g.texts.get('access_log', {}).get('title', 'Access Log Viewer') }}{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}
+
 {% block content %}
-<div>
-    <h1>{{ g.texts.get('access_log', {}).get('title', 'Access Log Viewer') }}</h1>
+<div class="container-fluid">
+    <h1 class="mt-4">{{ g.texts.get('access_log', {}).get('title', 'Access Log Viewer') }}</h1>
     <p>{{ g.texts.get('access_log', {}).get('description', 'Displays recent access logs. Newest logs are shown at the
         top.') }}</p>
 
-    <form method="get" action="{{ url_for('admin.access_log_viewer') }}" style="margin-bottom: 1em;">
-        <div style="display: flex; gap: 1em; align-items: flex-end;">
-            <div class="form-group" style="flex-grow: 1;">
-                <label for="ip">IP Address</label>
-                <input type="text" id="ip" name="ip" value="{{ search_params.ip or '' }}">
-            </div>
-            <div class="form-group" style="flex-grow: 1;">
-                <label for="user">Username</label>
-                <input type="text" id="user" name="user" value="{{ search_params.user or '' }}">
-            </div>
-            <div class="form-group" style="flex-grow: 1;">
-                <label for="event">Event Type</label>
-                <input type="text" id="event" name="event" value="{{ search_params.event or '' }}">
-            </div>
-            <div class="form-actions">
-                <button type="submit">Search</button>
-                <a href="{{ url_for('admin.access_log_viewer') }}">Clear</a>
+    <!-- 検索フォーム -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-search mr-1"></i> Search Logs
+        </div>
+        <div class="card-body">
+            <form method="get" action="{{ url_for('admin.access_log_viewer') }}">
+                <div style="display: flex; gap: 1em; align-items: flex-end;">
+                    <div class="form-group" style="flex-grow: 1;">
+                        <label for="ip">IP Address</label>
+                        <input type="text" id="ip" name="ip" value="{{ search_params.ip or '' }}" class="form-control">
+                    </div>
+                    <div class="form-group" style="flex-grow: 1;">
+                        <label for="user">Username</label>
+                        <input type="text" id="user" name="user" value="{{ search_params.user or '' }}"
+                            class="form-control">
+                    </div>
+                    <div class="form-group" style="flex-grow: 1;">
+                        <label for="event">Event Type</label>
+                        <input type="text" id="event" name="event" value="{{ search_params.event or '' }}"
+                            class="form-control">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Search</button>
+                        <a href="{{ url_for('admin.access_log_viewer') }}" class="btn btn-secondary">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- タブナビゲーション -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <ul class="nav nav-tabs" id="logTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="access-tab" data-toggle="tab" href="#access" role="tab"
+                        aria-controls="access" aria-selected="true">
+                        <i class="fas fa-list mr-1"></i> Access Logs
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="error-tab" data-toggle="tab" href="#error" role="tab" aria-controls="error"
+                        aria-selected="false">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Error Logs
+                        {% if error_logs %}
+                        <span class="badge badge-danger ml-1">{{ error_logs|length }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="logTabsContent">
+                <!-- Access Logs タブ -->
+                <div class="tab-pane fade show active" id="access" role="tabpanel" aria-labelledby="access-tab">
+                    {% include 'admin/_pagination.html' %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th><a
+                                            href="{{ url_for('admin.access_log_viewer', sort_by='timestamp', order=next_order if sort_by == 'timestamp' else 'desc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Timestamp
+                                            {% if sort_by == 'timestamp' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                            %}</a></th>
+                                    <th><a
+                                            href="{{ url_for('admin.access_log_viewer', sort_by='ip_address', order=next_order if sort_by == 'ip_address' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">IP
+                                            Address
+                                            {% if sort_by == 'ip_address' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                            %}</a></th>
+                                    <th><a
+                                            href="{{ url_for('admin.access_log_viewer', sort_by='username', order=next_order if sort_by == 'username' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">User
+                                            {% if sort_by == 'username' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                            %}</a></th>
+                                    <th><a
+                                            href="{{ url_for('admin.access_log_viewer', sort_by='event_type', order=next_order if sort_by == 'event_type' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Event
+                                            Type
+                                            {% if sort_by == 'event_type' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                            %}</a></th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td style="white-space: nowrap;">{{ log.timestamp | timestamp_to_datetime }}</td>
+                                    <td>{{ log.ip_address }}</td>
+                                    <td>{% if log.user_id %}<a
+                                            href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">{{ log.username
+                                            or log.user_id }}</a>{% else %}{{ log.username or 'N/A' }}{% endif %}</td>
+                                    <td>{{ log.event_type }}</td>
+                                    <td>{{ log.message }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No access logs found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% include 'admin/_pagination.html' %}
+                </div>
+
+                <!-- Error Logs タブ -->
+                <div class="tab-pane fade" id="error" role="tabpanel" aria-labelledby="error-tab">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th><a
+                                            href="{{ url_for('admin.access_log_viewer', sort_by='timestamp', order=next_order if sort_by == 'timestamp' else 'desc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Timestamp
+                                            {% if sort_by == 'timestamp' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                            %}</a></th>
+                                    <th><a
+                                            href="{{ url_for('admin.access_log_viewer', sort_by='ip_address', order=next_order if sort_by == 'ip_address' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">IP
+                                            Address
+                                            {% if sort_by == 'ip_address' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                            %}</a></th>
+                                    <th><a
+                                            href="{{ url_for('admin.access_log_viewer', sort_by='username', order=next_order if sort_by == 'username' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">User
+                                            {% if sort_by == 'username' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                            %}</a></th>
+                                    <th><a
+                                            href="{{ url_for('admin.access_log_viewer', sort_by='event_type', order=next_order if sort_by == 'event_type' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Event
+                                            Type
+                                            {% if sort_by == 'event_type' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                            %}</a></th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in error_logs %}
+                                <tr>
+                                    <td style="white-space: nowrap;">{{ log.timestamp | timestamp_to_datetime }}</td>
+                                    <td>{{ log.ip_address or 'N/A' }}</td>
+                                    <td>{% if log.user_id %}<a
+                                            href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">{{ log.username
+                                            or log.user_id }}</a>{% else %}{{ log.username or 'N/A' }}{% endif %}</td>
+                                    <td>{{ log.event_type or 'Error' }}</td>
+                                    <td>{{ log.message }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No error logs found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
-    </form>
-
-    {% include 'admin/_pagination.html' %}
-
-    <table style="margin-top: 1em; margin-bottom: 1em;">
-        <thead>
-            <tr>
-                <th><a
-                        href="{{ url_for('admin.access_log_viewer', sort_by='timestamp', order=next_order if sort_by == 'timestamp' else 'desc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Timestamp
-                        {% if sort_by == 'timestamp' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th><a
-                        href="{{ url_for('admin.access_log_viewer', sort_by='ip_address', order=next_order if sort_by == 'ip_address' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">IP
-                        Address {% if sort_by == 'ip_address' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th><a
-                        href="{{ url_for('admin.access_log_viewer', sort_by='username', order=next_order if sort_by == 'username' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">User
-                        {% if sort_by == 'username' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th><a
-                        href="{{ url_for('admin.access_log_viewer', sort_by='event_type', order=next_order if sort_by == 'event_type' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Event
-                        Type {% if sort_by == 'event_type' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th>Message</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for log in logs %}
-            <tr>
-                <td style="white-space: nowrap;">{{ log.timestamp | timestamp_to_datetime }}</td>
-                <td>{{ log.ip_address }}</td>
-                <td>{% if log.user_id %}<a href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">{{ log.username
-                        or log.user_id }}</a>{% else %}{{ log.username or 'N/A' }}{% endif %}</td>
-                <td>{{ log.event_type }}</td>
-                <td>{{ log.message }}</td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="5">No access logs found.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    {% include 'admin/_pagination.html' %}
+    </div>
 </div>
 {% endblock %}

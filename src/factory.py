@@ -62,10 +62,6 @@ def create_app():
     app.config['PROJECT_ROOT'] = PROJECT_ROOT
 
     # --- Middleware and Basic Configuration ---
-    # Apply ProxyFix to correctly handle headers from a reverse proxy (e.g., Nginx).
-    # This is crucial for getting the correct client IP address, protocol (http/https), etc.
-    # リバースプロキシ（例: Nginx）からのヘッダーを正しく処理するためにProxyFixを適用します。
-    # これにより、正しいクライアントIPアドレスやプロトコル（http/https）などを取得できます。
     app.wsgi_app = ProxyFix(
         app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     app.secret_key = secrets.token_hex(16)
@@ -77,7 +73,6 @@ def create_app():
         ATTACHMENT_DIR = os.path.join(PROJECT_ROOT, ATTACHMENT_DIR)
     os.makedirs(ATTACHMENT_DIR, exist_ok=True)
     os.makedirs(APP_LOG_DIR, exist_ok=True)
-    # 隔離ディレクトリの作成
     QUARANTINE_DIR = app.config.get('CLAMAV', {}).get(
         'QUARANTINE_DIRECTORY', 'data/quarantine')
     if not os.path.isabs(QUARANTINE_DIR):
@@ -107,15 +102,12 @@ def create_app():
     logging.getLogger().addHandler(error_handler)
     logging.getLogger().setLevel(logging.INFO)
 
-    # --- Database Initialization (encapsulated in database.init_app) ---
-    # データベース初期化（database.init_appにカプセル化）
+    # --- Database Initialization ---
     database.init_app(app)
 
     # --- Initialize Other Extensions ---
-    # Use a different Redis DB for rate limiting to avoid key collisions with session data.
     app.config.setdefault('RATELIMIT_STORAGE_URI', os.getenv(
         'REDIS_URL', 'redis://localhost:6379/0').replace('/0', '/1'))
-    # config.tomlからレートリミットのデフォルト値を読み込む
     ratelimit_config = app.config.get('RATELIMIT', {})
     default_limits_str = ratelimit_config.get(
         'default_limits', '200 per day;50 per hour')
@@ -187,7 +179,7 @@ def create_app():
         csp = (
             "default-src 'self';"
             "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net https://code.jquery.com https://stackpath.bootstrapcdn.com;"
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com;"
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com;"
             "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;"
             "img-src 'self' data:;"
             "connect-src 'self' wss: ws:;"
