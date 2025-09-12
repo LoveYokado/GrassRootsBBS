@@ -184,10 +184,9 @@ def handle_online_signup(chan, menu_mode):
             chan, "online_signup.registration_failed", menu_mode)
 
 
-def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str):  # noqa
+def _perform_exploration(chan, login_id, display_name, user_id_pk, user_level, menu_mode, ip_address, exploration_list_str):
     """
-    新アーティクル探索の共通ロジック。
-    ユーザーの探索リストに基づいて掲示板を巡回し、未読記事を表示します。
+    指定された探索リストに基づいて掲示板を巡回し、未読記事を表示する共通関数。
     """
     util.send_text_by_key(
         chan, "explore_new_articles.start_message", menu_mode
@@ -261,15 +260,27 @@ def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id
         chan, "explore_new_articles.complete_message", menu_mode)
 
 
+def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str):  # noqa
+    """
+    新アーティクル探索 ('n' コマンド) のハンドラ。
+    ユーザーの個人探索リストまたはサーバーのデフォルトリストを使用します。
+    """
+    # ユーザー個人の探索リストを取得
+    exploration_list_str = database.get_user_exploration_list(user_id_pk)
+    # 個人リストがなければ、サーバーのデフォルトリストにフォールバック
+    if not exploration_list_str:
+        server_prefs = database.read_server_pref()
+        exploration_list_str = server_prefs.get('default_exploration_list', '')
+
+    _perform_exploration(chan, login_id, display_name, user_id_pk,
+                         user_level, menu_mode, ip_address, exploration_list_str)
+
+
 def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str, default_exploration_list_str: str):  # noqa
     """
-    全シグ探索の共通ロジック。
-    サーバーのデフォルト探索リストに基づいて掲示板を巡回し、未読記事を表示します。
+    全シグ探索 ('x' コマンド) のハンドラ。
+    サーバーのデフォルト探索リストのみを使用します。
     """
-    util.send_text_by_key(
-        chan, "full_sig_exploration.start_message", menu_mode
-    )
-
     # 引数で渡された共通探索リストを使用
     exploration_list_str = default_exploration_list_str
 
@@ -278,56 +289,17 @@ def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id
             chan, "full_sig_exploration.no_default_exploration_list", menu_mode)
         return
 
-    board_shortcut_ids = [sid.strip()
-                          for sid in exploration_list_str.split(',') if sid.strip()]
-    if not board_shortcut_ids:
-        util.send_text_by_key(
-            chan, "full_sig_exploration.no_default_exploration_list", menu_mode)
-        return
+    _perform_exploration(chan, login_id, display_name, user_id_pk,
+                         user_level, menu_mode, ip_address, exploration_list_str)
 
-    # 最終ログイン時刻取得 (N機能と同じ)
-    user_data_for_x = database.get_user_auth_info(login_id)
-    last_login_timestamp_for_x = 0
-    if user_data_for_x and 'lastlogin' in user_data_for_x.keys() and user_data_for_x['lastlogin']:
-        last_login_timestamp_for_x = user_data_for_x['lastlogin']
 
-    for i, shortcut_id in enumerate(board_shortcut_ids):
-        board_info_db = database.get_board_by_shortcut_id(shortcut_id)
-
-        if not board_info_db:
-            util.send_text_by_key(
-                chan, "auto_download.error_board_not_found", menu_mode, shortcut_id=shortcut_id)
-            continue
-
-        # 未読記事があるか事前にチェック (N機能と同じ)
-        potential_new_articles = database.get_new_articles_for_board(
-            board_info_db['id'], last_login_timestamp_for_x)
-        if not potential_new_articles:
-            continue
-
-        util.send_text_by_key(
-            chan, "full_sig_exploration.entering_board", menu_mode, shortcut_id=shortcut_id, current_num=i+1, total_num=len(board_shortcut_ids))
-
-        handler = bbs_handler.CommandHandler(
-            chan, login_id, display_name, menu_mode, ip_address)
-        handler.current_board = board_info_db
-
-        util.send_text_by_key(chan, "bbs.article_list_header", menu_mode)
-
-        handler.show_article_list(display_initial_header=False,
-                                  last_login_timestamp=last_login_timestamp_for_x)
-
-        if not chan.active:
-            logging.info(
-                f"全シグ探索中にユーザ {login_id} が切断されました 掲示板: {shortcut_id}")
-            return
-
-        if i < len(board_shortcut_ids)-1:
-            util.send_text_by_key(
-                chan, "full_sig_exploration.moving_to_next", menu_mode)
-
-    util.send_text_by_key(
-        chan, "full_sig_exploration.complete_message", menu_mode)
+def _get_exploration_list_for_user(user_id_pk):
+    """ユーザーの探索リストを取得します。個人設定がなければサーバーのデフォルトを使用します。"""
+    exploration_list_str = database.get_user_exploration_list(user_id_pk)
+    if not exploration_list_str:
+        server_prefs = database.read_server_pref()
+        exploration_list_str = server_prefs.get('default_exploration_list', '')
+    return exploration_list_str
 
 
 def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):  # noqa
@@ -337,18 +309,7 @@ def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_leve
     """
     util.send_text_by_key(
         chan, "new_article_headlines.start_message", menu_mode)
-    # 探索リスト取得(TODO:これ、後で関数化出来そうだな)
-    exploration_list_str = database.get_user_exploration_list(user_id_pk)
-    if not exploration_list_str:
-        server_prefs = database.read_server_pref()
-        exploration_list_str = server_prefs.get('default_exploration_list', '')
-
-    if not exploration_list_str:
-        util.send_text_by_key(
-            chan, "auto_download.no_exploration_list", menu_mode)
-        util.send_text_by_key(
-            chan, "new_article_headlines.end_message", menu_mode)
-        return
+    exploration_list_str = _get_exploration_list_for_user(user_id_pk)
 
     board_shortcut_ids = [sid.strip()
                           for sid in exploration_list_str.split(',') if sid.strip()]
@@ -449,13 +410,7 @@ def handle_auto_download(chan, login_id: str, user_id_pk: int, user_level: int, 
     """
     util.send_text_by_key(
         chan, "auto_download.start_message", menu_mode)
-
-    # 探索リスト取得
-    exploration_list_str = database.get_user_exploration_list(user_id_pk)
-    if not exploration_list_str:
-        server_prefs = database.read_server_pref()
-        exploration_list_str = server_prefs.get('default_exploration_list', '')
-
+    exploration_list_str = _get_exploration_list_for_user(user_id_pk)
     if not exploration_list_str:
         util.send_text_by_key(
             chan, "auto_download.no_exploration_list", menu_mode)

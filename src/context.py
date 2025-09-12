@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+class CommandContext:
+    """
+    コマンド実行に必要なコンテキスト情報をカプセル化するクラス。
+    辞書で情報を引き回すのをやめ、型安全と保守性を向上させます。
+    """
+
+    def __init__(self, chan, user_session, server_pref, online_members_func):
+        self.chan = chan
+        self._user_session = user_session
+        self.server_pref = server_pref
+        self.online_members_func = online_members_func
+
+    @property
+    def login_id(self) -> str:
+        return self._user_session.get('username')
+
+    @property
+    def display_name(self) -> str:
+        return self._user_session.get('display_name')
+
+    @property
+    def user_id(self) -> int:
+        return self._user_session.get('user_id')
+
+    @property
+    def user_level(self) -> int:
+        return self._user_session.get('userlevel')
+
+    @property
+    def menu_mode(self) -> str:
+        return self._user_session.get('menu_mode', '2')
+
+    @menu_mode.setter
+    def menu_mode(self, value: str):
+        self._user_session['menu_mode'] = value
+
+    @property
+    def ip_address(self) -> str:
+        return self.chan.getpeername()[0] if self.chan.getpeername() else 'N/A'

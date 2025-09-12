@@ -364,20 +364,21 @@ def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
     return None, None
 
 
-def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, user_id: int, shortcut_input: str, online_members_func: callable):
+def handle_shortcut(context, shortcut_input: str):
     """
     Processes a shortcut command (e.g., ';bbs_free'). Returns True if the input was handled as a shortcut.
     ショートカットコマンド（例: ';bbs_free'）を処理します。
     ショートカットとして処理された場合は True を返します。
     """
-    from . import database
+    from . import database, bbs_handler, chat_handler
     # ショートカットではない
     if not shortcut_input.startswith(';'):
         return False
 
     # ゲストはショートカット機能を使えないようにする
-    if login_id.upper().startswith('GUEST'):
-        send_text_by_key(chan, "common_messages.permission_denied", menu_mode)
+    if context.login_id.upper().startswith('GUEST'):
+        send_text_by_key(
+            context.chan, "common_messages.permission_denied", context.menu_mode)
         # ショートカットとして処理したが、権限なしで終了したことを示す
         return True
 
@@ -398,7 +399,7 @@ def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, user
     # プレフィクスがないときはまずBBS,つぎにチャットの順で探す
 
     if not shortcut_id_to_search:
-        send_text_by_key(chan, "shortcut.not_found", menu_mode,
+        send_text_by_key(context.chan, "shortcut.not_found", context.menu_mode,
                          shortcut_id=raw_shortcut_id_with_prefix)
         return True
 
@@ -406,14 +407,13 @@ def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, user
     if target_type == "bbs" or target_type is None:
         board_info = database.get_board_by_shortcut_id(shortcut_id_to_search)
         if board_info:
-            import bbs_handler
-            send_text_by_key(chan, "shortcut.jumping_to_bbs",
-                             menu_mode, board_name=board_info["name"])
+            send_text_by_key(context.chan, "shortcut.jumping_to_bbs",
+                             context.menu_mode, board_name=board_info["name"])
             bbs_handler.handle_bbs_menu(
-                chan, login_id, display_name, menu_mode, shortcut_id_to_search, chan.getpeername()[0])
+                context.chan, context.login_id, context.display_name, context.menu_mode, shortcut_id_to_search, context.ip_address)
             return True
         if target_type == "bbs":
-            send_text_by_key(chan, "shortcut.not_found", menu_mode,
+            send_text_by_key(context.chan, "shortcut.not_found", context.menu_mode,
                              shortcut_id=raw_shortcut_id_with_prefix)
             return True
 
@@ -424,24 +424,23 @@ def handle_shortcut(chan, login_id: str, display_name: str, menu_mode: str, user
         chatroom_config = load_yaml_file_for_shortcut(chatroom_config_path)
         if chatroom_config:
             target_item, item_name = find_item_in_yaml(
-                chatroom_config, shortcut_id_to_search, menu_mode, "room")
+                chatroom_config, shortcut_id_to_search, context.menu_mode, "room")
             if target_item:
-                from . import chat_handler
-                send_text_by_key(chan, "shortcut.jumping_to_chat",
-                                 menu_mode, room_name=item_name)
+                send_text_by_key(context.chan, "shortcut.jumping_to_chat",
+                                 context.menu_mode, room_name=item_name)
                 chat_handler.set_online_members_function_for_chat(
-                    online_members_func)
+                    context.online_members_func)
                 chat_handler.handle_chat_room(
-                    chan, login_id, display_name, menu_mode, user_id, shortcut_id_to_search, item_name)
+                    context.chan, context.login_id, context.display_name, context.menu_mode, context.user_id, shortcut_id_to_search, item_name)
                 return True
             if target_type == "chat":
-                send_text_by_key(chan, "shortcut.not_found", menu_mode,
+                send_text_by_key(context.chan, "shortcut.not_found", context.menu_mode,
                                  shortcut_id=raw_shortcut_id_with_prefix)
                 return True
 
         # プレフィクス無しでどちらにもみつからなかった場合
         if target_type is None:
-            send_text_by_key(chan, "shortcut.not_found", menu_mode,
+            send_text_by_key(context.chan, "shortcut.not_found", context.menu_mode,
                              shortcut_id=raw_shortcut_id_with_prefix)
             return True
 

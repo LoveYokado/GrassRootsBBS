@@ -30,7 +30,7 @@ import time
 import re
 import datetime
 
-from . import util, command_dispatcher, database
+from . import util, command_dispatcher, database, context as ctx
 
 # --- Global State for Web Terminal Clients / Webターミナルクライアントの状態管理 ---
 # {sid: WebTerminalHandler_instance} - Maps SocketIO session IDs to handler instances.
@@ -341,30 +341,28 @@ class WebTerminalHandler:
             while self.main_thread_active:
                 server_pref_dict, _ = util.prompt_handler(self.channel, self.user_session.get(
                     'username'), self.user_session.get('menu_mode', '2'))
-                context = {
-                    'chan': self.channel, 'login_id': self.user_session.get('username'),
-                    'display_name': self.user_session.get('display_name'), 'user_id': self.user_session.get('user_id'),
-                    'userlevel': self.user_session.get('userlevel'), 'server_pref_dict': server_pref_dict,
-                    'addr': self.channel.getpeername(), 'menu_mode': self.user_session.get('menu_mode', '2'),
-                    'online_members_func': get_webapp_online_members,
-                }
+
+                context = ctx.CommandContext(
+                    self.channel, self.user_session, server_pref_dict, get_webapp_online_members)
+
                 util.send_text_by_key(
-                    self.channel, "prompt.topmenu", context['menu_mode'], add_newline=False)
+                    self.channel, "prompt.topmenu", context.menu_mode, add_newline=False)
                 command = self.channel.process_input()
                 if command is None:
                     self.main_thread_active = False
                     break
-                if util.handle_shortcut(context['chan'], context['login_id'], context['display_name'], context['menu_mode'], context['user_id'], command, context['online_members_func']):
-                    util.send_top_menu(self.channel, context['menu_mode'])
+                # contextオブジェクトを直接渡すように修正
+                if util.handle_shortcut(context, command):
+                    util.send_top_menu(self.channel, context.menu_mode)
                     continue
                 command = command.strip().lower()
                 if not command:
-                    util.send_top_menu(self.channel, context['menu_mode'])
+                    util.send_top_menu(self.channel, context.menu_mode)
                     continue
                 result = command_dispatcher.dispatch_command(command, context)
                 if result.get('status') == 'logoff':
                     logoff_message_text = util.get_text_by_key(
-                        "logoff.message", context['menu_mode'])
+                        "logoff.message", context.menu_mode)
                     processed_text = logoff_message_text.replace(
                         '\r\n', '\n').replace('\n', '\r\n')
                     self.main_thread_active = False
@@ -372,7 +370,7 @@ class WebTerminalHandler:
                                        'message': processed_text}, to=self.sid)
                     break
                 if 'new_menu_mode' in result:
-                    self.user_session['menu_mode'] = result['new_menu_mode']
+                    context.menu_mode = result['new_menu_mode']
                     util.send_top_menu(
                         self.channel, self.user_session['menu_mode'])
         except Exception as e:

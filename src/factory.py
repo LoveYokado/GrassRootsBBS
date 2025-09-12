@@ -115,6 +115,12 @@ def create_app():
     # Use a different Redis DB for rate limiting to avoid key collisions with session data.
     app.config.setdefault('RATELIMIT_STORAGE_URI', os.getenv(
         'REDIS_URL', 'redis://localhost:6379/0').replace('/0', '/1'))
+    # config.tomlからレートリミットのデフォルト値を読み込む
+    ratelimit_config = app.config.get('RATELIMIT', {})
+    default_limits_str = ratelimit_config.get(
+        'default_limits', '200 per day;50 per hour')
+    app.config.setdefault('RATELIMIT_DEFAULT', default_limits_str)
+
     extensions.limiter.init_app(app)
 
     plugin_manager.load_plugins()
