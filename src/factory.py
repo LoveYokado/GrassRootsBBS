@@ -184,20 +184,18 @@ def create_app():
 
     @app.after_request
     def add_security_headers(response):
-        # CSP: インラインスクリプトを許可しつつ、信頼できるソースからのスクリプトとスタイルのみを許可
         csp = (
             "default-src 'self';"
-            "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net;"
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com;"
-            "font-src 'self' https://fonts.gstatic.com;"
+            "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net https://code.jquery.com https://stackpath.bootstrapcdn.com;"
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com;"
+            "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;"
             "img-src 'self' data:;"
-            "connect-src 'self' wss: ws:;"  # WebSocket接続を許可
-            "frame-ancestors 'none';"  # クリックジャッキング対策
+            "connect-src 'self' wss: ws:;"
+            "frame-ancestors 'none';"
             "form-action 'self';"
             "base-uri 'self';"
         )
         response.headers['Content-Security-Policy'] = csp
-        # その他の推奨セキュリティヘッダー
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'DENY'
         response.headers['X-XSS-Protection'] = '1; mode=block'
