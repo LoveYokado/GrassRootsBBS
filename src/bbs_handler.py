@@ -1958,10 +1958,10 @@ def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_add
             # 既存の階層メニュー処理
             paths_config = util.app_config.get('paths', {})
             bbs_config_path = paths_config.get('bbs_mode3_yaml')
-            logging.info(
-                f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
             # モバイル用の操作ボタンを表示
             chan.send(b'\x1b[?2028h')
+            logging.info(
+                f"bbs_handler: Calling hierarchical_menu.handle_hierarchical_menu with path: {bbs_config_path}")
             try:
                 selected_item = hierarchical_menu.handle_hierarchical_menu(
                     chan, bbs_config_path, menu_mode, menu_type="BBS", enrich_boards=True

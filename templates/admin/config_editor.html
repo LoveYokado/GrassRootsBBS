@@ -1,5 +1,9 @@
 {% extends "admin/base_admin.html" %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
 {% block content %}
 <div>
     <h1>{{ g.texts.get('config_editor', {}).get('title', 'Configuration Editor') }}</h1>

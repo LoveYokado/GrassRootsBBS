@@ -2,6 +2,10 @@
 
 {% block title %}{{ title }} - {{ board.name }}{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
 {% block content %}
 <h1>{{ title }}: {{ board.name }}</h1>
 
@@ -66,15 +70,15 @@
     </div>
     <div class="form-group">
         <label for="max_threads">Max Threads/Articles (1-99999)</label>
-        <input type="number" id="max_threads" name="max_threads" value="{{ board.max_threads or '99999' }}" min="1"
-            max="99999" required>
+        <input type="number" id="max_threads" name="max_threads"
+            value="{{ board.max_threads if board.max_threads is not none else '99999' }}" min="1" max="99999" required>
     </div>
 
     <div class="form-group" id="max_replies_group"
         style="display: {% if board.board_type == 'thread' %}block{% else %}none{% endif %};">
         <label for="max_replies">Max Replies (1-999)</label>
-        <input type="number" id="max_replies" name="max_replies" value="{{ board.max_replies or '999' }}" min="1"
-            max="999">
+        <input type="number" id="max_replies" name="max_replies"
+            value="{{ board.max_replies if board.max_replies is not none else '999' }}" min="1" max="999">
     </div>
 
     <div class="form-group">

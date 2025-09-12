@@ -2,6 +2,10 @@
 
 {% block title %}{{ g.texts.get('access_log', {}).get('title', 'Access Log Viewer') }}{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
 {% block scripts %}
 {# This block is intentionally left empty to inherit scripts from base_admin.html #}
 {% endblock %}
