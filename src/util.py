@@ -510,8 +510,11 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode):
         return
 
     recipient_name = recipient_name_input.strip().upper()
-    # ここでオンラインチェック
-    if recipient_name not in [uid.upper() for uid in online_members_ids]:
+
+    # オンラインチェックを効率化するために、最初に大文字のセットを作成
+    online_members_set = {uid.upper() for uid in online_members_ids}
+
+    if recipient_name not in online_members_set:
         send_text_by_key(chan, "telegram.recipient_not_online",
                          current_menu_mode, recipient_name=recipient_name)
         return
