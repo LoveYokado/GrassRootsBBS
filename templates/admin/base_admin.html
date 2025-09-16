@@ -10,6 +10,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     {{ util.get_tracking_code() | safe }}
+
+    {% block head_extra %}{% endblock %}
 </head>
 
 <body>
