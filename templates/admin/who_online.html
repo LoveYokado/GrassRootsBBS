@@ -66,4 +66,19 @@
 
 {% include 'admin/_pagination.html' %}
 
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 5秒ごとにページを自動的にリロードする
+        setInterval(function () {
+            // ユーザーが何かを入力中の場合はリロードしない
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                return;
+            }
+            location.reload();
+        }, 5000); // 5000ミリ秒 = 5秒
+    });
+</script>
+{% endblock %}
 {% endblock %}
