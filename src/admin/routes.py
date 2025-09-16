@@ -1411,6 +1411,19 @@ def access_log_viewer():
     if page < 1:
         page = 1
 
+    # --- Error Log Reading ---
+    error_logs = []
+    try:
+        log_dir = os.path.join(current_app.config['PROJECT_ROOT'], 'logs')
+        error_log_path = os.path.join(log_dir, 'grbbs.error.log')
+        if os.path.exists(error_log_path):
+            with open(error_log_path, 'r', encoding='utf-8') as f:
+                # Read lines and reverse to show newest first
+                error_logs = f.readlines()[::-1]
+    except Exception as e:
+        flash(f"Error reading error log file: {e}", 'danger')
+    # --- End Error Log Reading ---
+
     try:
         logs, total_items = database.get_access_logs(
             page=page,
@@ -1451,5 +1464,5 @@ def access_log_viewer():
 
     next_order = 'desc' if order == 'asc' else 'asc'
 
-    return render_template('admin/log_viewer.html', title=g.texts.get('access_log', {}).get('title', 'Access Log Viewer'), logs=logs, search_params=search_params, search_params_for_per_page=search_params_for_per_page, pagination=pagination,
+    return render_template('admin/log_viewer.html', title=g.texts.get('access_log', {}).get('title', 'Access Log Viewer'), logs=logs, error_logs=error_logs, search_params=search_params, search_params_for_per_page=search_params_for_per_page, pagination=pagination,
                            sort_by=sort_by, order=order, next_order=next_order)

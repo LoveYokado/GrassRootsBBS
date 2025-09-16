@@ -30,7 +30,7 @@ def sysop_required(f):
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:  # ログインしているかチェック
             flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('login'))  # webapp.pyのlogin関数にリダイレクト
+            return redirect(url_for('web.login'))
         if session.get('userlevel') != 5:  # SysOpのレベル(5)かチェック
             flash('You do not have permission to access this page.', 'danger')
             return redirect(url_for('index'))  # ターミナル画面へ
