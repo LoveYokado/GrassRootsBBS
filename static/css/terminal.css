@@ -1,11 +1,3 @@
-/* Base and Layout */
-html,
-body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
 /* Mobile Button Styles */
 .mobile-buttons {
   display: none;

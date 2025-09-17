@@ -245,25 +245,16 @@
         // This helps adjust the layout when the on-screen keyboard appears.
         if (window.visualViewport) {
             const terminalContainer = document.getElementById('terminal-container');
-            const terminalInput = document.getElementById('terminal-input');
             const mobileButtons = document.querySelector('.mobile-buttons');
 
             const resizeHandler = () => {
-                // Set the container height to the visual viewport height to avoid overlap
-                terminalContainer.style.height = `${window.visualViewport.height - 1}px`;
+                // Set the container height to the visual viewport height
+                terminalContainer.style.height = `${window.visualViewport.height}px`;
 
                 // Adjust the bottom position of the mobile buttons
                 const keyboardHeight = window.innerHeight - window.visualViewport.height;
                 mobileButtons.style.bottom = `${keyboardHeight}px`;
-
-                // Scroll to the bottom of the page to keep the input line visible
-                window.scrollTo(0, document.body.scrollHeight);
             };
-
-            // Scroll to bottom when the input is focused
-            terminalInput.addEventListener('focus', () => {
-                setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 100);
-            });
 
             window.visualViewport.addEventListener('resize', resizeHandler);
             // Initial call to set the correct size
