@@ -8,5 +8,8 @@ data/bbs.db
 data/attachments/*
 data/backups/*
 data/quarantine/*
+# Local environment settings
+.env
 setting/config.toml
 docker-compose.yml
+private_key.pem

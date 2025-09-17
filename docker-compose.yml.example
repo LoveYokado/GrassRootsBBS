@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  grassrootsbbs:
+    build: .
+    container_name: grassrootsbbs-app
+    user: "${UID:-1000}:${GID:-1000}"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./src:/app/src
+      - ./setting:/app/setting
+      - ./data:/app/data
+      - ./logs:/app/logs # アプリケーションログを永続化
+      - ./private_key.pem:/app/private_key.pem:ro # 秘密鍵を読み取り専用でマウント
+    depends_on:
+      db:
+        condition: service_healthy # dbのhealthcheckが成功するまで待機
+      redis:
+        condition: service_started # redisは起動するだけでOK
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    networks:
+      - grbbs-net
+    restart: unless-stopped
+
+  clamav:
+    image: clamav/clamav:latest
+    container_name: grassrootsbbs-clamav
+    restart: always
+    networks:
+      - grbbs-net
+
+  db:
+    image: mariadb:10.6
+    container_name: grassrootsbbs-db
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-your_secret_root_password}
+      MYSQL_DATABASE: ${DB_NAME:-grbbs}
+      MYSQL_USER: ${DB_USER:-grbbs_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-your_secure_database_password}
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u${DB_USER}", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grbbs-net
+    restart: unless-stopped
+
+  redis:
+    image: redis:alpine
+    container_name: grassrootsbbs-redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - grbbs-net
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  redis_data:
+
+networks:
+  grbbs-net:
