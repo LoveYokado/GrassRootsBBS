@@ -3219,6 +3219,26 @@
             vv.addEventListener('resize', handleViewportResize);
         }
     </script>
+    <script>
+        // --- モバイルキーボード表示時のスクロール追従修正 (予備機能) ---
+        // ユーザーがターミナルをタップした際に、強制的に最下部へスクロールする。
+        // visualViewport.resize イベントがうまく機能しない環境向けのフォールバック。
+        document.addEventListener('DOMContentLoaded', () => {
+            // xterm.jsが内部的に使用する非表示のテキストエリアを取得
+            const terminalTextarea = document.querySelector('.xterm-helper-textarea');
+
+            if (terminalTextarea) {
+                // テキストエリアがフォーカスされた時（＝ユーザーがキーボードを表示しようと画面をタップした時）
+                terminalTextarea.addEventListener('focus', () => {
+                    // 少し遅延させてからスクロールを実行することで、
+                    // キーボードのアニメーション中に処理が実行されるのを防ぐ
+                    setTimeout(() => {
+                        window.scrollTo(0, document.body.scrollHeight);
+                    }, 150); // 150msの遅延
+                });
+            }
+        });
+    </script>
 
     <script>
         // 新しいPasskeyの登録フローを開始
