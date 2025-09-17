@@ -3,264 +3,3359 @@
 
 <head>
     <meta charset="UTF-8">
+    <title>{{ util.get_text_by_key('terminal_ui.title', menu_mode) }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>{{ textData.title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/terminal.css') }}">
-    <link rel="manifest" href="{{ url_for('web.manifest') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192x192.png') }}">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="GR-BBS">
-    {{ util.get_tracking_code() | safe }}
+
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
+
+
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1m:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            background-color: #282c34;
+            font-family: '"M PLUS 1m", "Courier New", monospace';
+        }
+
+        /* 
+         * iOSの自動ズームを防ぐため、Xterm.jsが内部的に使用する
+         * 非表示のテキストエリアのフォントサイズを16px以上に保ちます。
+         */
+        .xterm-helper-textarea {
+            font-size: 16px !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: -9999px !important;
+            width: 0 !important;
+            height: 0 !important;
+            opacity: 0 !important;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .monitor-chassis {
+            background: linear-gradient(145deg, #f0e8c0, #d3cba0);
+            border-top: 2px solid #fdf5d5;
+            border-left: 2px solid #fdf5d5;
+            border-bottom: 2px solid #b0a888;
+            border-right: 2px solid #b0a888;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), inset 3px 3px 5px rgba(255, 255, 255, 0.6), inset -3px -3px 5px rgba(0, 0, 0, 0.2);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            max-height: 95vh;
+        }
+
+        /* --- ハンバーガーメニュー --- */
+        #hamburger-btn {
+            display: none;
+            /* デフォルトでは非表示 */
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            z-index: 10;
+            padding: 5px;
+            width: 44px;
+            height: 44px;
+            box-sizing: border-box;
+        }
+
+        #hamburger-btn img,
+        #scroll-to-bottom-btn img {
+            width: 100%;
+            height: 100%;
+            filter: invert(83%) sepia(15%) saturate(411%) hue-rotate(359deg) brightness(91%) contrast(88%);
+        }
+
+        #scroll-to-bottom-btn {
+            display: none;
+            /* デフォルトでは非表示 */
+            position: absolute;
+            top: 60px;
+            right: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            z-index: 10;
+            padding: 5px;
+            width: 44px;
+            height: 44px;
+            box-sizing: border-box;
+        }
+
+        #scroll-to-bottom-btn img {
+            transform: rotate(90deg);
+            /* 矢印アイコンを90度回転 */
+        }
+
+        .sidenav {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1002;
+            top: 0;
+            left: 0;
+            background-color: rgba(30, 30, 30, 0.95);
+            overflow-x: hidden;
+            transition: 0.3s;
+            padding-top: 60px;
+        }
+
+        .sidenav a {
+            padding: 10px 15px 10px 32px;
+            text-decoration: none;
+            font-size: 1.1em;
+            color: #f1f1f1;
+            display: block;
+            transition: 0.2s;
+        }
+
+        .sidenav a:hover {
+            color: #c0c0c0;
+        }
+
+        .sidenav .closebtn {
+            position: absolute;
+            top: 0;
+            right: 15px;
+            font-size: 2.2em;
+            /* ベースフォントサイズに連動させる */
+            margin-left: 50px;
+            color: #d3cba0;
+        }
+
+        /* --- サイドナビのボタンスタイル --- */
+        .sidenav a:not(.closebtn) {
+            padding: 10px 15px;
+            margin: 8px 15px;
+            text-decoration: none;
+            font-size: 1.1em;
+            display: block;
+            transition: background-color 0.2s, border-color 0.2s;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            border: 1px solid;
+        }
+
+        /* テーマごとのスタイル */
+        body.theme-default .sidenav a:not(.closebtn) {
+            background-color: #333;
+            border-color: #555;
+            color: #eee;
+        }
+
+        body.theme-default .sidenav a:not(.closebtn):hover {
+            background-color: #444;
+            border-color: #777;
+        }
+
+        body.theme-green .sidenav a:not(.closebtn) {
+            background-color: #003300;
+            border-color: #008800;
+            color: #00ff00;
+        }
+
+        body.theme-green .sidenav a:not(.closebtn):hover {
+            background-color: #005500;
+            border-color: #00ff00;
+        }
+
+        body.theme-amber .sidenav a:not(.closebtn) {
+            background-color: #3a2000;
+            border-color: #885000;
+            color: #FFB000;
+        }
+
+        body.theme-amber .sidenav a:not(.closebtn):hover {
+            background-color: #5a4000;
+            border-color: #FFB000;
+        }
+        }
+
+
+        .monitor-chassis.bezel-off {
+            background: none;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        /* 
+         * ベゼルがオフのときはフッターのブランドロゴも非表示にします。
+         */
+        .monitor-chassis.bezel-off .monitor-footer {
+            display: none;
+        }
+
+        .monitor-footer {
+            text-align: center;
+            padding-top: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #706b58;
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .monitor-screen {
+            background-color: #000;
+            padding: 10px;
+            box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.9);
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 8px;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            flex-direction: column;
+            flex-grow: 1;
+            min-height: 0;
+            touch-action: none;
+        }
+
+        /* にじみ効果（グローエフェクト） */
+        #terminal.blur-effect,
+        .mobile-btn.blur-effect {
+            text-shadow: var(--glow-text-shadow, none);
+        }
+
+        /* 
+         * 走査線エフェクトを擬似要素で追加します。
+         */
+        .monitor-screen.scanline-effect::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15) 1px, transparent 1px, transparent 2px);
+            pointer-events: none;
+        }
+
+        #terminal {
+            flex-grow: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        #function-keys-container {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 5px 0;
+            background-color: #000;
+            margin-top: 15px;
+        }
+
+        .f-key-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .f-key {
+            background-color: #FFFFFF;
+            color: #000000;
+            padding: 2px 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 2px;
+            white-space: nowrap;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        /* --- ログビューワー用ポップアップのスタイル --- */
+        #log-viewer-window {
+            width: 80vw;
+            height: 70vh;
+            max-width: 1200px;
+            max-height: 800px;
+        }
+
+        .log-viewer-container {
+            display: flex;
+            height: calc(100% - 50px);
+            gap: 15px;
+        }
+
+        .file-list-pane {
+            flex: 0 0 300px;
+            overflow-y: auto;
+            border-right: 1px solid #b0a888;
+            padding-right: 15px;
+        }
+
+        /* --- BBSリストビューワー用ポップアップのスタイル --- */
+        #bbs-list-window {
+            width: 80vw;
+            height: 70vh;
+            max-width: 1000px;
+            max-height: 700px;
+        }
+
+        .bbs-list-container {
+            display: flex;
+            height: calc(100% - 50px);
+            gap: 15px;
+        }
+
+        .list-pane {
+            flex: 0 0 250px;
+            overflow-y: auto;
+            border-right: 1px solid #b0a888;
+            padding-right: 15px;
+        }
+
+        .detail-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            background-color: #000;
+            color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: inset 1px 1px 5px rgba(0, 0, 0, 0.7);
+        }
+
+        #bbs-list-jump-btn {
+            margin-top: auto;
+            padding: 10px;
+            font-size: 1.1em;
+        }
+
+        .popup-content .detail-pane h3 {
+            font-weight: bold;
+            margin-top: 0;
+            color: #fff;
+            text-shadow: none;
+        }
+
+        .content-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #log-content-display {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- ポップアップウィンドウの共通スタイル --- */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .popup-window {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, #f0e8c0, #d3cba0);
+            border-top: 2px solid #fdf5d5;
+            border-left: 2px solid #fdf5d5;
+            border-bottom: 2px solid #b0a888;
+            border-right: 2px solid #b0a888;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), inset 3px 3px 5px rgba(255, 255, 255, 0.6), inset -3px -3px 5px rgba(0, 0, 0, 0.2);
+            z-index: 1001;
+            min-width: 300px;
+        }
+
+        #line-editor-window {
+            width: 80%;
+            max-width: 900px;
+        }
+
+        .popup-overlay.visible,
+        .popup-window.visible {
+            display: block;
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #b0a888;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .popup-header h2 {
+            margin: 0;
+            color: #706b58;
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7), -1px -1px 1px rgba(0, 0, 0, 0.1);
+        }
+
+        .popup-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            color: #706b58;
+            cursor: pointer;
+        }
+
+        .popup-content h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #706b58;
+            text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
+        }
+
+        .popup-content div {
+            margin-bottom: 15px;
+        }
+
+        .popup-content button {
+            background: linear-gradient(145deg, #e0d8b8, #c8c098);
+            border: 1px solid #b0a888;
+            border-top-color: #fdf5d5;
+            border-left-color: #fdf5d5;
+            padding: 8px 12px;
+            margin: 2px;
+            color: #504b38;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        /* --- ログビューワーのスタイル調整 --- */
+        #log-viewer-window {
+            width: 80vw;
+            height: 70vh;
+            max-width: 1200px;
+            max-height: 800px;
+        }
+
+        .log-viewer-container {
+            display: flex;
+            height: calc(100% - 50px);
+            gap: 15px;
+        }
+
+        .file-list-pane {
+            flex: 0 0 300px;
+            overflow-y: auto;
+            border-right: 1px solid #b0a888;
+
+            padding-right: 1;
+        }
+
+        .popup-content button:hover {
+            background-color: #e9e9e9;
+        }
+
+        .popup-content button:active {
+            background: linear-gradient(145deg, #c8c098, #e0d8b8);
+            transform: translateY(1px);
+        }
+
+        .tab-button {
+            padding: 10px 15px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            color: #706b58;
+            font-size: 1em;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -1px;
+        }
+
+        .tab-button.active {
+            color: #504b38;
+            font-weight: bold;
+            border-bottom-color: #504b38;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .popup-content button.active {
+            background: #b0a888;
+            box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .popup-window input[type="text"] {
+            width: 95%;
+            padding: 8px;
+            margin-bottom: 15px;
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
+            font-family: '"M PLUS 1m", "Courier New", monospace';
+        }
+
+        .popup-window-input {
+            width: 95%;
+            padding: 8px;
+            margin-bottom: 15px;
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
+            font-family: '"M PLUS 1m", "Courier New", monospace';
+        }
+
+        .popup-window-textarea {
+            width: 100%;
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
+            font-family: '"M PLUS 1m", "Courier New", monospace';
+            resize: none;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        .popup-window textarea {
+            height: 250px;
+            padding: 8px;
+            margin-bottom: 15px;
+            background-color: #000;
+            color: #eee;
+            border-style: solid;
+            border-width: 2px;
+            border-color: #222 #555 #555 #222;
+            border-radius: 4px;
+            font-family: '"M PLUS 1m", "Courier New", monospace';
+            resize: vertical;
+        }
+
+        #ansi-controls {
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .control-group {
+            margin-bottom: 5px;
+        }
+
+        .ansi-btn {
+            background: linear-gradient(145deg, #e0d8b8, #c8c098);
+            border: 1px solid #b0a888;
+            border-top-color: #fdf5d5;
+            border-left-color: #fdf5d5;
+            padding: 2px 8px;
+            margin: 2px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 0.9em;
+            font-family: sans-serif;
+        }
+
+        /* xterm.jsの点滅(blink)を有効にするためのアニメーション */
+        .xterm .xterm-screen .blinking {
+            animation: xterm-blink 1s steps(1, start) infinite;
+        }
+
+        @keyframes xterm-blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* 
+         * Xterm.jsが内部で生成するスクロールバーを非表示にします。
+         * スクロール自体は可能です。
+         */
+        .xterm-viewport {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        /* --- レスポンシブ対応 (モバイル表示) --- */
+        @media screen and (max-width: 992px) {
+            body {
+                display: block;
+            }
+
+            .monitor-chassis {
+                width: 100%;
+                height: 100%;
+                max-height: none;
+                padding: 0;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+                box-sizing: border-box;
+            }
+
+            .monitor-screen {
+                height: 100%;
+                border-radius: 0;
+                padding: 2px;
+                box-sizing: border-box;
+            }
+
+            #function-keys-container {
+                display: none;
+                /* モバイルではファンクションキーを非表示 */
+            }
+
+
+            #hamburger-btn {
+                display: block;
+                /* モバイルではハンバーガーメニューを表示 */
+            }
+
+            #scroll-to-bottom-btn {
+                display: block;
+                /* モバイルで表示 */
+            }
+
+            #dip-switch-container {
+                display: none;
+                /* モバイルではDIPスイッチを非表示 */
+            }
+
+            #multiline-editor-window,
+            #log-viewer-window {
+                width: 95vw;
+                height: 90vh;
+                padding: 10px;
+            }
+
+            #multiline-editor-window .popup-header {
+                margin-bottom: 10px;
+            }
+
+            #multiline-editor-window .popup-content {
+                display: flex;
+                flex-direction: column;
+                height: calc(100% - 60px);
+            }
+
+            #multiline-editor-input {
+                flex-grow: 1;
+                min-height: 100px;
+            }
+
+            .log-viewer-container {
+                flex-direction: column;
+            }
+
+            .file-list-pane {
+                flex: 0 1 40%;
+                border-right: none;
+                border-bottom: 1px solid #b0a888;
+                padding-right: 0;
+                padding-bottom: 10px;
+            }
+
+            .list-pane {
+                flex: 0 1 40%;
+                border-right: none;
+                border-bottom: 1px solid #b0a888;
+                padding-right: 0;
+                padding-bottom: 10px;
+                margin-bottom: 10px;
+            }
+
+            /* --- モバイルでの設定画面の視認性向上 --- */
+            #popup-window {
+                width: 90vw;
+                max-height: 85vh;
+                overflow-y: auto;
+                /* コンテンツが多い場合にスクロール可能にする */
+            }
+
+            #popup-window .popup-content h3 {
+                font-size: 1.2em;
+                margin-bottom: 0.8em;
+            }
+
+            #popup-window .popup-content button {
+                display: block;
+                width: 100%;
+                padding: 0.8em 1em;
+                font-size: 1.1em;
+                margin: 0.5em 0;
+                box-sizing: border-box;
+            }
+
+            /* --- モバイルでの画面効果 --- */
+            #terminal.blur-effect,
+            .mobile-btn.blur-effect {
+                text-shadow: var(--glow-text-shadow-mobile, none);
+            }
+
+            .monitor-screen.scanline-effect::after {
+                background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px);
+            }
+
+            .mobile-btn {
+                text-shadow: var(--glow-text-shadow-mobile, none);
+            }
+        }
+
+        /* --- デスクトップ表示でのスタイル調整 --- */
+        @media screen and (min-width: 993px) {
+
+            #mobile-bbs-controls,
+            #mobile-chat-controls,
+            #mobile-userpref-controls,
+            #mobile-mail-controls,
+            #mobile-bbs-entry-controls,
+            #mobile-top-menu-controls,
+            #mobile-plugin-menu-controls {
+                display: none !important;
+            }
+
+            #popup-window {
+                min-width: 650px;
+            }
+
+        }
+
+        .xterm-viewport::-webkit-scrollbar {
+            /* Webkit系ブラウザでスクロールバーを非表示 */
+            display: none;
+            /* Safari and Chrome */
+        }
+
+        /* --- モバイルBBSコントロール --- */
+        #mobile-bbs-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+            z-index: 100;
+        }
+
+        #mobile-bbs-controls.visible {
+            display: grid;
+        }
+
+
+        .mobile-btn {
+            background-color: #444;
+            border: 1px solid #666;
+            color: #eee;
+            font-size: 1.0em;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            font-family: '"M PLUS 1m", "Courier New", monospace';
+            font-weight: bold;
+            padding: 0.5em 0;
+        }
+
+        #bbs-btn-y {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        #bbs-btn-n {
+            grid-column: 4;
+            grid-row: 1;
+        }
+
+        .mobile-btn:active {
+            background-color: #666;
+        }
+
+        #bbs-btn-end-write {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        #bbs-btn-write {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        #bbs-btn-up {
+            grid-column: 3;
+            grid-row: 1;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-delete {
+            grid-column: 5;
+            grid-row: 2;
+        }
+
+        #bbs-btn-left {
+            grid-column: 2;
+            grid-row: 2;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-read {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        #bbs-btn-right {
+            grid-column: 4;
+            grid-row: 2;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-help {
+            grid-column: 1;
+            grid-row: 3;
+        }
+
+        #bbs-btn-down {
+            grid-column: 3;
+            grid-row: 3;
+            font-size: 1.5em;
+        }
+
+        #bbs-btn-exit {
+            grid-column: 5;
+            grid-row: 3;
+        }
+
+        /* --- テーマごとのボタンのスタイル --- */
+        /* デフォルトテーマ */
+        #mobile-bbs-controls.theme-default #bbs-btn-read {
+            background-color: #a83232;
+        }
+
+        #mobile-bbs-controls.theme-default #bbs-btn-read:active {
+            background-color: #c85252;
+        }
+
+        /* グリーンテーマ */
+        #mobile-bbs-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-bbs-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-bbs-controls.theme-green #bbs-btn-read {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-bbs-controls.theme-green #bbs-btn-read:active {
+            background-color: #000000;
+            color: #00FF00;
+        }
+
+        /* アンバーテーマ */
+        #mobile-bbs-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-bbs-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        #mobile-bbs-controls.theme-amber #bbs-btn-read {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        #mobile-bbs-controls.theme-amber #bbs-btn-read:active {
+            background-color: #1a1000;
+            color: #FFB000;
+        }
+
+        /* --- モバイルチャットコントロールのテーマ --- */
+        /* グリーンテーマ */
+        #mobile-chat-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-chat-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        /* アンバーテーマ */
+        #mobile-chat-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-chat-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        /* --- モバイルチャットコントロール --- */
+        #mobile-chat-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        #mobile-chat-controls.visible {
+            display: grid;
+        }
+
+        /* --- モバイルユーザー設定コントロール --- */
+        #mobile-userpref-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        #mobile-userpref-controls.visible {
+            display: grid;
+        }
+
+        #userpref-btn-enter {
+            grid-column: 1 / -1;
+        }
+
+        /* --- モバイルユーザー設定コントロールのテーマ --- */
+        #mobile-userpref-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-userpref-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-userpref-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-userpref-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        /* --- モバイルメール＆掲示板入口コントロール --- */
+        #mobile-mail-controls,
+        #mobile-bbs-entry-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            gap: 8px;
+        }
+
+        #mobile-mail-controls.visible,
+        #mobile-bbs-entry-controls.visible {
+            display: grid;
+        }
+
+        #mobile-mail-controls {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        #mobile-bbs-entry-controls {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        /* --- モバイル確認コントロール --- */
+        #mobile-confirm-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        #mobile-confirm-controls.visible {
+            display: grid;
+        }
+
+        /* --- モバイルトップメニューコントロール --- */
+        #mobile-top-menu-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        #mobile-plugin-menu-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(20, 20, 20, 0.9);
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 100;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        #mobile-plugin-menu-controls.visible {
+            display: grid;
+        }
+
+        #plugin-btn-enter {
+            grid-column: 1 / -1;
+        }
+
+        #mobile-top-menu-controls.visible {
+            display: grid;
+        }
+
+        /* --- テーマ適用 --- */
+        #mobile-mail-controls.theme-green .mobile-btn,
+        #mobile-plugin-menu-controls.theme-green .mobile-btn,
+        #mobile-bbs-entry-controls.theme-green .mobile-btn,
+        #mobile-confirm-controls.theme-green .mobile-btn,
+        #mobile-top-menu-controls.theme-green .mobile-btn {
+            background-color: #000000;
+            border-color: #00FF00;
+            color: #00FF00;
+        }
+
+        #mobile-mail-controls.theme-green .mobile-btn:active,
+        #mobile-plugin-menu-controls.theme-green .mobile-btn:active,
+        #mobile-bbs-entry-controls.theme-green .mobile-btn:active,
+        #mobile-confirm-controls.theme-green .mobile-btn:active,
+        #mobile-top-menu-controls.theme-green .mobile-btn:active {
+            background-color: #00FF00;
+            color: #000000;
+        }
+
+        #mobile-mail-controls.theme-amber .mobile-btn,
+        #mobile-plugin-menu-controls.theme-amber .mobile-btn,
+        #mobile-bbs-entry-controls.theme-amber .mobile-btn,
+        #mobile-confirm-controls.theme-amber .mobile-btn,
+        #mobile-top-menu-controls.theme-amber .mobile-btn {
+            background-color: #1a1000;
+            border-color: #FFB000;
+            color: #FFB000;
+        }
+
+        #mobile-mail-controls.theme-amber .mobile-btn:active,
+        #mobile-plugin-menu-controls.theme-amber .mobile-btn:active,
+        #mobile-bbs-entry-controls.theme-amber .mobile-btn:active,
+        #mobile-confirm-controls.theme-amber .mobile-btn:active,
+        #mobile-top-menu-controls.theme-amber .mobile-btn:active {
+            background-color: #FFB000;
+            color: #1a1000;
+        }
+
+        /* --- ディップスイッチ --- */
+        #dip-switch-container {
+            margin-top: 20px;
+            border-top: 1px solid #b0a888;
+            padding-top: 15px;
+        }
+
+        .dip-switch-panel {
+            background-color: #4a4a4a;
+            border: 2px solid #333333;
+            border-radius: 5px;
+            padding: 15px 15px 0px 15px;
+            box-shadow: inset 1px 1px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .dip-switch-bank {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            /* グループ間の隙間 */
+            flex-wrap: wrap;
+            /* 画面が狭い場合に折り返す */
+        }
+
+        .dip-switch-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #962d22;
+            padding: 5px 8px;
+            border-radius: 3px;
+            background-color: #c0392b;
+        }
+
+        .dip-switch-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .dip-switch-number {
+            color: white;
+            font-family: 'Courier New', monospace !important;
+            font-size: 10px !important;
+            /* フォントサイズを固定 */
+            text-shadow: 1px 1px 1px #000;
+        }
+
+
+
+        .dip-switch {
+            position: relative;
+            width: 20px;
+            height: 40px;
+            background-color: #fff;
+            border: 1px solid #999;
+            border-radius: 3px;
+        }
+
+        .dip-switch input[type="checkbox"] {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .dip-switch label {
+            position: absolute;
+            width: 16px;
+            height: 18px;
+            background-color: #333;
+            border: 1px solid #222;
+            cursor: pointer;
+            transition: top 0.15s ease-in-out;
+            left: 1px;
+            box-shadow: inset 0 2px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .dip-switch input[type="checkbox"]+label {
+            top: 20px;
+            /* OFF (下) */
+        }
+
+        .dip-switch input[type="checkbox"]:checked+label {
+            top: 1px;
+            /* ON (上) */
+        }
+    </style>
 </head>
 
 <body>
-    <div id="terminal-container">
-        <div id="terminal-bezel"></div>
-        <div id="terminal-screen">
-            <div id="terminal-output"></div>
-            <div id="terminal-input-line">
-                <span id="terminal-prompt">> </span>
-                <input type="text" id="terminal-input" autocomplete="off" autocorrect="off" autocapitalize="off"
-                    spellcheck="false">
+    <div class="monitor-chassis">
+        <div class="monitor-screen">
+            <div id="terminal"></div>
+            <div id="function-keys-container">
+                <div class="f-key-group" id="f-keys-left"></div>
+                <div class="f-key-group" id="f-keys-right"></div>
             </div>
+        </div>
+        <div class="monitor-footer">
+            {{ util.get_text_by_key('terminal_ui.footer_brand', menu_mode) }}
         </div>
     </div>
 
-    <div id="footer">
-        <div id="fkey-display">
-            {% for key, definition in fkey_definitions.items() %}
-            <div class="fkey" id="{{ key }}">{{ definition.label }}</div>
-            {% endfor %}
-        </div>
-        <div id="brand">{{ textData.footer_brand }}</div>
+    <div id="mobile-bbs-controls">
+        <button class="mobile-btn" id="bbs-btn-end-write">^</button>
+        <button class="mobile-btn" id="bbs-btn-write">W</button>
+        <button class="mobile-btn" id="bbs-btn-y">Y</button>
+        <button class="mobile-btn" id="bbs-btn-n">N</button>
+        <button class="mobile-btn" id="bbs-btn-up">↑</button>
+        <button class="mobile-btn" id="bbs-btn-delete">*</button>
+        <button class="mobile-btn" id="bbs-btn-left">←</button>
+        <button class="mobile-btn" id="bbs-btn-read">Enter</button>
+        <button class="mobile-btn" id="bbs-btn-right">→</button>
+        <button class="mobile-btn" id="bbs-btn-help">?</button>
+        <button class="mobile-btn" id="bbs-btn-down">↓</button>
+        <button class="mobile-btn" id="bbs-btn-exit">E</button>
     </div>
 
-    <!-- Mobile Buttons Container -->
-    <div class="mobile-buttons">
-        <div class="mobile-buttons-grid" id="mobile-buttons-grid">
-            <!-- Buttons will be dynamically inserted here -->
-        </div>
+    <div id="mobile-chat-controls">
+        <button class="mobile-btn" id="chat-btn-exit">Exit</button>
+        <button class="mobile-btn" id="chat-btn-telegram">Telegram</button>
+        <button class="mobile-btn" id="chat-btn-lock">Lock</button>
+        <button class="mobile-btn" id="chat-btn-unlock">Unlock</button>
+        <button class="mobile-btn" id="chat-btn-who">Who</button>
+        <button class="mobile-btn" id="chat-btn-roominfo">RoomInfo</button>
     </div>
 
-    <!-- Settings Popup -->
-    <div id="settings-popup" class="popup">
-        <div class="popup-content">
-            <h2>{{ textData.settings_popup.title }}</h2>
-            <!-- Theme Settings -->
-            <div class="setting-group">
-                <h3>{{ textData.settings_popup.theme_header }}</h3>
-                <select id="theme-selector">
-                    <option value="default">Default</option>
-                    <option value="amber">Amber</option>
-                    <option value="green">Green</option>
-                    <option value="white">White</option>
-                </select>
-            </div>
-            <!-- Font Settings -->
-            <div class="setting-group">
-                <h3>{{ textData.settings_popup.font_header }}</h3>
-                <select id="font-selector">
-                    <option value="monospace">Monospace</option>
-                    <option value="misaki">Misaki</option>
-                    <option value="shinonome">Shinonome</option>
-                </select>
-            </div>
-            <!-- Font Size -->
-            <div class="setting-group">
-                <h3>{{ textData.settings_popup.fontsize_header }}</h3>
-                <div class="button-group">
-                    <button data-size="small">{{ textData.settings_popup.fontsize_small }}</button>
-                    <button data-size="medium">{{ textData.settings_popup.fontsize_medium }}</button>
-                    <button data-size="large">{{ textData.settings_popup.fontsize_large }}</button>
-                    <button data-size="xlarge">{{ textData.settings_popup.fontsize_xlarge }}</button>
-                </div>
-            </div>
-            <!-- Speed Settings -->
-            <div class="setting-group">
-                <h3>{{ textData.settings_popup.speed_header }}</h3>
-                <input type="range" id="speed-slider" min="0" max="100" value="100">
-            </div>
-            <!-- Screen Effects -->
-            <div class="setting-group">
-                <h3>{{ textData.settings_popup.effects_header }}</h3>
-                <label><input type="checkbox" id="bezel-effect">{{ textData.settings_popup.effect_bezel }}</label>
-                <label><input type="checkbox" id="glow-effect">{{ textData.settings_popup.effect_glow }}</label>
-                <label><input type="checkbox" id="scanline-effect">{{ textData.settings_popup.effect_scanline
-                    }}</label>
-            </div>
-            <!-- Push Notifications -->
-            <div class="setting-group">
-                <h3>{{ textData.settings_popup.push_header }}</h3>
-                <button id="enable-push-btn">{{ textData.settings_popup.push_enable_button }}</button>
-                <button id="disable-push-btn">{{ textData.settings_popup.push_disable_button }}</button>
-                <p id="push-status"></p>
-            </div>
-            <!-- DIP Switches -->
-            <div class="setting-group">
-                <h3>{{ textData.settings_popup.dip_switch_header }}</h3>
-                <div class="dip-switch-container">
-                    {% for i in range(1, 9) %}
-                    <div class="dip-switch">
-                        <input type="checkbox" id="dip{{i}}">
-                        <label for="dip{{i}}"></label>
-                        <span>{{i}}</span>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
+    <div id="mobile-userpref-controls">
+        <button class="mobile-btn" id="userpref-btn-1">1</button>
+        <button class="mobile-btn" id="userpref-btn-2">2</button>
+        <button class="mobile-btn" id="userpref-btn-3">3</button>
+        <button class="mobile-btn" id="userpref-btn-4">4</button>
+        <button class="mobile-btn" id="userpref-btn-5">5</button>
+        <button class="mobile-btn" id="userpref-btn-6">6</button>
+        <button class="mobile-btn" id="userpref-btn-7">7</button>
+        <button class="mobile-btn" id="userpref-btn-8">8</button>
+        <button class="mobile-btn" id="userpref-btn-9">9</button>
+        <button class="mobile-btn" id="userpref-btn-help">?</button>
+        <button class="mobile-btn" id="userpref-btn-0">0</button>
+        <button class="mobile-btn" id="userpref-btn-backspace">←</button>
+        <button class="mobile-btn" id="userpref-btn-enter">Enter</button>
     </div>
 
-    <!-- Log Viewer Popup -->
-    <div id="log-viewer-popup" class="popup">
-        <div class="popup-content">
-            <div id="log-viewer-header">
-                <h2>Log Viewer</h2>
-                <select id="log-file-selector"></select>
-            </div>
-            <pre id="log-content"></pre>
-        </div>
+    <div id="mobile-mail-controls">
+        <button class="mobile-btn" id="mail-btn-write">Write</button>
+        <button class="mobile-btn" id="mail-btn-read">Read</button>
+        <button class="mobile-btn" id="mail-btn-list">List</button>
+        <button class="mobile-btn" id="mail-btn-exit">Exit</button>
     </div>
 
-    <!-- BBS List Popup -->
-    <div id="bbs-list-popup" class="popup">
-        <div class="popup-content">
+    <div id="mobile-bbs-entry-controls">
+        <button class="mobile-btn" id="bbs-entry-btn-write">Write</button>
+        <button class="mobile-btn" id="bbs-entry-btn-read">Read</button>
+        <button class="mobile-btn" id="bbs-entry-btn-exit">Exit</button>
+    </div>
+
+    <div id="mobile-confirm-controls">
+        <button class="mobile-btn" id="confirm-btn-y">Yes</button>
+        <button class="mobile-btn" id="confirm-btn-n">No</button>
+    </div>
+
+    <div id="mobile-top-menu-controls">
+        <button class="mobile-btn" id="top-btn-bbs">BBS</button>
+        <button class="mobile-btn" id="top-btn-chat">Chat</button>
+        <button class="mobile-btn" id="top-btn-mail">Mail</button>
+        <button class="mobile-btn" id="top-btn-program">Program</button>
+        <button class="mobile-btn" id="top-btn-userpref">UserPref</button>
+        <button class="mobile-btn" id="top-btn-who">Who</button>
+        <button class="mobile-btn" id="top-btn-telegram">Telegram</button>
+        <button class="mobile-btn" id="top-btn-help">Help</button>
+        <button class="mobile-btn" id="top-btn-logoff">Logoff</button>
+    </div>
+
+    <div id="mobile-plugin-menu-controls">
+        <button class="mobile-btn" id="plugin-btn-1">1</button>
+        <button class="mobile-btn" id="plugin-btn-2">2</button>
+        <button class="mobile-btn" id="plugin-btn-3">3</button>
+        <button class="mobile-btn" id="plugin-btn-4">4</button>
+        <button class="mobile-btn" id="plugin-btn-5">5</button>
+        <button class="mobile-btn" id="plugin-btn-6">6</button>
+        <button class="mobile-btn" id="plugin-btn-7">7</button>
+        <button class="mobile-btn" id="plugin-btn-8">8</button>
+        <button class="mobile-btn" id="plugin-btn-9">9</button>
+        <button class="mobile-btn" id="plugin-btn-help">?</button>
+        <button class="mobile-btn" id="plugin-btn-0">0</button>
+        <button class="mobile-btn" id="plugin-btn-backspace">←</button>
+        <button class="mobile-btn" id="plugin-btn-enter">Enter</button>
+    </div>
+
+    <!-- BBSリストビューワー (F7キーで表示) -->
+    <div id="bbs-list-overlay" class="popup-overlay"></div>
+    <div id="bbs-list-window" class="popup-window">
+        <div class="popup-header">
             <h2>BBS List</h2>
-            <div id="bbs-list-content"></div>
+            <button id="bbs-list-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content bbs-list-container">
+            <div class="list-pane">
+                <h3>BBS Stations</h3>
+                <ul id="bbs-stations-list" style="list-style-type: none; padding: 0;"></ul>
+            </div>
+            <div class="detail-pane">
+                <h3 id="bbs-detail-name">Select a BBS from the list</h3>
+                <p id="bbs-detail-description" style="white-space: pre-wrap; flex-grow: 1;"></p>
+                <div style="display: flex; gap: 10px; margin-top: auto;">
+                    <button id="bbs-list-jump-btn" class="popup-content-button" style="flex-grow: 1;" disabled>Jump to
+                        BBS</button>
+                    <button id="bbs-list-submit-new-btn" class="popup-content-button">Submit New Link</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Line Editor Popup -->
-    <div id="line-editor-popup" class="popup">
+    <!-- BBSリンク申請用ポップアップ -->
+    <div id="bbs-submission-overlay" class="popup-overlay"></div>
+    <div id="bbs-submission-window" class="popup-window">
+        <div class="popup-header">
+            <h2>Submit New BBS Link</h2>
+            <button id="bbs-submission-close-btn" class="popup-close-btn">&times;</button>
+        </div>
         <div class="popup-content">
-            <h2>{{ textData.line_editor_popup.title }}</h2>
-            <input type="text" id="line-editor-input">
-            <div class="popup-buttons">
-                <button id="line-editor-insert">{{ textData.line_editor_popup.insert_button }}</button>
-                <button id="line-editor-cancel">{{ textData.line_editor_popup.cancel_button }}</button>
-            </div>
+            <input type="text" id="bbs-submission-name" placeholder="BBS Name" class="popup-window-input">
+            <input type="url" id="bbs-submission-url" placeholder="https://example.com" class="popup-window-input">
+            <textarea id="bbs-submission-description" placeholder="Description (optional)" class="popup-window-textarea"
+                style="height: 100px;"></textarea>
+            <button id="bbs-submission-submit-btn" class="popup-content-button">Submit for Approval</button>
         </div>
     </div>
 
-    <!-- Multiline Editor Popup -->
-    <div id="multiline-editor-popup" class="popup">
+    <!-- ハンバーガーメニュー用のサイドナビコンテナ -->
+    <div id="sidenav" class="sidenav">
+    </div>
+    <div id="line-editor-overlay" class="popup-overlay"></div>
+    <div id="line-editor-window" class="popup-window">
+        <div class="popup-header">
+            <h2>{{ util.get_text_by_key('terminal_ui.line_editor_popup.title', menu_mode) }}</h2>
+            <button id="line-editor-close-btn" class="popup-close-btn">&times;</button>
+        </div>
         <div class="popup-content">
-            <h2>{{ textData.multiline_editor_popup.title }}</h2>
-            <div class="editor-toolbar">
-                <button data-ansi="bold">{{ textData.multiline_editor_popup.bold_button }}</button>
-                <button data-ansi="blink">{{ textData.multiline_editor_popup.blink_button }}</button>
-                <button data-ansi="underline">{{ textData.multiline_editor_popup.underline_button }}</button>
-                <button data-ansi="reverse">{{ textData.multiline_editor_popup.reverse_button }}</button>
-                <select id="color-selector">
-                    <option value="default">Default</option>
-                    <option value="black">Black</option>
-                    <option value="red">Red</option>
-                    <option value="green">Green</option>
-                    <option value="yellow">Yellow</option>
-                    <option value="blue">Blue</option>
-                    <option value="magenta">Magenta</option>
-                    <option value="cyan">Cyan</option>
-                    <option value="white">White</option>
-                </select>
-                <button data-ansi="reset">{{ textData.multiline_editor_popup.reset_button }}</button>
-            </div>
-            <textarea id="multiline-editor-input" rows="10"></textarea>
-            <div class="popup-buttons">
-                <button id="multiline-editor-insert">{{ textData.multiline_editor_popup.insert_button }}</button>
-                <button id="multiline-editor-cancel">{{ textData.multiline_editor_popup.cancel_button }}</button>
+            <label id="line-editor-prompt" for="line-editor-input"
+                style="display: block; margin-bottom: 5px; color: #504b38;"></label>
+            <input type="text" id="line-editor-input" maxlength="256">
+            <div>
+                <button id="line-editor-insert-btn">{{
+                    util.get_text_by_key('terminal_ui.line_editor_popup.insert_button', menu_mode) }}</button>
+                <button id="line-editor-cancel-btn">{{
+                    util.get_text_by_key('terminal_ui.line_editor_popup.cancel_button', menu_mode) }}</button>
             </div>
         </div>
     </div>
 
-    <!-- File Upload Modal -->
-    <div id="file-upload-modal" class="popup">
+    <div id="multiline-editor-overlay" class="popup-overlay"></div>
+    <div id="multiline-editor-window" class="popup-window">
+        <div class="popup-header">
+            <h2>{{ util.get_text_by_key('terminal_ui.multiline_editor_popup.title', menu_mode) }}</h2>
+            <button id="multiline-editor-close-btn" class="popup-close-btn">&times;</button>
+        </div>
         <div class="popup-content">
-            <h2>File Upload</h2>
-            <p>Select a file to upload. Max size: <span id="max-file-size"></span>MB. Allowed types: <span
-                    id="allowed-file-types"></span></p>
-            <input type="file" id="file-input">
-            <div id="file-preview"></div>
-            <div class="popup-buttons">
-                <button id="upload-button">Upload</button>
-                <button id="cancel-upload-button">Cancel</button>
+
+            <div id="ansi-controls">
+                <div class="control-group">
+                    <button class="ansi-btn" data-sequence="[1m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.bold_button', menu_mode) }}</button>
+                    <button class="ansi-btn" data-sequence="[5m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.blink_button', menu_mode) }}</button>
+                    <button class="ansi-btn" data-sequence="[4m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.underline_button', menu_mode)
+                        }}</button>
+                    <button class="ansi-btn" data-sequence="[7m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.reverse_button', menu_mode) }}</button>
+                    <button class="ansi-btn" data-sequence="[0m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.reset_button', menu_mode) }}</button>
+                </div>
+                <div class="control-group" id="ansi-color-buttons">
+                    <button class="ansi-btn" data-sequence="[30m" data-ansi-color-name="black"
+                        style="color: #000000;">Black</button>
+                    <button class="ansi-btn" data-sequence="[31m" data-ansi-color-name="red">Red</button>
+                    <button class="ansi-btn" data-sequence="[32m" data-ansi-color-name="green">Green</button>
+                    <button class="ansi-btn" data-sequence="[33m" data-ansi-color-name="yellow">Yellow</button>
+                    <button class="ansi-btn" data-sequence="[34m" data-ansi-color-name="blue">Blue</button>
+                    <button class="ansi-btn" data-sequence="[35m" data-ansi-color-name="magenta">Magenta</button>
+                    <button class="ansi-btn" data-sequence="[36m" data-ansi-color-name="cyan">Cyan</button>
+                    <button class="ansi-btn" data-sequence="[37m" data-ansi-color-name="white">White</button>
+                </div>
+            </div>
+            <textarea id="multiline-editor-input" class="popup-window-textarea" cols="80"></textarea>
+
+            <div>
+                <button id="multiline-editor-insert-btn">{{
+                    util.get_text_by_key('terminal_ui.multiline_editor_popup.insert_button', menu_mode) }}</button>
+                <button id="multiline-editor-cancel-btn">{{
+                    util.get_text_by_key('terminal_ui.multiline_editor_popup.cancel_button', menu_mode) }}</button>
             </div>
         </div>
     </div>
 
-    <!-- Passkey Registration Modal -->
-    <div id="passkey-registration-modal" class="popup">
+    <div id="log-viewer-overlay" class="popup-overlay"></div>
+    <div id="log-viewer-window" class="popup-window">
+        <div class="popup-header">
+            <h2>{{ util.get_text_by_key('terminal_ui.log_viewer_popup.title', menu_mode) }}</h2>
+            <button id="log-viewer-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content log-viewer-container">
+            <div class="file-list-pane">
+                <h3>{{ util.get_text_by_key('terminal_ui.log_viewer_popup.list_header', menu_mode) }}</h3>
+                <ul id="log-files-list" style="list-style-type: none; padding: 0;"></ul>
+            </div>
+            <div class="content-pane">
+                <textarea id="log-content-display" class="popup-window-textarea" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-overlay" class="popup-overlay"></div>
+    <div id="popup-window" class="popup-window">
+        <div class="popup-header">
+            <h2>{{ util.get_text_by_key('terminal_ui.settings_popup.title', menu_mode) }}</h2>
+            <button id="popup-close-btn" class="popup-close-btn">&times;</button>
+        </div>
         <div class="popup-content">
-            <h2>Register Passkey</h2>
-            <p>Enter a nickname for this device/passkey (e.g., "My Laptop", "YubiKey").</p>
-            <input type="text" id="passkey-nickname-input" placeholder="Nickname">
-            <div class="popup-buttons">
-                <button id="confirm-passkey-registration">Register</button>
-                <button id="cancel-passkey-registration">Cancel</button>
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="font-settings">フォント設定</button>
+                <button class="tab-button" data-tab="effect-settings">効果設定</button>
+            </div>
+
+            <div id="font-settings" class="tab-content active">
+                <div id="font-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.font_header', menu_mode) }}</h3>
+                    <button data-font="M PLUS 1m">M PLUS 1m</button>
+                    <button data-font="M PLUS 1 Code">M PLUS 1 Code</button>
+                    <button data-font="IBM Plex Mono">IBM Plex Mono</button>
+                    <button data-font="DotGothic16">DotGothic16</button>
+                </div>
+                <div id="fontsize-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_header', menu_mode) }}</h3>
+                    <button data-size="12">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_small',
+                        menu_mode) }}</button>
+                    <button data-size="16">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_medium',
+                        menu_mode) }}</button>
+                    <button data-size="20">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_large',
+                        menu_mode) }}</button>
+                    <button data-size="24">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_xlarge',
+                        menu_mode) }}</button>
+                </div>
+            </div>
+
+            <div id="effect-settings" class="tab-content">
+                <div id="theme-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.theme_header', menu_mode) }}</h3>
+                    <button data-theme="default">Default</button>
+                    <button data-theme="green">Green</button>
+                    <button data-theme="amber">Amber</button>
+                </div>
+                <div id="speed-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.speed_header', menu_mode) }}</h3>
+                    <button data-speed="full">Full</button>
+                    <button data-speed="9600">9600bps</button>
+                    <button data-speed="4800">4800bps</button>
+                    <button data-speed="2400">2400bps</button>
+                    <button data-speed="300">300bps</button>
+                </div>
+                <div id="effect-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.effects_header', menu_mode) }}</h3>
+                    <button class="effect-btn" data-effect="bezel">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.effect_bezel', menu_mode) }}</button>
+                    <button class="effect-btn" data-effect="blur">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.effect_glow', menu_mode) }}</button>
+                    <button class="effect-btn" data-effect="scanline">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.effect_scanline', menu_mode) }}</button>
+                </div>
+            </div>
+
+            <div id="dip-switch-container">
+                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.dip_switch_header', menu_mode) }}</h3>
+                <div class="dip-switch-panel">
+
+                    <div class="dip-switch-bank">
+                        <!-- THEME -->
+                        <div class="dip-switch-group" data-group="theme">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-0" data-bit="0"><label
+                                        for="dip-theme-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-1" data-bit="1"><label
+                                        for="dip-theme-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-2" data-bit="2"><label
+                                        for="dip-theme-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-3" data-bit="3"><label
+                                        for="dip-theme-3"></label></div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- FONT -->
+                        <div class="dip-switch-group" data-group="font">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-0" data-bit="0"><label
+                                        for="dip-font-0"></label>
+                                </div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-1" data-bit="1"><label
+                                        for="dip-font-1"></label>
+                                </div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-2" data-bit="2"><label
+                                        for="dip-font-2"></label>
+                                </div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-3" data-bit="3"><label
+                                        for="dip-font-3"></label>
+                                </div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- SPEED -->
+                        <div class="dip-switch-group" data-group="speed">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-0" data-bit="0"><label
+                                        for="dip-speed-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-1" data-bit="1"><label
+                                        for="dip-speed-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-2" data-bit="2"><label
+                                        for="dip-speed-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-3" data-bit="3"><label
+                                        for="dip-speed-3"></label></div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- EFFECT -->
+                        <div class="dip-switch-group" data-group="effect">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-effect-0" data-bit="0"><label
+                                        for="dip-effect-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-effect-1" data-bit="1"><label
+                                        for="dip-effect-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-effect-2" data-bit="2"><label
+                                        for="dip-effect-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                        </div>
+                        <!-- FONTSIZE -->
+                        <div class="dip-switch-group" data-group="fontsize">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-0" data-bit="0"><label
+                                        for="dip-fontsize-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-1" data-bit="1"><label
+                                        for="dip-fontsize-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-2" data-bit="2"><label
+                                        for="dip-fontsize-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-3" data-bit="3"><label
+                                        for="dip-fontsize-3"></label></div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <input type="file" id="attachment-input" style="display: none;"> <!-- ファイル添付用の非表示input -->
+
+    <button id="hamburger-btn"><img src="{{ url_for('static', filename='icons/hmbg.svg') }}" alt="Menu"></button>
+    <button id="scroll-to-bottom-btn"><img src="{{ url_for('static', filename='icons/arrow.svg') }}"
+            alt="Scroll Down"></button>
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
     <script>
-        // Pass Flask variables to JavaScript
-        const FKEY_DEFINITIONS = {{ fkey_definitions | tojson }};
-        const ATTACHMENT_LIMITS = {{ attachment_limits | tojson }};
-        const VAPID_PUBLIC_KEY = '{{ vapid_public_key }}';
-        const MOBILE_BUTTON_LAYOUTS = {{ mobile_button_layouts | tojson }};
-        const TEXT_DATA = {{ textData | tojson }};
-        const MENU_MODE = '{{ menu_mode }}';
-    </script>
-    <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
-    <script>
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register("{{ url_for('web.service_worker') }}")
-                    .then(registration => {
-                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                    })
-                    .catch(err => {
-                        console.log('ServiceWorker registration failed: ', err);
-                    });
+        const textData = {
+            log_logging_now: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.logging_now', menu_mode) }}",
+            log_loading_current: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.loading_log', menu_mode) }}",
+            log_loading_file: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.loading_file', menu_mode) }}",
+            log_no_files: "{{ util.get_text_by_key('terminal_ui.log_viewer_popup.no_log_files', menu_mode) }}"
+        };
+
+
+
+        const themes = {
+            default: {
+                background: '#000000',
+                foreground: '#FFFFFF',
+                cursor: '#FFFFFF',
+                fkey_bg: '#FFFFFF',
+                fkey_fg: '#000000',
+                text_shadow_glow: '-1px 0 1px rgba(255,0,0,0.3), 1px 0 1px rgba(0,255,0,0.3), 0 0 3px rgba(255,255,255,0.4)',
+                black: '#000000',
+                red: '#FF0000',
+                green: '#00FF00',
+                yellow: '#FFFF00',
+                blue: '#0000FF',
+                magenta: '#FF00FF',
+                cyan: '#00FFFF',
+                white: '#FFFFFF',
+                brightBlack: '#7F7F7F',
+                brightRed: '#FF0000',
+                brightGreen: '#00FF00',
+                brightYellow: '#FFFF00',
+                brightBlue: '#0000FF',
+                brightMagenta: '#FF00FF',
+                brightCyan: '#00FFFF',
+                brightWhite: '#FFFFFF'
+            },
+            green: {
+                background: '#000000',
+                foreground: '#00FF00',
+                cursor: '#00FF00',
+                fkey_bg: '#00FF00',
+                fkey_fg: '#000000',
+                text_shadow_glow: '0 0 5px rgba(0,255,0,0.5), 0 0 10px rgba(0,255,0,0.3)',
+                // 全てのANSIカラーをテーマ色で上書き
+                black: '#00FF00',
+                red: '#00FF00',
+                green: '#00FF00',
+                yellow: '#00FF00',
+                blue: '#00FF00',
+                magenta: '#00FF00',
+                cyan: '#00FF00',
+                white: '#00FF00',
+                brightBlack: '#00FF00',
+                brightRed: '#00FF00',
+                brightGreen: '#00FF00',
+                brightYellow: '#00FF00',
+                brightBlue: '#00FF00',
+                brightMagenta: '#00FF00',
+                brightCyan: '#00FF00',
+                brightWhite: '#00FF00'
+            },
+            amber: {
+                background: '#1a1000',
+                foreground: '#FFB000',
+                cursor: '#FFB000',
+                fkey_bg: '#FFB000', // prettier-ignore
+                fkey_fg: '#1a1000',
+                text_shadow_glow: '0 0 5px rgba(255,176,0,0.5), 0 0 10px rgba(255,176,0,0.3)',
+                // 全てのANSIカラーをテーマ色で上書き
+                black: '#FFB000',
+                red: '#FFB000',
+                green: '#FFB000',
+                yellow: '#FFB000',
+                blue: '#FFB000',
+                magenta: '#FFB000',
+                cyan: '#FFB000',
+                white: '#FFB000',
+                brightBlack: '#FFB000',
+                brightRed: '#FFB000',
+                brightGreen: '#FFB000',
+                brightYellow: '#FFB000',
+                brightBlue: '#FFB000',
+                brightMagenta: '#FFB000',
+                brightCyan: '#FFB000',
+                brightWhite: '#FFB000'
+            }
+        };
+
+        const themeMap = { 'default': 0, 'green': 1, 'amber': 2 };
+        const fontMap = { 'M PLUS 1m': 0, 'M PLUS 1 Code': 1, 'IBM Plex Mono': 2, 'DotGothic16': 3 };
+        const speedMap = { 'full': 0, '9600': 1, '4800': 2, '2400': 3, '300': 4 };
+        const effectMap = { 'bezel': 0, 'blur': 1, 'scanline': 2 };
+        const fontsizeMap = { '12': 0, '16': 1, '20': 2, '24': 3 };
+
+        // 逆引きマップ
+        const themeMapReverse = Object.fromEntries(Object.entries(themeMap).map(([k, v]) => [v, k]));
+        const fontMapReverse = Object.fromEntries(Object.entries(fontMap).map(([k, v]) => [v, k]));
+        const speedMapReverse = Object.fromEntries(Object.entries(speedMap).map(([k, v]) => [v, k]));
+        const fontsizeMapReverse = Object.fromEntries(Object.entries(fontsizeMap).map(([k, v]) => [v, k]));
+
+        let isDipSwitchUpdating = false; // DIPスイッチ操作による再帰呼び出しを防ぐフラグ
+
+        const dynamicGlowStyle = document.getElementById('dynamic-glow-style');
+
+        function applyTheme(themeName) {
+            const theme = themes[themeName] || themes.default;
+            term.options.theme = theme;
+
+            document.body.classList.remove('theme-default', 'theme-green', 'theme-amber');
+            document.body.classList.add(`theme-${themeName}`);
+
+            // モバイル操作パネルのテーマクラスを更新
+            const mobileControls = document.getElementById('mobile-bbs-controls');
+            const chatControls = document.getElementById('mobile-chat-controls');
+            const userprefControls = document.getElementById('mobile-userpref-controls');
+            const mailControls = document.getElementById('mobile-mail-controls');
+            const bbsEntryControls = document.getElementById('mobile-bbs-entry-controls');
+            const topMenuControls = document.getElementById('mobile-top-menu-controls');
+            const pluginMenuControls = document.getElementById('mobile-plugin-menu-controls');
+
+            [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls, topMenuControls, pluginMenuControls].forEach(controls => {
+                if (controls) {
+                    controls.classList.remove('theme-default', 'theme-green', 'theme-amber');
+                    controls.classList.add(`theme-${themeName}`);
+                }
+            });
+
+            if (dynamicGlowStyle) {
+                dynamicGlowStyle.innerHTML = `#terminal.blur-effect { text-shadow: ${theme.text_shadow_glow || 'none'}; }`;
+            }
+
+            const fkeys = document.querySelectorAll('.f-key');
+            fkeys.forEach(key => {
+                key.style.backgroundColor = theme.fkey_bg;
+                key.style.color = theme.fkey_fg;
+            });
+
+            // マルチラインエディタのカラーボタンの色を更新
+            const colorBtns = document.querySelectorAll('.ansi-btn[data-ansi-color-name]');
+            colorBtns.forEach(btn => {
+                const colorName = btn.dataset.ansiColorName;
+                if (theme[colorName]) {
+                    btn.style.color = theme[colorName];
+                }
+            });
+
+            // テーマに応じてANSIカラーボタンの表示/非表示を切り替えます
+            const ansiColorButtons = document.getElementById('ansi-color-buttons');
+            if (ansiColorButtons) {
+                if (themeName === 'green' || themeName === 'amber') {
+                    ansiColorButtons.style.display = 'none';
+                } else {
+                    ansiColorButtons.style.display = 'block';
+                }
+            }
+            localStorage.setItem('terminalTheme', themeName);
+            updateThemeButtons(themeName);
+            if (!isDipSwitchUpdating) updateDipSwitches('theme', themeName);
+        }
+
+        function applyFont(fontName) {
+            const fontFamily = `"${fontName}", "Courier New", monospace`;
+            term.options.fontFamily = fontFamily;
+
+            localStorage.setItem('terminalFont', fontName);
+            updateFontButtons(fontName);
+            if (!isDipSwitchUpdating) updateDipSwitches('font', fontName);
+            setTimeout(() => updateTerminalLayout(), 0);
+        }
+
+        function applyFontSize(size) {
+            const baseSize = parseInt(size, 10);
+
+            term.options.fontSize = baseSize;
+
+            document.body.style.fontSize = `${baseSize}px`;
+
+            const isMobile = window.matchMedia("(max-width: 992px)").matches;
+            const storageKey = isMobile ? 'terminalFontSizeMobile' : 'terminalFontSizePC';
+            localStorage.setItem(storageKey, size);
+
+            updateFontSizeButtons(size);
+            if (!isDipSwitchUpdating) updateDipSwitches('fontsize', size);
+            setTimeout(() => updateTerminalLayout(), 0);
+        }
+
+        function updateFontSizeButtons(size) {
+            document.querySelectorAll('#fontsize-selector button').forEach(btn => btn.classList.remove('active'));
+            const activeButton = document.querySelector(`#fontsize-selector button[data-size="${size}"]`);
+            if (activeButton) activeButton.classList.add('active');
+        }
+
+        function applySpeed(speedName) {
+            socket.emit('set_speed', speedName);
+            localStorage.setItem('terminalSpeed', speedName);
+            updateSpeedButtons(speedName);
+            if (!isDipSwitchUpdating) updateDipSwitches('speed', speedName);
+        }
+
+        const effectStates = {
+            bezel: true,
+            blur: false,
+            scanline: false
+        };
+
+        function applyEffect(effectName, isActive) {
+            const monitorChassis = document.querySelector('.monitor-chassis');
+            const monitorScreen = document.querySelector('.monitor-screen');
+            const terminalElement = document.getElementById('terminal');
+
+            switch (effectName) {
+                case 'bezel':
+                    monitorChassis.classList.toggle('bezel-off', !isActive);
+                    break;
+                case 'blur':
+                    terminalElement.classList.toggle('blur-effect', isActive);
+                    break;
+                case 'scanline':
+                    monitorScreen.classList.toggle('scanline-effect', isActive);
+                    break;
+            }
+        }
+
+        function toggleEffect(effectName) {
+            effectStates[effectName] = !effectStates[effectName];
+            applyEffect(effectName, effectStates[effectName]);
+            localStorage.setItem('effectStates', JSON.stringify(effectStates));
+            updateEffectButtons();
+            if (!isDipSwitchUpdating) updateDipSwitches('effect');
+            setTimeout(updateTerminalLayout, 50);
+        }
+
+        function updateEffectButtons() {
+            document.querySelectorAll('.effect-btn').forEach(button => {
+                const effectName = button.dataset.effect;
+                if (effectStates[effectName]) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
             });
         }
 
-        // Listen for messages from the service worker
-        navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data && event.data.type === 'execute_shortcut') {
-                const command = `;${event.data.url}`;
-                // Assuming `socket` is a global variable for the WebSocket connection
-                if (socket && socket.connected) {
-                    socket.emit('terminal_input', {
-                        data: command + '\r'
-                    });
+        function updateThemeButtons(themeName) {
+            document.querySelectorAll('#theme-selector button').forEach(btn => btn.classList.remove('active'));
+            const activeButton = document.querySelector(`#theme-selector button[data-theme="${themeName}"]`);
+            if (activeButton) activeButton.classList.add('active');
+        }
+
+        function updateFontButtons(fontName) {
+            document.querySelectorAll('#font-selector button').forEach(btn => btn.classList.remove('active'));
+            const activeButton = document.querySelector(`#font-selector button[data-font="${fontName}"]`);
+            if (activeButton) activeButton.classList.add('active');
+        }
+
+        function updateSpeedButtons(speedName) {
+            document.querySelectorAll('#speed-selector button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`#speed-selector button[data-speed="${speedName}"]`).classList.add('active');
+        }
+
+        function updateDipSwitches(groupName, value) {
+            let numericValue;
+            if (groupName === 'theme') {
+                numericValue = themeMap[value];
+            } else if (groupName === 'font') {
+                numericValue = fontMap[value];
+            } else if (groupName === 'speed') {
+                numericValue = speedMap[value];
+            } else if (groupName === 'fontsize') {
+                numericValue = fontsizeMap[value];
+            } else if (groupName === 'effect') {
+                // エフェクトはビットごとのON/OFFなので特別に扱います
+                const switches = document.querySelectorAll(`.dip-switch-group[data-group="effect"] input[type="checkbox"]`);
+                switches.forEach(sw => {
+                    const effectName = Object.keys(effectMap).find(key => effectMap[key] === parseInt(sw.dataset.bit));
+                    sw.checked = effectStates[effectName];
+                });
+                return;
+            }
+
+            if (numericValue === undefined) return;
+
+            const switches = document.querySelectorAll(`.dip-switch-group[data-group="${groupName}"] input[type="checkbox"]`);
+            switches.forEach(sw => {
+                const bit = parseInt(sw.dataset.bit);
+                sw.checked = (numericValue & (1 << bit)) !== 0;
+            });
+        }
+
+        const isMobileForTermInit = window.matchMedia("(max-width: 992px)").matches;
+        const term = new Terminal({
+            cursorBlink: true,
+            fontSize: 16,
+            scrollback: 1000, // ターミナルのスクロールバックを1000行に設定
+        });
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+
+        term.open(document.getElementById('terminal'));
+
+        function updateTerminalLayout() {
+            const chassis = document.querySelector('.monitor-chassis');
+            const screenContainer = document.querySelector('.monitor-screen');
+            const terminalContainer = document.getElementById('terminal');
+            const isMobile = window.matchMedia("(max-width: 992px)").matches;
+            const isFullscreen = chassis.classList.contains('fullscreen');
+
+            if (!isFullscreen) {
+                screenContainer.style.width = ''; // フルスクリーンでなければ幅をリセット
+            }
+
+            if (isMobile) {
+                try {
+                    fitAddon.fit();
+                } catch (e) {
+                    console.error("fitAddon.fit() failed:", e);
+                }
+            } else if (isFullscreen) {
+                // デスクトップのフルスクリーンモード (現在未使用)
+                if (term.renderer && term.renderer.dimensions && term.renderer.dimensions.actualCellHeight > 0) {
+                    const cellHeight = term.renderer.dimensions.actualCellHeight;
+                    const cellWidth = term.renderer.dimensions.actualCellWidth;
+
+                    const fkeys = document.getElementById('function-keys-container');
+                    const fkeysHeight = fkeys.offsetHeight;
+                    const fkeysMargin = parseFloat(window.getComputedStyle(fkeys).marginTop);
+                    const screenStyle = window.getComputedStyle(screenContainer);
+                    const screenPaddingVertical = parseFloat(screenStyle.paddingTop) + parseFloat(screenStyle.paddingBottom);
+                    const availableHeightForTerm = window.innerHeight - fkeysHeight - fkeysMargin - screenPaddingVertical;
+                    const newRows = Math.floor(availableHeightForTerm / cellHeight);
+
+                    const termWidth = 80 * cellWidth;
+                    const screenPaddingHorizontal = parseFloat(screenStyle.paddingLeft) + parseFloat(screenStyle.paddingRight);
+                    screenContainer.style.width = `${termWidth + screenPaddingHorizontal}px`;
+
+                    term.resize(80, newRows);
                 } else {
-                    console.error("Socket not connected. Cannot execute shortcut from notification.");
+                    setTimeout(updateTerminalLayout, 50);
+                }
+            } else {
+                term.resize(80, 25); // デスクトップの通常表示
+            }
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        const socket = io();
+
+        const attachmentInput = document.getElementById('attachment-input');
+
+        attachmentInput.addEventListener('change', () => {
+            if (attachmentInput.files.length > 0) {
+                const file = attachmentInput.files[0];
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    socket.emit('upload_attachment', {
+                        filename: file.name,
+                        data: e.target.result
+                    });
+                };
+                reader.onerror = (e) => {
+                    console.error("File reading error:", e);
+                };
+                reader.readAsArrayBuffer(file);
+
+            } else {
+                socket.emit('clear_pending_attachment'); // ファイル選択がキャンセルされた場合
+            }
+        });
+
+        socket.on('attachment_upload_success', (data) => {
+            console.log(`Upload complete: ${data.original_filename}`);
+        });
+
+        socket.on('attachment_upload_error', (data) => {
+            console.error(`Upload error: ${data.message}`);
+            attachmentInput.value = '';
+        });
+        // --- ポップアップ関連の要素取得 ---
+
+        const popupOverlay = document.getElementById('popup-overlay');
+        const popupWindow = document.getElementById('popup-window');
+        const popupCloseBtn = document.getElementById('popup-close-btn');
+
+        const lineEditorOverlay = document.getElementById('line-editor-overlay');
+        const lineEditorWindow = document.getElementById('line-editor-window');
+        const lineEditorCloseBtn = document.getElementById('line-editor-close-btn');
+        const lineEditorInput = document.getElementById('line-editor-input');
+        const lineEditorInsertBtn = document.getElementById('line-editor-insert-btn');
+        const lineEditorCancelBtn = document.getElementById('line-editor-cancel-btn');
+        const lineEditorHistory = [];
+        let historyIndex = -1;
+
+        const multilineEditorOverlay = document.getElementById('multiline-editor-overlay');
+        const multilineEditorWindow = document.getElementById('multiline-editor-window');
+        const multilineEditorCloseBtn = document.getElementById('multiline-editor-close-btn');
+        const multilineEditorInput = document.getElementById('multiline-editor-input');
+        const multilineEditorInsertBtn = document.getElementById('multiline-editor-insert-btn');
+        const multilineEditorCancelBtn = document.getElementById('multiline-editor-cancel-btn');
+        const ansiControls = document.getElementById('ansi-controls');
+
+        const logViewerOverlay = document.getElementById('log-viewer-overlay');
+        const logViewerWindow = document.getElementById('log-viewer-window');
+        const logViewerCloseBtn = document.getElementById('log-viewer-close-btn');
+        const logContentDisplay = document.getElementById('log-content-display');
+        const logFilesList = document.getElementById('log-files-list');
+
+        const bbsListOverlay = document.getElementById('bbs-list-overlay');
+        const bbsListWindow = document.getElementById('bbs-list-window');
+        const bbsListCloseBtn = document.getElementById('bbs-list-close-btn');
+        const bbsStationsList = document.getElementById('bbs-stations-list');
+        const bbsDetailName = document.getElementById('bbs-detail-name');
+        const bbsDetailDescription = document.getElementById('bbs-detail-description');
+        const bbsListJumpBtn = document.getElementById('bbs-list-jump-btn');
+        let currentBbsLinks = [];
+
+        const bbsSubmissionOverlay = document.getElementById('bbs-submission-overlay');
+        const bbsSubmissionWindow = document.getElementById('bbs-submission-window');
+        const bbsSubmissionCloseBtn = document.getElementById('bbs-submission-close-btn');
+        const bbsSubmissionName = document.getElementById('bbs-submission-name');
+        const bbsSubmissionUrl = document.getElementById('bbs-submission-url');
+        const bbsSubmissionDescription = document.getElementById('bbs-submission-description');
+
+        function b64DecodeUnicode(str) {
+            return decodeURIComponent(atob(str).split('').map(function (c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
+
+        ansiControls.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON' && e.target.dataset.sequence) {
+                const sequenceCode = e.target.dataset.sequence;
+                const startSequence = '\x1b' + sequenceCode;
+                const endSequence = '\x1b[0m';
+                const textarea = multilineEditorInput;
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const text = textarea.value;
+                const selectedText = text.substring(start, end);
+
+                let newText;
+                let newStart;
+                let newEnd;
+
+                if (sequenceCode === '[0m') {
+                    newText = text.substring(0, start) + startSequence + text.substring(end);
+                    newStart = start + startSequence.length;
+                    newEnd = newStart;
+                } else if (selectedText) {
+                    const replacement = startSequence + selectedText + endSequence;
+                    newText = text.substring(0, start) + replacement + text.substring(end);
+                    newStart = start;
+                    newEnd = start + replacement.length;
+                } else {
+                    newText = text.substring(0, start) + startSequence + text.substring(end);
+                    newStart = start + startSequence.length;
+                    newEnd = newStart;
+                }
+
+                textarea.value = newText;
+                textarea.selectionStart = newStart;
+                textarea.selectionEnd = newEnd;
+                textarea.focus();
+            }
+        });
+
+        function openMultilineEditor() {
+            multilineEditorInput.value = '';
+            multilineEditorOverlay.classList.add('visible');
+            multilineEditorWindow.classList.add('visible');
+            multilineEditorInput.focus();
+        }
+
+        function closeMultilineEditor() {
+            multilineEditorOverlay.classList.remove('visible');
+            multilineEditorWindow.classList.remove('visible');
+        }
+
+        multilineEditorInsertBtn.addEventListener('click', () => {
+            const textToInsert = multilineEditorInput.value;
+            socket.emit('multiline_input_submit', {
+                content: textToInsert
+            });
+            closeMultilineEditor();
+        });
+
+        function openLineEditor() {
+            lineEditorInput.value = '';
+            historyIndex = lineEditorHistory.length;
+            lineEditorOverlay.classList.add('visible');
+            lineEditorWindow.classList.add('visible');
+            lineEditorInput.focus();
+        }
+
+        function closeLineEditor() {
+            lineEditorOverlay.classList.remove('visible');
+            lineEditorWindow.classList.remove('visible');
+        }
+
+        lineEditorInsertBtn.addEventListener('click', () => {
+            const textToInsert = lineEditorInput.value;
+            if (lineEditorHistory.length === 0 || lineEditorHistory[lineEditorHistory.length - 1] !== textToInsert) {
+                lineEditorHistory.push(textToInsert);
+            }
+            socket.emit('client_input', textToInsert + '\r'); // Add newline to terminate process_input on server
+            closeLineEditor();
+        });
+
+        lineEditorInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                lineEditorInsertBtn.click();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    lineEditorInput.value = lineEditorHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < lineEditorHistory.length - 1) {
+                    historyIndex++;
+                    lineEditorInput.value = lineEditorHistory[historyIndex];
+                } else if (historyIndex === lineEditorHistory.length - 1) {
+                    historyIndex++;
+                    lineEditorInput.value = '';
                 }
             }
         });
 
-        // --- Visual Viewport API for Keyboard Handling ---
-        // This helps adjust the layout when the on-screen keyboard appears.
-        if (window.visualViewport) {
-            const terminalContainer = document.getElementById('terminal-container');
-            const mobileButtons = document.querySelector('.mobile-buttons');
+        function openPopup() {
+            popupOverlay.classList.add('visible');
+            popupWindow.classList.add('visible');
+        }
 
-            const resizeHandler = () => {
-                // Set the container height to the visual viewport height
-                terminalContainer.style.height = `${window.visualViewport.height}px`;
+        function closePopup() {
+            popupOverlay.classList.remove('visible');
+            popupWindow.classList.remove('visible');
+        }
 
-                // Adjust the bottom position of the mobile buttons
-                const keyboardHeight = window.innerHeight - window.visualViewport.height;
-                mobileButtons.style.bottom = `${keyboardHeight}px`;
+        function openLogViewer() {
+            logFilesList.innerHTML = ''; // リストをクリア
+            logContentDisplay.value = ''; // 内容をクリア
+            socket.emit('get_log_files');
+            logViewerOverlay.classList.add('visible');
+            logViewerWindow.classList.add('visible');
+        }
+
+        function closeLogViewer() {
+            logViewerOverlay.classList.remove('visible');
+            logViewerWindow.classList.remove('visible');
+        }
+
+        /**
+         * BBSリストのポップアップを開きます。
+         * サーバーにリストデータを要求し、ポップアップを表示します。
+         */
+        function openBbsListPopup() {
+            bbsStationsList.innerHTML = '<li><button>Loading...</button></li>';
+            bbsDetailName.textContent = 'Select a BBS';
+            bbsDetailDescription.textContent = '';
+            bbsListJumpBtn.disabled = true;
+            bbsListJumpBtn.removeAttribute('data-url');
+
+            socket.emit('get_bbs_list'); // サーバーにリストを要求
+            bbsListOverlay.classList.add('visible');
+            bbsListWindow.classList.add('visible');
+        }
+
+        // BBSリストのポップアップを閉じます
+        function closeBbsListPopup() {
+            bbsListOverlay.classList.remove('visible');
+            bbsListWindow.classList.remove('visible');
+        }
+
+        bbsListCloseBtn.addEventListener('click', closeBbsListPopup);
+        bbsListOverlay.addEventListener('click', closeBbsListPopup);
+
+        bbsListJumpBtn.addEventListener('click', () => {
+            const url = bbsListJumpBtn.dataset.url;
+            if (url) {
+                window.open(url, '_blank');
+            }
+        });
+
+        socket.on('bbs_list_data', (data) => {
+            currentBbsLinks = data.links || [];
+            bbsStationsList.innerHTML = ''; // リストをクリア
+
+            if (currentBbsLinks.length === 0) {
+                bbsStationsList.innerHTML = '<li>No BBS links found.</li>';
+                return;
+            }
+
+            currentBbsLinks.forEach(link => {
+                const li = document.createElement('li');
+                const button = document.createElement('button');
+                button.textContent = link.name;
+                button.dataset.linkId = link.id;
+                li.appendChild(button);
+                bbsStationsList.appendChild(li);
+            });
+        });
+
+        // BBSリストポップアップ内の「新規リンク申請」ボタンの処理
+        document.getElementById('bbs-list-submit-new-btn').addEventListener('click', () => {
+            bbsSubmissionName.value = '';
+            bbsSubmissionUrl.value = '';
+            bbsSubmissionDescription.value = '';
+            bbsSubmissionOverlay.classList.add('visible');
+            bbsSubmissionWindow.classList.add('visible');
+        });
+
+        function closeBbsSubmissionPopup() {
+            bbsSubmissionOverlay.classList.remove('visible');
+            bbsSubmissionWindow.classList.remove('visible');
+        }
+
+        bbsSubmissionCloseBtn.addEventListener('click', closeBbsSubmissionPopup);
+        bbsSubmissionOverlay.addEventListener('click', closeBbsSubmissionPopup);
+
+        document.getElementById('bbs-submission-submit-btn').addEventListener('click', () => {
+            const name = bbsSubmissionName.value.trim();
+            const url = bbsSubmissionUrl.value.trim();
+            const description = bbsSubmissionDescription.value.trim();
+
+            if (name && url) {
+                socket.emit('submit_bbs_link', { name, url, description });
+                closeBbsSubmissionPopup();
+            } else {
+                alert('BBS Name and URL are required.');
+            }
+        });
+
+        // --- ファンクションキーの生成とイベント設定 ---
+        const fkeysLeftContainer = document.getElementById('f-keys-left');
+        const fkeysRightContainer = document.getElementById('f-keys-right');
+        var fkeyDefinitions = {{ fkey_definitions | tojson }};
+
+        for (let i = 1; i <= 8; i++) {
+            const key = document.createElement('div');
+            key.classList.add('f-key');
+            const fkeyId = `f${i}`;
+            const definition = fkeyDefinitions[fkeyId];
+
+            if (definition) {
+                key.textContent = `${definition.label}`;
+                if (definition.action === 'open_popup') {
+                    key.addEventListener('click', openPopup);
+                } else if (definition.action === 'send_command') {
+                    key.addEventListener('click', () => socket.emit('client_input', definition.value + '\r'));
+                } else if (definition.action === 'open_multiline_editor') {
+                    key.addEventListener('click', openMultilineEditor);
+                } else if (definition.action === 'open_line_editor') {
+                    key.addEventListener('click', openLineEditor);
+                } else if (definition.action === 'toggle_logging') {
+                    key.id = 'f2-log-btn';
+                    key.addEventListener('click', () => {
+                        socket.emit('toggle_logging');
+                    });
+                } else if (definition.action === 'open_log_viewer') {
+                    key.addEventListener('click', openLogViewer);
+                } else if (definition.action === 'open_bbs_list') {
+                    key.addEventListener('click', openBbsListPopup);
+
+                } else if (definition.action === 'redirect') {
+                    key.addEventListener('click', () => {
+                        window.location.href = definition.value;
+                    });
+                }
+            } else {
+                key.textContent = `NoFunction`;
+            }
+
+            if (i <= 4) {
+                fkeysLeftContainer.appendChild(key);
+            } else {
+                fkeysRightContainer.appendChild(key);
+            }
+        }
+
+        popupCloseBtn.addEventListener('click', closePopup);
+        popupOverlay.addEventListener('click', closePopup);
+        lineEditorCloseBtn.addEventListener('click', () => {
+            socket.emit('client_input', '\r'); // 閉じるボタンもキャンセルとして扱う
+            closeLineEditor();
+        });
+        lineEditorCancelBtn.addEventListener('click', () => {
+            socket.emit('client_input', '\r'); // キャンセルとして空入力を送信
+            closeLineEditor();
+        });
+        lineEditorOverlay.addEventListener('click', () => {
+            socket.emit('client_input', '\r'); // オーバーレイクリックもキャンセルとして扱う
+            closeLineEditor();
+        });
+        multilineEditorCloseBtn.addEventListener('click', () => {
+            socket.emit('multiline_input_submit', { content: '' }); // キャンセルとして空の内容を送信
+            closeMultilineEditor();
+        });
+        multilineEditorCancelBtn.addEventListener('click', () => {
+            socket.emit('multiline_input_submit', { content: '' }); // キャンセルとして空の内容を送信
+            closeMultilineEditor();
+        });
+        multilineEditorOverlay.addEventListener('click', () => {
+            socket.emit('multiline_input_submit', { content: '' }); // オーバーレイクリックもキャンセルとして扱う
+            closeMultilineEditor();
+        });
+        multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
+        logViewerCloseBtn.addEventListener('click', closeLogViewer);
+        logViewerOverlay.addEventListener('click', closeLogViewer);
+        /**
+         * BBSリストポップアップ内のリスト項目（BBS名ボタン）がクリックされたときの処理です。
+         */
+        bbsStationsList.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const linkId = parseInt(e.target.dataset.linkId, 10);
+                const selectedLink = currentBbsLinks.find(link => link.id === linkId);
+
+                if (selectedLink) {
+                    document.querySelectorAll('#bbs-stations-list button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    bbsDetailName.textContent = selectedLink.name;
+                    bbsDetailDescription.textContent = selectedLink.description || 'No description available.';
+                    bbsListJumpBtn.dataset.url = selectedLink.url;
+                    bbsListJumpBtn.disabled = false;
+                }
+            }
+        });
+
+        // --- 設定ポップアップ内のボタンイベント ---
+        document.getElementById('theme-selector').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                applyTheme(e.target.dataset.theme);
+            }
+        });
+
+        document.getElementById('fontsize-selector').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                applyFontSize(e.target.dataset.size);
+            }
+        });
+
+        document.getElementById('font-selector').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const fontName = e.target.dataset.font;
+                applyFont(fontName);
+            }
+        });
+
+        document.getElementById('speed-selector').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                applySpeed(e.target.dataset.speed);
+            }
+        });
+
+        document.getElementById('effect-selector').addEventListener('click', (e) => {
+            if (e.target.classList.contains('effect-btn')) {
+                toggleEffect(e.target.dataset.effect);
+            }
+        });
+
+        // --- パスワード入力モードの管理 ---
+        let isPasswordInputMode = false;
+
+        socket.on('start_password_input', () => {
+            isPasswordInputMode = true;
+        });
+
+        socket.on('end_password_input', () => {
+            isPasswordInputMode = false;
+        });
+
+        term.onData(data => {
+            if (isPasswordInputMode) {
+                if (data === '\r') {
+                    socket.emit('client_input', data);
+                } else if (data === '\x7f' || data === '\x08') { // Backspace
+                    socket.emit('client_input', data);
+                    term.write('\b \b');
+                } else {
+                    socket.emit('client_input', data);
+                    term.write('*');
+                }
+            } else {
+                socket.emit('client_input', data);
+            }
+        });
+
+        // --- モバイル用操作パネルの表示/非表示管理 ---
+        function hideAllMobileControls() {
+            const controls = [
+                document.getElementById('mobile-bbs-controls'),
+                document.getElementById('mobile-chat-controls'),
+                document.getElementById('mobile-userpref-controls'),
+                document.getElementById('mobile-mail-controls'),
+                document.getElementById('mobile-bbs-entry-controls'),
+                document.getElementById('mobile-top-menu-controls'),
+                document.getElementById('mobile-plugin-menu-controls'),
+                document.getElementById('mobile-confirm-controls')
+            ];
+            const monitorScreen = document.querySelector('.monitor-screen');
+
+            controls.forEach(control => {
+                if (control) {
+                    control.classList.remove('visible');
+                }
+            });
+            monitorScreen.style.paddingBottom = '';
+        }
+
+        // --- サーバーからの出力処理 ---
+        socket.on('server_output', data => {
+            const passkeyRegisterPattern = /\x1b\[\?2027h/;
+            if (passkeyRegisterPattern.test(data)) {
+                registerNewPasskey();
+                data = data.replace(passkeyRegisterPattern, '');
+            }
+
+            const userprefControlPattern = /\x1b\[\?2028(h|l)/;
+            const userprefMatch = data.match(userprefControlPattern);
+            if (userprefMatch) {
+                const mobileControls = document.getElementById('mobile-userpref-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (userprefMatch[1] === 'h') {
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else {
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(userprefControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            const chatControlPattern = /\x1b\[\?2026(h|l)/;
+            const chatMatch = data.match(chatControlPattern);
+            if (chatMatch) {
+                const mobileControls = document.getElementById('mobile-chat-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (chatMatch[1] === 'h') {
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else {
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(chatControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            const mailControlPattern = /\x1b\[\?2029(h|l)/;
+            const mailMatch = data.match(mailControlPattern);
+            if (mailMatch) {
+                const mobileControls = document.getElementById('mobile-mail-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (mailMatch[1] === 'h') {
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else {
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(mailControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            const bbsEntryControlPattern = /\x1b\[\?2030(h|l)/;
+            const bbsEntryMatch = data.match(bbsEntryControlPattern);
+            if (bbsEntryMatch) {
+                const mobileControls = document.getElementById('mobile-bbs-entry-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (bbsEntryMatch[1] === 'h') {
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else {
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(bbsEntryControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            const pluginMenuControlPattern = /\x1b\[\?2032(h|l)/;
+            const pluginMenuMatch = data.match(pluginMenuControlPattern);
+            if (pluginMenuMatch) {
+                const mobileControls = document.getElementById('mobile-plugin-menu-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (pluginMenuMatch[1] === 'h') {
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else {
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(pluginMenuControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            const topMenuControlPattern = /\x1b\[\?2031(h|l)/;
+            const topMenuMatch = data.match(topMenuControlPattern);
+            if (topMenuMatch) {
+                const mobileControls = document.getElementById('mobile-top-menu-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (topMenuMatch[1] === 'h') {
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else {
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(topMenuControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            const bbsControlPattern = /\x1b\[\?2024(h|l)/;
+            const match = data.match(bbsControlPattern);
+            if (match) {
+                const mobileControls = document.getElementById('mobile-bbs-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (match[1] === 'h') {
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else {
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(bbsControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            const downloadPattern = /\x1b_GRBBS_DOWNLOAD;(.*?)\x1b\\/;
+            const downloadMatch = data.match(downloadPattern);
+            if (downloadMatch) {
+                const url = downloadMatch[1];
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = ''; // download属性を付けるとファイル保存ダイアログが出る
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                data = data.replace(downloadPattern, '');
+            }
+
+            const attachmentDialogPattern = /\x1b\[\?2033h/;
+            if (attachmentDialogPattern.test(data)) {
+                const attachmentInput = document.getElementById('attachment-input');
+
+                const onFocus = () => {
+                    window.removeEventListener('focus', onFocus);
+                    setTimeout(() => {
+                        socket.emit('client_input', '\r');
+                    }, 150);
+                };
+                window.addEventListener('focus', onFocus);
+
+                attachmentInput.click();
+                data = data.replace(attachmentDialogPattern, '');
+            }
+
+            const attachmentUiHidePattern = /\x1b\[\?2032l/;
+            if (attachmentUiHidePattern.test(data)) {
+                const attachmentInput = document.getElementById('attachment-input');
+                attachmentInput.value = '';
+                socket.emit('clear_pending_attachment');
+                data = data.replace(attachmentUiHidePattern, '');
+
+            }
+
+            const multilineEditorPattern = /\x1b\[\?2034(h|l)/;
+            const multilineMatch = data.match(multilineEditorPattern);
+            if (multilineMatch) {
+                if (multilineMatch[1] === 'h') {
+                    openMultilineEditor();
+                } else { // 'l' for hide
+                    closeMultilineEditor();
+                }
+                data = data.replace(multilineEditorPattern, '');
+            }
+
+            const lineEditorPattern = /\x1b\]GRBBS;LINE_EDIT;(.*?);(.*?)\x07/;
+            const lineEditorMatch = data.match(lineEditorPattern);
+            if (lineEditorMatch) {
+                const promptB64 = lineEditorMatch[1];
+                const valueB64 = lineEditorMatch[2];
+                try {
+                    openLineEditor(
+                        b64DecodeUnicode(promptB64),
+                        b64DecodeUnicode(valueB64)
+                    );
+                } catch (e) { console.error("Failed to open line editor with decoded data:", e); }
+                data = data.replace(lineEditorPattern, '');
+            }
+
+            const confirmButtonsPattern = /\x1b\]GRBBS;CONFIRM_BUTTONS;(.*?);(.*?)\x07/;
+            const confirmButtonsMatch = data.match(confirmButtonsPattern);
+            if (confirmButtonsMatch) {
+                const yesLabelB64 = confirmButtonsMatch[1];
+                const noLabelB64 = confirmButtonsMatch[2];
+                try {
+                    document.getElementById('confirm-btn-y').textContent = b64DecodeUnicode(yesLabelB64);
+                    document.getElementById('confirm-btn-n').textContent = b64DecodeUnicode(noLabelB64);
+                } catch (e) {
+                    console.error("Failed to set confirm button labels:", e);
+                    document.getElementById('confirm-btn-y').textContent = 'Yes';
+                    document.getElementById('confirm-btn-n').textContent = 'No';
+                }
+                data = data.replace(confirmButtonsPattern, '');
+            }
+
+            const confirmControlPattern = /\x1b\[\?2035(h|l)/;
+            const confirmMatch = data.match(confirmControlPattern);
+            if (confirmMatch) {
+                const mobileControls = document.getElementById('mobile-confirm-controls');
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (confirmMatch[1] === 'h') {
+                    mobileControls.classList.add('visible');
+                    const controlsHeight = mobileControls.offsetHeight;
+                    monitorScreen.style.paddingBottom = `${controlsHeight}px`;
+                    monitorScreen.dataset.controlsHeight = controlsHeight;
+                } else {
+                    mobileControls.classList.remove('visible');
+                    monitorScreen.style.paddingBottom = '';
+                }
+                data = data.replace(confirmControlPattern, '');
+                updateTerminalLayout();
+            }
+
+            // --- 自動スクロール & レイアウト補正ロジック ---
+            const buffer = term.buffer.active;
+            // 処理前に、ユーザーが既に一番下までスクロールしているか確認
+            const isScrolledToBottom = buffer.viewportY + term.rows >= buffer.baseY + buffer.length;
+
+            if ('visualViewport' in window) {
+                const vv = window.visualViewport;
+                const isMobile = window.matchMedia("(max-width: 992px)").matches;
+                const isKeyboardVisible = (window.innerHeight - vv.height) > 80;
+
+                if (isMobile && isKeyboardVisible) {
+                    // キーボード表示中は、表示領域の高さをキーボードの上端までに制限
+                    document.body.style.height = `${vv.height}px`;
+                    document.querySelector('.monitor-screen').style.paddingBottom = '0px'; // prettier-ignore
+                    // DOMの更新を待ってからターミナルのリサイズを実行
+                    setTimeout(() => {
+                        try {
+                            fitAddon.fit();
+                        } catch (e) {
+                            console.error("fitAddon.fit() failed during server_output:", e);
+                        }
+                    }, 0);
+                }
+            }
+
+            term.write(data);
+
+            if (isScrolledToBottom) {
+                term.scrollToBottom();
+            }
+        });
+
+        socket.on('bbs_link_submission_result', (data) => {
+            if (data.success) {
+                alert('Link submitted for approval. Thank you!');
+            } else {
+                alert(`Submission failed: ${data.message}`);
+            }
+        });
+
+        // --- ログビューワー関連のイベント ---
+        socket.on('log_files_list', (data) => {
+            logFilesList.innerHTML = ''; // 既存のリストをクリア
+
+            if (isLogging) {
+                const li = document.createElement('li');
+                const button = document.createElement('button');
+                button.textContent = textData.log_logging_now;
+                button.style.color = '#ff4444';
+                button.style.fontWeight = 'bold';
+                button.style.width = '100%';
+                button.style.textAlign = 'left';
+                button.style.marginBottom = '5px';
+                button.addEventListener('click', () => {
+                    logContentDisplay.value = textData.log_loading_current;
+                    socket.emit('get_current_log_buffer');
+                });
+                li.appendChild(button);
+                logFilesList.appendChild(li);
+            }
+
+            if (data.files && data.files.length > 0) {
+                data.files.forEach(file => {
+                    const li = document.createElement('li');
+                    const button = document.createElement('button');
+                    const date = new Date(file.mtime * 1000).toLocaleString('ja-JP');
+                    button.textContent = `${file.filename}`;
+                    button.title = `サイズ: ${(file.size / 1024).toFixed(1)} KB, 更新日時: ${date}`;
+                    button.style.width = '100%';
+                    button.style.textAlign = 'left';
+                    button.style.marginBottom = '5px';
+                    button.addEventListener('click', () => {
+                        logContentDisplay.value = textData.log_loading_file.replace('{filename}', file.filename);
+                        socket.emit('get_log_content', { filename: file.filename });
+                    });
+                    li.appendChild(button);
+                    logFilesList.appendChild(li);
+                });
+            } else if (!isLogging) {
+                const li = document.createElement('li');
+                li.textContent = textData.log_no_files;
+                logFilesList.appendChild(li);
+            }
+        });
+
+        socket.on('log_content', (data) => {
+            logContentDisplay.value = data.content;
+        });
+
+        socket.on('error_message', (data) => {
+            term.writeln(`\r\n\x1b[31m[Error] ${data.message}\x1b[0m`);
+            socket.emit('client_input', '\r');
+        });
+        // --- ロギング状態の管理 ---
+
+        let isLogging = false;
+
+        socket.on('logging_started', () => {
+            const f2LogBtn = document.getElementById('f2-log-btn');
+            const sidenavLogBtn = document.getElementById('sidenav-log-btn');
+            isLogging = true;
+            if (f2LogBtn) {
+                f2LogBtn.textContent = 'LOGGING...';
+            }
+            if (sidenavLogBtn) {
+                sidenavLogBtn.textContent = 'LOGGING...';
+            }
+        });
+
+        socket.on('log_saved', (data) => {
+            isLogging = false;
+            const f2LogBtn = document.getElementById('f2-log-btn');
+            const sidenavLogBtn = document.getElementById('sidenav-log-btn');
+            if (f2LogBtn) {
+                f2LogBtn.textContent = 'LOGGING';
+            }
+            if (sidenavLogBtn) {
+                sidenavLogBtn.textContent = 'LOGGING';
+            }
+
+            const link = document.createElement('a');
+            link.href = data.url;
+            link.download = data.filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        socket.on('logging_stopped', (data) => {
+            isLogging = false;
+            const f2LogBtn = document.getElementById('f2-log-btn');
+            const sidenavLogBtn = document.getElementById('sidenav-log-btn');
+            if (f2LogBtn) {
+                f2LogBtn.textContent = 'LOGGING';
+            }
+            if (sidenavLogBtn) {
+                sidenavLogBtn.textContent = 'LOGGING';
+            }
+        });
+
+        socket.on('force_disconnect', (data) => {
+            const message = (data && data.message) ? data.message : '[Connection closed by server]';
+            term.writeln(`\r\n\n${message}`);
+            term.writeln('\r\nPress any key or click to return to the login screen...');
+            socket.disconnect();
+            const redirectToLogout = () => {
+                window.location.href = "{{ url_for('web.logout') }}"
+            };
+            // ログアウト画面へ遷移するイベントリスナーを設定
+            document.addEventListener('keydown', redirectToLogout, { once: true });
+            document.addEventListener('mousedown', redirectToLogout, { once: true });
+        });
+        function loadSettings() {
+            // テーマ
+            const savedTheme = localStorage.getItem('terminalTheme') || 'default';
+            applyTheme(savedTheme);
+
+            // フォント
+            const isMobileForLoad = window.matchMedia("(max-width: 992px)").matches;
+            const defaultFontSize = isMobileForLoad ? '28' : '16';
+            const savedFontName = localStorage.getItem('terminalFont') || 'M PLUS 1m';
+            applyFont(savedFontName);
+
+            // フォントサイズ
+            const storageKey = isMobileForLoad ? 'terminalFontSizeMobile' : 'terminalFontSizePC';
+            const savedFontSize = localStorage.getItem(storageKey) || defaultFontSize;
+            applyFontSize(savedFontSize);
+
+            // 速度
+            const savedSpeed = localStorage.getItem('terminalSpeed') || 'full';
+            applySpeed(savedSpeed);
+
+            // 画面効果
+            const savedEffects = localStorage.getItem('effectStates');
+            if (savedEffects) {
+                Object.assign(effectStates, JSON.parse(savedEffects));
+            }
+            for (const effectName in effectStates) {
+                applyEffect(effectName, effectStates[effectName]);
+            }
+            updateEffectButtons();
+            updateDipSwitches('theme', savedTheme);
+            updateDipSwitches('font', savedFontName);
+            updateDipSwitches('speed', savedSpeed);
+            updateDipSwitches('fontsize', savedFontSize);
+            updateDipSwitches('effect');
+        }
+
+        document.querySelector('.dip-switch-panel').addEventListener('change', (e) => {
+            if (e.target.type !== 'checkbox') return;
+
+            isDipSwitchUpdating = true;
+
+            const groupElement = e.target.closest('.dip-switch-group');
+            const groupName = groupElement.dataset.group;
+
+            if (groupName === 'effect') { // エフェクトはビットごとのON/OFFなので特別扱い
+                const effectBit = parseInt(e.target.dataset.bit);
+                const effectName = Object.keys(effectMap).find(key => effectMap[key] === effectBit);
+                if (effectName) {
+                    toggleEffect(effectName);
+                }
+            } else {
+                // 他のグループは数値として計算
+                const switches = groupElement.querySelectorAll('input[type="checkbox"]');
+                let numericValue = 0;
+                switches.forEach(sw => {
+                    if (sw.checked) {
+                        numericValue |= (1 << parseInt(sw.dataset.bit));
+                    }
+                });
+
+                if (groupName === 'theme') { const themeName = themeMapReverse[numericValue]; if (themeName) applyTheme(themeName); }
+                else if (groupName === 'font') { const fontName = fontMapReverse[numericValue]; if (fontName) applyFont(fontName); }
+                else if (groupName === 'speed') { const speedName = speedMapReverse[numericValue]; if (speedName) applySpeed(speedName); }
+                else if (groupName === 'fontsize') { const size = fontsizeMapReverse[numericValue]; if (size) applyFontSize(size); }
+            }
+
+            setTimeout(() => { isDipSwitchUpdating = false; }, 50);
+        });
+
+        function saveDipSwitchSettings() {
+            const settings = {};
+            document.querySelectorAll('.dip-switch-group').forEach(group => {
+                const groupName = group.dataset.group;
+                settings[groupName] = {};
+                group.querySelectorAll('input[type="checkbox"]').forEach(sw => {
+                    settings[groupName][sw.id] = sw.checked;
+                });
+            });
+            localStorage.setItem('dipSwitchSettings', JSON.stringify(settings));
+        }
+
+        function loadDipSwitchSettings() {
+            const savedSettings = localStorage.getItem('dipSwitchSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                for (const groupName in settings) {
+                    for (const switchId in settings[groupName]) {
+                        const switchEl = document.getElementById(switchId);
+                        if (switchEl) {
+                            switchEl.checked = settings[groupName][switchId];
+                        }
+                    }
+                }
+            }
+        }
+
+        socket.on('connect', () => {
+            loadSettings();
+
+            // クライアントの表示モード（モバイル/デスクトップ）をサーバーに通知
+            const isMobile = window.matchMedia("(max-width: 992px)").matches;
+            socket.emit('set_client_mode', { is_mobile: isMobile });
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const shortcut = urlParams.get('shortcut');
+            if (shortcut) {
+                const command = `;${shortcut}\r`;
+                setTimeout(() => {
+                    socket.emit('client_input', command);
+                    window.history.replaceState({}, document.title, "/");
+                }, 500);
+            }
+
+            // DIPスイッチの状態を復元してから、UIに反映させる
+            loadDipSwitchSettings();
+            document.querySelector('.dip-switch-panel').dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        // --- ポップアップウィンドウのドラッグ移動機能 ---
+        function makePopupDraggable(popup) {
+            const header = popup.querySelector('.popup-header');
+            if (!header) return;
+
+            let isDragging = false;
+            let offsetX, offsetY;
+
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.tagName.toLowerCase() === 'button') {
+                    return;
+                }
+                isDragging = true;
+                offsetX = e.clientX - popup.offsetLeft;
+                offsetY = e.clientY - popup.offsetTop;
+                header.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                popup.style.left = `${e.clientX - offsetX}px`;
+                popup.style.top = `${e.clientY - offsetY}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    header.style.cursor = 'grab';
+                }
+            });
+        }
+        document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
+        makePopupDraggable(logViewerWindow);
+
+        // --- DOM読み込み完了後の初期化処理 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadDipSwitchSettings(); // ページ読み込み時にDIPスイッチ設定を復元
+            updateTerminalLayout();
+
+            if (term.textarea) {
+                term.textarea.addEventListener('compositionend', () => {
+                    setTimeout(() => {
+                        if (term.textarea) { term.textarea.value = ''; }
+                    }, 0);
+                });
+            }
+
+            // DIPスイッチの変更を検知して設定を保存
+            document.querySelector('.dip-switch-panel').addEventListener('change', () => {
+                // isDipSwitchUpdatingフラグが立っている間は保存しない（無限ループ防止）
+                if (!isDipSwitchUpdating) saveDipSwitchSettings();
+            });
+        });
+
+        // --- 設定ポップアップ内のタブ切り替え機能 ---
+        document.querySelector('.tab-buttons').addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-button')) {
+                const tabId = e.target.dataset.tab;
+
+                // 全てのタブからアクティブ状態を解除
+                document.querySelectorAll('.tab-button').forEach(button => {
+                    button.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                // クリックされたタブをアクティブにする
+                e.target.classList.add('active');
+                const activeContent = document.getElementById(tabId);
+                if (activeContent) {
+                    activeContent.classList.add('active');
+                }
+            }
+        });
+
+        // --- モバイル用操作パネルのボタンイベント設定 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const keyMap = {
+                'bbs-btn-end-write': '^',
+                'bbs-btn-up': 'k',
+                'bbs-btn-down': 'j',
+                'bbs-btn-left': 'h',
+                'bbs-btn-right': 'l',
+                'bbs-btn-read': '\r',
+                'bbs-btn-write': 'w',
+                'bbs-btn-delete': '*',
+                'bbs-btn-help': '?',
+                'bbs-btn-exit': 'e',
+                'bbs-btn-y': 'y',
+                'bbs-btn-n': 'n'
             };
 
-            window.visualViewport.addEventListener('resize', resizeHandler);
-            // Initial call to set the correct size
-            resizeHandler();
+            for (const [id, key] of Object.entries(keyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            const chatKeyMap = {
+                'chat-btn-exit': '^\r',
+                'chat-btn-telegram': '!\r',
+                'chat-btn-lock': '!l\r',
+                'chat-btn-unlock': '!u\r',
+                'chat-btn-who': '!w\r',
+                'chat-btn-roominfo': '!r\r'
+            };
+
+            for (const [id, key] of Object.entries(chatKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('click', () => { socket.emit('client_input', key); });
+                }
+            }
+
+            const userprefKeyMap = {
+                'userpref-btn-1': '1',
+                'userpref-btn-2': '2',
+                'userpref-btn-3': '3',
+                'userpref-btn-4': '4',
+                'userpref-btn-5': '5',
+                'userpref-btn-6': '6',
+                'userpref-btn-7': '7',
+                'userpref-btn-8': '8',
+                'userpref-btn-9': '9',
+                'userpref-btn-0': '0',
+                'userpref-btn-backspace': '\x7f', // Backspace (DEL)
+                'userpref-btn-help': '?',
+                'userpref-btn-enter': '\r',
+            };
+
+            for (const [id, key] of Object.entries(userprefKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            const mailKeyMap = {
+                'mail-btn-write': 'w\r',
+                'mail-btn-read': 'r\r',
+                'mail-btn-list': 'l\r',
+                'mail-btn-exit': 'e\r',
+            };
+
+            for (const [id, key] of Object.entries(mailKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            const bbsEntryKeyMap = {
+                'bbs-entry-btn-write': 'w\r',
+                'bbs-entry-btn-read': 'r\r',
+                'bbs-entry-btn-exit': 'e\r',
+            };
+
+            for (const [id, key] of Object.entries(bbsEntryKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            const topMenuKeyMap = {
+                'top-btn-bbs': 'b\r',
+                'top-btn-chat': 'c\r',
+                'top-btn-mail': 'm\r',
+                'top-btn-program': 'p\r',
+                'top-btn-userpref': 'u\r',
+                'top-btn-who': 'w\r',
+                'top-btn-telegram': '#\r',
+                'top-btn-help': '?\r',
+                'top-btn-logoff': 'e\r',
+            };
+
+            for (const [id, key] of Object.entries(topMenuKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            const pluginMenuKeyMap = {
+                'plugin-btn-1': '1',
+                'plugin-btn-2': '2',
+                'plugin-btn-3': '3',
+                'plugin-btn-4': '4',
+                'plugin-btn-5': '5',
+                'plugin-btn-6': '6',
+                'plugin-btn-7': '7',
+                'plugin-btn-8': '8',
+                'plugin-btn-9': '9',
+                'plugin-btn-backspace': '\x7f', // Backspace (DEL)
+                'plugin-btn-0': '0',
+                'plugin-btn-help': '?',
+                'plugin-btn-enter': '\r',
+            };
+            for (const [id, key] of Object.entries(pluginMenuKeyMap)) {
+                const btn = document.getElementById(id);
+                if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); }
+            }
+
+            // 確認ボタン (Yes/No) のイベントリスナー
+            document.getElementById('confirm-btn-y').addEventListener('click', () => { socket.emit('client_input', 'y\r'); });
+            document.getElementById('confirm-btn-n').addEventListener('click', () => { socket.emit('client_input', 'n\r'); });
+        });
+        // --- ウィンドウリサイズとキーボード表示のイベントハンドラ ---
+
+        window.addEventListener('resize', debounce(updateTerminalLayout, 100));
+
+        if ('visualViewport' in window) {
+            const vv = window.visualViewport;
+
+            const handleViewportResize = () => {
+                const isMobile = window.matchMedia("(max-width: 992px)").matches;
+                if (!isMobile) {
+                    document.body.style.height = '';
+                    return;
+                }
+                document.body.style.height = `${vv.height}px`;
+
+                const keyboardHeight = window.innerHeight - vv.height;
+                const isKeyboardVisible = keyboardHeight > 80;
+                const monitorScreen = document.querySelector('.monitor-screen');
+
+                if (isKeyboardVisible) {
+                    monitorScreen.style.paddingBottom = '0px';
+                } else {
+                    const storedHeight = monitorScreen.dataset.controlsHeight;
+                    if (storedHeight) {
+                        monitorScreen.style.paddingBottom = `${storedHeight}px`;
+                    }
+                    // キーボードが非表示になったら、bodyの高さを元に戻す
+                    document.body.style.height = '';
+                }
+                setTimeout(() => {
+                    try { fitAddon.fit(); } catch (e) { /* ignore */ }
+                    // キーボード表示時に最下部にスクロール
+                    if (isKeyboardVisible) {
+                        window.scrollTo(0, document.body.scrollHeight);
+                    }
+                }, 100);
+            };
+            vv.addEventListener('resize', handleViewportResize);
         }
     </script>
+
+    <script>
+        // 新しいPasskeyの登録フローを開始
+        async function registerNewPasskey() {
+            let options;
+            try {
+                const resp = await fetch("{{ url_for('web.passkey_register_options') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                options = await resp.json();
+            } catch (e) {
+                alert(`Could not get registration options: ${e}`);
+                return;
+            }
+
+            options.challenge = base64urlToBuffer(options.challenge);
+            options.user.id = base64urlToBuffer(options.user.id);
+            if (options.excludeCredentials) {
+                for (let cred of options.excludeCredentials) {
+                    cred.id = base64urlToBuffer(cred.id);
+                }
+            }
+
+            let credential;
+            try {
+                credential = await navigator.credentials.create({
+                    publicKey: options
+                });
+            } catch (e) {
+                if (e.name === "NotAllowedError") {
+                    alert("Passkeyの登録がキャンセルされたか、許可されませんでした。\n\n" +
+                        "・操作をキャンセルした場合、このメッセージは正常です。\n" +
+                        "・このデバイスに既にこのサイトのPasskeyが登録されている場合、一度削除してから再試行する必要があるかもしれません。");
+                } else {
+                    alert(`Could not create credential: ${e}`);
+                }
+                return;
+            }
+
+            const nickname = prompt("このPasskeyのニックネームを入力してください (例: 私のiPhone, 仕事用PCなど):", "My Passkey");
+            if (!nickname) {
+                alert("登録をキャンセルしました。");
+                return;
+            }
+
+            const attestationResponse = {
+                id: credential.id,
+                rawId: bufferToBase64url(credential.rawId),
+                response: {
+                    clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+                    attestationObject: bufferToBase64url(credential.response.attestationObject),
+                },
+                type: credential.type,
+            };
+
+            try {
+                const verificationResp = await fetch("{{ url_for('web.passkey_verify_registration') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        credential: attestationResponse,
+                        nickname: nickname
+                    }),
+                });
+                const verificationJSON = await verificationResp.json();
+                if (verificationJSON && verificationJSON.verified) {
+                    alert("Passkeyの登録に成功しました！");
+                } else {
+                    throw new Error(verificationJSON.error || "Verification failed.");
+                }
+            } catch (e) {
+                alert(`Error during verification: ${e.message}`);
+            }
+        }
+    </script>
+
+    <script>
+        // --- ハンバーガーメニュー（サイドナビ）の開閉ロジック ---
+        function openNav() {
+            document.getElementById("sidenav").style.width = "250px";
+        }
+
+        function closeNav() {
+            document.getElementById("sidenav").style.width = "0";
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const hamburgerBtn = document.getElementById('hamburger-btn');
+            if (hamburgerBtn) {
+                hamburgerBtn.addEventListener('click', openNav);
+            }
+
+            // サイドナビに閉じるボタンを追加
+            const sidenav = document.getElementById('sidenav');
+            const closeBtn = document.createElement('a');
+            closeBtn.href = 'javascript:void(0)';
+            closeBtn.className = 'closebtn';
+            closeBtn.innerHTML = '&times;';
+            closeBtn.onclick = closeNav;
+            sidenav.appendChild(closeBtn);
+
+            // ファンクションキーの定義からサイドナビの項目を動的に生成
+            for (const fkeyId in fkeyDefinitions) {
+                const definition = fkeyDefinitions[fkeyId];
+                const link = document.createElement('a');
+                link.href = 'javascript:void(0)';
+                link.textContent = definition.label;
+
+                if (definition.action === 'toggle_logging') {
+                    link.id = 'sidenav-log-btn';
+                }
+
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (definition.action === 'open_popup') { openPopup(); }
+                    else if (definition.action === 'toggle_logging') { socket.emit('toggle_logging'); }
+                    else if (definition.action === 'open_line_editor') { openLineEditor(); }
+                    else if (definition.action === 'open_multiline_editor') { openMultilineEditor(); }
+                    else if (definition.action === 'open_log_viewer') { openLogViewer(); }
+                    else if (definition.action === 'redirect') { window.location.href = definition.value; }
+                    else if (definition.action === 'open_bbs_list') {
+                        openBbsListPopup();
+                    }
+
+                    closeNav();
+                });
+                sidenav.appendChild(link);
+            }
+
+            // 画面右上の「一番下に移動」ボタンのイベントリスナー
+            const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
+            if (scrollToBottomBtn) {
+                scrollToBottomBtn.addEventListener('click', () => {
+                    term.scrollToBottom();
+                });
+            }
+        });
+    </script>
+
 </body>
 
 </html>
