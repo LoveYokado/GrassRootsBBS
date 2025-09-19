@@ -1,0 +1,145 @@
+/* Base and Layout */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Mobile Button Styles */
+.mobile-buttons {
+  display: none;
+  /* Initially hidden */
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 5px;
+  box-sizing: border-box;
+  z-index: 100;
+  border-top: 1px solid #333;
+}
+
+.mobile-buttons-grid {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+}
+
+.mobile-buttons-grid button {
+  padding: 10px 5px;
+  font-size: 0.9em;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 3px;
+  border: 1px solid #00ff00;
+  background-color: #003300;
+  color: #00ff00;
+  text-align: center;
+  box-sizing: border-box;
+  transition: background-color 0.2s;
+}
+
+.mobile-buttons-grid button:hover {
+  background-color: #005500;
+}
+
+.mobile-buttons-grid button:active {
+  background-color: #007700;
+}
+
+.mobile-buttons-grid button.hidden-button {
+  visibility: hidden;
+}
+
+/* Layout for top_menu */
+.mobile-buttons-grid[data-layout="top_menu"] {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Layout for bbs_entry */
+.mobile-buttons-grid[data-layout="bbs_entry"] {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Layout for bbs_list */
+.mobile-buttons-grid[data-layout="bbs_list"] {
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(3, auto);
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button {
+  font-size: 1.2em;
+  /* Make arrows bigger */
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(1) {
+  grid-area: 1 / 1;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(2) {
+  grid-area: 1 / 2;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(3) {
+  grid-area: 1 / 3;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(4) {
+  grid-area: 1 / 4;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(5) {
+  grid-area: 1 / 5;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(6) {
+  grid-area: 2 / 1;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(7) {
+  grid-area: 2 / 2;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(8) {
+  grid-area: 2 / 3;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(9) {
+  grid-area: 2 / 4;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(10) {
+  grid-area: 2 / 5;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(11) {
+  grid-area: 3 / 1;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(12) {
+  grid-area: 3 / 2;
+  visibility: hidden;
+}
+
+.mobile-buttons-grid[data-layout="bbs_list"] button:nth-child(13) {
+  grid-area: 3 / 3;
+}
+
+/* Layout for chat */
+.mobile-buttons-grid[data-layout="chat"] {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* Layout for mail_main */
+.mobile-buttons-grid[data-layout="mail_main"] {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Layout for user_pref and plugin_menu */
+.mobile-buttons-grid[data-layout="user_pref"],
+.mobile-buttons-grid[data-layout="plugin_menu"] {
+  grid-template-columns: repeat(4, 1fr);
+}

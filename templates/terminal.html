@@ -3202,34 +3202,21 @@
                     if (storedHeight) {
                         monitorScreen.style.paddingBottom = `${storedHeight}px`;
                     }
+                    // キーボードが非表示になったら、bodyの高さを元に戻す
+                    document.body.style.height = '';
                 }
-                setTimeout(() => { try { fitAddon.fit(); } catch (e) { /* ignore */ } }, 100);
+                // 少し遅延させてからリサイズとスクロールを実行
+                setTimeout(() => {
+                    try {
+                        fitAddon.fit();
+                        // キーボードが表示されている場合のみ、最下部にスクロール
+                        if (isKeyboardVisible) {
+                            window.scrollTo(0, document.body.scrollHeight);
+                        }
+                    } catch (e) { /* ignore */ }
+                }, 150); // 150msの遅延でタイミングを調整
             };
             vv.addEventListener('resize', handleViewportResize);
-        }
-    </script>
-
-    <script>
-        // Base64URL文字列をArrayBufferに変換
-        function base64urlToBuffer(base64urlString) {
-            const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            const outputArray = new Uint8Array(rawData.length);
-            for (let i = 0; i < rawData.length; ++i) {
-                outputArray[i] = rawData.charCodeAt(i);
-            }
-            return outputArray.buffer;
-        }
-
-        // ArrayBufferをBase64URL文字列に変換
-        function bufferToBase64url(buffer) {
-            const bytes = new Uint8Array(buffer);
-            let str = '';
-            for (const charCode of bytes) {
-                str += String.fromCharCode(charCode);
-            }
-            const base64 = window.btoa(str);
-            return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
         }
     </script>
 
