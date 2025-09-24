@@ -1,25 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Backup and Restore Utility
-#
-# This module provides core functionalities for data management, including:
-# - Creating full backups (database + specified directories).
-# - Restoring data from a backup archive.
-# - Wiping all application data to return to a clean state.
-# - Cleaning up old backup files based on retention settings.
-# ==============================================================================
-#
-# ==============================================================================
-# バックアップ・リストアユーティリティ
-#
-# このモジュールは、以下のデータ管理に関する中核機能を提供します:
-# - フルバックアップの作成 (データベース + 指定ディレクトリ)
-# - バックアップアーカイブからのデータ復元
-# - 全てのアプリケーションデータを消去し、初期状態に戻す機能
-# - 設定に基づいた古いバックアップファイルのクリーンアップ
-# ==============================================================================
+"""
+バックアップ・リストアユーティリティ
+
+このモジュールは、フルバックアップの作成 (データベース + 指定ディレクトリ)、
+バックアップアーカイブからのデータ復元、全アプリケーションデータの消去、
+古いバックアップファイルのクリーンアップといったデータ管理機能を提供します。
+"""
 
 import os
 import datetime

@@ -1,22 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# System Operator (SysOp) Menu Handler
-#
-# This module provides the user interface and logic for the SysOp menu,
-# which contains administrative functions for managing the BBS.
-# It includes user management, board creation/deletion, system-wide
-# settings, and other high-level administrative tasks.
-# ==============================================================================
-#
-# ==============================================================================
-# シスオペメニューハンドラ
-#
-# このモジュールは、BBSを管理するための管理者機能を含むシスオペメニューの
-# ユーザーインターフェースとロジックを提供します。ユーザー管理、掲示板の作成・削除、
-# システム全体の設定、その他の高度な管理タスクが含まれます。
-# ==============================================================================
+"""
+シスオペメニューハンドラ
+
+このモジュールは、BBSを管理するための管理者機能を含むシスオペメニューの
+ユーザーインターフェースとロジックを提供します。ユーザー管理、掲示板の作成・削除、
+システム全体の設定、その他の高度な管理タスクが含まれます。
+"""
 
 import logging
 import datetime

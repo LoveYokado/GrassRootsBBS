@@ -1,6 +1,12 @@
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
+# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+# SPDX-License-Identifier: MIT
+
 # Gunicorn config file
 
-# サーバーソケット
+# サーバーソケットの設定
 bind = "0.0.0.0:5000"
 
 # ワーカープロセス
@@ -10,9 +16,8 @@ worker_class = "geventwebsocket.gunicorn.workers.GeventWebSocketWorker"
 # 開発用にリロードを有効にする
 reload = True
 
-# ロギング
-# Gunicornのログは標準出力/エラー出力に出すのがシンプルで一般的です。
-# アプリケーションのログは webapp.py 側で設定します。
+# ロギング設定
+# Gunicornのログは標準出力/エラー出力に設定。アプリケーションログは別途設定。
 accesslog = "-"
 errorlog = "-"
 loglevel = "info"

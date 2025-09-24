@@ -1,6 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
+"""
+管理画面 (Admin Panel) のルーティング定義
+
+このモジュールは、Flask Blueprint を使用して、BBSの管理機能に関する
+全てのWebルート（例: /admin/dashboard, /admin/users）を定義します。
+"""
+
 import json
 import os
 from datetime import datetime, timedelta

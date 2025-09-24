@@ -1,22 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# BBS Handler
-#
-# This module contains the core logic for navigating and interacting with the
-# Bulletin Board System (BBS). It handles displaying article lists, reading
-# and writing articles, managing replies, and processing user commands
-# within a specific board context.
-# ==============================================================================
-#
-# ==============================================================================
-# 掲示板ハンドラ
-#
-# このモジュールは、電子掲示板システム (BBS) のナビゲーションと対話に関する
-# 中核的なロジックを含んでいます。記事一覧の表示、記事の読み書き、返信の管理、
-# 特定の掲示板コンテキスト内でのユーザーコマンドの処理などを担当します。
-# ==============================================================================
+"""
+掲示板ハンドラ
+
+このモジュールは、電子掲示板システム (BBS) のナビゲーションと対話に関する
+中核的なロジックを含んでいます。記事一覧の表示、記事の読み書き、返信の管理、
+特定の掲示板コンテキスト内でのユーザーコマンドの処理などを担当します。
+"""
 
 import logging
 import socket

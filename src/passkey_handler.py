@@ -1,22 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Passkey (WebAuthn) Handler
-#
-# This module handles the backend logic for Passkey (WebAuthn) authentication.
-# It is responsible for generating registration and authentication options,
-# and for verifying the responses from the client's authenticator (e.g.,
-# fingerprint scanner, security key).
-# ==============================================================================
-#
-# ==============================================================================
-# Passkey (WebAuthn) ハンドラ
-#
-# このモジュールは、Passkey (WebAuthn) 認証のバックエンドロジックを扱います。
-# 登録および認証オプションの生成と、クライアントの認証器（例：指紋スキャナ、
-# セキュリティキー）からのレスポンスの検証を担当します。
-# ==============================================================================
+"""
+Passkey (WebAuthn) ハンドラ
+
+このモジュールは、Passkey (WebAuthn) 認証のバックエンドロジックを扱います。
+登録および認証オプションの生成と、クライアントの認証器（例：指紋スキャナ、
+セキュリティキー）からのレスポンスの検証を担当します。
+"""
 
 import logging
 from webauthn import (

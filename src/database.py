@@ -1,6 +1,14 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
+"""
+データベース抽象化レイヤー
+
+このモジュールは、全てのデータベース操作に対する構造化された抽象的な
+インターフェースを提供します。各クラスが特定のテーブルやデータの論理的な
+グループを担当し、関連するSQLクエリをカプセル化するマネージャー方式を採用しています。
+"""
+
 import mysql.connector
 from mysql.connector import pooling
 import logging

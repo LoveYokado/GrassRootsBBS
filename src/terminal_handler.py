@@ -1,24 +1,14 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Web Terminal Session Handler
-#
-# This module contains the core logic for managing individual web terminal
-# sessions. It includes the WebTerminalHandler class, which orchestrates the
-# BBS main loop and I/O for a single client, as well as global state management
-# for all connected clients.
-# ==============================================================================
-#
-# ==============================================================================
-# Webターミナルセッションハンドラ
-#
-# このモジュールは、個々のWebターミナルセッションを管理するための中核ロジックを
-# 含んでいます。主な責務は以下の通りです:
-# - WebTerminalHandlerクラス: 各クライアントのセッション状態を管理し、BBSの
-#   メインループとI/Oを統括します。
-# - グローバルな状態管理: 接続されている全クライアントの状態を追跡します。
-# ==============================================================================
+"""
+Webターミナルセッションハンドラ
+
+このモジュールは、個々のWebターミナルセッションを管理するための中核ロジックを
+含んでいます。WebTerminalHandlerクラスが各クライアントのセッション状態を管理し、
+BBSのメインループとI/Oを統括します。また、接続されている全クライアントの
+グローバルな状態管理も行います。
+"""
 
 import logging
 import threading

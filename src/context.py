@@ -1,11 +1,9 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
+
 class CommandContext:
-    """
-    コマンド実行に必要なコンテキスト情報をカプセル化するクラス。
-    辞書で情報を引き回すのをやめ、型安全と保守性を向上させます。
-    """
+    """コマンド実行に必要なコンテキスト情報をカプセル化するクラス。"""
 
     def __init__(self, chan, user_session, server_pref, online_members_func):
         self.chan = chan

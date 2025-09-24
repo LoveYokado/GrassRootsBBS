@@ -1,21 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Web Application Routes
-#
-# This module defines all the standard web routes for the application, such
-# as login, logout, and the main terminal page. It uses a Flask Blueprint
-# to keep these routes organized and separate from the core app logic.
-# ==============================================================================
-#
-# ==============================================================================
-# Webアプリケーションルート
-#
-# このモジュールは、ログイン、ログアウト、メインのターミナルページなど、
-# アプリケーションの標準的なWebルートをすべて定義します。Flaskのブループリントを
-# 使用してこれらのルートを整理し、コアアプリロジックから分離しています。
-# ==============================================================================
+"""
+Webアプリケーションルート
+
+このモジュールは、ログイン、ログアウト、メインのターミナルページなど、
+アプリケーションの標準的なWebルートをすべて定義します。Flaskのブループリントを
+使用してこれらのルートを整理し、コアアプリロジックから分離しています。
+"""
 
 from flask import (
     Blueprint, render_template, request, session, redirect, url_for,

@@ -1,23 +1,14 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# User Preferences Menu Handler
-#
-# This module provides the user interface and logic for the user preferences
-# menu. It allows users to manage their account settings, such as changing
-# their password, profile, menu mode, and managing advanced features like
-# Passkeys and exploration lists.
-# ==============================================================================
-#
-# ==============================================================================
-# ユーザー設定メニューハンドラ
-#
-# このモジュールは、ユーザー設定メニューのユーザーインターフェースとロジックを
-# 提供します。ユーザーは、パスワード、プロフィール、メニューモードの変更や、
-# Passkey、探索リストなどの高度な機能の管理といった、自身のアカウント設定を
-# 管理できます。
-# ==============================================================================
+"""
+ユーザー設定メニューハンドラ
+
+このモジュールは、ユーザー設定メニューのユーザーインターフェースとロジックを
+提供します。ユーザーは、パスワード、プロフィール、メニューモードの変更や、
+Passkey、探索リストなどの高度な機能の管理といった、自身のアカウント設定を
+管理できます。
+"""
 
 import datetime
 import logging

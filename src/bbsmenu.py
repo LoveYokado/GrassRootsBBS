@@ -1,23 +1,14 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# BBS Menu Handlers
-#
-# This module contains handler functions for various commands available from
-# the main BBS top menu. It includes functionalities like displaying online
-# users, handling online sign-ups, and exploring new articles. These functions
-# are typically dispatched from `command_dispatcher.py`.
-# ==============================================================================
-#
-# ==============================================================================
-# BBSメニューハンドラ
-#
-# このモジュールは、BBSのトップメニューから利用可能な様々なコマンドの
-# ハンドラ関数を含んでいます。オンラインユーザーの表示、オンラインサインアップ、
-# 新着記事の探索といった機能が含まれます。これらの関数は、通常
-# `command_dispatcher.py` から呼び出されます。
-# ==============================================================================
+"""
+BBSメニューハンドラ
+
+このモジュールは、BBSのトップメニューから利用可能な様々なコマンドの
+ハンドラ関数を含んでいます。オンラインユーザーの表示、オンラインサインアップ、
+新着記事の探索といった機能が含まれます。これらの関数は、通常
+`command_dispatcher.py` から呼び出されます。
+"""
 
 import textwrap
 import logging

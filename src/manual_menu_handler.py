@@ -1,23 +1,14 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Manual Menu Handler
-#
-# This module processes the manually defined, text-based menus, primarily
-# used for "Mode 1". It reads a YAML configuration file to build and navigate
-# a series of nested menus, ultimately leading to a specific action, such as
-# entering a BBS board.
-# ==============================================================================
-#
-# ==============================================================================
-# 手書きメニューハンドラ
-#
-# このモジュールは、主に「モード1」で使用される、手動で定義された
-# テキストベースのメニューを処理します。YAML設定ファイルを読み込んで、
-# 入れ子になった一連のメニューを構築・ナビゲートし、最終的にBBS掲示板への
-# 入室などの特定のアクションに繋げます。
-# ==============================================================================
+"""
+手書きメニューハンドラ
+
+このモジュールは、主に「モード1」で使用される、手動で定義された
+テキストベースのメニューを処理します。YAML設定ファイルを読み込んで、
+入れ子になった一連のメニューを構築・ナビゲートし、最終的にBBS掲示板への
+入室などの特定のアクションに繋げます。
+"""
 
 import yaml
 import logging

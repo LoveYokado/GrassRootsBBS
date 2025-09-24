@@ -2,25 +2,14 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Hamlet Game (Connect Four)
-#
-# This module implements a "Connect Four" style game, named "Hamlet Game"
-# in homage to the game included with the "BIG-Model" BBS software, which
-# served as the inspiration for this project.
-#
-# It features a simple heuristic-based AI for single-player mode.
-# ==============================================================================
-#
-# ==============================================================================
-# ハムレットゲーム（四目並べ）
-#
-# このモジュールは、プロジェクトの元となったBBSソフトウェア「BIG-Model」に
-# 付属していたゲームへのオマージュとして、「ハムレットゲーム」と名付けられた
-# 「コネクトフォー」風のゲームを実装します。
-#
-# 1人プレイ用に、単純なヒューリスティックベースのAIを搭載しています。
-# ==============================================================================
+"""
+ハムレットゲーム（四目並べ）
+
+このモジュールは、プロジェクトの元となったBBSソフトウェア「BIG-Model」に
+付属していたゲームへのオマージュとして、「ハムレットゲーム」と名付けられた
+「コネクトフォー」風のゲームを実装します。
+1人プレイ用に、単純なヒューリスティックベースのAIを搭載しています。
+"""
 
 import numpy as np
 import random
@@ -30,15 +19,15 @@ from . import util
 
 # --- Constants / 定数 ---
 ROWS = 6
-COLS = 6
-CONNECT_N = 4  # N目並べのN
+COLS = 7  # 一般的な四目並べに合わせて7列に変更
+CONNECT_N = 4  # 4目並べ
 
-# Player identifiers / プレイヤー識別子
+# プレイヤー識別子
 PLAYER_HUMAN = 1
 PLAYER_AI = 2
 EMPTY = 0
 
-# Display symbols for each player / 各プレイヤーの表示シンボル
+# 各プレイヤーの表示シンボル
 SYMBOL_HUMAN = "O"
 SYMBOL_AI = "X"
 SYMBOL_EMPTY = " "
@@ -46,7 +35,7 @@ SYMBOL_EMPTY = " "
 
 def create_board():
     """空のゲーム盤 (6x6のNumpy配列) を作成します。"""
-    return np.zeros((ROWS, COLS), dtype=int)
+    return np.zeros((ROWS, COLS), dtype=int)  # 6x7の盤面を作成
 
 
 def drop_piece(board, col, player):
@@ -54,11 +43,11 @@ def drop_piece(board, col, player):
     指定された列にプレイヤーの駒を落とす。
     成功した場合はTrue、列が満杯の場合はFalseを返す。
     """
-    for r in range(ROWS - 1, -1, -1):  # 下の行から上に探索
+    for r in range(ROWS - 1, -1, -1):
         if board[r, col] == EMPTY:
             board[r, col] = player
             return True
-    return False  # 列が満杯
+    return False
 
 
 def is_valid_location(board, col):
@@ -71,25 +60,25 @@ def check_win(board, player):
     指定されたプレイヤーが connect_n 個連続で並べたかどうかをチェックする。
     縦、横、斜め（両方向）をチェックする。
     """
-    # Check horizontal locations for a win / 横方向のチェック
+    # 横方向のチェック
     for r in range(ROWS):
         for c in range(COLS - CONNECT_N + 1):
             if all(board[r, c+i] == player for i in range(CONNECT_N)):
                 return True
 
-    # Check vertical locations for a win / 縦方向のチェック
+    # 縦方向のチェック
     for c in range(COLS):
         for r in range(ROWS - CONNECT_N + 1):
             if all(board[r+i, c] == player for i in range(CONNECT_N)):
                 return True
 
-    # Check positively sloped diagonals / 正斜め方向 (右下がり) のチェック
+    # 右下がりの斜め方向のチェック
     for r in range(ROWS - CONNECT_N + 1):
         for c in range(COLS - CONNECT_N + 1):
             if all(board[r+i, c+i] == player for i in range(CONNECT_N)):
                 return True
 
-    # Check negatively sloped diagonals / 逆斜め方向 (右上がり) のチェック
+    # 右上がりの斜め方向のチェック
     for r in range(CONNECT_N - 1, ROWS):
         for c in range(COLS - CONNECT_N + 1):
             if all(board[r-i, c+i] == player for i in range(CONNECT_N)):
@@ -113,16 +102,16 @@ def evaluate_position(board, player):
     ここでは、単純にリーチに近い形（3連+空き1マスなど）の数を数える。
     """
     score = 0
-    # Horizontal evaluation / 横方向の評価
+    # 横方向の評価
     for r in range(ROWS):
         for c in range(COLS - CONNECT_N + 1):
             window = board[r, c:c+CONNECT_N]
             if np.count_nonzero(window == player) == CONNECT_N - 1 and np.count_nonzero(window == EMPTY) == 1:
-                score += 5  # 3連+空き1マス
+                score += 5
             elif np.count_nonzero(window == player) == CONNECT_N - 2 and np.count_nonzero(window == EMPTY) == 2:
-                score += 2  # 2連+空き2マス
+                score += 2
 
-    # Vertical evaluation / 縦方向の評価
+    # 縦方向の評価
     for c in range(COLS):
         for r in range(ROWS - CONNECT_N + 1):
             window = board[r:r+CONNECT_N, c]
@@ -130,7 +119,7 @@ def evaluate_position(board, player):
                 score += 5
             elif np.count_nonzero(window == player) == CONNECT_N - 2 and np.count_nonzero(window == EMPTY) == 2:
                 score += 2
-    # Positively sloped diagonal evaluation / 正斜め方向の評価
+    # 右下がりの斜め方向の評価
     for r in range(ROWS - CONNECT_N + 1):
         for c in range(COLS - CONNECT_N + 1):
             window = [board[r+i, c+i] for i in range(CONNECT_N)]
@@ -138,7 +127,7 @@ def evaluate_position(board, player):
                 score += 5
             elif np.count_nonzero(np.array(window) == player) == CONNECT_N - 2 and np.count_nonzero(np.array(window) == EMPTY) == 2:
                 score += 2
-    # Negatively sloped diagonal evaluation / 逆斜め方向の評価
+    # 右上がりの斜め方向の評価
     for r in range(CONNECT_N - 1, ROWS):
         for c in range(COLS - CONNECT_N + 1):
             window = [board[r-i, c+i] for i in range(CONNECT_N)]
@@ -147,8 +136,7 @@ def evaluate_position(board, player):
             elif np.count_nonzero(np.array(window) == player) == CONNECT_N - 2 and np.count_nonzero(np.array(window) == EMPTY) == 2:
                 score += 2
 
-    # Center column bias (central columns are generally more valuable)
-    # 中央列の評価（中央に近いほど有利なため、簡単なバイアスを追加）
+    # 中央列は戦略的に重要なので、少し評価を高くする
     center_col = COLS // 2
     if board[0, center_col] == EMPTY:
         score += 3
@@ -162,26 +150,26 @@ def ai_choose_column_heuristic(board):
     """
     valid_cols = get_valid_locations(board)
     if not valid_cols:
-        return -1  # 有効な列がない場合
+        return -1
 
-    best_col = random.choice(valid_cols)  # デフォルトはランダム
-    best_score = -10000  # Initialize with a very low score
+    best_col = random.choice(valid_cols)
+    best_score = -10000
 
-    # --- 1. Check for winning moves (AI) ---
-    for col in valid_cols:
-        temp_board = board.copy()  # 盤面を一時的にコピー
-        drop_piece(temp_board, col, PLAYER_AI)
-        if check_win(temp_board, PLAYER_AI):
-            return col  # 勝利できるなら迷わずその列を選ぶ
-
-    # --- 2. Block opponent's winning moves (Human) ---
+    # 1. AIが勝利できる手を探す
     for col in valid_cols:
         temp_board = board.copy()
-        drop_piece(temp_board, col, PLAYER_HUMAN)  # 相手がそこに置いたらどうなるか
-        if check_win(temp_board, PLAYER_HUMAN):
-            return col  # 相手の勝利をブロックできるならその列を選ぶ
+        drop_piece(temp_board, col, PLAYER_AI)
+        if check_win(temp_board, PLAYER_AI):
+            return col
 
-    # --- 3. Evaluate other moves based on score ---
+    # 2. 相手（人間）の勝利を阻止する手を探す
+    for col in valid_cols:
+        temp_board = board.copy()
+        drop_piece(temp_board, col, PLAYER_HUMAN)
+        if check_win(temp_board, PLAYER_HUMAN):
+            return col
+
+    # 3. 上記以外の場合は、ヒューリスティック評価に基づいて最善手を選ぶ
     for col in valid_cols:
         temp_board = board.copy()
         if drop_piece(temp_board, col, PLAYER_AI):
@@ -191,7 +179,7 @@ def ai_choose_column_heuristic(board):
                 best_score = score
                 best_col = col
             elif score == best_score:
-                # 同じスコアの場合はランダムに選ぶことで多様性を出す
+                # 同じスコアの場合は、ランダム性を持たせて手を多様化する
                 if random.random() > 0.5:
                     best_col = col
 
@@ -205,14 +193,14 @@ def is_board_full(board):
 
 def print_board(chan, board):
     """ゲーム盤をテキスト形式でクライアントに送信します。"""
-    # Column numbers / 列番号の表示
+    # 列番号の表示
     col_numbers = "|" + "|".join([str(i+1) for i in range(COLS)]) + "|\r\n"
     chan.send(col_numbers.encode('utf-8'))
 
-    # Separator line / 区切り線
+    # 区切り線
     chan.send(b"-" * (COLS * 2 + 1) + b"\r\n")
 
-    # Board content (from top to bottom) / 盤面の中身を表示 (上から下へ)
+    # 盤面の中身を表示 (上から下へ)
     for r in range(ROWS):
         row_str = "|"
         for c in range(COLS):
@@ -221,7 +209,7 @@ def print_board(chan, board):
                 row_str += SYMBOL_EMPTY + "|"
             elif piece == PLAYER_HUMAN:
                 row_str += SYMBOL_HUMAN + "|"
-            else:  # PLAYER_AI
+            else:
                 row_str += SYMBOL_AI + "|"
         chan.send((row_str + "\r\n").encode('utf-8'))
 
@@ -235,16 +223,16 @@ def run_game_vs_ai(chan, menu_mode):
     """人間 対 AI のゲームを実行するメインループ。"""
     board = create_board()
     game_over = False
-    turn = 0  # 0 for the first player, 1 for the second
+    turn = 0
 
-    # --- Display game title and rules ---
+    # ゲームタイトルとルールの表示
     util.send_text_by_key(chan, "hamlet_game.title", menu_mode)
     util.send_text_by_key(chan, "hamlet_game.rules",
                           menu_mode, rows=ROWS, cols=COLS, connect_n=CONNECT_N)
     util.send_text_by_key(chan, "hamlet_game.player_info",
                           menu_mode, symbol_human=SYMBOL_HUMAN, symbol_ai=SYMBOL_AI)
 
-    # --- Ask who goes first ---
+    # 先攻・後攻の選択
     while True:
         util.send_text_by_key(
             chan, "hamlet_game.prompt_first_move", menu_mode, add_newline=False)
@@ -260,7 +248,7 @@ def run_game_vs_ai(chan, menu_mode):
         elif first_choice == 'N':
             current_player = PLAYER_AI
             util.send_text_by_key(chan, "hamlet_game.ai_is_first", menu_mode)
-            turn = 1  # AIが先攻なので、ターンを1にする
+            turn = 1
             break
         else:
             util.send_text_by_key(
@@ -269,12 +257,11 @@ def run_game_vs_ai(chan, menu_mode):
     while not game_over:
         print_board(chan, board)
 
-        # Get the symbol for the current player
         player_prompt_symbol = get_player_symbol(current_player)
 
         if current_player == PLAYER_HUMAN:
             col_choice = -1
-            while True:  # Loop until valid input is received
+            while True:
                 util.send_text_by_key(chan, "hamlet_game.prompt_your_turn",
                                       menu_mode, symbol=player_prompt_symbol, add_newline=False)
                 input_str = chan.process_input()
@@ -283,7 +270,7 @@ def run_game_vs_ai(chan, menu_mode):
 
                 choice = input_str.strip().lower()
 
-                # Handle abort command
+                # 中断コマンドの処理
                 if choice == 'a':
                     util.send_text_by_key(
                         chan, "hamlet_game.abort_prompt", menu_mode, add_newline=False)
@@ -291,15 +278,14 @@ def run_game_vs_ai(chan, menu_mode):
                     if confirm_abort and confirm_abort.strip().lower() == 'y':
                         util.send_text_by_key(
                             chan, "hamlet_game.game_aborted", menu_mode)
-                        return  # ゲーム関数を終了
+                        return
                     else:
-                        # 中断をキャンセルした場合、盤面を再表示して入力を促す
                         print_board(chan, board)
-                        continue  # 入力ループを継続
+                        continue
 
                 if choice.isdigit():
                     col_choice = int(choice) - 1
-                    break  # 入力ループを抜ける
+                    break
                 else:
                     util.send_text_by_key(
                         chan, "common_messages.invalid_input", menu_mode)
@@ -309,11 +295,11 @@ def run_game_vs_ai(chan, menu_mode):
             else:
                 util.send_text_by_key(
                     chan, "hamlet_game.invalid_column", menu_mode)
-                continue  # ターンを消費しない
-        else:  # AI's turn
+                continue
+        else:  # AIのターン
             util.send_text_by_key(
                 chan, "hamlet_game.ai_thinking", menu_mode, symbol=player_prompt_symbol)
-            time.sleep(1)  # 少し待機してAIが考えているように見せる
+            time.sleep(1)
             ai_col = ai_choose_column_heuristic(board)  # ヒューリスティックAIを使用
 
             if ai_col != -1:
@@ -321,10 +307,9 @@ def run_game_vs_ai(chan, menu_mode):
                     chan, "hamlet_game.ai_move", menu_mode, col=ai_col + 1)
                 drop_piece(board, ai_col, current_player)
             else:
-                # このケースは通常、盤面が埋まった場合にのみ発生する
                 pass
 
-        # --- Check for game end conditions ---
+        # ゲーム終了条件のチェック
         if check_win(board, current_player):
             print_board(chan, board)
             winner_name = get_player_name(current_player, menu_mode)
@@ -334,21 +319,20 @@ def run_game_vs_ai(chan, menu_mode):
             game_over = True
         elif is_board_full(board):
             print_board(chan, board)
-            # Rule: If the board is full, the second player wins.
-            # 先攻が current_player だった場合、その次のプレイヤーが後攻
-            if current_player == PLAYER_HUMAN:  # 人間が最後に手番を打ったが、盤面が埋まった。AIが後攻。
+            # ルール: 盤面が埋まった場合は後攻の勝ち
+            if current_player == PLAYER_HUMAN:
                 winner_name = get_player_name(PLAYER_AI, menu_mode)
                 winner_symbol = get_player_symbol(PLAYER_AI)
                 util.send_text_by_key(chan, "hamlet_game.draw_win_message",
                                       menu_mode, winner=winner_name, symbol=winner_symbol)
-            else:  # AIが最後に手番を打ったが、盤面が埋まった。人間が後攻。
+            else:
                 winner_name = get_player_name(PLAYER_HUMAN, menu_mode)
                 winner_symbol = get_player_symbol(PLAYER_HUMAN)
                 util.send_text_by_key(chan, "hamlet_game.draw_win_message",
                                       menu_mode, winner=winner_name, symbol=winner_symbol)
             game_over = True
         else:
-            # Switch to the next player
+            # 次のプレイヤーへ交代
             turn += 1
             current_player = PLAYER_AI if current_player == PLAYER_HUMAN else PLAYER_HUMAN
 

@@ -1,6 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
+"""
+アプリケーションファクトリ
+
+このモジュールは、Flaskアプリケーションインスタンスの作成と設定を担当する
+アプリケーションファクトリ関数 `create_app()` を含んでいます。
+"""
+
 import datetime
 import ipaddress
 import logging
@@ -26,7 +33,10 @@ socketio = SocketIO()
 
 
 def create_app():
-    """Create and configure an instance of the Flask application."""
+    """
+    Flaskアプリケーションインスタンスを作成し、設定します。
+    アプリケーションの各種設定、ロギング、Blueprint、エラーハンドラなどを初期化します。
+    """
     _current_dir = os.path.dirname(os.path.abspath(__file__))
     PROJECT_ROOT = os.path.dirname(_current_dir)
     APP_LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
@@ -113,6 +123,7 @@ def create_app():
 
     @app.context_processor
     def inject_util():
+        """テンプレート内で `util` モジュールの関数を使えるようにします。"""
         return dict(util=util)
 
     @app.template_filter('timestamp_to_datetime')
@@ -124,6 +135,7 @@ def create_app():
 
     @app.before_request
     def restrict_admin_access_by_ip():
+        """管理画面へのアクセスをIPアドレスで制限します。"""
         if request.path.startswith('/admin'):
             admin_config = app.config.get('ADMIN', {})
             if not admin_config.get('ip_restriction_enabled', False):
@@ -144,6 +156,7 @@ def create_app():
 
     @app.after_request
     def add_security_headers(response):
+        """レスポンスにセキュリティ関連のヘッダーを追加します。"""
         csp = (
             "default-src 'self';"
             "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net https://code.jquery.com https://stackpath.bootstrapcdn.com https://fonts.googleapis.com;"
@@ -170,6 +183,7 @@ def create_app():
     init_events(socketio, app)
 
     def scheduled_backup_job():
+        """スケジューラによって実行されるバックアップジョブです。"""
         with app.app_context():
             logging.info("Starting scheduled backup job...")
             filename = backup_util.create_backup()

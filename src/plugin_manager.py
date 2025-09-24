@@ -3,23 +3,14 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Plugin Manager
-#
-# This module is responsible for discovering, loading, and executing plugins.
-# It scans a dedicated 'plugins' directory, reads metadata from each plugin's
-# 'plugin.toml' file, checks dependencies, and provides a sandboxed API
-# for safe interaction with the host application.
-# ==============================================================================
-#
-# ==============================================================================
-# プラグインマネージャ
-#
-# このモジュールは、プラグインの発見、読み込み、実行を担当します。
-# 専用の 'plugins' ディレクトリをスキャンし、各プラグインの 'plugin.toml'
-# ファイルからメタデータを読み込み、依存関係をチェックし、ホストアプリケーションと
-# 安全に対話するためのサンドボックス化されたAPIを提供します。
-# ==============================================================================
+"""
+プラグインマネージャ
+
+このモジュールは、プラグインの発見、読み込み、実行を担当します。
+専用の 'plugins' ディレクトリをスキャンし、各プラグインの 'plugin.toml'
+ファイルからメタデータを読み込み、依存関係をチェックし、ホストアプリケーションと
+安全に対話するためのサンドボックス化されたAPIを提供します。
+"""
 
 import os
 import importlib
@@ -36,9 +27,8 @@ _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
 PLUGINS_DIR = os.path.join(PROJECT_ROOT, 'plugins')
 
-# A dictionary to store loaded plugins.
-# Structure: { 'plugin_dir_name': {'module': module, 'name': 'Plugin Name', ...} }
-# ロードされたプラグインを格納する辞書。
+# ロードされたプラグインを格納する辞書
+# { 'plugin_dir_name': {'module': module, 'name': 'Plugin Name', ...} }
 _loaded_plugins = {}
 
 
@@ -57,7 +47,7 @@ def load_plugins():
         logging.warning(f"プラグインディレクトリが見つかりません: {PLUGINS_DIR}")
         return
 
-    # 1. Get current plugin settings from the database.
+    # 1. DBから現在のプラグイン設定を取得
     plugin_settings = database.get_all_plugin_settings()
 
     for item in os.listdir(PLUGINS_DIR):
@@ -67,7 +57,7 @@ def load_plugins():
         if os.path.isdir(plugin_dir) and os.path.exists(metadata_path):
             plugin_id = item
             try:
-                # 2. Check DB settings. If not present, enable by default and register in DB.
+                # 2. DB設定を確認。なければデフォルトで有効化し、DBに登録。
                 is_enabled = plugin_settings.get(plugin_id, True)
                 if plugin_id not in plugin_settings:
                     database.upsert_plugin_setting(plugin_id, True)
@@ -77,11 +67,11 @@ def load_plugins():
                         f"Plugin '{plugin_id}' is disabled, skipping.")
                     continue
 
-                # 3. Read plugin metadata.
+                # 3. プラグインのメタデータを読み込み
                 with open(metadata_path, 'r', encoding='utf-8') as f:
                     metadata = toml.load(f)
 
-                # 4. Check for dependencies.
+                # 4. 依存関係をチェック
                 requirements = metadata.get('requirements', [])
                 is_loadable = True
                 for req in requirements:
@@ -94,7 +84,7 @@ def load_plugins():
                 if not is_loadable:
                     continue
 
-                # 5. If dependencies are met, import the module.
+                # 5. 依存関係が満たされていれば、モジュールをインポート
                 module_name = metadata.get('entry_point')
                 if not module_name:
                     logging.warning(
@@ -125,7 +115,7 @@ def load_plugins():
 
 
 def get_loaded_plugins():
-    """Returns a list of loaded plugins, formatted for menu display."""
+    """ロード済みのプラグインのリストをメニュー表示用に整形して返します。"""
     plugins_list = []
     for plugin_id, plugin_data in _loaded_plugins.items():
         plugins_list.append({
@@ -133,17 +123,17 @@ def get_loaded_plugins():
             'name': plugin_data['name'],
             'description': plugin_data['description']
         })
-    # Return sorted by name.
+    # 名前順でソートして返す
     return sorted(plugins_list, key=lambda p: p['name'])
 
 
 def run_plugin(plugin_id, context):
-    """Executes a plugin specified by its ID.
-
-    A safe context with a limited API is provided to the plugin.
-    Execution is subject to a timeout defined in config.toml.
     """
-    # config.tomlからタイムアウト値を取得、なければデフォルト60秒
+    指定されたIDのプラグインを実行します。
+    プラグインには、機能が制限された安全なAPIを持つコンテキストが提供されます。
+    実行は config.toml で定義されたタイムアウトの対象となります。
+    """
+    # config.tomlからタイムアウト値を取得
     plugins_config = util.app_config.get('plugins', {})
     timeout_seconds = plugins_config.get('execution_timeout', 60)
 
@@ -155,7 +145,7 @@ def run_plugin(plugin_id, context):
     logging.info(
         f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {timeout_seconds}秒)...")
 
-    # Rebuild the context to provide a safe API to the plugin.
+    # プラグインに安全なAPIを提供するためにコンテキストを再構築
     api = GrbbsApi(context.chan)
     safe_context = {
         'api': api,
@@ -178,9 +168,10 @@ def run_plugin(plugin_id, context):
 
 
 def get_all_available_plugins():
-    """Scans the 'plugins' directory and returns information for all
-    available plugins, including their enabled/disabled status from the database.
-    This is used for the admin panel.
+    """
+    'plugins' ディレクトリをスキャンし、利用可能な全てのプラグインの情報を返します。
+    DBから取得した有効/無効の状態も含まれます。
+    この関数は管理画面で使用されます。
     """
     available_plugins = []
     if not os.path.isdir(PLUGINS_DIR):

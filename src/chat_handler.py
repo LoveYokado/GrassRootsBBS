@@ -1,25 +1,14 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Chat Handler
-#
-# This module manages the server-side logic for real-time chat rooms.
-# It handles user entry/exit, message broadcasting, history management,
-# and special commands within a chat room (e.g., locking, status checks).
-#
-# Global dictionaries are used to maintain the state of active rooms and users.
-# ==============================================================================
-#
-# ==============================================================================
-# チャットハンドラ
-#
-# このモジュールは、リアルタイムチャットルームのサーバーサイドロジックを管理します。
-# ユーザーの入退室、メッセージのブロードキャスト、履歴管理、チャットルーム内の
-# 特別なコマンド（ロック、状況確認など）を処理します。
-#
-# グローバルな辞書を使用して、アクティブなルームとユーザーの状態を保持します。
-# ==============================================================================
+"""
+チャットハンドラ
+
+このモジュールは、リアルタイムチャットルームのサーバーサイドロジックを管理します。
+ユーザーの入退室、メッセージのブロードキャスト、履歴管理、チャットルーム内の
+特別なコマンド（ロック、状況確認など）を処理します。
+グローバルな辞書を使用して、アクティブなルームとユーザーの状態を保持します。
+"""
 
 import logging
 import collections

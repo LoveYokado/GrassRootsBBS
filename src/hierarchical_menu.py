@@ -1,6 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
+"""
+階層メニューエンジン
+
+このモジュールは、YAML設定ファイルで定義された、入れ子構造の
+テキストベースメニューを作成・ナビゲートするための汎用エンジンを提供します。
+"""
+
 import logging
 import yaml
 

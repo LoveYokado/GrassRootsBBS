@@ -1,23 +1,14 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Utility Module
-#
-# This module provides a collection of helper functions used across the
-# GrassRootsBBS application. It includes functionalities for configuration
-# management, text processing, password hashing, data formatting, and other
-# common tasks to avoid code duplication.
-# ==============================================================================
-#
-# ==============================================================================
-# ユーティリティモジュール
-#
-# このモジュールは、GrassRootsBBSアプリケーション全体で使用されるヘルパー関数の
-# コレクションを提供します。設定管理、テキスト処理、パスワードハッシュ化、
-# データフォーマット、その他の共通タスクなどの機能を含み、コードの重複を
-# 避ける役割を担います。
-# ==============================================================================
+"""
+ユーティリティモジュール
+
+このモジュールは、GrassRootsBBSアプリケーション全体で使用されるヘルパー関数の
+コレクションを提供します。設定管理、テキスト処理、パスワードハッシュ化、
+データフォーマット、その他の共通タスクなどの機能を含み、コードの重複を
+避ける役割を担います。
+"""
 
 import logging
 import toml

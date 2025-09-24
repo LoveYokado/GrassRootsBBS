@@ -1,22 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# WebSocket Event Handlers
-#
-# This module defines all the SocketIO event handlers for real-time
-# communication with the web terminal client. It manages the lifecycle of a
-# client connection, from connection and authentication to input processing
-# and disconnection.
-# ==============================================================================
-#
-# ==============================================================================
-# WebSocketイベントハンドラ
-#
-# このモジュールは、Webターミナルクライアントとのリアルタイム通信のための
-# SocketIOイベントハンドラをすべて定義します。接続と認証から入力処理、
-# 切断までのクライアント接続のライフサイクルを管理します。
-# ==============================================================================
+"""
+WebSocketイベントハンドラ
+
+このモジュールは、Webターミナルクライアントとのリアルタイム通信のための
+SocketIOイベントハンドラをすべて定義します。接続と認証から入力処理、
+切断までのクライアント接続のライフサイクルを管理します。
+"""
 
 from flask import request, session, url_for, current_app
 from flask_socketio import emit, disconnect

@@ -1,21 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Custom Decorators
-#
-# This module defines custom decorators for use with Flask routes.
-# Decorators wrap view functions to add pre-processing logic, such as
-# checking user permissions before allowing access to a page.
-# ==============================================================================
-#
-# ==============================================================================
-# カスタムデコレータ
-#
-# このモジュールは、Flaskのルートで使用するカスタムデコレータを定義します。
-# デコレータはビュー関数をラップし、ページへのアクセスを許可する前に
-# ユーザー権限をチェックするなどの前処理ロジックを追加します。
-# ==============================================================================
+"""
+カスタムデコレータ
+
+このモジュールは、Flaskのルートで使用するカスタムデコレータを定義します。
+デコレータはビュー関数をラップし、ページへのアクセスを許可する前に
+ユーザー権限をチェックするなどの前処理ロジックを追加します。
+"""
 
 from functools import wraps
 from flask import session, redirect, url_for, flash

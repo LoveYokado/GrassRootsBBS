@@ -1,21 +1,13 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# Command Dispatcher
-#
-# This module acts as a central router for user commands entered in the top
-# menu. It maps command strings (e.g., 'b', 'c', '?') to their corresponding
-# handler functions and performs permission checks before execution.
-# ==============================================================================
-#
-# ==============================================================================
-# コマンドディスパッチャ
-#
-# このモジュールは、トップメニューで入力されたユーザーコマンドの
-# 中央ルーターとして機能します。コマンド文字列（例: 'b', 'c', '?'）を
-# 対応するハンドラ関数にマッピングし、実行前に権限チェックを行います。
-# ==============================================================================
+"""
+コマンドディスパッチャ
+
+このモジュールは、トップメニューで入力されたユーザーコマンドの
+中央ルーターとして機能します。コマンド文字列（例: 'b', 'c', '?'）を
+対応するハンドラ関数にマッピングし、実行前に権限チェックを行います。
+"""
 
 from . import util
 from . import bbsmenu

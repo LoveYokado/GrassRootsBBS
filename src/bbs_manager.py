@@ -1,25 +1,15 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# ==============================================================================
-# BBS Business Logic Manager
-#
-# This module contains manager classes that encapsulate the business logic
-# for the Bulletin Board System (BBS). These classes act as an intermediary
-# layer between the request handlers (e.g., bbs_handler.py) and the database
-# access layer (database.py), handling operations related to boards, articles,
-# and permissions.
-# ==============================================================================
-#
-# ==============================================================================
-# BBS ビジネスロジックマネージャ
-#
-# このモジュールは、電子掲示板システム (BBS) のビジネスロジックを
-# カプセル化するマネージャクラスを含んでいます。これらのクラスは、
-# リクエストハンドラ (例: bbs_handler.py) とデータベースアクセス層
-# (database.py) の中間層として機能し、掲示板、記事、権限に関連する
-# 操作を処理します。
-# ==============================================================================
+"""
+BBS ビジネスロジックマネージャ
+
+このモジュールは、電子掲示板システム (BBS) のビジネスロジックを
+カプセル化するマネージャクラスを含んでいます。これらのクラスは、
+リクエストハンドラ (例: bbs_handler.py) とデータベースアクセス層
+(database.py) の中間層として機能し、掲示板、記事、権限に関連する
+操作を処理します。
+"""
 
 import logging
 import time
