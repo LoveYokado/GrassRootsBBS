@@ -1118,7 +1118,10 @@ mail_handler:
     mode_1: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
     mode_2: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
     mode_3: "-NUM-  -S.DATE- -S.TIME-  -RCPT-                 -MAIL-\r\n"
-
+  select_recipient_prompt_popup:
+    mode_1: "宛先を選択してください"
+    mode_2: "Select Recipient"
+    mode_3: "Select Recipient"
   no_mails:
     mode_1: "メールはありません。\r\n"
     mode_2: "メールはありません。\r\n"
