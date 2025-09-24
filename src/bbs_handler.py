@@ -1727,9 +1727,27 @@ class CommandHandler:
                 self.chan.send(f"タイトル: {title}\r\n".encode('utf-8'))
                 title_input = title  # そのまま使う
             else:
-                util.send_text_by_key(self.chan, "bbs.post_subject", self.menu_mode,
-                                      max_len=title_max_len, add_newline=False)
-                title_input = self.chan.process_input()
+                if is_mobile_web_client:
+                    # ワンラインエディタを起動するエスケープシーケンスを送信
+                    prompt_text_template = util.get_text_by_key(
+                        "bbs.post_subject", self.menu_mode, default_value="タイトルを入力してください ({max_len}文字以内) : ")
+                    prompt_text = prompt_text_template.format(
+                        max_len=title_max_len)
+                    prompt_b64 = base64.b64encode(
+                        prompt_text.encode('utf-8')).decode('utf-8')
+                    initial_value_b64 = base64.b64encode(
+                        b'').decode('utf-8')  # 初期値は空
+                    self.chan.send(
+                        f'\x1b]GRBBS;LINE_EDIT;{prompt_b64};{initial_value_b64}\x07'.encode('utf-8'))
+                    # ワンラインエディタから返ってきた値を、プロンプト付きで表示する
+                    title_input_raw = self.chan.process_input()  # クライアントからの入力を待つ
+                    self.chan.send(
+                        f"{prompt_text}{title_input_raw}\r\n".encode('utf-8'))
+                    title_input = title_input_raw
+                else:
+                    util.send_text_by_key(self.chan, "bbs.post_subject", self.menu_mode,
+                                          max_len=title_max_len, add_newline=False)
+                    title_input = self.chan.process_input()
 
             if title_input is None:
                 return 'cancelled'  # 切断

@@ -2658,20 +2658,6 @@
                 data = data.replace(multilineEditorPattern, '');
             }
 
-            const lineEditorPattern = /\x1b\]GRBBS;LINE_EDIT;(.*?);(.*?)\x07/;
-            const lineEditorMatch = data.match(lineEditorPattern);
-            if (lineEditorMatch) {
-                const promptB64 = lineEditorMatch[1];
-                const valueB64 = lineEditorMatch[2];
-                try {
-                    openLineEditor(
-                        b64DecodeUnicode(promptB64),
-                        b64DecodeUnicode(valueB64)
-                    );
-                } catch (e) { console.error("Failed to open line editor with decoded data:", e); }
-                data = data.replace(lineEditorPattern, '');
-            }
-
             const confirmButtonsPattern = /\x1b\]GRBBS;CONFIRM_BUTTONS;(.*?);(.*?)\x07/;
             const confirmButtonsMatch = data.match(confirmButtonsPattern);
             if (confirmButtonsMatch) {
@@ -2705,6 +2691,23 @@
                 }
                 data = data.replace(confirmControlPattern, '');
                 updateTerminalLayout();
+            }
+
+            const lineEditorPattern = /\x1b\]GRBBS;LINE_EDIT;(.*?);(.*?)\x07/;
+            const lineEditorMatch = data.match(lineEditorPattern);
+            if (lineEditorMatch) {
+                const promptB64 = lineEditorMatch[1];
+                const valueB64 = lineEditorMatch[2];
+                try {
+                    const promptText = b64DecodeUnicode(promptB64);
+                    const initialValue = b64DecodeUnicode(valueB64);
+                    document.getElementById('line-editor-prompt').textContent = promptText;
+                    lineEditorInput.value = initialValue;
+                    openLineEditor();
+                } catch (e) {
+                    console.error("Failed to open line editor with decoded data:", e);
+                }
+                data = data.replace(lineEditorPattern, '');
             }
 
             // --- 自動スクロール & レイアウト補正ロジック ---

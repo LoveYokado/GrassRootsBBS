@@ -702,10 +702,25 @@ def _get_recipients(chan, menu_mode):
     モバイルクライアントの場合はYes/Noボタンを表示します。
     """
     recipient_info_list = []  # 複数宛先に対応
+    is_mobile_web_client = (
+        isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and
+        getattr(chan.handler, 'is_mobile', False)
+    )
     while True:
-        util.send_text_by_key(
-            chan, "mail_handler.enter_recipient", menu_mode, add_newline=False
-        )
+        if is_mobile_web_client:
+            prompt_text = util.get_text_by_key(
+                "mail_handler.enter_recipient", menu_mode)
+            prompt_b64 = base64.b64encode(
+                prompt_text.encode('utf-8')).decode('utf-8')
+            initial_value_b64 = base64.b64encode(
+                b'').decode('utf-8')
+            chan.send(
+                f'\x1b]GRBBS;LINE_EDIT;{prompt_b64};{initial_value_b64}\x07'.encode('utf-8'))
+        else:
+            util.send_text_by_key(
+                chan, "mail_handler.enter_recipient", menu_mode, add_newline=False
+            )
+
         recipient_name_input = chan.process_input()
         if recipient_name_input is None:
             return None  # 切断
@@ -729,11 +744,6 @@ def _get_recipients(chan, menu_mode):
         current_recipient_name = userdata['name']
         current_recipient_comment = userdata[
             'comment'] if userdata['comment'] else "(No comment)"
-
-        is_mobile_web_client = (
-            isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and
-            getattr(chan.handler, 'is_mobile', False)
-        )
 
         def get_confirm_input(prompt_key):
             """
@@ -797,9 +807,25 @@ def _get_subject(chan, menu_mode):
     """
     limits_config = util.app_config.get('limits', {})
     mail_subject_max_len = limits_config.get('mail_subject_max_length', 100)
-    util.send_text_by_key(
-        chan, "mail_handler.enter_subject", menu_mode, max_len=mail_subject_max_len, add_newline=False
+
+    is_mobile_web_client = (
+        isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and
+        getattr(chan.handler, 'is_mobile', False)
     )
+
+    if is_mobile_web_client:
+        prompt_text_template = util.get_text_by_key(
+            "mail_handler.enter_subject", menu_mode)
+        prompt_text = prompt_text_template.format(max_len=mail_subject_max_len)
+        prompt_b64 = base64.b64encode(
+            prompt_text.encode('utf-8')).decode('utf-8')
+        initial_value_b64 = base64.b64encode(b'').decode('utf-8')
+        chan.send(
+            f'\x1b]GRBBS;LINE_EDIT;{prompt_b64};{initial_value_b64}\x07'.encode('utf-8'))
+    else:
+        util.send_text_by_key(chan, "mail_handler.enter_subject",
+                              menu_mode, add_newline=False, max_len=mail_subject_max_len)
+
     subject = chan.process_input()
     if subject is None:
         return None
