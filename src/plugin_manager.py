@@ -27,7 +27,7 @@ _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
 PLUGINS_DIR = os.path.join(PROJECT_ROOT, 'plugins')
 
-# ロードされたプラグインを格納する辞書
+# ロードされたプラグインを格納する辞書。
 # { 'plugin_dir_name': {'module': module, 'name': 'Plugin Name', ...} }
 _loaded_plugins = {}
 

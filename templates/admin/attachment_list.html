@@ -18,7 +18,7 @@
 
     <div class="card mb-4">
         <div class="card-header">
-            <!-- Nav tabs -->
+            <!-- ナビゲーションタブ -->
             <ul class="nav nav-tabs card-header-tabs" id="attachmentTabs" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active" id="uploaded-tab" data-toggle="tab" href="#uploaded" role="tab"
@@ -37,9 +37,9 @@
                 </li>
             </ul>
         </div>
-        <!-- Tab panes -->
+        <!-- タブコンテンツ -->
         <div class="tab-content" id="attachmentTabsContent">
-            <!-- Uploaded Files Pane -->
+            <!-- アップロード済みファイル -->
             <div class="tab-pane fade show active" id="uploaded" role="tabpanel" aria-labelledby="uploaded-tab">
                 <div class="card-body">
                     {% include 'admin/_pagination.html' %}
@@ -135,7 +135,7 @@
                 </div>
             </div>
 
-            <!-- Quarantined Files Pane -->
+            <!-- 隔離ファイル -->
             <div class="tab-pane fade" id="quarantined" role="tabpanel" aria-labelledby="quarantined-tab">
                 <div class="card-body">
                     <div class="table-responsive">

@@ -7,8 +7,8 @@ import os
 
 def generate_keys():
     """
-    Generates VAPID private and public keys and saves them as PEM files.
-    VAPIDの秘密鍵と公開鍵を生成し、PEMファイルとして保存します。
+    Web Push通知で使用するVAPIDの秘密鍵と公開鍵を生成し、
+    プロジェクトルートにPEMファイルとして保存します。
     """
     # プロジェクトのルートディレクトリを基準にパスを設定
     project_root = os.path.abspath(
@@ -16,9 +16,7 @@ def generate_keys():
     private_key_path = os.path.join(project_root, 'private_key.pem')
     public_key_path = os.path.join(project_root, 'public_key.pem')
 
-    # vapid.main()は内部で鍵を生成し、ファイルに保存する
-    # --private オプションで秘密鍵のパスを指定
-    # --public オプションで公開鍵のパスを指定
+    # pywebpushライブラリのコマンドライン機能を呼び出して鍵を生成・保存
     try:
         print("Generating VAPID keys...")
         vapid.main(['--private', private_key_path,

@@ -145,4 +145,6 @@ docker-compose up --build -d
 
 Web ブラウザで `http://localhost:5000` にアクセスしてください。
 
+BBS の詳しい使い方や管理方法については、manual.md を参照してください。
+
 管理画面には `http://localhost:5000/admin` からアクセスできます。

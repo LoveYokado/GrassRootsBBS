@@ -1,15 +1,13 @@
 import os
 import re
-import yaml  # PyYAMLが必要です (pip install PyYAML)
+import yaml
 import argparse
 import logging
 
 # ロギング設定
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
-# get_text_by_key や send_text_by_key で使用されるキーを抽出する正規表現
-# 例: get_text_by_key(chan, "some.key.name", ...)
-#     send_text_by_key(chan, 'another.key', ...)
+# `get_text_by_key` や `send_text_by_key` で使用されるキーを抽出する正規表現
 KEY_USAGE_REGEX = re.compile(
     r"(?:get_text_by_key|send_text_by_key)\s*\("  # 関数名と開き括弧
     r"[^,]+,\s*"                                 # 第1引数とカンマ
@@ -20,8 +18,9 @@ KEY_USAGE_REGEX = re.compile(
 
 def get_defined_keys_from_yaml(data_dict, path_prefix_list=None):
     """
-    YAMLデータからtextdataキーのセットを再帰的に抽出する。
-    キーは 'feature.element' のような形式で、mode_X を含まない。
+    YAMLデータから定義されている全てのtextdataキーを再帰的に抽出します。
+    キーは 'feature.element' のようなドット区切りの形式で、
+    `mode_X` を含まないパスをキーとして認識します。
     """
     if path_prefix_list is None:
         path_prefix_list = []
@@ -37,7 +36,7 @@ def get_defined_keys_from_yaml(data_dict, path_prefix_list=None):
         if isinstance(value, dict):
             # この辞書が 'mode_X' キーのみを子として持つか確認
             is_mode_specific_node = False
-            if value:  # 空の辞書でないこと
+            if value:
                 is_mode_specific_node = all(
                     k.startswith('mode_') for k in value.keys())
 
@@ -48,13 +47,14 @@ def get_defined_keys_from_yaml(data_dict, path_prefix_list=None):
                 # mode_X で終わるノードでなければ、さらに深く探索
                 found_keys.update(get_defined_keys_from_yaml(
                     value, current_path_list))
-        # valueが辞書でない場合は、テキストキーの終端ではないと判断
 
     return found_keys
 
 
 def find_specific_key_in_file(file_path, key_to_find):
-    """指定されたPythonファイル内で特定のtextdataキーが使用されているか検索する"""
+    """
+    指定されたPythonファイル内で、特定のtextdataキーが使用されているか検索します。
+    """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -72,7 +72,9 @@ def find_specific_key_in_file(file_path, key_to_find):
 
 
 def find_used_keys_in_py_file(file_path):
-    """指定されたPythonファイル内で使用されているtextdataキーを検索する"""
+    """
+    指定されたPythonファイル内で使用されている全てのtextdataキーを検索し、セットとして返します。
+    """
     used_keys = set()
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -89,10 +91,12 @@ def find_used_keys_in_py_file(file_path):
 
 
 def find_files_using_key(directory, key_to_find):
-    """指定されたディレクトリ内の全Pythonファイルで特定のtextdataキーを検索し、
-       使用されているファイルのリストを返す"""
+    """
+    指定されたディレクトリ内の全Pythonファイルを対象に、特定のtextdataキーを検索し、
+    そのキーが使用されているファイルのリストを返します。
+    """
     found_in_files = []
-    if key_to_find is None:  # key_to_find が None の場合は何もしない (またはエラーを出す)
+    if key_to_find is None:
         return found_in_files
     for root, _, files in os.walk(directory):
         for file_name in files:
@@ -104,7 +108,9 @@ def find_files_using_key(directory, key_to_find):
 
 
 def find_used_keys_in_directory(directory):
-    """指定されたディレクトリ内の全Pythonファイルで使用されているtextdataキーを検索する"""
+    """
+    指定されたディレクトリ内の全Pythonファイルで使用されているtextdataキーを全て検索し、セットとして返します。
+    """
     all_used_keys = set()
     for root, _, files in os.walk(directory):
         for file_name in files:
