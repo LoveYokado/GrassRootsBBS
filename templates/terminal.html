@@ -1437,6 +1437,43 @@
         </div>
     </div>
 
+    <!-- ユーザー選択ポップアップ -->
+    <div id="user-selector-overlay" class="popup-overlay"></div>
+    <div id="user-selector-window" class="popup-window">
+        <div class="popup-header">
+            <h2 id="user-selector-title">Select User</h2>
+            <button id="user-selector-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content">
+            <input type="text" id="user-selector-search" class="popup-window-input" placeholder="Search users...">
+            <ul id="user-selector-list"
+                style="list-style-type: none; padding: 0; margin: 0; height: 300px; overflow-y: auto; background-color: #000; border-radius: 4px; border: 2px solid #555;">
+                <!-- User list will be populated here -->
+            </ul>
+            <div style="margin-top: 15px;">
+                <button id="user-selector-ok-btn" class="popup-content-button" disabled>OK</button>
+                <button id="user-selector-cancel-btn" class="popup-content-button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        #user-selector-list li {
+            padding: 8px 12px;
+            cursor: pointer;
+            color: #eee;
+        }
+
+        #user-selector-list li:hover {
+            background-color: #333;
+        }
+
+        #user-selector-list li.selected {
+            background-color: #555;
+            font-weight: bold;
+        }
+    </style>
+
     <div id="log-viewer-overlay" class="popup-overlay"></div>
     <div id="log-viewer-window" class="popup-window">
         <div class="popup-header">
@@ -2367,6 +2404,81 @@
         multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
         logViewerCloseBtn.addEventListener('click', closeLogViewer);
         logViewerOverlay.addEventListener('click', closeLogViewer);
+
+        // --- ユーザー選択ポップアップのロジック ---
+        const userSelectorOverlay = document.getElementById('user-selector-overlay');
+        const userSelectorWindow = document.getElementById('user-selector-window');
+        const userSelectorCloseBtn = document.getElementById('user-selector-close-btn');
+        const userSelectorTitle = document.getElementById('user-selector-title');
+        const userSelectorSearch = document.getElementById('user-selector-search');
+        const userSelectorList = document.getElementById('user-selector-list');
+        const userSelectorOkBtn = document.getElementById('user-selector-ok-btn');
+        const userSelectorCancelBtn = document.getElementById('user-selector-cancel-btn');
+        let selectedUser = null;
+        let allUsersForSelector = []; // ユーザーリストを保持する変数
+
+        function openUserSelector(prompt, userList) {
+            userSelectorTitle.textContent = prompt;
+            allUsersForSelector = userList; // 全ユーザーリストを保存
+            populateUserList(allUsersForSelector); // 全リストを表示
+            userSelectorSearch.value = '';
+            selectedUser = null;
+            userSelectorOkBtn.disabled = true;
+            userSelectorOverlay.classList.add('visible');
+            userSelectorWindow.classList.add('visible');
+            userSelectorSearch.focus();
+        }
+
+        function closeUserSelector() {
+            userSelectorOverlay.classList.remove('visible');
+            userSelectorWindow.classList.remove('visible');
+        }
+
+        function populateUserList(users) {
+            userSelectorList.innerHTML = '';
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.textContent = user.name;
+                li.dataset.username = user.name;
+                userSelectorList.appendChild(li);
+            });
+        }
+
+        // 検索機能
+        userSelectorSearch.addEventListener('input', () => {
+            const searchTerm = userSelectorSearch.value.toLowerCase();
+            const filteredUsers = allUsersForSelector.filter(user =>
+                user.name.toLowerCase().includes(searchTerm)
+            );
+            populateUserList(filteredUsers);
+            // 検索結果が変わったら選択をリセット
+            selectedUser = null;
+            userSelectorOkBtn.disabled = true;
+        });
+
+        userSelectorList.addEventListener('click', (e) => {
+            if (e.target.tagName === 'LI') {
+                document.querySelectorAll('#user-selector-list li').forEach(li => li.classList.remove('selected'));
+                e.target.classList.add('selected');
+                selectedUser = e.target.dataset.username;
+                userSelectorOkBtn.disabled = false;
+            }
+        });
+
+        userSelectorOkBtn.addEventListener('click', () => {
+            if (selectedUser) {
+                socket.emit('client_input', selectedUser + '\r');
+                closeUserSelector();
+            }
+        });
+
+        userSelectorCancelBtn.addEventListener('click', () => {
+            socket.emit('client_input', '\r'); // キャンセルとして空入力を送信
+            closeUserSelector();
+        });
+        userSelectorCloseBtn.addEventListener('click', () => { userSelectorCancelBtn.click(); });
+        userSelectorOverlay.addEventListener('click', () => { userSelectorCancelBtn.click(); });
+
         /**
          * BBSリストポップアップ内のリスト項目（BBS名ボタン）がクリックされたときの処理です。
          */
@@ -2658,20 +2770,6 @@
                 data = data.replace(multilineEditorPattern, '');
             }
 
-            const lineEditorPattern = /\x1b\]GRBBS;LINE_EDIT;(.*?);(.*?)\x07/;
-            const lineEditorMatch = data.match(lineEditorPattern);
-            if (lineEditorMatch) {
-                const promptB64 = lineEditorMatch[1];
-                const valueB64 = lineEditorMatch[2];
-                try {
-                    openLineEditor(
-                        b64DecodeUnicode(promptB64),
-                        b64DecodeUnicode(valueB64)
-                    );
-                } catch (e) { console.error("Failed to open line editor with decoded data:", e); }
-                data = data.replace(lineEditorPattern, '');
-            }
-
             const confirmButtonsPattern = /\x1b\]GRBBS;CONFIRM_BUTTONS;(.*?);(.*?)\x07/;
             const confirmButtonsMatch = data.match(confirmButtonsPattern);
             if (confirmButtonsMatch) {
@@ -2706,6 +2804,41 @@
                 data = data.replace(confirmControlPattern, '');
                 updateTerminalLayout();
             }
+
+            const lineEditorPattern = /\x1b\]GRBBS;LINE_EDIT;(.*?);(.*?)\x07/;
+            const lineEditorMatch = data.match(lineEditorPattern);
+            if (lineEditorMatch) {
+                const promptB64 = lineEditorMatch[1];
+                const valueB64 = lineEditorMatch[2];
+                try {
+                    const promptText = b64DecodeUnicode(promptB64);
+                    const initialValue = b64DecodeUnicode(valueB64);
+                    document.getElementById('line-editor-prompt').textContent = promptText;
+                    lineEditorInput.value = initialValue;
+                    openLineEditor();
+                } catch (e) {
+                    console.error("Failed to open line editor with decoded data:", e);
+                }
+                data = data.replace(lineEditorPattern, '');
+            }
+
+            const userSelectorPattern = /\x1b\]GRBBS;USER_SELECT;(.*?);(.*?)\x07/;
+            const userSelectorMatch = data.match(userSelectorPattern);
+            if (userSelectorMatch) {
+                const promptB64 = userSelectorMatch[1];
+                const userListB64 = userSelectorMatch[2];
+                try {
+                    const promptText = b64DecodeUnicode(promptB64);
+                    const userList = JSON.parse(b64DecodeUnicode(userListB64));
+                    openUserSelector(promptText, userList);
+                } catch (e) {
+                    console.error("Failed to open user selector with decoded data:", e);
+                }
+                data = data.replace(userSelectorPattern, '');
+            }
+
+
+
 
             // --- 自動スクロール & レイアウト補正ロジック ---
             const buffer = term.buffer.active;

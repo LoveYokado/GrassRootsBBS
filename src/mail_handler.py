@@ -25,6 +25,7 @@ import logging
 import socket
 import textwrap
 import base64
+import json
 
 from . import util
 from . import database, terminal_handler
@@ -699,74 +700,81 @@ def _get_recipients(chan, menu_mode):
     """
     宛先をユーザーから対話的に取得し、検証してリストとして返します。
     複数宛先にも対応しており、一人入力するごとに続けて入力するか確認します。
-    モバイルクライアントの場合はYes/Noボタンを表示します。
+    モバイルクライアントの場合はユーザー選択ポップアップを、それ以外は手入力を促します。
     """
+
     recipient_info_list = []  # 複数宛先に対応
+    is_mobile_web_client = (isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and getattr(
+        chan.handler, 'is_mobile', False))
+
+    def get_confirm_input(prompt_key):
+        """Yes/No確認プロンプトを表示し、ユーザーの入力を取得する汎用ヘルパー関数です。"""
+        confirm_input_raw = None
+        if is_mobile_web_client:
+            yes_label = util.get_text_by_key(
+                "common_messages.yes_button", menu_mode, default_value="Yes")
+            no_label = util.get_text_by_key(
+                "common_messages.no_button", menu_mode, default_value="No")
+            yes_label_b64 = base64.b64encode(
+                yes_label.encode('utf-8')).decode('utf-8')
+            no_label_b64 = base64.b64encode(
+                no_label.encode('utf-8')).decode('utf-8')
+            chan.send(
+                f'\x1b]GRBBS;CONFIRM_BUTTONS;{yes_label_b64};{no_label_b64}\x07'.encode('utf-8'))
+            chan.send(b'\x1b[?2035h')
+        try:
+            util.send_text_by_key(
+                chan, prompt_key, menu_mode, add_newline=False)
+            confirm_input_raw = chan.process_input()
+        finally:
+            if is_mobile_web_client:
+                chan.send(b'\x1b[?2035l')
+        return confirm_input_raw
+
     while True:
-        util.send_text_by_key(
-            chan, "mail_handler.enter_recipient", menu_mode, add_newline=False
-        )
-        recipient_name_input = chan.process_input()
-        if recipient_name_input is None:
-            return None  # 切断
+        recipient_name_input = None
+        if is_mobile_web_client:
+            all_users = database.get_memberlist()
+            if not all_users:
+                util.send_text_by_key(
+                    chan, "mail_handler.no_users_to_select", menu_mode, default_value="送信可能なユーザーがいません。")
+                return []
+            prompt_text = util.get_text_by_key(
+                "mail_handler.select_recipient_prompt_popup", menu_mode, default_value="宛先を選択してください")
+            prompt_b64 = base64.b64encode(
+                prompt_text.encode('utf-8')).decode('utf-8')
+            user_list_json = json.dumps(all_users)
+            user_list_b64 = base64.b64encode(
+                user_list_json.encode('utf-8')).decode('utf-8')
+            chan.send(
+                f'\x1b]GRBBS;USER_SELECT;{prompt_b64};{user_list_b64}\x07'.encode('utf-8'))
+            recipient_name_input = chan.process_input()
+            if recipient_name_input:
+                prompt_display_text = util.get_text_by_key(
+                    "mail_handler.enter_recipient", menu_mode)
+                chan.send(
+                    f"{prompt_display_text}{recipient_name_input}\r\n".encode('utf-8'))
+        else:
+            util.send_text_by_key(
+                chan, "mail_handler.enter_recipient", menu_mode, add_newline=False)
+            recipient_name_input = chan.process_input()
 
         if not recipient_name_input:
             return recipient_info_list if recipient_info_list else []
 
         recipient_name_upper = recipient_name_input.upper()
-        try:
-            userdata = database.get_user_auth_info(recipient_name_upper)
-        except Exception as e:
-            logging.error(f"宛先ユーザ検索中にDBエラー({recipient_name_upper}): {e}")
-            util.send_text_by_key(chan, "common_messages.db_error", menu_mode)
-            continue
+        userdata = database.get_user_auth_info(recipient_name_upper)
 
         if not userdata:
-            util.send_text_by_key(
-                chan, "mail_handler.recipient_not_found", menu_mode, recipient_name=recipient_name_upper)
+            util.send_text_by_key(chan, "mail_handler.recipient_not_found",
+                                  menu_mode, recipient_name=recipient_name_upper)
             continue
 
         current_recipient_name = userdata['name']
-        current_recipient_comment = userdata[
-            'comment'] if userdata['comment'] else "(No comment)"
-
-        is_mobile_web_client = (
-            isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and
-            getattr(chan.handler, 'is_mobile', False)
-        )
-
-        def get_confirm_input(prompt_key):
-            """
-            Yes/No確認プロンプトを表示し、ユーザーの入力を取得する汎用ヘルパー関数です。
-            モバイルクライアントの場合は、Yes/Noボタンを表示するエスケープシーケンスを送信します。
-            """
-            confirm_input_raw = None
-            if is_mobile_web_client:
-                yes_label = util.get_text_by_key(
-                    "common_messages.yes_button", menu_mode, default_value="Yes")
-                no_label = util.get_text_by_key(
-                    "common_messages.no_button", menu_mode, default_value="No")
-                yes_label_b64 = base64.b64encode(
-                    yes_label.encode('utf-8')).decode('utf-8')
-                no_label_b64 = base64.b64encode(
-                    no_label.encode('utf-8')).decode('utf-8')
-                chan.send(
-                    f'\x1b]GRBBS;CONFIRM_BUTTONS;{yes_label_b64};{no_label_b64}\x07'.encode('utf-8'))
-                chan.send(b'\x1b[?2035h')
-
-            try:
-                util.send_text_by_key(
-                    chan, prompt_key, menu_mode, add_newline=False)
-                confirm_input_raw = chan.process_input()
-            finally:
-                if is_mobile_web_client:
-                    chan.send(b'\x1b[?2035l')
-
-            return confirm_input_raw
-
+        current_recipient_comment = userdata.get(
+            'comment', '') or "(No comment)"
         chan.send(f"\"{current_recipient_comment}\"\r\n".encode('utf-8'))
 
-        # 宛先確認
         ans = get_confirm_input("mail_handler.recipient_yn")
         if ans is None:
             return None
@@ -775,7 +783,6 @@ def _get_recipients(chan, menu_mode):
             recipient_info_list.append(
                 (current_recipient_name, current_recipient_comment))
 
-            # 他の宛先を追加するか確認
             add_more_ans = get_confirm_input("mail_handler.send_another_yn")
             if add_more_ans is None:
                 return None
@@ -783,10 +790,8 @@ def _get_recipients(chan, menu_mode):
             if add_more_ans.lower().strip() == 'y':
                 continue
             else:
-                # 他の宛先を追加しない場合は、ここでリストを返して終了
                 return recipient_info_list
         else:
-            # 最初の宛先確認で 'y' 以外が入力された場合もループを継続
             continue
 
 
@@ -797,13 +802,39 @@ def _get_subject(chan, menu_mode):
     """
     limits_config = util.app_config.get('limits', {})
     mail_subject_max_len = limits_config.get('mail_subject_max_length', 100)
-    util.send_text_by_key(
-        chan, "mail_handler.enter_subject", menu_mode, max_len=mail_subject_max_len, add_newline=False
+
+    is_mobile_web_client = (
+        isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and
+        getattr(chan.handler, 'is_mobile', False)
     )
-    subject = chan.process_input()
+
+    if is_mobile_web_client:
+        prompt_text_template = util.get_text_by_key(
+            "mail_handler.enter_subject", menu_mode)
+        prompt_text = prompt_text_template.format(max_len=mail_subject_max_len)
+        prompt_b64 = base64.b64encode(
+            prompt_text.encode('utf-8')).decode('utf-8')
+        initial_value_b64 = base64.b64encode(
+            b'').decode('utf-8')  # 初期値は空
+        chan.send(
+            f'\x1b]GRBBS;LINE_EDIT;{prompt_b64};{initial_value_b64}\x07'.encode('utf-8'))
+        subject_raw = chan.process_input()
+        if subject_raw is not None:
+            chan.send(f"{prompt_text}{subject_raw}\r\n".encode('utf-8'))
+        subject = subject_raw
+    else:
+        util.send_text_by_key(chan, "mail_handler.enter_subject",
+                              menu_mode, add_newline=False, max_len=mail_subject_max_len)
+        subject = chan.process_input()
+
     if subject is None:
         return None
-    subject = subject.strip() or "(No subject)"
+
+    subject = subject.strip()
+    if not subject:
+        subject = util.get_text_by_key(
+            "mail_handler.no_subject", menu_mode, default_value="(No Subject)")
+
     if len(subject) > mail_subject_max_len:
         subject = subject[:mail_subject_max_len]
         util.send_text_by_key(
@@ -890,8 +921,8 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
 
     # 宛先表示
     for name, comment in recipient_info_list:
-        util.send_text_by_key(
-            chan, "mail_handler.recipient", menu_mode, current_recipient_name=name, current_recipient_comment=comment)
+        util.send_text_by_key(chan, "mail_handler.recipient", menu_mode,
+                              current_recipient_name=name, current_recipient_comment=comment)
 
     util.send_text_by_key(chan, "mail_handler.subject",
                           menu_mode, subject=subject)
