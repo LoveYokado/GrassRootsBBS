@@ -86,14 +86,6 @@
 
 {% include 'admin/_pagination.html' %}
 
-<script>
-    document.getElementById('select-all-articles').addEventListener('change', function (e) {
-        const checkboxes = document.querySelectorAll('.article-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = e.target.checked;
-        });
-    });
-</script>
 {% endif %}
 
 {% endblock %}
