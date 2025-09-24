@@ -6,6 +6,18 @@
 # The URL to access your BBS. Required for Passkey and Push notifications.
 ORIGIN = "http://localhost:5000"
 
+# ログインページのタイトル
+# Title for the login page.
+LOGIN_PAGE_TITLE = "GR-BBS"
+
+# ログインページのロゴ画像のパス (static/からの相対パス)
+# Path to the logo image on the login page (relative to static/).
+LOGIN_PAGE_LOGO_PATH = "images/logo.png"
+
+# ログインページのメッセージ
+# Message displayed on the login page.
+LOGIN_PAGE_MESSAGE = "Welcome to GrassRootsBBS"
+
 # Passkeyで使われるドメイン名 (ポート番号は含めない)
 # Relying Party ID for Passkey (should not include the port).
 RP_ID = "localhost"
@@ -13,6 +25,10 @@ RP_ID = "localhost"
 # 添付ファイルのアップロード先ディレクトリ
 # Directory for attachment uploads.
 ATTACHMENT_UPLOAD_DIR = "data/attachments"
+
+# WebAppの最大同時接続数 (0は無制限)
+# Maximum number of concurrent WebApp clients (0 for unlimited).
+MAX_CONCURRENT_WEBAPP_CLIENTS = 10
 
 [database]
 # Docker Compose環境では、これらの値は .env ファイルから読み込まれるため、通常このセクションの編集は不要です。
@@ -152,3 +168,7 @@ reply_wrap_width = 76
 # プラグイン実行のタイムアウト時間（秒）
 # Execution timeout for plugins in seconds.
 execution_timeout = 60
+
+[server]
+# BBSの名称 (ログファイル名などに使用)
+BBS_NAME = "GR-BBS"
