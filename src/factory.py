@@ -150,7 +150,7 @@ def create_app():
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com;"
             "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;"
             "img-src 'self' data:;"
-            "connect-src 'self' wss: ws:;"
+            "connect-src 'self' wss: ws: https://cdn.jsdelivr.net https://cdn.socket.io;"
             "frame-ancestors 'none';"
             "form-action 'self';"
             "base-uri 'self';"
