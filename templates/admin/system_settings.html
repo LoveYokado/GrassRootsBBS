@@ -79,11 +79,7 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    document.getElementById('fill-board-ids-btn').addEventListener('click', function () {
-        const boardIds = {{ all_board_ids | tojson
-    }};
-    const textarea = document.getElementById('default_exploration_list');
-    textarea.value = boardIds.join(',');
-    });
+    // Pythonから渡された変数をグローバルJS変数として定義
+    const allBoardIds = {{ all_board_ids | tojson }};
 </script>
 {% endblock %}
