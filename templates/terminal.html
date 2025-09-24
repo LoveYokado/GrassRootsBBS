@@ -2415,10 +2415,12 @@
         const userSelectorOkBtn = document.getElementById('user-selector-ok-btn');
         const userSelectorCancelBtn = document.getElementById('user-selector-cancel-btn');
         let selectedUser = null;
+        let allUsersForSelector = []; // ユーザーリストを保持する変数
 
         function openUserSelector(prompt, userList) {
             userSelectorTitle.textContent = prompt;
-            populateUserList(userList);
+            allUsersForSelector = userList; // 全ユーザーリストを保存
+            populateUserList(allUsersForSelector); // 全リストを表示
             userSelectorSearch.value = '';
             selectedUser = null;
             userSelectorOkBtn.disabled = true;
@@ -2441,6 +2443,18 @@
                 userSelectorList.appendChild(li);
             });
         }
+
+        // 検索機能
+        userSelectorSearch.addEventListener('input', () => {
+            const searchTerm = userSelectorSearch.value.toLowerCase();
+            const filteredUsers = allUsersForSelector.filter(user =>
+                user.name.toLowerCase().includes(searchTerm)
+            );
+            populateUserList(filteredUsers);
+            // 検索結果が変わったら選択をリセット
+            selectedUser = null;
+            userSelectorOkBtn.disabled = true;
+        });
 
         userSelectorList.addEventListener('click', (e) => {
             if (e.target.tagName === 'LI') {
