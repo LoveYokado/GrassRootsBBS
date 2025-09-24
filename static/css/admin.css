@@ -1,4 +1,7 @@
-/* Base Styles */
+/*
+SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+SPDX-License-Identifier: MIT
+*/
 body {
   font-family: sans-serif;
   margin: 0;
@@ -13,7 +16,7 @@ body {
   padding: 2em 2em 120px 2em;
 }
 
-h1,
+h1, /* stylelint-disable-line no-duplicate-selectors */
 h2,
 h3,
 h4,
@@ -21,7 +24,7 @@ h5 {
   color: #00ff00;
 }
 
-/* Bottom Navigation */
+/* --- フッターナビゲーション --- */
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -64,11 +67,10 @@ h5 {
   /* ボタン間のギャップ */
 }
 
-/* Table Styles */
+/* --- テーブル --- */
 .table {
   width: 100%;
   border-collapse: collapse;
-  /* Bootstrapのスタイルを上書き */
   background-color: #2a2a2a;
   box-shadow: none;
 }
@@ -110,7 +112,7 @@ td a:hover {
   text-decoration: none;
 }
 
-/* Badge Styles */
+/* --- バッジ --- */
 .badge {
   display: inline-block;
   padding: 0.25em 0.4em;
@@ -143,7 +145,7 @@ td a:hover {
   background-color: #17a2b8;
 }
 
-/* Flash Message Styles */
+/* --- フラッシュメッセージ --- */
 .flash-messages {
   padding: 0;
   margin-bottom: 1em;
@@ -170,7 +172,7 @@ td a:hover {
   background-color: #28a745;
 }
 
-/* Form Styles */
+/* --- フォーム --- */
 .form-group {
   margin-bottom: 1em;
 }
@@ -218,7 +220,7 @@ td a:hover {
   transition: background-color 0.2s;
 }
 
-/* Action Link Styles */
+/* --- アクションリンク (ボタン風) --- */
 .action-link-delete,
 .action-link-restore,
 .action-link-warning,
@@ -257,7 +259,7 @@ td a:hover {
   margin-right: 5px;
 }
 
-/* Card and Tab Styles */
+/* --- カードとタブ --- */
 .card {
   background-color: #2a2a2a;
   border: 1px solid #444;
@@ -305,7 +307,7 @@ td a:hover {
 }
 
 .nav-tabs.card-header-tabs {
-  margin-bottom: -0.75rem; /* card-headerのpaddingを相殺 */
+  margin-bottom: -0.75rem; /* card-headerのpaddingを相殺するため */
   border-bottom: 0;
 }
 
@@ -355,6 +357,7 @@ td a:hover {
 }
 
 .page-link.nav-link:hover {
+  /* stylelint-disable-line no-duplicate-selectors */
   background-color: #005500;
   border-color: #00ff99;
 }

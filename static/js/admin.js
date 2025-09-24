@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 document.addEventListener('DOMContentLoaded', function () {
-    // --- article_search.html: Select all checkboxes ---
+    // --- article_search.html: 「すべて選択」チェックボックスの制御 ---
     const selectAllCheckbox = document.getElementById('select-all-articles');
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', function (e) {
@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- dashboard.html: Initialize Chart.js ---
-    // The chartData variable is expected to be defined in a <script> tag in the HTML
+    // --- dashboard.html: Chart.jsの初期化 ---
+    // chartData変数は、HTML内の<script>タグで定義されていることを想定
     const activityChartCanvas = document.getElementById('activityChart');
     if (activityChartCanvas && typeof chartData !== 'undefined') {
         const ctx = activityChartCanvas.getContext('2d');
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // --- system_settings.html: Fill board IDs ---
+    // --- system_settings.html: 掲示板IDをテキストエリアにフィルインする機能 ---
     const fillBoardIdsBtn = document.getElementById('fill-board-ids-btn');
     if (fillBoardIdsBtn && typeof allBoardIds !== 'undefined') {
         fillBoardIdsBtn.addEventListener('click', function () {
