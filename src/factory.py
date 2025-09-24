@@ -146,7 +146,7 @@ def create_app():
     def add_security_headers(response):
         csp = (
             "default-src 'self';"
-            "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net https://code.jquery.com https://stackpath.bootstrapcdn.com;"
+            "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net https://code.jquery.com https://stackpath.bootstrapcdn.com https://fonts.googleapis.com;"
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com;"
             "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;"
             "img-src 'self' data:;"
