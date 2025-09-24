@@ -819,17 +819,27 @@ def _get_subject(chan, menu_mode):
         prompt_text = prompt_text_template.format(max_len=mail_subject_max_len)
         prompt_b64 = base64.b64encode(
             prompt_text.encode('utf-8')).decode('utf-8')
-        initial_value_b64 = base64.b64encode(b'').decode('utf-8')
+        initial_value_b64 = base64.b64encode(
+            b'').decode('utf-8')  # 初期値は空
         chan.send(
             f'\x1b]GRBBS;LINE_EDIT;{prompt_b64};{initial_value_b64}\x07'.encode('utf-8'))
+        subject_raw = chan.process_input()
+        if subject_raw is not None:
+            chan.send(f"{prompt_text}{subject_raw}\r\n".encode('utf-8'))
+        subject = subject_raw
     else:
         util.send_text_by_key(chan, "mail_handler.enter_subject",
                               menu_mode, add_newline=False, max_len=mail_subject_max_len)
+        subject = chan.process_input()
 
-    subject = chan.process_input()
     if subject is None:
         return None
-    subject = subject.strip() or "(No subject)"
+
+    subject = subject.strip()
+    if not subject:
+        subject = util.get_text_by_key(
+            "mail_handler.no_subject", menu_mode, default_value="(No Subject)")
+
     if len(subject) > mail_subject_max_len:
         subject = subject[:mail_subject_max_len]
         util.send_text_by_key(
