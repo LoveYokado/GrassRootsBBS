@@ -12,49 +12,20 @@
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1m:wght@400&display=swap" rel="stylesheet">
-    <style>
-        body,
-        html {
-            height: 100%;
-            margin: 0;
-            background-color: #000;
-            color: #FFFFFF;
-            font-family: '"M PLUS 1m", "Courier New", monospace';
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-
-        pre {
-            font-family: inherit;
-            font-size: 16px;
-            white-space: pre-wrap;
-        }
-
-        .prompt {
-            margin-top: 2em;
-            color: #00FF00;
-            animation: blinker 1.5s linear infinite;
-        }
-
-        @keyframes blinker {
-            50% {
-                opacity: 0;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/logout.css') }}">
 
     {{ util.get_tracking_code() | safe }}
 </head>
 
 <body>
     <pre>{{ util.get_text_by_key('logoff.message', menu_mode) }}<div class="prompt">{{ util.get_text_by_key('logoff.prompt', menu_mode) }}</div></pre>
+    <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
     <script>
-        function redirectToLogin() { window.location.href = "{{ url_for('web.login') }}"; }
-        document.addEventListener('keydown', redirectToLogin, { once: true });
-        document.addEventListener('mousedown', redirectToLogin, { once: true });
+        const LOGOUT_URLS = {
+            login: "{{ url_for('web.login') }}"
+        };
     </script>
+    <script src="{{ url_for('static', filename='js/logout.js') }}"></script>
 </body>
 
 </html>
