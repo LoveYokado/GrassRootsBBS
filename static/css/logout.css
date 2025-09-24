@@ -1,0 +1,30 @@
+body,
+html {
+  height: 100%;
+  margin: 0;
+  background-color: #000;
+  color: #ffffff;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+pre {
+  font-family: inherit;
+  font-size: 16px;
+  white-space: pre-wrap;
+}
+
+.prompt {
+  margin-top: 2em;
+  color: #00ff00;
+  animation: blinker 1.5s linear infinite;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}
