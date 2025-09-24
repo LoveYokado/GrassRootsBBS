@@ -498,12 +498,37 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode, is_
     オンラインユーザーに電報を送信する対話的なプロセスを処理します。
     """
     from . import database
-    send_text_by_key(chan, "telegram.send_message",
-                     current_menu_mode)  # 電報送信メッセージ
-    send_text_by_key(chan, "telegram.send_prompt",
-                     current_menu_mode, add_newline=False)  # 宛先入力
-    recipient_name_input = chan.process_input()
+    send_text_by_key(chan, "telegram.send_message", current_menu_mode)
 
+    recipient_name_input = None
+    if is_mobile:
+        # モバイルの場合はオンラインユーザーリストから選択
+        online_users_for_popup = [{'name': name}
+                                  for name in online_members_ids]
+
+        prompt_text = get_text_by_key(
+            "mail_handler.select_recipient_prompt_popup", current_menu_mode, default_value="宛先を選択してください")
+        prompt_b64 = base64.b64encode(
+            prompt_text.encode('utf-8')).decode('utf-8')
+
+        user_list_json = json.dumps(online_users_for_popup)
+        user_list_b64 = base64.b64encode(
+            user_list_json.encode('utf-8')).decode('utf-8')
+
+        chan.send(
+            f'\x1b]GRBBS;USER_SELECT;{prompt_b64};{user_list_b64}\x07'.encode('utf-8'))
+
+        recipient_name_input = chan.process_input()
+        if recipient_name_input:
+            prompt_display_text = get_text_by_key(
+                "telegram.send_prompt", current_menu_mode)
+            chan.send(
+                f"{prompt_display_text}{recipient_name_input}\r\n".encode('utf-8'))
+    else:
+        # デスクトップの場合は従来通り手入力
+        send_text_by_key(chan, "telegram.send_prompt",
+                         current_menu_mode, add_newline=False)
+        recipient_name_input = chan.process_input()
     if not recipient_name_input:
         send_text_by_key(chan, "telegram.no_recipient",
                          current_menu_mode)  # 宛先がオンラインにない
