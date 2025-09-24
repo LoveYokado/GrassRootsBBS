@@ -492,7 +492,7 @@ def check_new_mail(chan, username, current_menu_mode, notified_in_session):
     return notified_in_session
 
 
-def telegram_send(chan, display_name, online_members_ids, current_menu_mode):
+def telegram_send(chan, display_name, online_members_ids, current_menu_mode, is_mobile=False):
     """
     Handles the interactive process of sending a telegram to an online user.
     オンラインユーザーに電報を送信する対話的なプロセスを処理します。
@@ -527,10 +527,26 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode):
     limits_config = app_config.get('limits', {})
     telegram_max_len = limits_config.get('telegram_message_max_length', 100)
 
-    send_text_by_key(chan, "telegram.message_prompt",
-                     current_menu_mode, max_len=telegram_max_len, add_newline=False)
-    message = chan.process_input()
+    message = ""
+    if is_mobile:
+        prompt_text_template = get_text_by_key(
+            "telegram.message_prompt", current_menu_mode)
+        prompt_text = prompt_text_template.format(max_len=telegram_max_len)
+        prompt_b64 = base64.b64encode(
+            prompt_text.encode('utf-8')).decode('utf-8')
+        initial_value_b64 = base64.b64encode(b'').decode('utf-8')
+        chan.send(
+            f'\x1b]GRBBS;LINE_EDIT;{prompt_b64};{initial_value_b64}\x07'.encode('utf-8'))
+        message_raw = chan.process_input()
+        if message_raw is not None:
+            chan.send(f"{prompt_text}{message_raw}\r\n".encode('utf-8'))
+            message = message_raw
+    else:
+        send_text_by_key(chan, "telegram.message_prompt",
+                         current_menu_mode, max_len=telegram_max_len, add_newline=False)
+        message = chan.process_input()
 
+    # messageがNoneの場合（切断など）を考慮
     if not message:
         send_text_by_key(chan, "telegram.no_message", current_menu_mode)
         return
@@ -594,7 +610,7 @@ def truncate_ansi_string(text, max_width):
     return final_str
 
 
-def telegram_recieve(chan, username, current_menu_mode):
+def telegram_recieve(chan, username, current_menu_mode, is_mobile=False):
     """
     Retrieves and displays any pending telegrams for the user, then deletes them from the database.
     ユーザー宛の未読電報を取得・表示し、その後データベースから削除します。

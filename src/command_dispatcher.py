@@ -138,8 +138,13 @@ def handle_telegram(context):
     online_user_logins = [
         member_data.get('username') for member_data in online_members_dict.values() if member_data.get('username')
     ]
+    from . import terminal_handler
+    is_mobile = (
+        isinstance(context.chan, terminal_handler.WebTerminalHandler.WebChannel) and
+        getattr(context.chan.handler, 'is_mobile', False)
+    )
     util.telegram_send(context.chan, context.display_name,
-                       online_user_logins, context.menu_mode)
+                       online_user_logins, context.menu_mode, is_mobile=is_mobile)
     util.send_top_menu(context.chan, context.menu_mode)
     return {'status': 'continue'}
 
