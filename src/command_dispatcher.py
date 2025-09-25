@@ -264,9 +264,11 @@ def dispatch_command(command, context):
 
     if command_info.get('guest_only', False):
         # GUEST専用コマンドの場合の特別チェック
-        online_signup_enabled = server_pref_dict.get(
+        # サーバー設定でオンラインサインアップが有効か、かつユーザーがGUEST(level=1)か
+        is_signup_allowed = server_pref_dict.get(
             'online_signup_enabled', False)
-        if not online_signup_enabled or user_level != 1:
+
+        if not is_signup_allowed or user_level != 1:
             util.send_text_by_key(
                 context.chan, "common_messages.invalid_command", context.menu_mode)
             return {'status': 'continue'}
