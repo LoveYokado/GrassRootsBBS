@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     {{ util.get_tracking_code() | safe }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 
     {% block head_extra %}{% endblock %}
 </head>

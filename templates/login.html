@@ -23,187 +23,6 @@
 </head>
 
 <body>
-    {% extends "login_layout.html" %}
-    {% block content %}
-    <div class="login-container">
-        {% if logo_path %}
-        <img src="{{ url_for('static', filename=logo_path) }}" alt="Logo" class="logo">
-        {% endif %}
-        <h1>{{ page_title }}</h1>
-        {% if message %}
-        <p class="message">{{ message }}</p>
-        <div class="message">{{ message }}</div>
-        {% endif %}
-        {% if error %}
-        <p class="error">{{ error }}</p>
-        <div class="error">{{ error }}</div>
-        {% endif %}
-        <form id="login-form" method="post">
-            <form method="post">
-                <input type="text" id="username" name="username" placeholder="Username" required
-                    autocomplete="username webauthn">
-                <input type="password" id="password" name="password" placeholder="Password (or leave blank for Passkey)"
-                    autocomplete="current-password">
-                <button type="submit" id="login-button">Login</button>
-                <input type="password" id="password" name="password" placeholder="Password"
-                    autocomplete="current-password">
-                <div class="button-container">
-                    <button type="submit">Login</button>
-                    <button type="button" id="passkey-login-btn">Passkey Login</button>
-                </div>
-            </form>
-            <div>
-                <button id="passkey-login-btn" class="passkey-button">{{
-                    util.get_text_by_key('login.passkey_login_button',
-                    session.get('menu_mode', '2'), 'Login with Passkey') }}</button>
-                {% set server_prefs = database.read_server_pref() %}
-                {% if server_prefs.get('online_signup_enabled') %}
-                <div style="margin-top: 20px; font-size: 0.9em;">
-                    <span>{{ g.texts.get('login', {}).get('no_account_prompt', "Don't have an account?") }}</span>
-                    <a href="{{ url_for('web.register') }}" style="color: #00cc00; text-decoration: underline;">{{
-                        g.texts.get('login', {}).get('signup_link', "Sign up") }}</a>
-                </div>
-                {% endif %}
-            </div>
-            <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
-            <script>
-                const PASSKEY_USERNAME = "{{ passkey_username_for_js or '' }}";
-                const LOGIN_URLS = {
-                    passkeyLoginOptions: "{{ url_for('web.passkey_login_options') }}",
-                    passkeyVerifyLogin: "{{ url_for('web.passkey_verify_login') }}",
-                    index: "{{ url_for('web.index') }}"
-                };
-                const PWA_URLS = {
-                    serviceWorker: "{{ url_for('web.service_worker') }}"
-                };
-            </script>
-            <!-- 外部JavaScriptファイルの読み込み -->
-            <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
-            <script src="{{ url_for('static', filename='js/login.js') }}"></script>
-</body>
-
-</html>
-{% endblock %}
-h1 {
-margin-top: 0;
-color: #00ff00;
-text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
-}
-
-.message,
-.error {
-margin-bottom: 20px;
-}
-
-.error {
-background-color: #330000;
-border: 1px solid #880000;
-color: #ff4444;
-padding: 10px;
-border-radius: 3px;
-word-wrap: break-word;
-}
-
-form {
-display: flex;
-flex-direction: column;
-}
-
-input[type="text"],
-input[type="password"] {
-width: 100%;
-padding: 10px;
-margin-bottom: 15px;
-background-color: #000;
-color: #00ff00;
-border: 1px solid #005500;
-border-radius: 4px;
-font-family: '"M PLUS 1m", "Courier New", monospace';
-font-size: 16px;
-box-sizing: border-box;
-}
-
-input[type="text"]:focus,
-input[type="password"]:focus {
-outline: none;
-border-color: #00ff00;
-box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
-}
-
-button {
-background-color: #003300;
-border: 1px solid #008800;
-padding: 12px;
-color: #00ff00;
-cursor: pointer;
-border-radius: 3px;
-font-size: 1em;
-font-family: '"M PLUS 1m", "Courier New", monospace';
-font-weight: bold;
-transition: background-color 0.2s;
-}
-
-button:hover {
-background-color: #005500;
-border-color: #00ff00;
-}
-
-button:active {
-background-color: #002200;
-transform: translateY(1px);
-}
-
-.button-container {
-display: flex;
-gap: 10px;
-margin-top: 10px;
-}
-
-.button-container button {
-flex: 1;
-}
-
-/* --- レスポンシブ対応 --- */
-@media screen and (max-width: 992px) {
-body {
-display: block;
-/* flexboxによる中央寄せを解除 */
-padding: 2rem 1rem;
-}
-
-.login-container {
-width: 90%;
-max-width: 400px;
-padding: 20px;
-box-shadow: none;
-margin: 0 auto;
-/* 水平中央寄せ */
-}
-
-.logo {
-max-width: 60%;
-margin-bottom: 15px;
-}
-
-h1 {
-font-size: 1.5em;
-margin-bottom: 15px;
-}
-
-.message,
-.error {
-margin-bottom: 15px;
-}
-
-input[type="text"],
-input[type="password"] {
-margin-bottom: 12px;
-}
-}
-</style>
-</head>
-
-<body>
     <div class="login-container">
         {% if logo_path %}
         <img src="{{ url_for('static', filename=logo_path) }}" alt="Logo" class="logo">
@@ -216,156 +35,32 @@ margin-bottom: 12px;
         <p class="error">{{ error }}</p>
         {% endif %}
         <form id="login-form" method="post">
-            <form method="post">
-                <input type="text" id="username" name="username" placeholder="Username" required
-                    autocomplete="username webauthn">
-                <input type="password" id="password" name="password" placeholder="Password (or leave blank for Passkey)"
-                    autocomplete="current-password">
-                <button type="submit" id="login-button">Login</button>
-                <input type="password" id="password" name="password" placeholder="Password"
-                    autocomplete="current-password">
-                <div class="button-container">
-                    <button type="submit">Login</button>
-                    <button type="button" id="passkey-login-btn">Passkey Login</button>
-                </div>
-            </form>
-            <div>
-                <button id="passkey-login-btn" class="passkey-button">{{
-                    util.get_text_by_key('login.passkey_login_button',
-                    session.get('menu_mode', '2'), 'Login with Passkey') }}</button>
-                {% set server_prefs = database.read_server_pref() %}
-                {% if server_prefs.get('online_signup_enabled') %}
-                <div style="margin-top: 20px; font-size: 0.9em;">
-                    <span>{{ g.texts.get('login', {}).get('no_account_prompt', "Don't have an account?") }}</span>
-                    <a href="{{ url_for('web.register') }}" style="color: #00cc00; text-decoration: underline;">{{
-                        g.texts.get('login', {}).get('signup_link', "Sign up") }}</a>
-                </div>
-                {% endif %}
-            </div>
-            <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
-            <script>
-                const PASSKEY_USERNAME = "{{ passkey_username_for_js or '' }}";
-                const LOGIN_URLS = {
-                    passkeyLoginOptions: "{{ url_for('web.passkey_login_options') }}",
-                    passkeyVerifyLogin: "{{ url_for('web.passkey_verify_login') }}",
-                    index: "{{ url_for('web.index') }}"
-                };
-                const PWA_URLS = {
-                    serviceWorker: "{{ url_for('web.service_worker') }}"
-                };
-                if ('serviceWorker' in navigator) {
-                    window.addEventListener('load', () => {
-                        navigator.serviceWorker.register("{{ url_for('web.service_worker') }}")
-                            .then(registration => {
-                                console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                            })
-                            .catch(err => {
-                                console.log('ServiceWorker registration failed: ', err);
-                            });
-                    });
-                }
-            </script>
-            <!-- 外部JavaScriptファイルの読み込み -->
-            <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
-            <script src="{{ url_for('static', filename='js/login.js') }}"></script>
-            <script>
-                function base64urlToBuffer(base64urlString) {
-                    const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
-                    const rawData = window.atob(base64);
-                    const outputArray = new Uint8Array(rawData.length);
-                    for (let i = 0; i < rawData.length; ++i) {
-                        outputArray[i] = rawData.charCodeAt(i);
-                    }
-                    return outputArray.buffer;
-                }
-
-                function bufferToBase64url(buffer) {
-                    const bytes = new Uint8Array(buffer);
-                    let str = '';
-                    for (const charCode of bytes) {
-                        str += String.fromCharCode(charCode);
-                    }
-                    const base64 = window.btoa(str);
-                    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-                }
-
-                async function loginWithPasskey() {
-                    const usernameInput = document.getElementById('username');
-                    const username = usernameInput.value.toUpperCase();
-                    if (!username) {
-                        alert('Please enter your username to use a Passkey.');
-                        usernameInput.focus();
-                        return;
-                    }
-
-                    // サーバーから認証オプションを取得
-                    let options;
-                    try {
-                        const resp = await fetch("{{ url_for('web.passkey_auth_options') }}", {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username: username }),
-                        });
-                        if (!resp.ok) {
-                            const err = await resp.json();
-                            throw new Error(err.error || 'Could not get authentication options.');
-                        }
-                        options = await resp.json();
-                    } catch (e) {
-                        alert(`Error: ${e.message}`);
-                        return;
-                    }
-
-                    // データをブラウザAPI用に変換
-                    options.challenge = base64urlToBuffer(options.challenge);
-                    if (options.allowCredentials) {
-                        for (let cred of options.allowCredentials) {
-                            cred.id = base64urlToBuffer(cred.id);
-                        }
-                    }
-
-                    // ブラウザAPIを呼び出して認証
-                    let credential;
-                    try {
-                        credential = await navigator.credentials.get({ publicKey: options });
-                    } catch (e) {
-                        alert(`Authentication failed: ${e.name}`);
-                        return;
-                    }
-
-                    // サーバー送信用にデータを変換
-                    const authenticationResponse = {
-                        id: credential.id,
-                        rawId: bufferToBase64url(credential.rawId),
-                        response: {
-                            clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
-                            authenticatorData: bufferToBase64url(credential.response.authenticatorData),
-                            signature: bufferToBase64url(credential.response.signature),
-                            userHandle: credential.response.userHandle ? bufferToBase64url(credential.response.userHandle) : null,
-                        },
-                        type: credential.type,
-                    };
-
-                    // サーバーに検証をリクエスト
-                    try {
-                        const verificationResp = await fetch("{{ url_for('web.passkey_verify_auth') }}", {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ credential: authenticationResponse }),
-                        });
-                        const verificationJSON = await verificationResp.json();
-                        if (verificationJSON && verificationJSON.verified) {
-                            window.location.href = "{{ url_for('web.index') }}";
-                        } else {
-                            throw new Error(verificationJSON.error || "Authentication failed on server.");
-                        }
-                    } catch (e) {
-                        alert(`Error during verification: ${e.message}`);
-                    }
-                }
-
-                document.getElementById('passkey-login-btn').addEventListener('click', loginWithPasskey);
-            </script>
+            <input type="text" id="username" name="username" placeholder="Username" required
+                autocomplete="username webauthn">
+            <input type="password" id="password" name="password" placeholder="Password (or leave blank for Passkey)"
+                autocomplete="current-password">
+            <button type="submit" id="login-button">Login</button>
+        </form>
+        <div>
+            <button id="passkey-login-btn" class="passkey-button">{{ util.get_text_by_key('login.passkey_login_button',
+                session.get('menu_mode', '2'), 'Login with Passkey') }}</button>
+        </div>
+    </div>
+    <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
+    <script>
+        const PASSKEY_USERNAME = "{{ passkey_username_for_js or '' }}";
+        const LOGIN_URLS = {
+            passkeyLoginOptions: "{{ url_for('web.passkey_login_options') }}",
+            passkeyVerifyLogin: "{{ url_for('web.passkey_verify_login') }}",
+            index: "{{ url_for('web.index') }}"
+        };
+        const PWA_URLS = {
+            serviceWorker: "{{ url_for('web.service_worker') }}"
+        };
+    </script>
+    <!-- 外部JavaScriptファイルの読み込み -->
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
 </body>
 
 </html>
