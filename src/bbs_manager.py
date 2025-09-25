@@ -187,10 +187,13 @@ class PermissionManager:
 
     def _check_generic_permission(self, board_info, user_id_pk, user_level, level_key):
         """
-        汎用的な権限チェックロジック。
-        1. Sysop (level >= 5) は常に許可。
-        2. ユーザー固有の deny/allow 設定を最優先でチェック。
-        3. 掲示板のデフォルトパーミッション(open/close)と要求レベルを比較。
+        汎用的な権限チェックロジック（主に閲覧権限で使用）。
+        権限は以下の順序で評価されます。
+
+        1. SysOp (level >= 5) は常に許可。
+        2. ユーザー固有の `allow`/`deny` 設定が最優先。
+        3. 掲示板の `default_permission` が `close` の場合、原則拒否。
+        4. 上記以外（`open` または `readonly`）の場合、ユーザーレベルと要求レベルを比較。
         """
         if user_level >= 5:
             return True  # SysOpは常に許可
@@ -221,31 +224,32 @@ class PermissionManager:
 
     def can_write_to_board(self, board_info, user_id_pk, user_level):
         """指定された掲示板の書き込み権限があるかチェックします。"""
-        # 1. シスオペは常に許可
+        # 1. SysOpは常に許可
         if user_level >= 5:
             return True
 
-        # 2. シグオペは常に許可
+        # 2. 掲示板のシグオペは常に許可
         try:
             operator_ids_json = board_info.get('operators', '[]')
             operator_ids = json.loads(operator_ids_json)
             if user_id_pk in operator_ids:
                 return True
         except (json.JSONDecodeError, TypeError):
-            pass
+            pass  # JSONデコードエラーは無視
 
-        # 3. ユーザー固有の許可/拒否設定をチェック
+        # 3. ユーザー固有の `allow` 設定があれば許可
         user_specific_perm = database.get_user_permission_for_board(
             board_info.get("id"), str(user_id_pk))
         if user_specific_perm == "allow":
             return True
 
-        # 4. 掲示板のデフォルト設定に基づいて判断
+        # 4. 掲示板のデフォルト設定が 'close' または 'readonly' の場合、
+        #    上記で許可されていないユーザーは書き込み不可
         default_permission = board_info.get('default_permission', 'open')
         if default_permission in ['close', 'readonly']:
-            return False  # closeまたはreadonlyの場合、リストにallowで載っていないユーザーは書き込み不可
+            return False
 
-        # openの場合のみ、レベルチェックを行う
+        # 5. 掲示板が 'open' の場合、ユーザーレベルと要求レベルを比較
         required_level = board_info.get('write_level', 1)
         return user_level >= required_level
 

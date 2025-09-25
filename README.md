@@ -112,7 +112,18 @@ VAPID_CLAIMS_EMAIL = "mailto:your_email@example.com"
 VAPID_PUBLIC_KEY = ""
 ```
 
-### 4. VAPID キーの生成 (Push 通知用)
+### 4. PWA マニフェストの設定
+
+PWA（プログレッシブ・ウェブアプリ）としてスマートフォンなどにインストールする際のアプリ名やアイコンを設定します。
+`manifest.json.example`をコピーして manifest.json を作成し、必要に応じて内容を編集してください。
+
+```bash
+cp static/manifest.json.example static/manifest.json
+```
+
+特に、BBS の名前を変更したい場合は manifest.json 内の name と short_name を変更します。
+
+### 5. VAPID キーの生成 (Push 通知用)
 
 Push 通知機能を使用するには、VAPID キーペアが必要です。以下のコマンドを実行してキーを生成してください。
 
@@ -125,7 +136,7 @@ python3 tools/generate_vapid_keys.py
 1.  生成された `private_key.pem` は、プロジェクトのルートディレクトリにそのまま配置しておきます。
 2.  `public_key.pem` の中身(`-----BEGIN...`から`...END PUBLIC KEY-----`まで全て)をコピーし、`setting/config.toml` ファイルの `VAPID_PUBLIC_KEY` の値として貼り付けます。
 
-### 5. サーバーの起動
+### 6. サーバーの起動
 
 `docker-compose.yml.example` を `docker-compose.yml` としてコピーします。
 
@@ -141,7 +152,7 @@ docker-compose up --build -d
 
 初回起動時に、データベースのテーブル作成と、`.env` で設定したシスオペアカウントの作成が自動的に行われます。
 
-### 6. BBS へのアクセス
+### 7. BBS へのアクセス
 
 Web ブラウザで `http://localhost:5000` にアクセスしてください。
 
