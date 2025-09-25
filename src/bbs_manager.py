@@ -189,15 +189,15 @@ class PermissionManager:
         """
         汎用的な権限チェックロジック。
         1. Sysop (level >= 5) は常に許可。
-        2. ユーザー固有の deny/allow 設定をチェック。
-        3. 掲示板の指定されたレベルキー (read_level/write_level) とユーザーレベルを比較。
+        2. ユーザー固有の deny/allow 設定を最優先でチェック。
+        3. 掲示板のデフォルトパーミッション(open/close)と要求レベルを比較。
         """
         if user_level >= 5:
             return True  # SysOpは常に許可
 
         board_id_pk = board_info.get("id")
-        required_level = board_info.get(level_key, 1)  # デフォルトはレベル1
 
+        # 1. ユーザー固有のパーミッションを先にチェック
         user_specific_perm = database.get_user_permission_for_board(
             board_id_pk, str(user_id_pk))
 
@@ -206,7 +206,14 @@ class PermissionManager:
         if user_specific_perm == "allow":
             return True
 
-        return user_level >= required_level  # レベルチェック
+        # 2. 掲示板のデフォルト設定に基づいて判断
+        default_permission = board_info.get('default_permission', 'open')
+        if default_permission == 'close':
+            return False  # closeの場合、リストにallowで載っていないユーザーは全員拒否
+
+        # open または readonly の場合、レベルチェックを行う
+        required_level = board_info.get(level_key, 1)  # デフォルトはレベル1
+        return user_level >= required_level
 
     def can_view_board(self, board_info, user_id_pk, user_level):
         """指定された掲示板の閲覧権限があるかチェックします。"""
@@ -214,15 +221,33 @@ class PermissionManager:
 
     def can_write_to_board(self, board_info, user_id_pk, user_level):
         """指定された掲示板の書き込み権限があるかチェックします。"""
+        # 1. シスオペは常に許可
+        if user_level >= 5:
+            return True
+
+        # 2. シグオペは常に許可
         try:
             operator_ids_json = board_info.get('operators', '[]')
             operator_ids = json.loads(operator_ids_json)
             if user_id_pk in operator_ids:
                 return True
         except (json.JSONDecodeError, TypeError):
-            pass  # エラー対策
+            pass
 
-        return self._check_generic_permission(board_info, user_id_pk, user_level, 'write_level')  # noqa
+        # 3. ユーザー固有の許可/拒否設定をチェック
+        user_specific_perm = database.get_user_permission_for_board(
+            board_info.get("id"), str(user_id_pk))
+        if user_specific_perm == "allow":
+            return True
+
+        # 4. 掲示板のデフォルト設定に基づいて判断
+        default_permission = board_info.get('default_permission', 'open')
+        if default_permission in ['close', 'readonly']:
+            return False  # closeまたはreadonlyの場合、リストにallowで載っていないユーザーは書き込み不可
+
+        # openの場合のみ、レベルチェックを行う
+        required_level = board_info.get('write_level', 1)
+        return user_level >= required_level
 
     def can_delete_article(self, article_data, user_id_pk, user_level):
         """指定された記事の削除/復元権限があるかチェックします。"""
