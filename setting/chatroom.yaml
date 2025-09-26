@@ -41,7 +41,6 @@ categories:
       話題に限定はありません。
       初心者の方からベテランまで、どなたでもお気軽にご参加ください。
     type: "child"
-
     # `items`キーで、このカテゴリ直下のルームやサブカテゴリを定義します。
     items:
       - id: "chat_free1"
@@ -94,7 +93,6 @@ categories:
       特定のテーマに特化したチャットルームです。
       専門的な知識や情報交換にご利用ください。
     type: "child"
-
     items:
       - id: "chat_military"
         number: 1
@@ -142,6 +140,7 @@ global:
   - id: "chat_fight"
     name: "喧嘩用ルーム"
     description: "議論が白熱した場合の避難所です。ここで好きにやってください。でも後腐れないように。最後は仲直りしましょう"
+    lock: True # このルームではロック/アンロックが可能です
     type: "room"
   - id: "chat_news"
     name: "最新ニュースについて語る"

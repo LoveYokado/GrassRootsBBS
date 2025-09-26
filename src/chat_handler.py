@@ -287,6 +287,15 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
     user_joins_room(room_id, login_id, display_name, chan,
                     room_name, menu_mode, user_id)
 
+    # --- このルームがロック可能かどうかの設定を取得 ---
+    paths_config = util.app_config.get('paths', {})
+    chatroom_config_path = paths_config.get('chatroom_yaml')
+    chatroom_config = util.load_yaml_file_for_shortcut(chatroom_config_path)
+    current_room_config, _ = util.find_item_in_yaml(
+        chatroom_config, room_id, menu_mode, "room") if chatroom_config else (None, None)
+    is_lockable = current_room_config.get(
+        'lock', False) if current_room_config else False
+
     try:
         while True:
             user_input = chan.process_input()
@@ -353,6 +362,11 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
             # --- ルームロック機能 ---
             elif user_input.lower() == "!l":
                 # 部屋をロック。
+                if not is_lockable:
+                    util.send_text_by_key(
+                        chan, "chat.lock_not_allowed", menu_mode)
+                    continue
+
                 lock_successful = False
 
                 if login_id.upper() == 'GUEST':
@@ -387,6 +401,11 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
             # --- ルームアンロック機能 ---
             elif user_input.lower() == "!u":
                 # 部屋をアンロック。
+                if not is_lockable:
+                    util.send_text_by_key(
+                        chan, "chat.lock_not_allowed", menu_mode)
+                    continue
+
                 unlock_successful = False
 
                 if login_id.upper() == 'GUEST':
