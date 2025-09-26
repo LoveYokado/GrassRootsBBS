@@ -355,6 +355,11 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
                 # 部屋をロック。
                 lock_successful = False
 
+                if login_id.upper() == 'GUEST':
+                    util.send_text_by_key(
+                        chan, "common_messages.permission_denied", menu_mode)
+                    continue
+
                 with chat_rooms_lock:
                     if room_id in active_chat_rooms:
                         room_info = active_chat_rooms[room_id]
@@ -383,6 +388,11 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
             elif user_input.lower() == "!u":
                 # 部屋をアンロック。
                 unlock_successful = False
+
+                if login_id.upper() == 'GUEST':
+                    util.send_text_by_key(
+                        chan, "common_messages.permission_denied", menu_mode)
+                    continue
 
                 with chat_rooms_lock:
                     if room_id in active_chat_rooms:
