@@ -1334,6 +1334,10 @@ chat:
     mode_1: "ルーム「{room_name}」は {owner} によってロックされています。入室できません。\r\n"
     mode_2: "ルーム「{room_name}」は {owner} によってロックされています。入室できません。\r\n"
     mode_3: "Room '{room_name}' is locked by {owner}. You cannot enter.\r\n"
+  lock_not_allowed:
+    mode_1: "この部屋ではロック機能は使えません。\r\n"
+    mode_2: "この部屋ではロック機能は使えません。\r\n"
+    mode_3: "The lock feature is not available in this room.\r\n"
   room_not_locked:
     mode_1: "ルーム「{room_name}」はロックされていません。\r\n"
     mode_2: "ルーム「{room_name}」はロックされていません。\r\n"
