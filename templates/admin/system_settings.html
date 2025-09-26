@@ -66,6 +66,15 @@
                 <textarea id="default_exploration_list" name="default_exploration_list"
                     rows="5">{{ settings.get('default_exploration_list', '') }}</textarea>
             </div>
+            <h3>Other Settings</h3>
+            <div class="form-group">
+                <label for="online_signup_enabled">
+                    <input type="checkbox" id="online_signup_enabled" name="online_signup_enabled" value="1" {% if
+                        settings.get('online_signup_enabled') %}checked{% endif %}>
+                    Enable Online Signup
+                </label>
+                <small>Allows new users to register from the login screen (requires SysOp approval).</small>
+            </div>
         </div>
 
     </div>
