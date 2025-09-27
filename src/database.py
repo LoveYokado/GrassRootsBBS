@@ -31,6 +31,7 @@ push_subscriptions = None
 passkeys = None
 bbs_list_manager = None
 initializer = None
+plugin_data_manager = None
 
 
 class DBManager:
@@ -178,6 +179,11 @@ class UserManager:
         query = f"SELECT name, comment FROM users WHERE name IN ({placeholders})"
         params = tuple(name.upper() for name in usernames)
         return self._db.execute_query(query, params, fetch='all')
+
+    def get_public_info(self, username):
+        """指定されたユーザー名の公開情報を取得します。パスワードなどの機密情報は含みません。"""
+        query = "SELECT id, name, level, registdate, lastlogin, comment FROM users WHERE name = %s"
+        return self._db.execute_query(query, (username.upper(),), fetch='one')
 
     def get_total_count(self):
         """登録されている総ユーザー数を取得します。"""
@@ -1643,6 +1649,22 @@ class DatabaseInitializer:
                 cursor.execute(create_query)
                 logging.info("データベースマイグレーション: 'plugins'テーブルを作成しました。")
 
+            # --- plugin_dataテーブルの存在チェックと作成 ---
+            cursor.execute("SHOW TABLES LIKE 'plugin_data'")
+            if not cursor.fetchone():
+                create_query = """
+                CREATE TABLE plugin_data (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    plugin_id VARCHAR(255) NOT NULL,
+                    `key` VARCHAR(255) NOT NULL,
+                    `value` JSON,
+                    created_at INT,
+                    updated_at INT,
+                    UNIQUE KEY (plugin_id, `key`)
+                )
+                """
+                cursor.execute(create_query)
+                logging.info("データベースマイグレーション: 'plugin_data'テーブルを作成しました。")
             # server_prefテーブルのカラムをチェック
             cursor.execute("DESCRIBE server_pref")
             columns = [row['Field'].lower() for row in cursor.fetchall()]
@@ -1734,6 +1756,49 @@ class DatabaseInitializer:
                 conn.close()
 
 
+class PluginDataManager:
+    """'plugin_data'テーブルに関連する全てのデータベース操作を管理します。"""
+
+    def __init__(self, db_manager_instance):
+        self._db = db_manager_instance
+
+    def save(self, plugin_id, key, value):
+        """プラグインのデータを保存または更新します。"""
+        value_json = json.dumps(value)
+        current_time = int(time.time())
+        query = """
+            INSERT INTO plugin_data (plugin_id, `key`, `value`, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = VALUES(updated_at)
+        """
+        params = (plugin_id, key, value_json, current_time, current_time)
+        return self._db.execute_query(query, params) is not None
+
+    def get(self, plugin_id, key):
+        """指定されたキーのプラグインデータを取得します。"""
+        query = "SELECT `value` FROM plugin_data WHERE plugin_id = %s AND `key` = %s"
+        result = self._db.execute_query(query, (plugin_id, key), fetch='one')
+        if result and 'value' in result:
+            return result['value']
+        return None
+
+    def delete(self, plugin_id, key):
+        """指定されたキーのプラグインデータを削除します。"""
+        query = "DELETE FROM plugin_data WHERE plugin_id = %s AND `key` = %s"
+        return self._db.execute_query(query, (plugin_id, key)) is not None
+
+    def get_all(self, plugin_id):
+        """指定されたプラグインの全データを辞書として取得します。"""
+        query = "SELECT `key`, `value` FROM plugin_data WHERE plugin_id = %s"
+        results = self._db.execute_query(query, (plugin_id,), fetch='all')
+        return {row['key']: row['value'] for row in results} if results else {}
+
+    def delete_all(self, plugin_id):
+        """指定されたプラグインの全データを削除します。"""
+        query = "DELETE FROM plugin_data WHERE plugin_id = %s"
+        return self._db.execute_query(query, (plugin_id,)) is not None
+
+
 db_manager = DBManager()
 users = UserManager(db_manager)
 boards = BoardManager(db_manager)
@@ -1748,6 +1813,7 @@ push_subscriptions = PushSubscriptionManager(db_manager)
 passkeys = PasskeyManager(db_manager)
 bbs_list_manager = BBSListManager(db_manager)
 initializer = DatabaseInitializer(db_manager)
+plugin_data_manager = PluginDataManager(db_manager)
 
 
 def init_connection_pool(pool_name, pool_size, db_config):
@@ -1788,6 +1854,11 @@ def get_user_names_from_user_ids(user_ids):
 
 def get_users_by_names(usernames):
     return users.get_users_by_names(usernames)
+
+
+def get_public_user_info(username):
+    """指定されたユーザー名の公開情報を取得します。"""
+    return users.get_public_info(username)
 
 
 def get_total_user_count():
@@ -2063,6 +2134,31 @@ def check_database_initialized():
 
 def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
     return initializer.initialize_and_sysop(sysop_id, sysop_password, sysop_email)
+
+
+def save_plugin_data(plugin_id, key, value):
+    """プラグインのデータを保存または更新します。"""
+    return plugin_data_manager.save(plugin_id, key, value)
+
+
+def get_plugin_data(plugin_id, key):
+    """指定されたキーのプラグインデータを取得します。"""
+    return plugin_data_manager.get(plugin_id, key)
+
+
+def delete_plugin_data(plugin_id, key):
+    """指定されたキーのプラグインデータを削除します。"""
+    return plugin_data_manager.delete(plugin_id, key)
+
+
+def get_all_plugin_data(plugin_id):
+    """指定されたプラグインの全データを取得します。"""
+    return plugin_data_manager.get_all(plugin_id)
+
+
+def delete_all_plugin_data(plugin_id):
+    """指定されたプラグインの全データを削除します。"""
+    return plugin_data_manager.delete_all(plugin_id)
 
 
 def apply_migrations():

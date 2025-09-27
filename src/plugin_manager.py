@@ -146,7 +146,7 @@ def run_plugin(plugin_id, context):
         f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {timeout_seconds}秒)...")
 
     # プラグインに安全なAPIを提供するためにコンテキストを再構築
-    api = GrbbsApi(context.chan)
+    api = GrbbsApi(context.chan, plugin_id, context.online_members_func)
     safe_context = {
         'api': api,
         'login_id': context.login_id,
