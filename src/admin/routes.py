@@ -1301,6 +1301,57 @@ def toggle_plugin_status():
     return redirect(url_for('admin.plugin_management'))
 
 
+@admin_bp.route('/plugins/data/<plugin_id>')
+@sysop_required
+def plugin_data_view(plugin_id):
+    """
+    特定のプラグインが保存したデータを表示するページ。
+    """
+    all_plugins = plugin_manager.get_all_available_plugins()
+    plugin_info = next((p for p in all_plugins if p['id'] == plugin_id), None)
+
+    if not plugin_info:
+        flash(f"Plugin '{plugin_id}' not found.", 'danger')
+        return redirect(url_for('admin.plugin_management'))
+
+    data = database.get_all_plugin_data(plugin_id)
+
+    # JSONデータを整形してテンプレートに渡す
+    formatted_data = {}
+    for key, value in data.items():
+        try:
+            # JSON文字列として整形
+            formatted_data[key] = json.dumps(
+                value, indent=2, ensure_ascii=False)
+        except (TypeError, ValueError):
+            formatted_data[key] = str(value)
+
+    return render_template('admin/plugin_data.html', title=f"Data for {plugin_info['name']}", plugin=plugin_info, data=formatted_data)
+
+
+@admin_bp.route('/plugins/data/<plugin_id>/delete/<key>', methods=['POST'])
+@sysop_required
+def delete_plugin_data_key(plugin_id, key):
+    """プラグインの特定のキーのデータを削除します。"""
+    if database.delete_plugin_data(plugin_id, key):
+        flash(f"Data for key '{key}' has been deleted.", 'success')
+    else:
+        flash(f"Failed to delete data for key '{key}'.", 'danger')
+    return redirect(url_for('admin.plugin_data_view', plugin_id=plugin_id))
+
+
+@admin_bp.route('/plugins/data/<plugin_id>/delete_all', methods=['POST'])
+@sysop_required
+def delete_all_plugin_data(plugin_id):
+    """プラグインの全データを削除します。"""
+    if database.delete_all_plugin_data(plugin_id):
+        flash(
+            f"All data for plugin '{plugin_id}' has been deleted.", 'success')
+    else:
+        flash(f"Failed to delete all data for plugin '{plugin_id}'.", 'danger')
+    return redirect(url_for('admin.plugin_data_view', plugin_id=plugin_id))
+
+
 @admin_bp.route('/config-editor', methods=['GET', 'POST'])
 @sysop_required
 def config_editor():

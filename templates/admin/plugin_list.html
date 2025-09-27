@@ -52,6 +52,8 @@
                                 class="action-link-restore">Enable</button>
                             {% endif %}
                         </form>
+                        <a href="{{ url_for('admin.plugin_data_view', plugin_id=plugin.id) }}" class="action-link-edit"
+                            style="margin-left: 10px;">View Data</a>
                     </td>
                 </tr>
                 {% else %}

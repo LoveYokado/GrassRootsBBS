@@ -1,0 +1,73 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>View and manage data stored by the '{{ plugin.name }}' (ID: {{ plugin.id }}) plugin.</p>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-database me-1"></i>
+        Stored Data
+    </div>
+    <div class="card-body">
+        {% if data %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Key</th>
+                    <th>Value (JSON)</th>
+                    <th style="width: 10%;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key, value in data.items() %}
+                <tr>
+                    <td><code>{{ key }}</code></td>
+                    <td>
+                        <pre
+                            style="white-space: pre-wrap; word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 4px;">{{ value }}</pre>
+                    </td>
+                    <td>
+                        <form method="post"
+                            action="{{ url_for('admin.delete_plugin_data_key', plugin_id=plugin.id, key=key) }}"
+                            onsubmit="return confirm('Are you sure you want to delete the data for key \'{{ key }}\'?');">
+                            <button type="submit" class="action-link-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No data has been stored by this plugin yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-4 border-danger">
+    <div class="card-header bg-danger text-white">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        Danger Zone
+    </div>
+    <div class="card-body">
+        <p>This action will permanently delete <strong>all data</strong> associated with the '{{ plugin.name }}' plugin.
+            This cannot be undone.</p>
+        <form method="post" action="{{ url_for('admin.delete_all_plugin_data', plugin_id=plugin.id) }}"
+            onsubmit="return confirm('Are you absolutely sure you want to delete ALL data for this plugin? This action is irreversible.');">
+            <button type="submit" class="btn btn-danger">Delete All Data for this Plugin</button>
+        </form>
+    </div>
+</div>
+
+<a href="{{ url_for('admin.plugin_management') }}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-1"></i>
+    Back to Plugin List
+</a>
+
+{% endblock %}
