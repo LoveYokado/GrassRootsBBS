@@ -53,9 +53,10 @@ def generate_registration_options_for_user(user_id, username):
     if existing_keys is None:
         existing_keys = []  # DBエラーなどでNoneが返ってきた場合は空リストとして扱う
 
-    exclude_credentials = [
-        {"type": "public-key", "id": key["credential_id"]} for key in existing_keys or []
-    ]
+    exclude_credentials = [PublicKeyCredentialDescriptor(
+        type=PublicKeyCredentialType.PUBLIC_KEY,
+        id=key["credential_id"]
+    ) for key in existing_keys]
 
     options = generate_registration_options(
         rp_id=rp_id,

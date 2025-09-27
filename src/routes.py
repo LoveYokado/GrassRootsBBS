@@ -109,8 +109,11 @@ def index():
                 return {key: _process_texts_for_mode(value, mode) for key, value in node.items()}
         return node
 
-    terminal_ui_texts_raw = all_text_data.get("terminal_ui", {})
-    textData_for_js = _process_texts_for_mode(terminal_ui_texts_raw, menu_mode)
+    textData_for_js = {
+        "terminal_ui": _process_texts_for_mode(all_text_data.get("terminal_ui", {}), menu_mode),
+        "user_pref_menu": _process_texts_for_mode(all_text_data.get("user_pref_menu", {}), menu_mode),
+        "passkey_management": _process_texts_for_mode(all_text_data.get("user_pref_menu", {}).get("passkey_management", {}), menu_mode)
+    }
 
     return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits, vapid_public_key=vapid_public_key_for_js, mobile_button_layouts=mobile_button_layouts, menu_mode=menu_mode, textData=textData_for_js)
 

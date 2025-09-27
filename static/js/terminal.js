@@ -2,6 +2,37 @@
 SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 SPDX-License-Identifier: MIT
 */
+
+/**
+ * Base64URLエンコードされた文字列をArrayBufferに変換します。
+ * @param {string} base64urlString - Base64URL文字列
+ * @returns {ArrayBuffer}
+ */
+function base64urlToBuffer(base64urlString) {
+    const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray.buffer;
+}
+
+/**
+ * ArrayBufferをBase64URLエンコードされた文字列に変換します。
+ * @param {ArrayBuffer} buffer - 変換するArrayBuffer
+ * @returns {string}
+ */
+function bufferToBase64url(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let str = '';
+    for (const charCode of bytes) {
+        str += String.fromCharCode(charCode);
+    }
+    const base64 = window.btoa(str);
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
 const themes = { // eslint-disable-line no-unused-vars
     default: {
         background: '#000000',
@@ -877,9 +908,14 @@ function hideAllMobileControls() {
 
 // --- サーバーからの出力処理 ---
 socket.on('server_output', data => {
-    const passkeyRegisterPattern = /\x1b\[\?2027h/; // eslint-disable-line no-unused-vars
+        const passkeyRegisterPattern = /\x1b\[\?2027h/;
     if (passkeyRegisterPattern.test(data)) {
-        registerNewPasskey();
+            // Passkey登録フローを開始し、完了後にメッセージを表示してEnterを送信するコールバックを渡す
+            registerNewPasskey(result => {
+                term.writeln(`\r\n\x1b[1m${result.message}\x1b[0m`);
+                // サーバー側の process_input() を解除するためにEnterを送信
+                socket.emit('client_input', '\r');
+            });
         data = data.replace(passkeyRegisterPattern, '');
     }
 
@@ -1636,7 +1672,90 @@ function closeNav() {
     document.getElementById("sidenav").style.width = "0";
 }
 
+/**
+ * 関数が連続して呼び出されるのを防ぎ、最後の呼び出しから指定時間後に一度だけ実行します。
+ * @param {Function} func - デバウンス対象の関数
+ * @param {number} wait - 待機時間 (ミリ秒)
+ * @returns {Function}
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => { clearTimeout(timeout); func(...args); };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 // 新しいPasskeyの登録フローを開始
-async function registerNewPasskey() {
-    // この関数の内容は現在空ですが、将来の実装のために残されています。
+async function registerNewPasskey(callback) {
+    let options;
+    try {
+        const resp = await fetch(URLS.passkeyRegisterOptions, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        if (!resp.ok) {
+            const err = await resp.json();
+            throw new Error(err.error || 'Could not get registration options.');
+        }
+        options = await resp.json();
+    } catch (e) {
+        const errorMessage = `Error getting registration options: ${e.message}`;
+        console.error(errorMessage);
+        if (callback) callback({ success: false, message: errorMessage });
+        return;
+    }
+
+    // サーバーから受け取ったBase64URL文字列をArrayBufferに変換
+    options.challenge = base64urlToBuffer(options.challenge);
+    if (options.excludeCredentials) {
+        for (let cred of options.excludeCredentials) {
+            cred.id = base64urlToBuffer(cred.id);
+        }
+    }
+    options.user.id = base64urlToBuffer(options.user.id);
+
+    let credential;
+    try {
+        // ブラウザのAPIを呼び出してPasskey作成を要求
+        credential = await navigator.credentials.create({ publicKey: options });
+    } catch (e) {
+        const errorMessage = `Registration ceremony failed: ${e.name}`;
+        if (callback) callback({ success: false, message: errorMessage });
+        return;
+    }
+
+    // サーバーに検証をリクエストするために、レスポンスをBase64URL文字列に変換
+    const registrationResponse = {
+        id: credential.id,
+        rawId: bufferToBase64url(credential.rawId),
+        response: {
+            clientDataJSON: bufferToBase64url(credential.response.clientDataJSON),
+            attestationObject: bufferToBase64url(credential.response.attestationObject),
+        },
+        type: credential.type,
+    };
+
+    try {
+        const verificationResp = await fetch(URLS.passkeyVerifyRegistration, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                credential: registrationResponse,
+                nickname: 'My Passkey' // 将来的にはユーザーに入力させる
+            }),
+        });
+        const verificationJSON = await verificationResp.json();
+        if (verificationJSON && verificationJSON.verified) {
+            if (callback) callback({ success: true, message: textData.passkey_management.register_success || 'Passkey registered successfully.' });
+        } else {
+            const serverError = verificationJSON.error || "Verification failed on server.";
+            throw new Error(serverError);
+        }
+    } catch (e) {
+        const errorMessage = `Error during verification: ${e.message}`;
+        console.error(errorMessage);
+        if (callback) callback({ success: false, message: errorMessage });
+    }
 }
