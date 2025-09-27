@@ -14,11 +14,21 @@ GR-BBS プラグインAPI
 
 class GrbbsApi:
 
+    """
+    プラグインに提供される安全なAPIクラスです。
+    これは「ファサード」または「ブリッジ」として機能し、ホストアプリケーションの
+    機能を、制限された安全な形でプラグインに公開します。
+    """
+
     def __init__(self, channel, plugin_id, online_members_func):
+        """
+        :param channel: クライアントとの通信チャンネル。
+        :param plugin_id: 実行中のプラグインのID。
+        :param online_members_func: オンラインメンバーリストを取得するためのコールバック関数。
+        """
         self._chan = channel
         self._plugin_id = plugin_id
-        # 循環インポートを避けるため、メソッド内で database モジュールをインポート
-        self._online_members_func = online_members_func
+        self._online_members_func = online_members_func  # オンラインメンバーリスト取得用の関数
 
     def send(self, message):
         """クライアントにメッセージを送信します。
@@ -58,19 +68,29 @@ class GrbbsApi:
         return database.save_plugin_data(self._plugin_id, key, value)
 
     def get_data(self, key):
-        """指定されたキーに対応する、このプラグイン専用のデータを取得します。"""
+        """
+        指定されたキーに対応する、このプラグイン専用のデータを取得します。
+
+        :param key: 取得するデータのキー（文字列）。
+        :return: 対応するデータ。存在しない場合はNone。
+        """
         from . import database
         return database.get_plugin_data(self._plugin_id, key)
 
     def delete_data(self, key):
-        """指定されたキーのデータを削除します。"""
+        """
+        指定されたキーのデータを削除します。
+
+        :param key: 削除するデータのキー（文字列）。
+        :return: 成功した場合はTrue、失敗した場合はFalse。
+        """
         from . import database
         return database.delete_plugin_data(self._plugin_id, key)
 
     def get_all_data(self):
         """
         このプラグインが保存した全てのデータを辞書として取得します。
-        キーが辞書のキー、値が辞書の値となります。
+        `key`が辞書のキー、`value`が辞書の値となります。
         """
         from . import database
         return database.get_all_plugin_data(self._plugin_id)
@@ -80,7 +100,7 @@ class GrbbsApi:
         指定されたユーザー名の公開情報を取得します。
         パスワードやメールアドレスなどの機密情報は含まれません。
 
-        :param username: 情報を取得したいユーザー名。
+        :param username: 情報を取得したいユーザーのログインID。
         :return: ユーザー情報の辞書。ユーザーが存在しない場合はNone。
                  辞書には 'id', 'name', 'level', 'comment', 'registdate', 'lastlogin' が含まれる可能性があります。
         """
@@ -93,7 +113,7 @@ class GrbbsApi:
         現在オンラインのユーザーのリストを取得します。
         IPアドレスなどの機密情報は含まれません。
 
-        :return: オンラインユーザー情報のリスト（辞書型）。
+        :return: オンラインユーザー情報のリスト（辞書型配列）。
                  各辞書には 'user_id', 'username', 'display_name' が含まれる可能性があります。
         """
         if not self._online_members_func:

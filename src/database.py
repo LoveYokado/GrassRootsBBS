@@ -186,7 +186,12 @@ class UserManager:
         return self._db.execute_query(query, (username.upper(),), fetch='one')
 
     def get_total_count(self):
-        """登録されている総ユーザー数を取得します。"""
+        """
+        登録されている総ユーザー数を取得します。
+        管理画面のダッシュボードなどで使用されます。
+
+        :return: ユーザーの総数 (int)。
+        """
         query = "SELECT COUNT(*) as count FROM users"
         result = self._db.execute_query(query, fetch='one')
         return result['count'] if result else 0
@@ -1757,7 +1762,11 @@ class DatabaseInitializer:
 
 
 class PluginDataManager:
-    """'plugin_data'テーブルに関連する全てのデータベース操作を管理します。"""
+    """
+    'plugin_data'テーブルに関連する全てのデータベース操作を管理します。
+    各プラグインは、自身の `plugin_id` に紐付いたデータ領域のみを
+    読み書きできます。
+    """
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -1775,7 +1784,10 @@ class PluginDataManager:
         return self._db.execute_query(query, params) is not None
 
     def get(self, plugin_id, key):
-        """指定されたキーのプラグインデータを取得します。"""
+        """
+        指定されたプラグインIDとキーに紐づくデータを取得します。
+        データはJSON形式で保存されているため、Pythonのオブジェクトとして返されます。
+        """
         query = "SELECT `value` FROM plugin_data WHERE plugin_id = %s AND `key` = %s"
         result = self._db.execute_query(query, (plugin_id, key), fetch='one')
         if result and 'value' in result:
@@ -1783,15 +1795,27 @@ class PluginDataManager:
         return None
 
     def delete(self, plugin_id, key):
-        """指定されたキーのプラグインデータを削除します。"""
+        """指定されたプラグインIDとキーに紐づくデータを削除します。"""
         query = "DELETE FROM plugin_data WHERE plugin_id = %s AND `key` = %s"
         return self._db.execute_query(query, (plugin_id, key)) is not None
 
     def get_all(self, plugin_id):
-        """指定されたプラグインの全データを辞書として取得します。"""
+        """
+        指定されたプラグインIDに紐づく全てのデータを辞書として一括で取得します。
+
+        :return: {'key1': value1, 'key2': value2, ...} 形式の辞書。
+        """
         query = "SELECT `key`, `value` FROM plugin_data WHERE plugin_id = %s"
         results = self._db.execute_query(query, (plugin_id,), fetch='all')
         return {row['key']: row['value'] for row in results} if results else {}
+
+    def delete_all(self, plugin_id):
+        """
+        指定されたプラグインIDに紐づく全てのデータを削除します。
+        プラグインのアンインストール時などに使用されることを想定しています。
+        """
+        query = "DELETE FROM plugin_data WHERE plugin_id = %s"
+        return self._db.execute_query(query, (plugin_id,)) is not None
 
     def delete_all(self, plugin_id):
         """指定されたプラグインの全データを削除します。"""
