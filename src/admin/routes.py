@@ -1634,5 +1634,11 @@ def chat_management():
 
         return redirect(url_for('admin.chat_management'))
 
-    chat_config = util.load_chat_config()
+    # util.load_chat_config() はYAMLファイル全体を辞書として返す
+    raw_config = util.load_chat_config()
+    # テンプレートが期待する形式に整形する
+    chat_config = {
+        'categories': raw_config.get('categories', []),
+        'global': raw_config.get('global', [])
+    }
     return render_template('admin/chat_management.html', title="Chat Room Management", chat_config=chat_config)

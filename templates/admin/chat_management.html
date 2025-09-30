@@ -6,9 +6,10 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 <style>
     .chat-tree ul {
-        padding-left: 20px;
+        padding-left: 25px;
         list-style-type: none;
         border-left: 1px dashed #444;
+        margin-left: 5px;
     }
 
     .chat-tree li {
@@ -81,8 +82,8 @@
         <p class="text-muted small mt-2 mb-0">{{ item.description | nl2br }}</p>
         {% endif %}
 
-        {% if 'items' in item and item.items is sequence and item.items is not string %}
-        {{ render_chat_tree(item.items, item.id) }}
+        {% if 'items' in item %}
+        {{ render_chat_tree(item['items'], item.id) }}
         {% endif %}
     </li>
     {% endfor %}
