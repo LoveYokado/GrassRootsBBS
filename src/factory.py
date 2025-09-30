@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-アプリケーションファクトリ
+"""アプリケーションファクトリ
 
-このモジュールは、Flaskアプリケーションインスタンスの作成と設定を担当する
-アプリケーションファクトリ関数 `create_app()` を含んでいます。
+このモジュールは、Flaskアプリケーションインスタンスの作成と設定を行う
+`create_app()` ファクトリ関数を提供します。
 """
 import json
 
@@ -36,9 +35,11 @@ socketio = SocketIO()
 
 def create_app():
     """
-    Flaskアプリケーションインスタンスを作成し、設定します。
-    このファクトリ関数は、アプリケーションの全体的な設定、ロギング、
-    Blueprintの登録、エラーハンドリング、およびその他の拡張機能の初期化を担当します。
+    Flaskアプリケーションインスタンスを作成し、各種設定を初期化します。
+
+    このファクトリ関数は、アプリケーションの全体的な設定（設定ファイル読み込み、
+    ロギング、ディレクトリ作成）、Blueprintの登録、エラーハンドリング、
+    拡張機能（レートリミット、セッション管理など）の初期化を担当します。
     """
     # --- パス設定 ---
     _current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -135,7 +136,7 @@ def create_app():
     # --- テンプレートコンテキストとフィルタ ---
     @app.context_processor
     def inject_util():
-        """テンプレート内で `util` モジュールの便利関数を使えるようにします。"""
+        """テンプレート内で `util` モジュールの関数を使えるようにします。"""
         return dict(util=util)
 
     @app.template_filter('timestamp_to_datetime')
@@ -147,7 +148,7 @@ def create_app():
 
     @app.template_filter('nl2br')
     def nl2br_filter(s):
-        """Converts newlines in a string to <br> tags for safe HTML rendering."""
+        """文字列内の改行をHTMLの`<br>`タグに変換します（XSS対策済み）。"""
         if not s:
             return ""
         # First, escape the string to prevent XSS, then replace newlines.
@@ -157,7 +158,11 @@ def create_app():
     # --- リクエストフック ---
     @app.before_request
     def restrict_admin_access_by_ip():
-        """リクエスト毎に、管理画面へのアクセスをIPアドレスで制限します。"""
+        """
+        リクエスト毎に、管理画面 (`/admin`) へのアクセスをIPアドレスで制限します。
+
+        `config.toml` の `[admin]` セクションで `ip_restriction_enabled` が `True` の場合にのみ有効です。
+        """
         if request.path.startswith('/admin'):
             admin_config = app.config.get('ADMIN', {})
             if not admin_config.get('ip_restriction_enabled', False):
@@ -178,7 +183,11 @@ def create_app():
 
     @app.after_request
     def add_security_headers(response):
-        """全てのリクエストのレスポンスにセキュリティ関連のヘッダーを追加します。"""
+        """
+        全てのリクエストのレスポンスにセキュリティ関連のHTTPヘッダーを追加します。
+
+        Content-Security-Policy (CSP) などを含み、XSSなどの攻撃に対する防御を強化します。
+        """
         csp = (
             "default-src 'self';"
             "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net https://code.jquery.com https://stackpath.bootstrapcdn.com https://fonts.googleapis.com;"
@@ -207,7 +216,11 @@ def create_app():
 
     # --- スケジュールジョブ (バックアップ) ---
     def scheduled_backup_job():
-        """apschedulerによって定期的に実行されるバックアップジョブです。"""
+        """
+        `apscheduler`によって定期的に実行されるバックアップジョブです。
+
+        バックアップ作成後、古いバックアップファイルのクリーンアップも行います。
+        """
         with app.app_context():
             logging.info("Starting scheduled backup job...")
             filename = backup_util.create_backup()
