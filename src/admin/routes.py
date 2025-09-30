@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-管理画面 (Admin Panel) のルーティング定義
+"""管理画面 (Admin Panel) のルーティング
 
-このモジュールは、Flask Blueprint を使用して、BBSの管理機能に関する
-全てのWebルート（例: /admin/dashboard, /admin/users）を定義します。
+このモジュールは、FlaskのBlueprintを使用して、BBSの管理機能に関する
+全てのWebルート（例: `/admin/dashboard`, `/admin/users`）を定義します。
 """
 
 import json
@@ -19,16 +18,19 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from ..decorators import sysop_required
 
 import toml
+import yaml
 import shutil
-
+from flask import jsonify
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
 @admin_bp.route('/bbs_list', methods=['GET', 'POST'])
 @sysop_required
 def bbs_list():
-    """
-    BBSリンクの管理ページ。リンクの追加、削除、承認状態の変更を処理します。
+    """BBSリンク一覧の管理ページ
+
+    F7キーで表示されるBBSリンクの追加、削除、承認状態の変更を処理します。
+    GETリクエストで一覧を表示し、POSTリクエストで各種操作を実行します。
     """
     if request.method == 'POST':
         action = request.form.get('action')
@@ -114,8 +116,10 @@ def bbs_list():
 @admin_bp.route('/bbs_list/edit/<int:link_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_bbs_link(link_id):
-    """
-    BBSリンクの編集ページ。
+    """BBSリンクの編集ページ
+
+    指定されたIDのBBSリンクの名前、URL、説明を編集します。
+    :param link_id: 編集対象のBBSリンクのID。
     """
     link = database.bbs_list_manager.get_by_id(link_id)
     if not link:
@@ -148,17 +152,17 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 
 def _process_texts_for_mode(node, menu_mode):
     """
-    YAMLから読み込んだ辞書を再帰的に処理し、指定されたmenu_modeのテキストだけを抽出します。
-    これにより、テンプレート側では g.texts.dashboard.title のようにシンプルにアクセスできます。
+    YAMLから読み込んだ辞書を再帰的に処理し、指定されたmenu_modeのテキストを抽出します。
 
-    Recursively processes a dictionary loaded from YAML to extract text for the specified menu_mode.
+    これにより、テンプレート側では `g.texts.dashboard.title` のように
+    シンプルにテキストデータへアクセスできます。
     """
     if isinstance(node, dict):
-        # 'mode1', 'mode2', 'mode3' のようなキーを持つ末端の辞書かチェック
         mode_key = f"mode_{menu_mode}"
         if mode_key in node:
             return node[mode_key]
         else:
+            # 'mode_x'キーを持たない中間辞書の場合は再帰的に処理
             return {key: _process_texts_for_mode(value, menu_mode) for key, value in node.items()}
     return node
 
@@ -166,7 +170,9 @@ def _process_texts_for_mode(node, menu_mode):
 @admin_bp.before_request
 def load_admin_texts():
     """
-    各リクエストの前に、ユーザーの言語設定に応じてテキストデータをロードします。
+    各リクエストの前に、ユーザーのメニューモード設定に応じたテキストデータをロードします。
+
+    ロードされたテキストは `g.texts` に格納され、テンプレート内で利用できます。
     """
     menu_mode = session.get('menu_mode', '3')
     g.texts = _process_texts_for_mode(util.load_master_text_data(), menu_mode)
@@ -176,7 +182,10 @@ def load_admin_texts():
 @sysop_required
 def dashboard():
     """
-    管理画面のメインページ。システムの統計情報やアクティビティを表示します。
+    管理画面のダッシュボードページ
+
+    ユーザー数や投稿数などの統計情報、サーバーのシステムヘルス、
+    最近のアクティビティグラフなどを表示します。
     """
     online_count = len(terminal_handler.get_webapp_online_members())
 
@@ -229,8 +238,10 @@ def dashboard():
 @admin_bp.route('/who')
 @sysop_required
 def who_online():
-    """
-    現在オンラインのユーザー一覧ページ。セッションの強制切断も可能です。
+    """オンラインユーザー一覧ページ
+
+    現在接続しているユーザーの一覧を表示します。
+    セッションの強制切断（キック）機能も提供します。
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 15, type=int)
@@ -299,8 +310,10 @@ def who_online():
 @admin_bp.route('/who/kick/<sid>', methods=['POST'])
 @sysop_required
 def kick_user(sid):
-    """
+    """ユーザーの強制切断
+
     指定されたセッションIDを持つユーザーの接続を強制的に切断します。
+    :param sid: 切断対象のセッションID。
     """
     from ..factory import socketio
 
@@ -326,8 +339,10 @@ def kick_user(sid):
 @admin_bp.route('/users')
 @sysop_required
 def user_list():
-    """
-    登録ユーザーの一覧ページ。検索、ソート機能付き。
+    """ユーザー管理ページ
+
+    登録されている全ユーザーの一覧を表示します。
+    ユーザー名やメールアドレスでの検索、各項目でのソートが可能です。
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 15, type=int)
@@ -379,8 +394,9 @@ def user_list():
 @admin_bp.route('/users/new', methods=['GET', 'POST'])
 @sysop_required
 def new_user():
-    """
-    新規ユーザー作成ページ。
+    """新規ユーザー作成ページ
+
+    管理者が手動で新しいユーザーアカウントを作成します。
     """
     if request.method == 'POST':
         username = request.form.get('name', '').strip().upper()
@@ -415,8 +431,10 @@ def new_user():
 @admin_bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_user(user_id):
-    """
-    既存ユーザーの編集ページ。
+    """ユーザー編集ページ
+
+    指定されたユーザーのレベル、メールアドレス、コメント、パスワードなどを編集します。
+    :param user_id: 編集対象のユーザーID。
     """
     edit_user_texts = g.texts.get('admin_edit_user', {})
 
@@ -460,8 +478,11 @@ def edit_user(user_id):
 @admin_bp.route('/users/edit/<int:user_id>/delete_passkey/<int:passkey_id>', methods=['POST'])
 @sysop_required
 def delete_user_passkey(user_id, passkey_id):
-    """
-    指定されたユーザーのPasskeyを削除します。
+    """ユーザーのPasskey削除
+
+    指定されたユーザーに紐づく特定のPasskeyを削除します。
+    :param user_id: 対象のユーザーID。
+    :param passkey_id: 削除するPasskeyのID。
     """
     if database.delete_passkey_by_id_and_user_id(passkey_id, user_id):
         flash(g.texts.get('admin_edit_user', {}).get(
@@ -475,7 +496,11 @@ def delete_user_passkey(user_id, passkey_id):
 @admin_bp.route('/users/delete/<int:user_id>', methods=['POST'])
 @sysop_required
 def delete_user(user_id):
-    """指定されたユーザーをデータベースから削除します。"""
+    """ユーザーの削除
+
+    指定されたユーザーをデータベースから物理削除します。
+    :param user_id: 削除対象のユーザーID。
+    """
     user_to_delete = database.get_user_by_id(user_id)
 
     if not user_to_delete:
@@ -502,8 +527,10 @@ def delete_user(user_id):
 @admin_bp.route('/boards')
 @sysop_required
 def board_list():
-    """
-    登録掲示板の一覧ページ。検索、ソート機能付き。
+    """掲示板管理ページ
+
+    登録されている全掲示板の一覧を表示します。
+    掲示板名での検索、各項目でのソートが可能です。
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 15, type=int)
@@ -578,8 +605,9 @@ def board_list():
 @admin_bp.route('/boards/new', methods=['GET', 'POST'])
 @sysop_required
 def new_board():
-    """
-    新規掲示板作成ページ。
+    """新規掲示板作成ページ
+
+    新しい掲示板を作成し、各種設定（パーミッション、添付ファイルなど）を行います。
     """
     if request.method == 'POST':
         shortcut_id = request.form.get('shortcut_id', '').strip()
@@ -633,8 +661,10 @@ def new_board():
 @admin_bp.route('/boards/edit/<int:board_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_board(board_id):
-    """
-    既存の掲示板の編集ページ。
+    """掲示板編集ページ
+
+    既存の掲示板の各種設定（名前、説明、パーミッション、オペレーターなど）を編集します。
+    :param board_id: 編集対象の掲示板ID。
     """
     board = database.get_board_by_id(board_id)
     if not board:
@@ -757,8 +787,10 @@ def edit_board(board_id):
 @admin_bp.route('/boards/delete/<int:board_id>', methods=['POST'])
 @sysop_required
 def delete_board(board_id):
-    """
-    指定された掲示板と関連する全データを物理削除します。
+    """掲示板の物理削除
+
+    指定された掲示板と、それに関連する全ての記事や権限設定を物理削除します。
+    :param board_id: 削除対象の掲示板ID。
     """
     board_to_delete = database.get_board_by_id(board_id)
 
@@ -778,8 +810,10 @@ def delete_board(board_id):
 @admin_bp.route('/articles', methods=['GET'])
 @sysop_required
 def article_search():
-    """
-    全掲示板を横断して記事を検索するページ。
+    """記事管理（検索）ページ
+
+    全掲示板を横断して、キーワードや投稿者名で記事を検索します。
+    検索結果から記事の論理削除や復元が可能です。
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 15, type=int)
@@ -860,8 +894,10 @@ def article_search():
 @admin_bp.route('/articles/delete/<int:article_id>', methods=['POST'])
 @sysop_required
 def delete_article(article_id):
-    """
-    指定された記事の削除フラグをトグルします（論理削除/復元）。
+    """記事の論理削除/復元
+
+    指定された記事の削除フラグ (`is_deleted`) をトグルします。
+    :param article_id: 対象の記事ID。
     """
     article = database.get_article_by_id(article_id)
     if not article:
@@ -886,8 +922,10 @@ def delete_article(article_id):
 @admin_bp.route('/articles/bulk-action', methods=['POST'])
 @sysop_required
 def bulk_action_articles():
-    """
-    選択された複数の記事に対して、一括で論理削除または復元を実行します。
+    """記事の一括操作
+
+    記事検索ページで選択された複数の記事に対して、
+    一括で論理削除または復元を実行します。
     """
     action = request.form.get('action')
     selected_ids_str = request.form.getlist('selected_articles')
@@ -920,8 +958,11 @@ def bulk_action_articles():
 @admin_bp.route('/attachments')
 @sysop_required
 def attachment_list():
-    """
-    アップロードされた全添付ファイルの一覧と、隔離されたファイルを表示します。
+    """添付ファイル管理ページ
+
+    アップロードされた全添付ファイルの一覧を表示します。
+    また、ClamAVによってウイルスが検出され、隔離されたファイルの一覧も表示し、
+    ここから物理削除が可能です。
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 15, type=int)
@@ -997,7 +1038,11 @@ def attachment_list():
 @admin_bp.route('/attachments/quarantine/delete/<path:filename>', methods=['POST'])
 @sysop_required
 def delete_quarantined_file(filename):
-    """Deletes a specific file from the quarantine directory and its log entry."""
+    """隔離ファイルの削除
+
+    指定されたファイルを隔離ディレクトリから物理削除し、関連するログエントリも削除します。
+    :param filename: 削除するファイル名。
+    """
     quarantine_dir_rel = util.app_config.get('clamav', {}).get(
         'quarantine_directory', 'data/quarantine')
     quarantine_dir_abs = os.path.join(
@@ -1033,8 +1078,10 @@ def delete_quarantined_file(filename):
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @sysop_required
 def system_settings():
-    """
-    システム全体の設定ページ。各機能の最低アクセスレベルなどを変更します。
+    """システム設定ページ
+
+    各トップメニュー機能（BBS、チャットなど）を利用するための最低ユーザーレベルや、
+    デフォルトの探索リスト、ログインメッセージなどを設定します。
     """
 
     if request.method == 'POST':
@@ -1075,8 +1122,10 @@ def system_settings():
 @admin_bp.route('/backup', methods=['GET', 'POST'])
 @sysop_required
 def backup_management():
-    """
-    バックアップ管理ページ。手動バックアップや自動バックアップ設定を行います。
+    """データ管理（バックアップ・リストア）ページ
+
+    手動でのバックアップ作成、バックアップファイルからのリストア、
+    自動バックアップのスケジュール設定、データ全消去などを行います。
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 15, type=int)
@@ -1139,8 +1188,9 @@ def backup_management():
 @admin_bp.route('/backup/create', methods=['POST'])
 @sysop_required
 def create_backup_route():
-    """
-    手動で新しいバックアップを作成します。
+    """手動バックアップの作成
+
+    新しいバックアップファイル（データベースと設定ファイルのアーカイブ）を作成します。
     """
     try:
         filename = backup_util.create_backup()
@@ -1158,8 +1208,10 @@ def create_backup_route():
 @admin_bp.route('/backup/download/<path:filename>')
 @sysop_required
 def download_backup(filename):
-    """
-    指定されたバックアップファイルをダウンロードさせます。
+    """バックアップファイルのダウンロード
+
+    指定されたバックアップファイルをクライアントにダウンロードさせます。
+    :param filename: ダウンロードするファイル名。
     """
     return send_from_directory(BACKUP_DIR, filename, as_attachment=True)
 
@@ -1167,8 +1219,10 @@ def download_backup(filename):
 @admin_bp.route('/backup/delete/<path:filename>', methods=['POST'])
 @sysop_required
 def delete_backup(filename):
-    """
+    """バックアップファイルの削除
+
     指定されたバックアップファイルをサーバーから物理削除します。
+    :param filename: 削除するファイル名。
     """
     try:
         filepath = os.path.join(BACKUP_DIR, filename)
@@ -1190,8 +1244,11 @@ def delete_backup(filename):
 @admin_bp.route('/backup/restore/<path:filename>', methods=['POST'])
 @sysop_required
 def restore_from_backup(filename):
-    """
-    指定されたバックアップファイルからデータをリストアし、サーバーを再起動します。
+    """バックアップからのリストア
+
+    指定されたバックアップファイルからデータをリストアします。
+    リストア完了後、サーバーは自動的に再起動されます。
+    :param filename: リストアに使用するバックアップファイル名。
     """
     try:
         success = backup_util.restore_from_backup(filename)
@@ -1217,8 +1274,10 @@ def restore_from_backup(filename):
 @admin_bp.route('/wipe-data', methods=['POST'])
 @sysop_required
 def wipe_all_data():
-    """
-    データベース内の全BBS関連データを消去し、初期状態に戻します。
+    """全データの消去
+
+    データベースと関連ディレクトリ内の全BBSデータを消去し、システムを初期状態に戻します。
+    完了後、サーバーは自動的に再起動されます。この操作は元に戻せません。
     """
     try:
         if session.get('userlevel', 0) < 5:
@@ -1246,8 +1305,10 @@ def wipe_all_data():
 @admin_bp.route('/plugins')
 @sysop_required
 def plugin_management():
-    """
-    インストールされているプラグインの一覧と、有効/無効状態を表示します。
+    """プラグイン管理ページ
+
+    インストールされているプラグインの一覧を表示し、
+    それぞれの有効/無効状態を切り替えることができます。
     """
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 15, type=int)
@@ -1280,8 +1341,10 @@ def plugin_management():
 @admin_bp.route('/plugins/toggle', methods=['POST'])
 @sysop_required
 def toggle_plugin_status():
-    """
-    指定されたプラグインの有効/無効状態を切り替えます。変更の適用には再起動が必要です。
+    """プラグインの有効/無効切り替え
+
+    指定されたプラグインの有効/無効状態をデータベース上で切り替えます。
+    変更を適用するには、サーバーの再起動が必要です。
     """
     plugin_id = request.form.get('plugin_id')
     action = request.form.get('action')
@@ -1304,8 +1367,10 @@ def toggle_plugin_status():
 @admin_bp.route('/plugins/data/<plugin_id>')
 @sysop_required
 def plugin_data_view(plugin_id):
-    """
-    特定のプラグインが保存したデータを表示するページ。
+    """プラグインデータ閲覧ページ
+
+    特定のプラグインが `grbbs_api` を介して保存したデータを表示します。
+    :param plugin_id: 対象のプラグインID。
     """
     all_plugins = plugin_manager.get_all_available_plugins()
     plugin_info = next((p for p in all_plugins if p['id'] == plugin_id), None)
@@ -1332,7 +1397,12 @@ def plugin_data_view(plugin_id):
 @admin_bp.route('/plugins/data/<plugin_id>/delete/<key>', methods=['POST'])
 @sysop_required
 def delete_plugin_data_key(plugin_id, key):
-    """プラグインの特定のキーのデータを削除します。"""
+    """プラグインデータの個別削除
+
+    指定されたプラグインの、特定のキーに対応するデータを削除します。
+    :param plugin_id: 対象のプラグインID。
+    :param key: 削除するデータのキー。
+    """
     if database.delete_plugin_data(plugin_id, key):
         flash(f"Data for key '{key}' has been deleted.", 'success')
     else:
@@ -1343,7 +1413,11 @@ def delete_plugin_data_key(plugin_id, key):
 @admin_bp.route('/plugins/data/<plugin_id>/delete_all', methods=['POST'])
 @sysop_required
 def delete_all_plugin_data(plugin_id):
-    """プラグインの全データを削除します。"""
+    """プラグインデータの全削除
+
+    指定されたプラグインが保存した全てのデータを削除します。
+    :param plugin_id: 対象のプラグインID。
+    """
     if database.delete_all_plugin_data(plugin_id):
         flash(
             f"All data for plugin '{plugin_id}' has been deleted.", 'success')
@@ -1355,8 +1429,10 @@ def delete_all_plugin_data(plugin_id):
 @admin_bp.route('/config-editor', methods=['GET', 'POST'])
 @sysop_required
 def config_editor():
-    """
-    設定ファイル `config.toml` をWeb UIから直接編集・保存します。
+    """設定ファイルエディタ
+
+    メインの設定ファイル `config.toml` をWeb UIから直接編集・保存します。
+    保存前にTOML形式の構文チェックが行われます。
     """
     config_path = os.path.join(
         backup_util.PROJECT_ROOT, 'setting', 'config.toml')
@@ -1396,8 +1472,10 @@ def config_editor():
 @admin_bp.route('/broadcast', methods=['POST'])
 @sysop_required
 def broadcast():
-    """
-    オンライン中の全ユーザーにメッセージを一斉送信（ブロードキャスト）します。
+    """メッセージ一斉送信（ブロードキャスト）
+
+    オンライン中の全ユーザーに対して、電報機能を利用して
+    メッセージを一斉に送信します。
     """
     message = request.form.get('message', '').strip()
 
@@ -1436,8 +1514,9 @@ def broadcast():
 @admin_bp.route('/restart', methods=['POST'])
 @sysop_required
 def restart_server():
-    """
-    サーバープロセスを再起動します。
+    """サーバーの再起動
+
+    サーバープロセスを安全に再起動します。
     """
     flash_message = g.texts.get('system_actions', {}).get(
         'flash_restarting', 'Server is restarting... Please reload the page to reconnect.')
@@ -1457,8 +1536,10 @@ def restart_server():
 @admin_bp.route('/access-log')
 @sysop_required
 def access_log_viewer():
-    """
-    アクセスログ閲覧ページ。IP、ユーザー名、イベントタイプでフィルタリング可能。
+    """ログビューアページ
+
+    データベースに記録されたアクセスログと、ファイルに記録されたエラーログを表示します。
+    アクセスログはIPアドレス、ユーザー名、イベントタイプでフィルタリング可能です。
     """
     page = request.args.get('page', 1, type=int)
     search_ip = request.args.get('ip', '')
@@ -1525,3 +1606,172 @@ def access_log_viewer():
 
     return render_template('admin/log_viewer.html', title=g.texts.get('access_log', {}).get('title', 'Access Log Viewer'), logs=logs, error_logs=error_logs, search_params=search_params, search_params_for_per_page=search_params_for_per_page, pagination=pagination,
                            sort_by=sort_by, order=order, next_order=next_order)
+
+
+@admin_bp.route('/chatrooms', methods=['GET', 'POST'])
+@sysop_required
+def chat_management():
+    """チャットルーム管理ページ
+
+    チャットルームの階層構造を管理します。
+    `chatroom.yaml` の読み込み、項目の追加・編集・削除、保存を行います。
+    """
+    config_path = os.path.join(
+        current_app.config['PROJECT_ROOT'], 'setting', 'chatroom.yaml')
+
+    def find_item_and_parent(items, item_id, parent=None):
+        """IDでアイテムを再帰的に探し、アイテムとその親、インデックスを返す"""
+        for i, item in enumerate(items):
+            if item.get('id') == item_id:
+                return item, parent, i
+            if 'items' in item:
+                found_item, found_parent, found_index = find_item_and_parent(
+                    item['items'], item_id, item)
+                if found_item:
+                    return found_item, found_parent, found_index
+        return None, None, -1
+
+    if request.method == 'POST':
+        chat_config = util.load_chat_config()
+        action = request.form.get('action')
+
+        try:
+            if action == 'add':
+                parent_id = request.form.get('parent_id')
+                new_id = request.form.get('id').strip()
+                new_name = request.form.get('name').strip()
+                new_type = request.form.get('type')
+
+                if not new_id or not new_name:
+                    flash('ID and Name are required.', 'danger')
+                else:
+                    new_item = {'id': new_id, 'name': new_name,
+                                'type': new_type}
+                    if new_type == 'room':
+                        new_item['push'] = 'push' in request.form
+                    if new_type == 'child':
+                        new_item['items'] = []
+
+                    if parent_id == 'root_categories':
+                        chat_config.setdefault(
+                            'categories', []).append(new_item)
+                    elif parent_id == 'root_global':
+                        chat_config.setdefault('global', []).append(new_item)
+                    else:
+                        parent_item, _, _ = find_item_and_parent(
+                            chat_config.get('categories', []), parent_id)
+                        if parent_item and parent_item.get('type') == 'child':
+                            parent_item.setdefault(
+                                'items', []).append(new_item)
+                        else:
+                            flash(
+                                f"Parent item '{parent_id}' not found or is not a category.", 'danger')
+
+            elif action == 'edit':
+                item_id = request.form.get('id')
+                item, _, _ = find_item_and_parent(
+                    chat_config.get('categories', []), item_id)
+                if not item:
+                    item, _, _ = find_item_and_parent(
+                        chat_config.get('global', []), item_id)
+
+                if item:
+                    item['name'] = request.form.get(
+                        'name', item['name']).strip()
+                    item['description'] = request.form.get(
+                        'description', item.get('description', '')).strip()
+                    if item['type'] == 'room':
+                        item['push'] = 'push' in request.form
+                else:
+                    flash(f"Item '{item_id}' not found for editing.", 'danger')
+
+            elif action == 'delete':
+                item_id = request.form.get('id')
+                item, parent, index = find_item_and_parent(
+                    chat_config.get('categories', []), item_id)
+                target_list = None
+                if item:
+                    if parent:
+                        target_list = parent.get('items')
+                    else:
+                        target_list = chat_config.get('categories')
+                else:
+                    item, parent, index = find_item_and_parent(
+                        chat_config.get('global', []), item_id)
+                    if item:
+                        target_list = chat_config.get('global')
+
+                if item and target_list is not None and index != -1:
+                    del target_list[index]
+                else:
+                    flash(
+                        f"Item '{item_id}' not found for deletion.", 'danger')
+
+            util.save_chat_config(chat_config)
+            flash('Chat configuration updated successfully.', 'success')
+
+        except Exception as e:
+            flash(f"An error occurred: {e}", 'danger')
+
+        return redirect(url_for('admin.chat_management'))
+
+    # util.load_chat_config() はYAMLファイル全体を辞書として返す
+    raw_config = util.load_chat_config()
+    # テンプレートが期待する形式に整形する
+    chat_config = {
+        'categories': raw_config.get('categories', []),
+        'global': raw_config.get('global', [])
+    }
+    return render_template('admin/chat_management.html', title="Chat Room Management", chat_config=chat_config)
+
+
+@admin_bp.route('/chatrooms/reorder', methods=['POST'])
+@sysop_required
+def reorder_chat_items():
+    """チャットアイテムの並び替えAPI
+
+    管理画面からのドラッグ＆ドロップ操作に応じて、
+    チャットルームやカテゴリの表示順を更新し、`chatroom.yaml`に保存します。
+    """
+    data = request.get_json()
+    parent_id = data.get('parent_id')
+    ordered_ids = data.get('ordered_ids')
+
+    if not parent_id or not ordered_ids:
+        return jsonify({'status': 'error', 'message': 'Missing data.'}), 400
+
+    try:
+        chat_config = util.load_chat_config()
+
+        target_list = None
+        if parent_id == 'root_categories':
+            target_list = chat_config.get('categories', [])
+        elif parent_id == 'root_global':
+            target_list = chat_config.get('global', [])
+        else:
+            def find_list(items, p_id):
+                for item in items:
+                    if item.get('id') == p_id:
+                        return item.get('items')
+                    if 'items' in item:
+                        found = find_list(item['items'], p_id)
+                        if found is not None:
+                            return found
+                return None
+            target_list = find_list(
+                chat_config.get('categories', []), parent_id)
+
+        if target_list is None:
+            return jsonify({'status': 'error', 'message': f"Parent '{parent_id}' not found."}), 404
+
+        # Create a map of items by ID for quick lookup
+        item_map = {item['id']: item for item in target_list}
+        # Reorder the list based on the ordered_ids from the client
+        target_list[:] = [item_map[id] for id in ordered_ids if id in item_map]
+
+        util.save_chat_config(chat_config)
+        return jsonify({'status': 'success'})
+
+    except Exception as e:
+        logging.error(f"Error reordering chat items: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500

@@ -1,34 +1,25 @@
 # ==============================================================================
-# Chat Room Menu Configuration
-#
-# This file defines the hierarchical structure of the chat menu.
-# The system reads this file to dynamically generate the menu that users
-# navigate to enter chat rooms.
-#
-# Structure:
-#   categories:
-#     - A list of top-level categories.
-#   global:
-#     - A list of rooms that appear at the top level, outside of categories.
-#
-# Item Attributes:
-#   - id: Unique identifier for the category or room.
-#   - number: Display order within the same level.
-#   - name: Display name for the item.
-#   - description: (Optional) A short description.
-#   - type: "child" for a sub-category, or "room" for an enterable chat room.
-#   - push: (Optional, for rooms) If `True`, sends a push notification to
-#           subscribed users when someone enters this room. Defaults to `False`.
-#   - items: (Only for type: "child") A list of sub-items.
-# ==============================================================================
-#
-# ==============================================================================
 # チャットルームメニュー設定
 #
 # このファイルは、チャットメニューの階層構造を定義します。
 # システムはこのファイルを読み込み、ユーザーがチャットルームに入るための
 # メニューを動的に生成します。
 #
+# 構造:
+#   categories:
+#     - トップレベルのカテゴリのリスト。
+#   global:
+#     - カテゴリに属さず、トップレベルに表示されるルームのリスト。
+#
+# 各項目の属性:
+#   - id: カテゴリやルームを一位に識別するためのID。
+#   - number: (任意) 同じ階層内での表示順。
+#   - name: 表示名。
+#   - description: (任意) 短い説明文。
+#   - type: "child" (サブカテゴリ) または "room" (入室可能なチャットルーム)。
+#   - push: (任意, roomのみ) `True`の場合、誰かが入室した際にPush通知を送信します。
+#   - lock: (任意, roomのみ) `True`の場合、ルームのロック機能が利用可能になります。
+#   - items: ("child"のみ) サブカテゴリやルームのリスト。
 # ==============================================================================
 
 # --- Categories / カテゴリ階層 ---
@@ -36,31 +27,34 @@
 categories:
   - id: "chat_free"
     number: 1 # 親階層での表示順
-    name: "フリーチャットルーム"
-    description: | # カテゴリの概要説明（複数行）
+    name: "フリーチャット"
+    description: | # 概要説明（複数行対応）
       話題に限定はありません。
       初心者の方からベテランまで、どなたでもお気軽にご参加ください。
     type: "child"
     # `items`キーで、このカテゴリ直下のルームやサブカテゴリを定義します。
     items:
       - id: "chat_free1"
-        number: 1 # このカテゴリ内での表示順
+        number: 1 # 表示順
         name: "フリールーム１"
         description: "どなたでもどうぞ！"
         type: "room"
-        push: False # このルームに入室してもPush通知は送信されません
+        lock: False
+        push: False # 入室時にPush通知を送信しない
       - id: "chat_free2"
         number: 2
         name: "フリールーム２"
         description: "まったりお話ししましょう。"
         type: "room"
+        lock: False
         push: False
       - id: "lonely_room"
         number: 3
         name: "淋しいやつのための部屋"
         description: "プッシュ通知を許可してる人に通知が送られます。きっと誰か来てくれる。と思う。"
         type: "room"
-        push: True # このルームに入室するとPush通知が送信されます
+        lock: True
+        push: True # 入室時にPush通知を送信する
       - id: "chat_deep_dive"
         number: 4
         name: "フリー深堀りトピック"
@@ -73,6 +67,7 @@ categories:
             number: 1
             name: "深掘り部屋A"
             type: "room"
+            lock: False
           - id: "chat_expert_discussion"
             number: 2
             name: "フリー専門議論"
@@ -84,11 +79,12 @@ categories:
               - id: "expert_room_alpha"
                 number: 1
                 name: "アルファ専門室"
+                lock: False
                 type: "room"
             type: "child"
   - id: "chat_specialized"
     number: 2
-    name: "専門チャットルーム"
+    name: "専門チャット"
     description: |
       特定のテーマに特化したチャットルームです。
       専門的な知識や情報交換にご利用ください。
@@ -98,6 +94,7 @@ categories:
         number: 1
         name: "軍事ルーム"
         type: "room"
+        lock: False
       - id: "chat_room_pc_related"
         number: 2
         name: "パソコン関連"
@@ -110,13 +107,16 @@ categories:
             number: 1
             name: "パソコン全般ルーム"
             type: "room"
+            lock: False
           - id: "chat_oldpc"
             number: 2
             name: "オールドPCルーム"
             type: "room"
+            lock: False
           - id: "chat_gaming"
             number: 3
             name: "ゲーミングPCルーム"
+            lock: False
             type: "room"
           - id: "chat_os"
             number: 4
@@ -127,22 +127,25 @@ categories:
               - id: "chat_linux"
                 number: 1
                 name: "Linuxルーム"
+                lock: False
                 type: "room"
               - id: "chat_win"
                 number: 2
                 name: "Windowsルーム"
+                lock: False
                 type: "room"
 
 # --- Global Rooms / グローバルルーム ---
 # カテゴリに属さず、メニューのトップレベルに表示される独立したルームです。
-# 例: 規約違反の報告先、イベント告知専用など
+# 例: 規約違反の報告先、イベント告知専用など。
 global:
   - id: "chat_fight"
     name: "喧嘩用ルーム"
     description: "議論が白熱した場合の避難所です。ここで好きにやってください。でも後腐れないように。最後は仲直りしましょう"
-    lock: True # このルームではロック/アンロックが可能です
+    lock: True # このルームではロック機能が利用可能です
     type: "room"
   - id: "chat_news"
     name: "最新ニュースについて語る"
     description: "最新のニュースに関する情報交換や議論にご利用ください。"
+    lock: False
     type: "room"
