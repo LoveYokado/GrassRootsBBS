@@ -21,7 +21,7 @@ from ..decorators import sysop_required
 import toml
 import yaml
 import shutil
-
+from flask import jsonify
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
@@ -1642,3 +1642,53 @@ def chat_management():
         'global': raw_config.get('global', [])
     }
     return render_template('admin/chat_management.html', title="Chat Room Management", chat_config=chat_config)
+
+
+@admin_bp.route('/chatrooms/reorder', methods=['POST'])
+@sysop_required
+def reorder_chat_items():
+    """
+    Handles reordering of chat items via drag-and-drop.
+    """
+    data = request.get_json()
+    parent_id = data.get('parent_id')
+    ordered_ids = data.get('ordered_ids')
+
+    if not parent_id or not ordered_ids:
+        return jsonify({'status': 'error', 'message': 'Missing data.'}), 400
+
+    try:
+        chat_config = util.load_chat_config()
+
+        target_list = None
+        if parent_id == 'root_categories':
+            target_list = chat_config.get('categories', [])
+        elif parent_id == 'root_global':
+            target_list = chat_config.get('global', [])
+        else:
+            def find_list(items, p_id):
+                for item in items:
+                    if item.get('id') == p_id:
+                        return item.get('items')
+                    if 'items' in item:
+                        found = find_list(item['items'], p_id)
+                        if found is not None:
+                            return found
+                return None
+            target_list = find_list(
+                chat_config.get('categories', []), parent_id)
+
+        if target_list is None:
+            return jsonify({'status': 'error', 'message': f"Parent '{parent_id}' not found."}), 404
+
+        # Create a map of items by ID for quick lookup
+        item_map = {item['id']: item for item in target_list}
+        # Reorder the list based on the ordered_ids from the client
+        target_list[:] = [item_map[id] for id in ordered_ids if id in item_map]
+
+        util.save_chat_config(chat_config)
+        return jsonify({'status': 'success'})
+
+    except Exception as e:
+        logging.error(f"Error reordering chat items: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500

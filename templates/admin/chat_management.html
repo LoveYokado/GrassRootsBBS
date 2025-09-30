@@ -48,7 +48,7 @@
 {% macro render_chat_tree(items, parent_id) %}
 <ul>
     {% for item in items %}
-    <li>
+    <li data-id="{{ item.id }}">
         <div class="item-header">
             <div>
                 <span class="item-name">{{ item.name }}</span>
@@ -189,6 +189,7 @@
 
 {% block scripts %}
 {{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script>
     // Add Modal: Set parent_id when modal is shown
     $('#addModal').on('show.bs.modal', function (event) {
@@ -219,6 +220,42 @@
         } else {
             $('#edit-push-group').hide();
         }
+    });
+
+    // Initialize SortableJS for drag-and-drop
+    document.addEventListener('DOMContentLoaded', function () {
+        const lists = document.querySelectorAll('.chat-tree ul');
+        lists.forEach(list => {
+            new Sortable(list, {
+                group: 'chat-items', // allows dragging between lists
+                animation: 150,
+                onEnd: function (evt) {
+                    const parentId = evt.to.closest('ul').parentElement.querySelector('[data-parent-id]')?.dataset.parentId || evt.to.dataset.parentId || 'root';
+                    const itemIds = Array.from(evt.to.children).map(li => li.dataset.id);
+
+                    fetch("{{ url_for('admin.reorder_chat_items') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            parent_id: parentId,
+                            ordered_ids: itemIds
+                        })
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                // Optionally, show a success message without reloading
+                                console.log('Order saved successfully.');
+                            } else {
+                                alert('Failed to save order: ' + data.message);
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                }
+            });
+        });
     });
 </script>
 {% endblock %}
