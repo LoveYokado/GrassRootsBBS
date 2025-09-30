@@ -1,9 +1,6 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
-# SPDX-License-Identifier: MIT
-
 # Gunicorn config file
 
 # サーバーソケットの設定

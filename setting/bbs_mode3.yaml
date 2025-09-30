@@ -1,26 +1,19 @@
 # ==============================================================================
-# BBS Menu Configuration (for Mode 2 & 3)
-#
-# This file defines the hierarchical structure of the BBS menu for
-# "Mode 2" and "Mode 3". The system reads this file to dynamically
-# generate the menu that users navigate.
-#
-# Structure:
-#   categories:
-#     - id: Unique identifier for the category or board.
-#       number: Display order within the same level.
-#       name: (Optional) Display name. If omitted, it's fetched from the DB.
-#       description: (Optional) Description. If omitted, it's fetched from the DB.
-#       type: "child" for a sub-category, or "board" for a link to a BBS.
-#       items: (Only for type: "child") A list of sub-items.
-# ==============================================================================
-#
-# ==============================================================================
 # 掲示板メニュー設定 (モード2 & 3用)
 #
 # このファイルは、「モード2」および「モード3」で表示される掲示板メニューの
 # 階層構造を定義します。システムはこのファイルを読み込み、ユーザーが
 # ナビゲートするメニューを動的に生成します。
+#
+# 構造:
+#   categories:
+#     - id: カテゴリや掲示板を一意に識別するためのID。
+#           typeが"board"の場合、データベースのboardsテーブルのshortcut_idと一致させる必要があります。
+#       number: (任意) 同じ階層内での表示順。
+#       name: (任意) 表示名。省略した場合はデータベースから取得されます。
+#       description: (任意) 短い説明文。省略した場合はデータベースから取得されます。
+#       type: "child" (サブカテゴリ) または "board" (掲示板へのリンク)。
+#       items: ("child"の場合のみ必須) サブカテゴリや掲示板のリスト。
 #
 # ==============================================================================
 
@@ -30,11 +23,11 @@ categories:
     number: 1
     name: "総合掲示板"
     description: "自由な話題で盛り上がりましょう！"
-    type: "child" # This is a category containing other items.
+    type: "child" # type: "child" は、この項目が他の項目を含むカテゴリであることを示します。
     items:
       - id: "bbs_free"
         number: 1
-        type: "board" # This links directly to a BBS board.
+        type: "board" # type: "board" は、これが掲示板への直接リンクであることを示します。
 
   # --- Hobby Category / 趣味カテゴリ ---
   - id: "bbs_hobby"

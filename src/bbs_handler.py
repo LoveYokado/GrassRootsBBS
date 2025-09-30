@@ -3,10 +3,10 @@
 
 """
 掲示板ハンドラ
-
+ 
 このモジュールは、電子掲示板システム (BBS) のナビゲーションと対話に関する
 中核的なロジックを含んでいます。記事一覧の表示、記事の読み書き、返信の管理、
-特定の掲示板コンテキスト内でのユーザーコマンドの処理などを担当します。
+特定の掲示板コンテキスト内でのユーザーコマンドの処理などを担当します。 
 """
 
 import logging
@@ -21,7 +21,7 @@ from . import util, hierarchical_menu, bbs_manager, database, manual_menu_handle
 
 class CommandHandler:
     """
-    特定の掲示板内でのユーザー操作とコマンド処理を管理するクラス。
+    特定の掲示板内でのユーザー操作とコマンド処理を管理するクラス。 
     インスタンスは、ユーザーが掲示板に入室するたびに作成されます。
     """
 
@@ -86,7 +86,7 @@ class CommandHandler:
 
     def _update_read_progress(self, board_id_pk, article_number):
         """
-        ユーザの閲覧進捗更新
+        ユーザーの閲覧進捗を更新します。
         指定された掲示板で指定された記事番号まで読んだことを記録
         """
         # board_id_pk は int なので、辞書のキーとして使うために文字列に変換
@@ -99,8 +99,8 @@ class CommandHandler:
 
     def display_board_entry_sequence(self):
         """
-        掲示板に入室した際の初期シーケンス（ヘッダと看板の表示）を実行します。
-        This method is currently not called, but remains for potential future use.
+        掲示板に入室した際の初期シーケンス（ヘッダと看板の表示）を実行します。 
+        (このメソッドは現在呼び出されていませんが、将来的な利用のために残されています)
         """
         if not self.current_board:
             logging.error("現在のボードが設定されていません。")
@@ -113,7 +113,7 @@ class CommandHandler:
 
     def command_loop(self):
         """
-        掲示板のトップレベル（書き込み/読み込み選択）のコマンド処理ループ。
+        掲示板のトップレベル（書き込み/読み込み選択）のコマンド処理ループ。 
         ユーザーが 'w' (書き込み) または 'r' (読み込み) を選択するのを待ち受けます。
         """
         if not self.current_board:
@@ -178,7 +178,7 @@ class CommandHandler:
 
     def show_article_list(self, display_initial_header=True, last_login_timestamp=0):
         """
-        記事一覧を表示し、ユーザーのナビゲーション入力を処理するメインループ。
+        記事一覧を表示し、ユーザーのナビゲーション入力を処理するメインループ。 
         カーソル移動、記事の読み込み、削除、検索などの操作を扱います。
         """
 
@@ -199,7 +199,7 @@ class CommandHandler:
 
         def reload_articles_display(keep_index=True):
             """
-            データベースから記事リストを再読み込みし、表示を更新します。
+            データベースから記事リストを再読み込みし、表示を更新します。 
             既読状態やカーソル位置も再計算します。
             """
             nonlocal articles, current_index, article_id_width, display_initial_header, last_login_timestamp
@@ -275,7 +275,7 @@ class CommandHandler:
 
         def display_current_article_header():
             """
-            現在のカーソル位置に基づいて、記事のヘッダー行またはマーカーを表示します。
+            現在のカーソル位置に基づいて、記事のヘッダー行またはマーカーを表示します。 
             """
             nonlocal articles, current_index, article_id_width
             if current_index == -1:  # 先頭マーカ
@@ -1666,7 +1666,7 @@ class CommandHandler:
 
     def write_article(self, parent_article=None):
         """
-        記事を新規作成する。スレッドへの返信もこの関数で処理する。
+        記事を新規作成します。スレッドへの返信もこの関数で処理します。
         :param parent_article: 返信対象の親記事データ。新規スレッドの場合はNone。
         :return: 処理結果を示す文字列 ('posted', 'cancelled', 'failed')。
         """
@@ -1912,7 +1912,7 @@ class CommandHandler:
 
 def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_address):
     """
-    BBS機能のエントリーポイント。
+    BBS機能のエントリーポイントです。
     ショートカットIDが指定されていれば直接その掲示板へ、なければメニューを表示する。
     メニューモードに応じて、手書きメニュー(mode 1)と階層メニュー(mode 2, 3)を切り替える。
     """

@@ -49,6 +49,9 @@
                 class="{{ 'active' if request.endpoint == 'admin.bbs_list' else '' }}">
                 {{ g.texts.get('nav', {}).get('bbs_list_management', 'BBS List Management') }}
             </a>
+            <a href="{{ url_for('admin.bbs_management') }}"
+                class="{{ 'active' if request.endpoint == 'admin.bbs_management' else '' }}">BBS Menu Management
+            </a>
             <a href="{{ url_for('admin.chat_management') }}"
                 class="{{ 'active' if request.endpoint == 'admin.chat_management' else '' }}">Chat Management
             </a>

@@ -3,7 +3,7 @@
 
 """
 BBS ビジネスロジックマネージャ
-
+ 
 このモジュールは、電子掲示板システム (BBS) のビジネスロジックを
 カプセル化するマネージャクラスを含んでいます。これらのクラスは、
 リクエストハンドラ (例: bbs_handler.py) とデータベースアクセス層
@@ -19,7 +19,7 @@ from . import util, database
 
 
 class BoardManager:
-    """掲示板のメタ情報（設定、看板など）を管理するクラス。"""
+    """掲示板のメタ情報（設定、看板など）を管理するクラスです。"""
 
     def __init__(self):
         # データベース接続はグローバルな database モジュールを介して行われるため、
@@ -64,12 +64,12 @@ class BoardManager:
         return True
 
     def get_board_info(self, shortcut_id):
-        """指定されたショートカットIDの掲示板情報をDBから取得します。"""
+        """指定されたショートカットIDを持つ掲示板の情報をDBから取得します。"""
         return database.get_board_by_shortcut_id(shortcut_id)
 
 
 class ArticleManager:
-    """記事の作成、読み込み、更新、削除 (CRUD) 操作を管理するクラス。"""
+    """記事の作成、読み込み、更新、削除 (CRUD) 操作を管理するクラスです。"""
 
     def __init__(self):
         # データベース接続はグローバルな database モジュールを介して行われます。
@@ -89,7 +89,7 @@ class ArticleManager:
             board_id, article_number, include_deleted=include_deleted)
 
     def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None, attachment_size=None):
-        """記事を新規作成します。
+        """記事を新規作成します。 
 
         :param board_id_pk: 掲示板の主キー (boards.id)
         :param user_identifier: ユーザーの主キー (users.id) またはゲストの表示名 (文字列)
@@ -179,7 +179,7 @@ class ArticleManager:
 
 
 class PermissionManager:
-    """掲示板や記事へのアクセス権限を管理・検証するクラス。"""
+    """掲示板や記事へのアクセス権限を管理・検証するクラスです。"""
 
     def __init__(self):
         # データベース接続はグローバルな database モジュールを介して行われます。
@@ -187,7 +187,7 @@ class PermissionManager:
 
     def _check_generic_permission(self, board_info, user_id_pk, user_level, level_key):
         """
-        汎用的な権限チェックロジック（主に閲覧権限で使用）。
+        汎用的な権限チェックロジック（主に閲覧権限で使用）です。
         権限は以下の順序で評価されます。
 
         1. SysOp (level >= 5) は常に許可。

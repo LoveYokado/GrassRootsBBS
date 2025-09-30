@@ -5,14 +5,16 @@
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 <style>
-    .chat-tree ul {
+    .bbs-tree ul {
         padding-left: 25px;
         list-style-type: none;
         border-left: 1px dashed #444;
         margin-left: 5px;
+        min-height: 30px;
+        padding-top: 5px;
     }
 
-    .chat-tree li {
+    .bbs-tree li {
         margin: 10px 0;
         padding: 10px;
         background-color: #333;
@@ -45,22 +47,16 @@
 </style>
 {% endblock %}
 
-{% macro render_chat_tree(items, parent_id) %}
-<ul>
+{% macro render_bbs_tree(items, parent_id) %}
+<ul data-parent-id="{{ parent_id }}">
     {% for item in items %}
     <li data-id="{{ item.id }}">
         <div class="item-header">
             <div>
-                <span class="item-name">{{ item.name }}</span>
+                <span class="item-name">{{ item.name or item.id }}</span>
                 <span class="item-id"> ({{ item.id }})</span>
-                {% if item.type == 'room' %}
-                <span class="badge badge-info">Room</span>
-                {% if item.push %}
-                <span class="badge badge-success">Push</span>
-                {% endif %}
-                {% if item.lock %}
-                <span class="badge badge-secondary">Lock</span>
-                {% endif %}
+                {% if item.type == 'board' %}
+                <span class="badge badge-info">Board</span>
                 {% else %}
                 <span class="badge badge-warning">Category</span>
                 {% endif %}
@@ -71,11 +67,14 @@
                     data-parent-id="{{ item.id }}">Add</button>
                 {% endif %}
                 <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#editModal"
-                    data-id="{{ item.id }}" data-name="{{ item.name }}" data-description="{{ item.description or '' }}"
-                    data-type="{{ item.type }}" data-push="{{ 'true' if item.push else 'false' }}"
-                    data-lock="{{ 'true' if item.lock else 'false' }}">Edit</button>
-                <form method="post" action="{{ url_for('admin.chat_management') }}" style="display: inline;"
-                    onsubmit="return confirm('Are you sure you want to delete \'{{ item.name }}\'?');">
+                    data-id="{{ item.id }}" data-name="{{ item.name or '' }}"
+                    data-description="{{ item.description or '' }}">Edit</button>
+                {% if item.type == 'board' and item.db_id %}
+                <a href="{{ url_for('admin.edit_board', board_id=item.db_id) }}" class="btn btn-sm btn-info">Full
+                    Edit</a>
+                {% endif %}
+                <form method="post" action="{{ url_for('admin.bbs_management') }}" style="display: inline;"
+                    onsubmit="return confirm('Are you sure you want to delete \'{{ item.name or item.id }}\'?');">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="{{ item.id }}">
                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
@@ -86,9 +85,11 @@
         <p class="text-muted small mt-2 mb-0">{{ item.description | nl2br }}</p>
         {% endif %}
 
-        {% if 'items' in item %}
-        {{ render_chat_tree(item['items'], item.id) }}
+        {# カテゴリ(child)の場合は、中身が空でもドロップ先となるulを必ず生成する #}
+        {% if item.type == 'child' %}
+        {{ render_bbs_tree(item['items'] if 'items' in item else [], item.id) }}
         {% endif %}
+
     </li>
     {% endfor %}
 </ul>
@@ -96,55 +97,37 @@
 
 {% block content %}
 <h1>{{ title }}</h1>
-<p>Manage the structure of your chat rooms. Changes are saved to <code>chatroom.yaml</code>.</p>
+<p>Manage the structure of your BBS menu (for Mode 2 & 3). Changes are saved to <code>bbs_mode3.yaml</code>.</p>
 
-<div class="chat-tree">
+<div class="bbs-tree">
     <h3>Categories</h3>
-    {{ render_chat_tree(chat_config.categories, 'root_categories') }}
+    {{ render_bbs_tree(bbs_config.categories, 'root_categories') }}
     <button type="button" class="btn btn-primary mt-2" data-toggle="modal" data-target="#addModal"
         data-parent-id="root_categories">Add Top-Level Category</button>
-
-    <h3 class="mt-4">Global Rooms</h3>
-    {{ render_chat_tree(chat_config.global, 'root_global') }}
-    <button type="button" class="btn btn-primary mt-2" data-toggle="modal" data-target="#addModal"
-        data-parent-id="root_global">Add Global Room</button>
 </div>
 
 <!-- Add Modal -->
 <div class="modal fade" id="addModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content" style="background-color: #2a2a2a; color: #fff;">
-            <form method="post" action="{{ url_for('admin.chat_management') }}">
+            <form method="post" action="{{ url_for('admin.bbs_management') }}">
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New Item</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true" style="color: #fff;">&times;</span>
-                    </button>
+                    <h5 class="modal-title">Add New Item</h5><button type="button" class="close"
+                        data-dismiss="modal"><span aria-hidden="true" style="color: #fff;">&times;</span></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="add">
                     <input type="hidden" name="parent_id" id="add-parent-id">
                     <div class="form-group">
-                        <label for="add-id">ID (Unique, English characters only)</label>
+                        <label for="add-id">ID (Must match a board's shortcut_id)</label>
                         <input type="text" class="form-control" id="add-id" name="id" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="add-name">Name</label>
-                        <input type="text" class="form-control" id="add-name" name="name" required>
                     </div>
                     <div class="form-group">
                         <label for="add-type">Type</label>
                         <select class="form-control" id="add-type" name="type">
-                            <option value="room">Room</option>
-                            <option value="child">Category (Child)</option>
+                            <option value="board">Board Link</option>
+                            <option value="child">Category (Container)</option>
                         </select>
-                    </div>
-                    <div class="form-group">
-                        <label><input type="checkbox" name="push" value="true"> Enable Push Notification on
-                            Entry</label>
-                    </div>
-                    <div class="form-group">
-                        <label><input type="checkbox" name="lock" value="true"> Enable Room Lock Feature</label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -160,32 +143,25 @@
 <div class="modal fade" id="editModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content" style="background-color: #2a2a2a; color: #fff;">
-            <form method="post" action="{{ url_for('admin.chat_management') }}">
+            <form method="post" action="{{ url_for('admin.bbs_management') }}">
                 <div class="modal-header">
-                    <h5 class="modal-title">Edit Item</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true" style="color: #fff;">&times;</span>
-                    </button>
+                    <h5 class="modal-title">Edit Item</h5><button type="button" class="close" data-dismiss="modal"><span
+                            aria-hidden="true" style="color: #fff;">&times;</span></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="action" value="edit">
                     <input type="hidden" name="id" id="edit-id">
                     <div class="form-group">
-                        <label for="edit-name">Name</label>
-                        <input type="text" class="form-control" id="edit-name" name="name" required>
+                        <label for="edit-name">Name (Optional)</label>
+                        <input type="text" class="form-control" id="edit-name" name="name">
+                        <small class="form-text text-muted">If blank, the name from the board's DB entry will be
+                            used.</small>
                     </div>
                     <div class="form-group">
-                        <label for="edit-description">Description</label>
+                        <label for="edit-description">Description (Optional)</label>
                         <textarea class="form-control" id="edit-description" name="description" rows="3"></textarea>
-                    </div>
-                    <div class="form-group" id="edit-push-group">
-                        <label><input type="checkbox" id="edit-push" name="push" value="true"> Enable Push Notification
-                            on
-                            Entry</label>
-                    </div>
-                    <div class="form-group" id="edit-lock-group">
-                        <label><input type="checkbox" id="edit-lock" name="lock" value="true"> Enable Room Lock
-                            Feature</label>
+                        <small class="form-text text-muted">If blank, the description from the board's DB entry will be
+                            used.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -202,72 +178,45 @@
 {{ super() }}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script>
-    // Add Modal: Set parent_id when modal is shown
     $('#addModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
         var parentId = button.data('parent-id');
-        var modal = $(this);
-        modal.find('#add-parent-id').val(parentId);
+        $(this).find('#add-parent-id').val(parentId);
     });
 
-    // Edit Modal: Populate form with item data
     $('#editModal').on('show.bs.modal', function (event) {
         var button = $(event.relatedTarget);
         var id = button.data('id');
         var name = button.data('name');
         var description = button.data('description');
-        var type = button.data('type');
-        var push = button.data('push');
-        var lock = button.data('lock');
-
         var modal = $(this);
-        modal.find('.modal-title').text('Edit: ' + name);
+        modal.find('.modal-title').text('Edit: ' + (name || id));
         modal.find('#edit-id').val(id);
-        modal.find('.modal-body #edit-name').val(name);
-        modal.find('.modal-body #edit-description').val(description);
-
-        if (type === 'room') {
-            $('#edit-push-group').show();
-            modal.find('.modal-body #edit-push').prop('checked', push);
-            $('#edit-lock-group').show();
-            modal.find('.modal-body #edit-lock').prop('checked', lock);
-        } else {
-            $('#edit-push-group').hide();
-            $('#edit-lock-group').hide();
-        }
+        modal.find('#edit-name').val(name);
+        modal.find('#edit-description').val(description);
     });
 
-    // Initialize SortableJS for drag-and-drop
     document.addEventListener('DOMContentLoaded', function () {
-        const lists = document.querySelectorAll('.chat-tree ul');
+        const lists = document.querySelectorAll('.bbs-tree ul');
         lists.forEach(list => {
             new Sortable(list, {
-                group: 'chat-items', // allows dragging between lists
+                group: 'bbs-items',
                 animation: 150,
                 onEnd: function (evt) {
-                    const parentId = evt.to.closest('ul').parentElement.querySelector('[data-parent-id]')?.dataset.parentId || evt.to.dataset.parentId || 'root';
+                    const parentId = evt.to.dataset.parentId;
                     const itemIds = Array.from(evt.to.children).map(li => li.dataset.id);
 
-                    fetch("{{ url_for('admin.reorder_chat_items') }}", {
+                    fetch("{{ url_for('admin.reorder_bbs_items') }}", {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            parent_id: parentId,
-                            ordered_ids: itemIds
-                        })
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ parent_id: parentId, ordered_ids: itemIds })
                     })
                         .then(response => response.json())
                         .then(data => {
-                            if (data.status === 'success') {
-                                // Optionally, show a success message without reloading
-                                console.log('Order saved successfully.');
-                            } else {
+                            if (data.status !== 'success') {
                                 alert('Failed to save order: ' + data.message);
                             }
-                        })
-                        .catch(error => console.error('Error:', error));
+                        }).catch(error => console.error('Error:', error));
                 }
             });
         });
