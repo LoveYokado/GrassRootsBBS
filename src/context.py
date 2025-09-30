@@ -13,28 +13,35 @@ class CommandContext:
 
     @property
     def login_id(self) -> str:
+        """ログインID（ユーザー名）"""
         return self._user_session.get('username')
 
     @property
     def display_name(self) -> str:
+        """表示名"""
         return self._user_session.get('display_name')
 
     @property
     def user_id(self) -> int:
+        """ユーザーID（主キー）"""
         return self._user_session.get('user_id')
 
     @property
     def user_level(self) -> int:
+        """ユーザーレベル"""
         return self._user_session.get('userlevel')
 
     @property
     def menu_mode(self) -> str:
+        """メニューモード ('1', '2', '3')"""
         return self._user_session.get('menu_mode', '2')
 
     @menu_mode.setter
     def menu_mode(self, value: str):
+        """メニューモードを設定します。"""
         self._user_session['menu_mode'] = value
 
     @property
     def ip_address(self) -> str:
+        """クライアントのIPアドレス"""
         return self.chan.getpeername()[0] if self.chan.getpeername() else 'N/A'

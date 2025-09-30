@@ -7,6 +7,7 @@
 このモジュールは、Flaskアプリケーションインスタンスの作成と設定を担当する
 アプリケーションファクトリ関数 `create_app()` を含んでいます。
 """
+import json
 
 import datetime
 import ipaddress
@@ -35,8 +36,10 @@ socketio = SocketIO()
 def create_app():
     """
     Flaskアプリケーションインスタンスを作成し、設定します。
-    アプリケーションの各種設定、ロギング、Blueprint、エラーハンドラなどを初期化します。
+    このファクトリ関数は、アプリケーションの全体的な設定、ロギング、
+    Blueprintの登録、エラーハンドリング、およびその他の拡張機能の初期化を担当します。
     """
+    # --- パス設定 ---
     _current_dir = os.path.dirname(os.path.abspath(__file__))
     PROJECT_ROOT = os.path.dirname(_current_dir)
     APP_LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
@@ -45,6 +48,7 @@ def create_app():
     app = Flask(__name__, static_folder='../static',
                 template_folder='../templates')
 
+    # --- 設定ファイルの読み込み ---
     config_path = os.path.join(PROJECT_ROOT, 'setting', 'config.toml')
     util.load_app_config_from_path(config_path)
     uppercase_config = {key.upper(): value for key,
@@ -56,6 +60,7 @@ def create_app():
         app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     app.secret_key = secrets.token_hex(16)
 
+    # --- ディレクトリの作成 ---
     ATTACHMENT_DIR = app.config.get('WEBAPP', {}).get(
         'ATTACHMENT_UPLOAD_DIR', 'data/attachments')
     if not os.path.isabs(ATTACHMENT_DIR):
@@ -71,6 +76,7 @@ def create_app():
     app.config['ATTACHMENT_DIR'] = ATTACHMENT_DIR
     app.config['SESSION_LOG_DIR'] = SESSION_LOG_DIR
 
+    # --- ロギング設定 ---
     access_logger = logging.getLogger('grbbs.access')
     access_logger.setLevel(logging.INFO)
     access_handler = RotatingFileHandler(
@@ -92,17 +98,19 @@ def create_app():
 
     database.init_app(app)
 
+    # --- 拡張機能の初期化 ---
     app.config.setdefault('RATELIMIT_STORAGE_URI', os.getenv(
         'REDIS_URL', 'redis://localhost:6379/0').replace('/0', '/1'))
     ratelimit_config = app.config.get('RATELIMIT', {})
     default_limits_str = ratelimit_config.get(
         'default_limits', '200 per day;50 per hour')
     app.config.setdefault('RATELIMIT_DEFAULT', default_limits_str)
-
     extensions.limiter.init_app(app)
 
+    # --- プラグインの読み込み ---
     plugin_manager.load_plugins()
 
+    # --- セッション設定 (Redis) ---
     redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
     app.config['SESSION_TYPE'] = 'redis'
     app.config['SESSION_REDIS'] = redis.from_url(redis_url)
@@ -111,19 +119,22 @@ def create_app():
     app.config['SESSION_KEY_PREFIX'] = 'grbbs_'
     Session(app)
 
+    # --- セキュリティ設定 ---
     app.config['MAX_LOGIN_ATTEMPTS'] = app.config.get(
         'SECURITY', {}).get('MAX_PASSWORD_ATTEMPTS', 3)
     app.config['LOCKOUT_TIME_SECONDS'] = app.config.get(
         'SECURITY', {}).get('LOCKOUT_TIME_SECONDS', 300)
 
+    # --- Blueprintの登録 ---
     app.register_blueprint(web_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
     errors.register_error_handlers(app)
 
+    # --- テンプレートコンテキストとフィルタ ---
     @app.context_processor
     def inject_util():
-        """テンプレート内で `util` モジュールの関数を使えるようにします。"""
+        """テンプレート内で `util` モジュールの便利関数を使えるようにします。"""
         return dict(util=util)
 
     @app.template_filter('timestamp_to_datetime')
@@ -133,9 +144,10 @@ def create_app():
         except (ValueError, OSError):
             return "Invalid Date"
 
+    # --- リクエストフック ---
     @app.before_request
     def restrict_admin_access_by_ip():
-        """管理画面へのアクセスをIPアドレスで制限します。"""
+        """リクエスト毎に、管理画面へのアクセスをIPアドレスで制限します。"""
         if request.path.startswith('/admin'):
             admin_config = app.config.get('ADMIN', {})
             if not admin_config.get('ip_restriction_enabled', False):
@@ -156,7 +168,7 @@ def create_app():
 
     @app.after_request
     def add_security_headers(response):
-        """レスポンスにセキュリティ関連のヘッダーを追加します。"""
+        """全てのリクエストのレスポンスにセキュリティ関連のヘッダーを追加します。"""
         csp = (
             "default-src 'self';"
             "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net https://code.jquery.com https://stackpath.bootstrapcdn.com https://fonts.googleapis.com;"
@@ -174,6 +186,7 @@ def create_app():
         response.headers['X-XSS-Protection'] = '1; mode=block'
         return response
 
+    # --- SocketIOの初期化 ---
     allowed_origins_str = os.getenv('SOCKETIO_ALLOWED_ORIGINS', app.config.get(
         'WEBAPP', {}).get('ORIGIN', 'http://localhost:5000'))
     allowed_origins = allowed_origins_str.split(
@@ -182,8 +195,9 @@ def create_app():
                       cors_allowed_origins=allowed_origins)
     init_events(socketio, app)
 
+    # --- スケジュールジョブ (バックアップ) ---
     def scheduled_backup_job():
-        """スケジューラによって実行されるバックアップジョブです。"""
+        """apschedulerによって定期的に実行されるバックアップジョブです。"""
         with app.app_context():
             logging.info("Starting scheduled backup job...")
             filename = backup_util.create_backup()

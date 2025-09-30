@@ -14,8 +14,8 @@ DB API Test Plugin
 
 def run(context):
     """
-    Main entry point for the plugin.
-    Displays a menu to interact with the plugin's dedicated database storage.
+    プラグインのメインエントリーポイント。
+    プラグイン専用のデータベースストレージと対話するためのメニューを表示します。
     """
     api = context['api']
     api.send("--- DB API Test Plugin ---\r\n")
@@ -33,7 +33,7 @@ def run(context):
         choice = api.get_input().strip().lower()
 
         if choice == '1':
-            # api.save_data のテスト
+            # データの保存/更新
             api.send("Enter key: ")
             key = api.get_input().strip()
             if not key:
@@ -47,7 +47,7 @@ def run(context):
                 api.send(f"Failed to save data for key '{key}'.\r\n")
 
         elif choice == '2':
-            # api.get_data のテスト
+            # キーを指定してデータを取得
             api.send("Enter key: ")
             key = api.get_input().strip()
             if not key:
@@ -55,13 +55,13 @@ def run(context):
                 continue
             value = api.get_data(key)
             if value is not None:
-                # データはJSONとして保存されているため、そのまま表示します
+                # データはJSONからデシリアライズされたPythonオブジェクトとして返される
                 api.send(f"Value for '{key}': {value}\r\n")
             else:
                 api.send(f"No data found for key '{key}'.\r\n")
 
         elif choice == '3':
-            # api.get_all_data のテスト
+            # このプラグインの全データを取得
             all_data = api.get_all_data()
             if not all_data:
                 api.send("No data stored for this plugin.\r\n")
@@ -71,7 +71,7 @@ def run(context):
                     api.send(f"  - {key}: {value}\r\n")
 
         elif choice == '4':
-            # api.delete_data のテスト
+            # キーを指定してデータを削除
             api.send("Enter key to delete: ")
             key = api.get_input().strip()
             if not key:
@@ -84,7 +84,7 @@ def run(context):
                     f"Failed to delete data for key '{key}' (it may not exist).\r\n")
 
         elif choice == '5':
-            # api.get_user_info のテスト
+            # ユーザー情報を取得
             api.send("Enter username: ")
             username = api.get_input().strip()
             if not username:
@@ -99,7 +99,7 @@ def run(context):
                 api.send(f"User '{username}' not found.\r\n")
 
         elif choice == '6':
-            # api.get_online_users のテスト
+            # オンラインユーザーのリストを取得
             online_users = api.get_online_users()
             if not online_users:
                 api.send("No users are currently online.\r\n")

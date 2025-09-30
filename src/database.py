@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-データベース抽象化レイヤー
+データベース抽象化レイヤー (DAL)
 
 このモジュールは、全てのデータベース操作に対する構造化された抽象的な
 インターフェースを提供します。各クラスが特定のテーブルやデータの論理的な
@@ -109,7 +109,7 @@ class DBManager:
 
     def update_record(self, table, set_data, where_data):
         """
-        指定されたテーブルのレコードを更新する汎用メソッドです。
+        指定されたテーブルのレコードを更新する汎用的なメソッドです。
 
         :param table: 更新するテーブル名。
         :param set_data: 更新するカラムと値の辞書 (例: {'col1': 'val1'})。
@@ -135,7 +135,7 @@ class UserManager:
         self._db = db_manager_instance
 
     def get_auth_info(self, username):
-        """指定されたユーザー名の認証関連情報をすべて取得します。"""
+        """ユーザー名から認証に必要な全ての情報を取得します。"""
         query = "SELECT id, name, password, salt, level, lastlogin, menu_mode, email, comment, telegram_restriction, blacklist, exploration_list, read_progress FROM users WHERE name = %s"
         return self._db.execute_query(query, (username,), fetch='one')
 
@@ -145,19 +145,19 @@ class UserManager:
         return self._db.execute_query(query, (user_id,), fetch='one')
 
     def get_id_from_name(self, username):
-        """ユーザー名からユーザーIDを取得します。"""
+        """ユーザー名（大文字小文字を区別しない）からユーザーIDを取得します。"""
         query = "SELECT id FROM users WHERE name = %s"
         result = self._db.execute_query(query, (username,), fetch='one')
         return result['id'] if result else None
 
     def get_name_from_id(self, user_id):
-        """ユーザーIDからユーザー名を取得します。"""
+        """ユーザーIDからユーザー名を取得します。存在しない場合は '(不明)' を返します。"""
         query = "SELECT name FROM users WHERE id = %s"
         result = self._db.execute_query(query, (user_id,), fetch='one')
         return result['name'] if result else "(不明)"
 
     def get_names_from_ids(self, user_ids):
-        """ユーザーIDのリストから、IDとユーザー名のマッピング辞書を取得します。"""
+        """複数のユーザーIDから、IDとユーザー名のマッピング辞書を一括で取得します。"""
         if not user_ids:
             return {}
         valid_user_ids = [int(uid)
@@ -172,7 +172,7 @@ class UserManager:
         return {row['id']: row['name'] for row in results} if results else {}
 
     def get_users_by_names(self, usernames):
-        """ユーザー名のリストから、複数のユーザー情報を一括で取得します。"""
+        """複数のユーザー名から、ユーザー情報を一括で取得します。"""
         if not usernames:
             return []
         placeholders = ','.join(['%s'] * len(usernames))
@@ -181,7 +181,7 @@ class UserManager:
         return self._db.execute_query(query, params, fetch='all')
 
     def get_public_info(self, username):
-        """指定されたユーザー名の公開情報を取得します。パスワードなどの機密情報は含みません。"""
+        """指定されたユーザー名の公開情報（パスワード等を含まない）を取得します。"""
         query = "SELECT id, name, level, registdate, lastlogin, comment FROM users WHERE name = %s"
         return self._db.execute_query(query, (username.upper(),), fetch='one')
 
@@ -197,7 +197,7 @@ class UserManager:
         return result['count'] if result else 0
 
     def get_daily_registrations(self, days=7):
-        """過去指定日数間の日毎のユーザー登録数を取得します。"""
+        """過去指定日数間の日毎のユーザー登録数を取得し、グラフ表示などに使用します。"""
         query = """
             SELECT
                 DATE(FROM_UNIXTIME(registdate)) as registration_date,
@@ -210,7 +210,7 @@ class UserManager:
         return self._db.execute_query(query, (days - 1,), fetch='all')
 
     def register(self, username, hashed_password, salt, comment, level=0, menu_mode='2', telegram_restriction=0, email=''):
-        """新しいユーザーをデータベースに登録します。"""
+        """新しいユーザーをデータベースに登録します。ユーザー名は自動的に大文字に変換されます。"""
         query = """
             INSERT INTO users (name, password, salt, registdate, level, lastlogin, lastlogout,
                 comment, email, menu_mode, telegram_restriction, blacklist,
@@ -226,18 +226,18 @@ class UserManager:
         return self._db.execute_query(query, params) is not None
 
     def delete(self, user_id):
-        """指定されたユーザーIDのユーザーを削除します。"""
+        """指定されたユーザーIDのユーザーを物理削除します。"""
         query = "DELETE FROM users WHERE id = %s"
         return self._db.execute_query(query, (user_id,)) is not None
 
     def get_exploration_list(self, user_id):
-        """指定されたユーザーの探索リストを取得します。"""
+        """指定されたユーザーの探索リスト（巡回する掲示板のリスト）を取得します。"""
         query = "SELECT exploration_list FROM users WHERE id = %s"
         result = self._db.execute_query(query, (user_id,), fetch='one')
         return result['exploration_list'] if result and result['exploration_list'] else ""
 
     def set_exploration_list(self, user_id, exploration_list_str):
-        """指定されたユーザーの探索リストを更新します。"""
+        """指定されたユーザーの探索リストを文字列で更新します。"""
         try:
             self._db.update_record(
                 'users', {'exploration_list': exploration_list_str}, {'id': user_id})
@@ -249,13 +249,13 @@ class UserManager:
             return False
 
     def update_read_progress(self, user_id, read_progress_dict):
-        """ユーザーの掲示板既読進捗をJSON形式で更新します。"""
+        """ユーザーの掲示板既読進捗（どの記事まで読んだか）をJSON形式で更新します。"""
         read_progress_json = json.dumps(read_progress_dict)
         self._db.update_record(
             'users', {'read_progress': read_progress_json}, {'id': user_id})
 
     def get_read_progress(self, user_id):
-        """ユーザーの掲示板既読進捗を辞書として取得します。"""
+        """ユーザーの掲示板既読進捗を辞書として取得します。データがない場合は空の辞書を返します。"""
         query = "SELECT read_progress FROM users WHERE id = %s"
         result = self._db.execute_query(query, (user_id,), fetch='one')
         if result and result.get('read_progress'):
@@ -268,7 +268,7 @@ class UserManager:
         return {}
 
     def get_memberlist(self, search_word=None):
-        """会員リスト表示用に、ユーザー名とコメントの一覧を取得します。"""
+        """会員リスト表示用に、ユーザー名とコメントの一覧を取得します。検索も可能です。"""
         query = "SELECT name, comment FROM users"
         params = []
         if search_word:
@@ -277,7 +277,7 @@ class UserManager:
         return self._db.execute_query(query, tuple(params), fetch='all')
 
     def get_all(self, page=1, per_page=15, sort_by='id', order='asc', search_term=None):
-        """管理画面用に、ソート・検索機能付きで全ユーザーのリストを取得します。"""
+        """管理画面用に、ページネーション、ソート、検索機能付きで全ユーザーのリストを取得します。"""
         allowed_columns = ['id', 'name', 'level',
                            'email', 'registdate', 'lastlogin']
         if sort_by not in allowed_columns:
@@ -316,7 +316,7 @@ class UserManager:
         return users, total_items
 
     def get_sysop_user_id(self):
-        """システムオペレーター（レベル5）のユーザーIDを取得します（最初の1件）。"""
+        """システムオペレーター（レベル5）のユーザーIDを取得します（最初に登録された1件）。"""
         query = "SELECT id FROM users WHERE level = 5 ORDER BY id ASC LIMIT 1"
         result = self._db.execute_query(query, fetch='one')
         if result:
@@ -332,22 +332,22 @@ class BoardManager:
         self._db = db_manager_instance
 
     def get_by_shortcut_id(self, shortcut_id):
-        """ショートカットIDから掲示板情報を取得します。"""
+        """ショートカットID（例: 'A', 'B'）から掲示板情報を取得します。"""
         query = "SELECT * FROM boards WHERE shortcut_id = %s"
         return self._db.execute_query(query, (shortcut_id,), fetch='one')
 
     def get_by_id(self, board_id_pk):
-        """主キーIDから掲示板情報を取得します。"""
+        """主キー（`id`）から掲示板情報を取得します。"""
         query = "SELECT * FROM boards WHERE id = %s"
         return self._db.execute_query(query, (board_id_pk,), fetch='one')
 
     def get_all(self):
-        """全ての掲示板の基本情報を取得します。"""
+        """全ての掲示板の基本情報を取得します。主に内部処理で使用されます。"""
         query = "SELECT id, shortcut_id, operators, default_permission, board_type FROM boards"
         return self._db.execute_query(query, fetch='all')
 
     def get_total_count(self):
-        """登録されている総掲示板数を取得します。"""
+        """登録されている総掲示板数を取得します。管理画面のダッシュボードなどで使用されます。"""
         query = "SELECT COUNT(*) as count FROM boards"
         result = self._db.execute_query(query, fetch='one')
         return result['count'] if result else 0
@@ -363,12 +363,12 @@ class BoardManager:
         return self._db.execute_query(query, params) is not None
 
     def delete_entry(self, shortcut_id):
-        """ショートカットIDを指定して掲示板を削除します。"""
+        """ショートカットIDを指定して掲示板を削除します。関連データは削除されません。"""
         query = "DELETE FROM boards WHERE shortcut_id = %s"
         return self._db.execute_query(query, (shortcut_id,)) is not None
 
     def delete_and_related_data(self, board_id_pk):
-        """指定された掲示板と、それに関連する全ての記事や権限設定を削除します。"""
+        """指定された掲示板と、それに関連する全ての記事や権限設定をトランザクション内で削除します。"""
         conn = self._db.get_connection()
         cursor = None
         try:
@@ -405,7 +405,7 @@ class BoardManager:
                 conn.close()
 
     def update_operators(self, board_id_pk, operator_user_ids_json_string):
-        """掲示板のオペレーターリストを更新します。"""
+        """掲示板のオペレーターリスト（ユーザーIDのJSON配列）を更新します。"""
         query = "UPDATE boards SET operators = %s WHERE id = %s"
         params = (
             operator_user_ids_json_string if operator_user_ids_json_string is not None else '[]', board_id_pk)
@@ -415,14 +415,14 @@ class BoardManager:
         return True
 
     def update_kanban(self, board_id_pk, new_kanban_body):
-        """掲示板の看板（入室時メッセージ）を更新します。"""
+        """掲示板の看板（入室時に表示されるメッセージ）を更新します。"""
         query = "UPDATE boards SET kanban_body = %s WHERE id = %s"
         self._db.execute_query(query, (new_kanban_body, board_id_pk))
         logging.info(f"掲示板ID {board_id_pk} の看板本文を更新しました")
         return True
 
     def update_levels(self, board_id_pk, read_level, write_level):
-        """掲示板の読み書きレベルを更新します。"""
+        """掲示板の読み書きに必要な最低ユーザーレベルを更新します。"""
         query = "UPDATE boards SET read_level = %s, write_level = %s WHERE id = %s"
         try:
             self._db.execute_query(
@@ -435,14 +435,14 @@ class BoardManager:
             return False
 
     def update_last_posted_at(self, board_id_pk, timestamp=None):
-        """掲示板の最終投稿日時を更新します。"""
+        """掲示板の最終投稿日時を更新します。記事投稿時に呼び出されます。"""
         if timestamp is None:
             timestamp = int(time.time())
         self._db.update_record(
             'boards', {'last_posted_at': timestamp}, {'id': board_id_pk})
 
     def get_all_for_sysop_list(self, page=1, per_page=15, sort_by='shortcut_id', order='asc', search_term=None):
-        """管理画面用に、ソート・検索機能付きで全掲示板のリストを取得します。"""
+        """管理画面用に、ページネーション、ソート、検索機能付きで全掲示板のリストを取得します。"""
         allowed_sort_columns = {
             'shortcut_id', 'name', 'board_type', 'status', 'last_posted_at',
             'read_level', 'write_level', 'default_permission', 'allow_attachments', 'post_count'
@@ -506,7 +506,7 @@ class ArticleManager:
         self._db = db_manager_instance
 
     def get_by_board_id(self, board_id_pk, order_by="created_at ASC, article_number ASC", include_deleted=False):
-        """指定された掲示板IDの記事一覧を取得します。"""
+        """指定された掲示板IDの記事一覧を取得します。論理削除された記事を含めるか選択できます。"""
         where_clauses = ["board_id = %s"]
         params = [board_id_pk]
 
@@ -517,7 +517,7 @@ class ArticleManager:
         return self._db.execute_query(query, tuple(params), fetch='all')
 
     def get_by_board_and_number(self, board_id, article_number, include_deleted=False):
-        """掲示板IDと記事番号を指定して、単一の記事を取得します。"""
+        """掲示板IDと記事番号を指定して、単一の記事を取得します。論理削除された記事を含めるか選択できます。"""
         where_clauses = ["board_id = %s", "article_number = %s"]
         params = [board_id, article_number]
 
@@ -528,7 +528,7 @@ class ArticleManager:
         return self._db.execute_query(query, tuple(params), fetch='one')
 
     def get_new_for_board(self, board_id_pk, last_login_timestamp):
-        """指定された掲示板の、指定時刻以降の未削除記事を取得します。"""
+        """指定された掲示板の、指定時刻以降に投稿された未削除記事を取得します（新着チェック用）。"""
         params = [board_id_pk]
         query = """
         SELECT a.id, a.article_number, a.user_id, a.parent_article_id, a.title, a.body, a.created_at
@@ -542,13 +542,13 @@ class ArticleManager:
         return self._db.execute_query(query, tuple(params), fetch='all')
 
     def get_next_number(self, board_id_pk):
-        """指定された掲示板の次の記事番号を取得します。"""
+        """指定された掲示板で次に投稿される記事の番号を取得します。"""
         query = "SELECT COALESCE(MAX(article_number), 0) + 1 AS next_num FROM articles WHERE board_id = %s"
         result = self._db.execute_query(query, (board_id_pk,), fetch='one')
         return result['next_num'] if result else 1
 
     def insert(self, board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None, attachment_size=None):
-        """新しい記事をデータベースに挿入します。"""
+        """新しい記事をデータベースに挿入します。返信の場合は`parent_article_id`を指定します。"""
         query = """
             INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, attachment_filename, attachment_originalname, attachment_size)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -559,17 +559,17 @@ class ArticleManager:
         return self._db.execute_query(query, params)
 
     def get_by_id(self, article_id):
-        """主キーIDを指定して記事を取得します。"""
+        """主キー（`id`）を指定して記事を取得します。"""
         query = "SELECT * FROM articles WHERE id = %s"
         return self._db.execute_query(query, (article_id,), fetch='one')
 
     def get_by_attachment_filename(self, filename):
-        """添付ファイル名から記事情報を取得します。"""
+        """添付ファイル名（ユニークなファイル名）から記事情報を取得します。"""
         query = "SELECT * FROM articles WHERE attachment_filename = %s"
         return self._db.execute_query(query, (filename,), fetch='one')
 
     def toggle_deleted_status(self, article_id):
-        """記事の削除フラグをトグルします（論理削除/復元）。"""
+        """記事の削除フラグ（`is_deleted`）をトグルします（論理削除/復元）。"""
         conn = self._db.get_connection()
         cursor = None
         try:
@@ -608,7 +608,7 @@ class ArticleManager:
                 conn.close()
 
     def bulk_update_deleted_status(self, article_ids, new_status):
-        """複数の記事の削除ステータスを一括で更新します。"""
+        """複数の記事の削除ステータスを一括で更新します。管理画面での一括操作に使用します。"""
         if not article_ids or new_status not in [0, 1]:
             return 0
 
@@ -638,7 +638,7 @@ class ArticleManager:
                 conn.close()
 
     def get_thread_root_articles_with_reply_count(self, board_id_pk, include_deleted=False):
-        """スレッド形式の掲示板で、親記事とそれぞれの返信数を取得します。"""
+        """スレッド形式の掲示板で、親記事（スレッド）とそれぞれの返信数を取得します。"""
         deleted_cond = "" if include_deleted else "AND is_deleted = 0"
 
         query = f"""
@@ -652,7 +652,7 @@ class ArticleManager:
         return self._db.execute_query(query, (board_id_pk,), fetch='all')
 
     def get_replies_for_article(self, parent_article_id, include_deleted=False):
-        """指定された親記事に紐づく返信をすべて取得します。"""
+        """指定された親記事（スレッド）に紐づく返信をすべて取得します。"""
         where_clauses = ["parent_article_id = %s"]
         params = [parent_article_id]
         if not include_deleted:
@@ -662,7 +662,7 @@ class ArticleManager:
         return self._db.execute_query(query, tuple(params), fetch='all')
 
     def get_daily_posts(self, days=7):
-        """過去指定日数間の日毎の記事投稿数を取得します。"""
+        """過去指定日数間の日毎の記事投稿数を取得し、グラフ表示などに使用します。"""
         query = """
             SELECT DATE(FROM_UNIXTIME(created_at)) as post_date, COUNT(*) as count
             FROM articles WHERE created_at >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
@@ -671,7 +671,7 @@ class ArticleManager:
         return self._db.execute_query(query, (days - 1,), fetch='all')
 
     def search_all(self, page=1, per_page=15, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc', article_id=None):
-        """管理画面用に、全記事を対象にキーワードや投稿者で検索します。"""
+        """管理画面用に、全記事を対象にキーワードや投稿者で検索し、ページネーション付きで返します。"""
         allowed_sort_columns = {'created_at', 'board_name', 'title'}
         if sort_by not in allowed_sort_columns:
             sort_by = 'created_at'
@@ -726,19 +726,19 @@ class ArticleManager:
         return articles, total_items
 
     def get_total_count(self):
-        """登録されている総記事数を取得します。"""
+        """登録されている総記事数を取得します。管理画面のダッシュボードなどで使用されます。"""
         query = "SELECT COUNT(*) as count FROM articles"
         result = self._db.execute_query(query, fetch='one')
         return result['count'] if result else 0
 
     def get_thread_count(self, board_id_pk):
-        """指定された掲示板の現在のスレッド数を取得します（削除済みは除く）。"""
+        """指定された掲示板の現在のスレッド数を取得します（論理削除済みは除く）。"""
         query = "SELECT COUNT(*) AS count FROM articles WHERE board_id = %s AND parent_article_id IS NULL AND is_deleted = 0"
         result = self._db.execute_query(query, (board_id_pk,), fetch='one')
         return result['count'] if result else 0
 
     def get_reply_count(self, parent_article_id_pk):
-        """指定された親記事の現在の返信数を取得します（削除済みは除く）。"""
+        """指定された親記事の現在の返信数を取得します（論理削除済みは除く）。"""
         query = "SELECT COUNT(*) AS count FROM articles WHERE parent_article_id = %s AND is_deleted = 0"
         result = self._db.execute_query(
             query, (parent_article_id_pk,), fetch='one')
@@ -793,19 +793,19 @@ class MailManager:
         self._db = db_manager_instance
 
     def get_total_unread_count(self, user_id_pk):
-        """指定されたユーザーの未読メール数を取得します。"""
+        """指定されたユーザーの未読メール数を取得します。新着通知などに使用します。"""
         query = "SELECT COUNT(*) AS count FROM mails WHERE recipient_id = %s AND is_read = 0 AND recipient_deleted = 0"
         result = self._db.execute_query(query, (user_id_pk,), fetch='one')
         return result['count'] if result else 0
 
     def get_total_count(self, user_id_pk):
-        """指定されたユーザーの総メール数を取得します。"""
+        """指定されたユーザーの総メール数（受信箱にあるもの）を取得します。"""
         query = "SELECT COUNT(*) AS count FROM mails WHERE recipient_id = %s AND recipient_deleted = 0"
         result = self._db.execute_query(query, (user_id_pk,), fetch='one')
         return result['count'] if result else 0
 
     def mark_as_read(self, mail_id, recipient_user_id_pk):
-        """指定されたメールを既読状態にします。"""
+        """指定されたメールを既読状態にします。メール閲覧時に呼び出されます。"""
         conn = self._db.get_connection()
         cursor = None
         try:
@@ -836,7 +836,7 @@ class MailManager:
                 conn.close()
 
     def get_oldest_unread(self, recipient_user_id_pk):
-        """指定されたユーザーの最も古い未読メールを1件取得します。"""
+        """指定されたユーザーの最も古い未読メールを1件取得します。メール閲覧コマンドで使用します。"""
         query = """
             SELECT
                 m.id, m.sender_id, m.subject, m.body, m.is_read, m.sent_at, m.recipient_deleted, m.sender_ip_address,
@@ -850,7 +850,7 @@ class MailManager:
         return self._db.execute_query(query, (recipient_user_id_pk,), fetch='one')
 
     def get_for_view(self, user_id_pk, view_mode):
-        """受信箱または送信箱の一覧を取得します。"""
+        """指定されたユーザーの受信箱または送信箱の一覧を取得します。"""
         if view_mode == 'inbox':
             query = """                SELECT
                     m.id, m.sender_id, m.subject, m.body, m.is_read, m.sent_at, m.recipient_deleted, m.sender_ip_address,
@@ -872,7 +872,7 @@ class MailManager:
         return self._db.execute_query(query, (user_id_pk,), fetch='all')
 
     def toggle_delete_status_generic(self, mail_id, user_id, mode_param):
-        """メールの削除フラグをトグルします（送信者側または受信者側）。"""
+        """メールの削除フラグをトグルします（送信者側または受信者側の論理削除）。"""
         conn = self._db.get_connection()
         cursor = None
         mode = str(mode_param).strip()
@@ -920,7 +920,7 @@ class MailManager:
                 conn.close()
 
     def send_system_mail(self, recipient_id, subject, body):
-        """システムからユーザーへメールを送信します。"""
+        """システム（シスオペ）から指定されたユーザーへメールを送信します。"""
         # usersインスタンスがグローバルに利用可能であることを前提とする
         sender_id = users.get_sysop_user_id()
         if sender_id is None:
@@ -948,13 +948,13 @@ class TelegramManager:
         self._db = db_manager_instance
 
     def save(self, sender_name, recipient_name, message, current_timestamp):
-        """電報をデータベースに保存します。"""
+        """送信された電報をデータベースに保存します。"""
         query = "INSERT INTO telegram(sender_name, recipient_name, message, timestamp) VALUES(%s, %s, %s, %s)"
         self._db.execute_query(
             query, (sender_name, recipient_name, message, current_timestamp))
 
     def load_and_delete(self, recipient_name):
-        """指定された宛先の電報をすべて読み込み、その後削除します。"""
+        """指定された宛先の電報をすべて読み込み、その後トランザクション内で削除します。"""
         conn = self._db.get_connection()
         cursor = None
         try:
@@ -994,13 +994,13 @@ class ServerPrefManager:
         self._db = db_manager_instance
 
     def read(self):
-        """サーバー設定を1行読み込みます。"""
+        """サーバー設定テーブルから設定を1行読み込みます。"""
         query = "SELECT * FROM server_pref LIMIT 1"
         result = self._db.execute_query(query, fetch='one')
         return result if result else {}
 
     def update_backup_schedule(self, enabled: bool, cron_string: str):
-        """バックアップスケジュール設定を更新します。"""
+        """自動バックアップのスケジュール設定（有効/無効、cron文字列）を更新します。"""
         update_data = {
             'backup_schedule_enabled': enabled,
             'backup_schedule_cron': cron_string
@@ -1008,7 +1008,7 @@ class ServerPrefManager:
         return self._db.update_record('server_pref', update_data, {'id': 1})
 
     def update_online_signup_status(self, enabled: bool):
-        """オンラインサインアップの有効/無効を更新します。"""
+        """オンラインサインアップ機能の有効/無効状態を更新します。"""
         return self._db.update_record('server_pref', {'online_signup_enabled': enabled}, {'id': 1})
 
 
@@ -1019,13 +1019,13 @@ class PluginManagerDB:  # Renamed to avoid conflict with plugin_manager.py
         self._db = db_manager_instance
 
     def get_all_settings(self):
-        """全てのプラグインの設定（有効/無効）を取得します。"""
+        """全てのプラグインの有効/無効設定を辞書として取得します。"""
         query = "SELECT plugin_id, is_enabled FROM plugins"
         results = self._db.execute_query(query, fetch='all')
         return {row['plugin_id']: bool(row['is_enabled']) for row in results} if results else {}
 
     def upsert_setting(self, plugin_id: str, is_enabled: bool):
-        """プラグインの設定を更新または挿入（upsert）します。"""
+        """プラグインの有効/無効設定を更新または挿入（upsert）します。"""
         current_time = int(time.time())
         query = """
             INSERT INTO plugins (plugin_id, is_enabled, created_at, updated_at)
@@ -1043,7 +1043,7 @@ class AccessLogManager:
         self._db = db_manager_instance
 
     def log_event(self, ip_address, event_type, user_id=None, username=None, message=None):
-        """アクセスイベントをログに記録します。"""
+        """ログイン試行、ファイルアップロードなどのアクセスイベントをログに記録します。"""
         query = """
             INSERT INTO access_logs (timestamp, ip_address, user_id, username, event_type, message)
             VALUES (%s, %s, %s, %s, %s, %s)
@@ -1053,7 +1053,7 @@ class AccessLogManager:
         self._db.execute_query(query, params)
 
     def get_logs(self, page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
-        """アクセスログを検索・取得します。"""
+        """管理画面用に、ページネーション、フィルタリング、ソート機能付きでアクセスログを取得します。"""
         where_clauses = []
         params = []
 
@@ -1110,22 +1110,22 @@ class BoardPermissionManager:
         self._db = db_manager_instance
 
     def get_permissions(self, board_id_pk):
-        """指定された掲示板の全パーミッション設定を取得します。"""
+        """指定された掲示板の全ユーザーパーミッション設定（Allow/Denyリスト）を取得します。"""
         query = "SELECT user_id, access_level FROM board_user_permissions WHERE board_id = %s"
         return self._db.execute_query(query, (board_id_pk,), fetch='all')
 
     def delete_by_board_id(self, board_id_pk):
-        """指定された掲示板の全パーミッション設定を削除します。"""
+        """指定された掲示板の全ユーザーパーミッション設定を削除します。掲示板設定更新時に使用します。"""
         query = "DELETE FROM board_user_permissions WHERE board_id = %s"
         return self._db.execute_query(query, (board_id_pk,)) is not None
 
     def add(self, board_id_pk, user_id_pk_str, access_level):
-        """掲示板にユーザーのパーミッション設定を追加します。"""
+        """掲示板に特定のユーザーのパーミッション設定（'allow'または'deny'）を追加します。"""
         query = "INSERT INTO board_user_permissions (board_id, user_id, access_level) VALUES (%s, %s, %s)"
         return self._db.execute_query(query, (board_id_pk, user_id_pk_str, access_level)) is not None
 
     def get_user_permission(self, board_id_pk, user_id_pk_str):
-        """指定された掲示板に対する特定のユーザーのパーミッションレベルを取得します。"""
+        """指定された掲示板に対する特定のユーザーのパーミッションレベル（'allow'/'deny'）を取得します。"""
         query = "SELECT access_level FROM board_user_permissions WHERE board_id = %s AND user_id = %s"
         result = self._db.execute_query(
             query, (board_id_pk, user_id_pk_str), fetch='one')
@@ -1139,7 +1139,7 @@ class PushSubscriptionManager:
         self._db = db_manager_instance
 
     def get_all(self, exclude_user_id=None):
-        """全てのPush通知購読情報を取得します。特定のユーザーを除外することも可能です。"""
+        """全てのPush通知購読情報を取得します。イベントのブロードキャスト時に使用します。"""
         query = "SELECT user_id, subscription_info FROM push_subscriptions"
         params = ()
         if exclude_user_id is not None:
@@ -1148,7 +1148,7 @@ class PushSubscriptionManager:
         return self._db.execute_query(query, params, fetch='all')
 
     def save(self, user_id, subscription_info_json):
-        """ユーザーのPush通知購読情報を保存します。"""
+        """ユーザーのPush通知購読情報（ブラウザから受け取ったJSON）を保存します。"""
         try:
             query = "INSERT INTO push_subscriptions (user_id, subscription_info, created_at) VALUES (%s, %s, %s)"
             params = (user_id, subscription_info_json, int(time.time()))
@@ -1167,7 +1167,7 @@ class PushSubscriptionManager:
             return False
 
     def delete(self, user_id, endpoint_to_delete):
-        """指定されたエンドポイントに一致するユーザーのPush通知購読情報を削除します。"""
+        """指定されたエンドポイントに一致するユーザーのPush通知購読情報を削除します。購読解除時に使用します。"""
         conn = self._db.get_connection()
         cursor = None
         try:
@@ -1211,7 +1211,7 @@ class PasskeyManager:
         self._db = db_manager_instance
 
     def save(self, user_id, credential_id, public_key, sign_count, transports, nickname):
-        """新しいPasskeyをデータベースに保存します。"""
+        """新しいPasskey（WebAuthnクレデンシャル）をデータベースに保存します。"""
         query = """
             INSERT INTO passkeys (user_id, credential_id, public_key, sign_count, transports, created_at, nickname)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -1221,17 +1221,17 @@ class PasskeyManager:
         return self._db.execute_query(query, params) is not None
 
     def get_by_user(self, user_id):
-        """指定されたユーザーに紐づく全てのPasskeyを取得します。"""
+        """指定されたユーザーに紐づく全てのPasskeyを取得します。ログインや設定画面で使用します。"""
         query = "SELECT * FROM passkeys WHERE user_id = %s"
         return self._db.execute_query(query, (user_id,), fetch='all')
 
     def get_by_credential_id(self, credential_id):
-        """Credential IDを指定して単一のPasskeyを取得します。"""
+        """Credential IDを指定して単一のPasskeyを取得します。ログイン認証時に使用します。"""
         query = "SELECT * FROM passkeys WHERE credential_id = %s"
         return self._db.execute_query(query, (credential_id,), fetch='one')
 
     def update_sign_count(self, credential_id, new_sign_count):
-        """Passkeyの署名カウントと最終利用日時を更新します。"""
+        """Passkeyの署名カウントと最終利用日時を更新します。ログイン成功時に呼び出されます。"""
         query = "UPDATE passkeys SET sign_count = %s, last_used_at = %s WHERE credential_id = %s"
         params = (new_sign_count, int(time.time()), credential_id)
         return self._db.execute_query(query, params) is not None
@@ -1267,14 +1267,14 @@ class BBSListManager:
 
     def get_by_id(self, link_id):
         """
-        指定されたIDのBBSリンクを1件取得します。主に編集画面で使用されます。
+        指定されたIDのBBSリンクを1件取得します。管理画面の編集ページなどで使用されます。
         """
         query = "SELECT * FROM bbs_list WHERE id = %s"
         return self._db.execute_query(query, (link_id,), fetch='one')
 
     def get_approved(self):
         """
-        承認済み(approved)のすべてのBBSリンクを取得します。
+        承認済み(`approved`)のすべてのBBSリンクを取得します。
         F7キーのBBSリストなどで使用されます。
         """
         query = "SELECT id, name, url, description, source FROM bbs_list WHERE status = 'approved' ORDER BY name"
@@ -1282,7 +1282,7 @@ class BBSListManager:
 
     def get_all_for_admin(self, page=1, per_page=15, sort_by='status', order='asc'):
         """
-        管理画面用に、ソート機能付きで全てのステータスのBBSリンクを取得します。
+        管理画面用に、ページネーションとソート機能付きで全てのステータスのBBSリンクを取得します。
         """
         allowed_columns = {
             'id': 'bl.id',
@@ -1317,7 +1317,7 @@ class BBSListManager:
 
     def add(self, name, url, description, source='sysop', submitted_by=None):
         """
-        新しいBBSリンクをDBに追加します。'sysop'による追加は自動承認されます。
+        新しいBBSリンクをDBに追加します。`source`が'sysop'の場合は自動で承認済みになります。
         """
         status = 'approved' if source == 'sysop' else 'pending'
         query = "INSERT INTO bbs_list (name, url, description, source, status, submitted_by, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)"
@@ -1342,7 +1342,7 @@ class BBSListManager:
 
     def update_status(self, link_id, status):
         """
-        指定されたIDのBBSリンクのステータスを更新します。
+        指定されたIDのBBSリンクのステータス（'approved', 'rejected', 'pending'）を更新します。
         """
         if status not in ['approved', 'rejected', 'pending']:
             logging.warning(f"無効なステータスが指定されました: {status}")
@@ -1352,7 +1352,7 @@ class BBSListManager:
         return self._db.execute_query(query, params) is not None
 
     def delete(self, link_id):
-        """指定されたIDのBBSリンクを物理削除します。"""
+        """指定されたIDのBBSリンクをDBから物理削除します。"""
         query = "DELETE FROM bbs_list WHERE id = %s"
         conn = self._db.get_connection()
         cursor = None
@@ -1380,7 +1380,7 @@ class DatabaseInitializer:
         self._db = db_manager_instance
 
     def check_initialized(self):
-        """データベースが初期化済みか（'users'テーブルが存在するか）をチェックします。"""
+        """データベースが初期化済みか（`users`テーブルが存在するか）をチェックします。"""
         try:
             query = "SHOW TABLES LIKE 'users'"
             result = self._db.execute_query(query, fetch='one')
@@ -1390,7 +1390,7 @@ class DatabaseInitializer:
             return False
 
     def initialize_and_sysop(self, sysop_id, sysop_password, sysop_email):
-        """全てのテーブルを作成し、デフォルトデータ（シスオペ、ゲストユーザーなど）を挿入します。"""
+        """全てのテーブルを作成し、デフォルトデータ（シスオペ、ゲストユーザー等）を挿入します。"""
         # utilモジュールはdatabase.pyの外部にあるため、ここでインポートする
         from . import util
         try:
@@ -1611,7 +1611,7 @@ class DatabaseInitializer:
 
     def apply_migrations(self):
         """
-        アプリケーション起動時にデータベーススキーマの変更（マイグレーション）を適用します。
+        アプリケーション起動時に、データベーススキーマの変更（マイグレーション）を適用します。
         """
         conn = self._db.get_connection()
         cursor = None
@@ -1772,7 +1772,7 @@ class PluginDataManager:
         self._db = db_manager_instance
 
     def save(self, plugin_id, key, value):
-        """プラグインのデータを保存または更新します。"""
+        """プラグインのデータをキーバリュー形式で保存または更新します。"""
         value_json = json.dumps(value)
         current_time = int(time.time())
         query = """
@@ -1785,8 +1785,8 @@ class PluginDataManager:
 
     def get(self, plugin_id, key):
         """
-        指定されたプラグインIDとキーに紐づくデータを取得します。
-        データはJSON形式で保存されているため、Pythonのオブジェクトとして返されます。
+        指定されたプラグインIDとキーに紐づくデータを取得します。データはJSONから
+        デシリアライズされたPythonオブジェクトとして返されます。
         """
         query = "SELECT `value` FROM plugin_data WHERE plugin_id = %s AND `key` = %s"
         result = self._db.execute_query(query, (plugin_id, key), fetch='one')
@@ -1795,13 +1795,13 @@ class PluginDataManager:
         return None
 
     def delete(self, plugin_id, key):
-        """指定されたプラグインIDとキーに紐づくデータを削除します。"""
+        """指定されたプラグインIDとキーに紐づく単一のデータを削除します。"""
         query = "DELETE FROM plugin_data WHERE plugin_id = %s AND `key` = %s"
         return self._db.execute_query(query, (plugin_id, key)) is not None
 
     def get_all(self, plugin_id):
         """
-        指定されたプラグインIDに紐づく全てのデータを辞書として一括で取得します。
+        指定されたプラグインIDに紐づく全てのキーと値のペアを辞書として一括で取得します。
 
         :return: {'key1': value1, 'key2': value2, ...} 形式の辞書。
         """
@@ -1811,8 +1811,8 @@ class PluginDataManager:
 
     def delete_all(self, plugin_id):
         """
-        指定されたプラグインIDに紐づく全てのデータを削除します。
-        プラグインのアンインストール時などに使用されることを想定しています。
+        指定されたプラグインIDに紐づく全てのデータを削除します。プラグインの
+        アンインストール時などに使用されることを想定しています。
         """
         query = "DELETE FROM plugin_data WHERE plugin_id = %s"
         return self._db.execute_query(query, (plugin_id,)) is not None
@@ -1881,7 +1881,7 @@ def get_users_by_names(usernames):
 
 
 def get_public_user_info(username):
-    """指定されたユーザー名の公開情報を取得します。"""
+    """指定されたユーザー名の公開情報（パスワード等を含まない）を取得します。"""
     return users.get_public_info(username)
 
 
@@ -2135,12 +2135,12 @@ def delete_passkey_by_id_and_user_id(passkey_id: int, user_id: int) -> bool:
 
 
 def get_user_read_progress(user_id):
-    """ユーザーの掲示板読み込み進捗を取得します。"""
+    """ユーザーの掲示板既読進捗を取得します。"""
     return users.get_read_progress(user_id)
 
 
 def update_user_read_progress(user_id, read_progress_dict):
-    """ユーザーの掲示板読み込み進捗を更新します。"""
+    """ユーザーの掲示板既読進捗を更新します。"""
     return users.update_read_progress(user_id, read_progress_dict)
 
 
@@ -2192,12 +2192,12 @@ def apply_migrations():
 # --- BBS List Functions ---
 
 def get_bbs_links():
-    """登録されているすべてのBBSリンクを取得する"""
+    """承認済みの全てのBBSリンクを取得します。"""
     return bbs_list_manager.get_approved()
 
 
 def add_bbs_link(name, url, description, source='sysop', submitted_by=None):
-    """新しいBBSリンクをデータベースに追加する"""
+    """新しいBBSリンクをデータベースに追加します。"""
     return bbs_list_manager.add(name, url, description, source, submitted_by)
 
 
@@ -2207,12 +2207,12 @@ def update_bbs_link(link_id, name, url, description):
 
 
 def delete_bbs_link(link_id):
-    """指定されたIDのBBSリンクを削除する"""
+    """指定されたIDのBBSリンクを削除します。"""
     return bbs_list_manager.delete(link_id)
 
 
 def get_all_bbs_links_for_admin(page=1, per_page=15, sort_by: str = 'status', order: str = 'asc'):
-    """管理画面用に、ソート順を指定して全てのBBSリンクを取得します。"""
+    """管理画面用に、ページネーションとソート順を指定して全てのBBSリンクを取得します。"""
     return bbs_list_manager.get_all_for_admin(page, per_page, sort_by, order)
 
 

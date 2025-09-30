@@ -23,11 +23,15 @@ from . import terminal_handler, util
 
 
 def init_events(socketio, app):
-    """Initializes and registers all SocketIO event handlers."""
+    """
+    全てのSocketIOイベントハンドラを初期化し、登録します。
+    """
 
     @socketio.on('connect')
     def handle_connect(auth=None):
-        """Handles new client connections via WebSocket."""
+        """
+        新しいクライアントのWebSocket接続を処理します。
+        """
         if 'user_id' not in session:
             return False
 
@@ -73,7 +77,9 @@ def init_events(socketio, app):
 
     @socketio.on('set_speed')
     def handle_set_speed(speed_name):
-        """Receives a speed setting from the client to simulate baud rates."""
+        """
+        クライアントからBPSレート設定を受け取り、通信速度をシミュレートします。
+        """
         sid = request.sid
         if sid in terminal_handler.client_states:
             handler = terminal_handler.client_states[sid]
@@ -82,7 +88,9 @@ def init_events(socketio, app):
 
     @socketio.on('disconnect')
     def handle_disconnect():
-        """Handles client disconnections."""
+        """
+        クライアントの切断を処理します。
+        """
         with terminal_handler.current_webapp_clients_lock:
             terminal_handler.current_webapp_clients = max(
                 0, terminal_handler.current_webapp_clients - 1)
@@ -102,7 +110,9 @@ def init_events(socketio, app):
 
     @socketio.on('client_input')
     def handle_client_input(data):
-        """Receives input from the client and adds it to the corresponding handler's input queue."""
+        """
+        クライアントからのキー入力を受け取り、対応するハンドラの入力キューに追加します。
+        """
         sid = request.sid
         if sid in terminal_handler.client_states:
             handler = terminal_handler.client_states[sid]
@@ -111,7 +121,9 @@ def init_events(socketio, app):
 
     @socketio.on('toggle_logging')
     def handle_toggle_logging():
-        """Toggles session logging on or off for the client."""
+        """
+        クライアントのセッションログ記録の開始/停止を切り替えます。
+        """
         sid = request.sid
         if sid in terminal_handler.client_states:
             handler = terminal_handler.client_states[sid]
@@ -148,7 +160,9 @@ def init_events(socketio, app):
 
     @socketio.on('get_log_files')
     def handle_get_log_files():
-        """Sends a list of the user's saved log files to the client."""
+        """
+        ユーザーが保存したログファイルの一覧をクライアントに送信します。
+        """
         if 'user_id' not in session:
             return
 
@@ -190,7 +204,9 @@ def init_events(socketio, app):
 
     @socketio.on('get_log_content')
     def handle_get_log_content(data):
-        """Sends the content of a specified log file to the client."""
+        """
+        指定されたログファイルの内容をクライアントに送信します。
+        """
         if 'user_id' not in session:
             return
 
@@ -218,7 +234,9 @@ def init_events(socketio, app):
 
     @socketio.on('get_current_log_buffer')
     def handle_get_current_log_buffer():
-        """Sends the current, in-memory log buffer to the client."""
+        """
+        現在メモリ上にあるログバッファの内容をクライアントに送信します。
+        """
         sid = request.sid
         if sid in terminal_handler.client_states:
             handler = terminal_handler.client_states[sid]
@@ -236,7 +254,9 @@ def init_events(socketio, app):
 
     @socketio.on('upload_attachment')
     def handle_upload_attachment(data):
-        """Handles file uploads from the client for BBS attachments."""
+        """
+        クライアントからのファイルアップロードを処理し、BBSの添付ファイルとして準備します。
+        """
         sid = request.sid
         if sid not in terminal_handler.client_states:
             return
@@ -377,7 +397,9 @@ def init_events(socketio, app):
 
     @socketio.on('clear_pending_attachment')
     def handle_clear_pending_attachment():
-        """Clears any pending attachment information for the session."""
+        """
+        セッションで保留中の添付ファイル情報をクリアします。
+        """
         sid = request.sid
         if sid in terminal_handler.client_states:
             handler = terminal_handler.client_states[sid]
@@ -389,8 +411,7 @@ def init_events(socketio, app):
     @socketio.on('set_client_mode')
     def handle_set_client_mode(data):
         """
-        Receives the client's display mode (mobile or desktop).
-        クライアントの表示モード（モバイルかデスクトップか）を受け取ります。
+        クライアントの表示モード（モバイルかデスクトップか）を受け取り、セッションに記録します。
         """
         sid = request.sid
         handler = terminal_handler.client_states.get(sid)
@@ -402,8 +423,8 @@ def init_events(socketio, app):
     @socketio.on('multiline_input_submit')
     def handle_multiline_input_submit(data):
         """
-        Receives the content from the web multiline editor and puts it into the handler's input queue.
-        Webのマルチラインエディタからコンテンツを受け取り、ハンドラの入力キューに入れます。
+        Webのマルチラインエディタから送信された内容を受け取り、
+        対応するハンドラの入力キューに入れます。
         """
         sid = request.sid
         handler = terminal_handler.client_states.get(sid)

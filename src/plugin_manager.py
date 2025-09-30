@@ -28,7 +28,7 @@ PROJECT_ROOT = os.path.dirname(_current_dir)
 PLUGINS_DIR = os.path.join(PROJECT_ROOT, 'plugins')
 
 # ロードされたプラグインを格納する辞書。
-# { 'plugin_dir_name': {'module': module, 'name': 'Plugin Name', ...} }
+# 形式: { 'plugin_dir_name': {'module': module, 'name': 'Plugin Name', ...} }
 _loaded_plugins = {}
 
 
@@ -47,7 +47,7 @@ def load_plugins():
         logging.warning(f"プラグインディレクトリが見つかりません: {PLUGINS_DIR}")
         return
 
-    # 1. DBから現在のプラグイン設定を取得
+    # データベースから現在のプラグイン設定を一括で取得
     plugin_settings = database.get_all_plugin_settings()
 
     for item in os.listdir(PLUGINS_DIR):
@@ -57,7 +57,7 @@ def load_plugins():
         if os.path.isdir(plugin_dir) and os.path.exists(metadata_path):
             plugin_id = item
             try:
-                # 2. DB設定を確認。なければデフォルトで有効化し、DBに登録。
+                # DBに設定がなければデフォルトで有効とし、その設定をDBに保存
                 is_enabled = plugin_settings.get(plugin_id, True)
                 if plugin_id not in plugin_settings:
                     database.upsert_plugin_setting(plugin_id, True)
@@ -67,11 +67,11 @@ def load_plugins():
                         f"Plugin '{plugin_id}' is disabled, skipping.")
                     continue
 
-                # 3. プラグインのメタデータを読み込み
+                # プラグインのメタデータ(plugin.toml)を読み込み
                 with open(metadata_path, 'r', encoding='utf-8') as f:
                     metadata = toml.load(f)
 
-                # 4. 依存関係をチェック
+                # 依存ライブラリがインストールされているかチェック
                 requirements = metadata.get('requirements', [])
                 is_loadable = True
                 for req in requirements:
@@ -84,7 +84,7 @@ def load_plugins():
                 if not is_loadable:
                     continue
 
-                # 5. 依存関係が満たされていれば、モジュールをインポート
+                # エントリーポイントとして指定されたモジュールを動的にインポート
                 module_name = metadata.get('entry_point')
                 if not module_name:
                     logging.warning(
@@ -115,7 +115,11 @@ def load_plugins():
 
 
 def get_loaded_plugins():
-    """ロード済みのプラグインのリストをメニュー表示用に整形して返します。"""
+    """
+    ロード済みのプラグインのリストを、BBSのプラグインメニュー表示用に整形して返します。
+
+    :return: プラグイン情報の辞書のリスト。
+    """
     plugins_list = []
     for plugin_id, plugin_data in _loaded_plugins.items():
         plugins_list.append({
@@ -130,8 +134,8 @@ def get_loaded_plugins():
 def run_plugin(plugin_id, context):
     """
     指定されたIDのプラグインを実行します。
-    プラグインには、機能が制限された安全なAPIを持つコンテキストが提供されます。
-    実行は config.toml で定義されたタイムアウトの対象となります。
+    プラグインには機能が制限された安全なAPIを持つコンテキストが提供され、
+    config.tomlで定義されたタイムアウトの対象となります。
     """
     # config.tomlからタイムアウト値を取得
     plugins_config = util.app_config.get('plugins', {})
@@ -145,7 +149,7 @@ def run_plugin(plugin_id, context):
     logging.info(
         f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {timeout_seconds}秒)...")
 
-    # プラグインに安全なAPIを提供するためにコンテキストを再構築
+    # プラグインに渡すコンテキストを再構築し、安全なAPIのみを公開
     api = GrbbsApi(context.chan, plugin_id, context.online_members_func)
     safe_context = {
         'api': api,
@@ -153,6 +157,8 @@ def run_plugin(plugin_id, context):
         'display_name': context.display_name,
         'user_id': context.user_id,
         'user_level': context.user_level,
+        # プラグインが自身のIDを知るためにコンテキストに追加
+        'plugin_id': plugin_id,
     }
 
     try:
@@ -170,8 +176,7 @@ def run_plugin(plugin_id, context):
 def get_all_available_plugins():
     """
     'plugins' ディレクトリをスキャンし、利用可能な全てのプラグインの情報を返します。
-    DBから取得した有効/無効の状態も含まれます。
-    この関数は管理画面で使用されます。
+    データベースから取得した有効/無効の状態も含まれ、主に管理画面で使用されます。
     """
     available_plugins = []
     if not os.path.isdir(PLUGINS_DIR):

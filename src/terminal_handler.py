@@ -3,11 +3,9 @@
 
 """
 Webターミナルセッションハンドラ
-
-このモジュールは、個々のWebターミナルセッションを管理するための中核ロジックを
-含んでいます。WebTerminalHandlerクラスが各クライアントのセッション状態を管理し、
-BBSのメインループとI/Oを統括します。また、接続されている全クライアントの
-グローバルな状態管理も行います。
+このモジュールは、個々のWebターミナルセッションを管理するための中核ロジックを含んでいます。
+WebTerminalHandlerクラスが各クライアントのセッション状態を管理し、BBSのメインループとI/Oを統括します。
+また、接続されている全クライアントのグローバルな状態管理も行います。
 """
 
 import logging
@@ -41,7 +39,11 @@ BPS_DELAYS = {
 
 
 def get_webapp_online_members():
-    """Generates a list of currently online members for the web UI."""
+    """
+    現在オンラインのWebターミナルユーザーのリストを生成します。
+
+    :return: オンラインユーザーの情報を格納した辞書。キーはセッションID。
+    """
     members = {}
     for sid, handler in client_states.copy().items():
         user_session = handler.user_session
@@ -62,8 +64,11 @@ def get_webapp_online_members():
 
 def kick_user_session(sid, socketio):
     """
-    Forcefully disconnects a user session specified by its SID.
-    Intended to be called from the admin panel.
+    指定されたセッションIDのユーザーセッションを強制的に切断します。
+    主に管理画面からの操作を想定しています。
+
+    :param sid: 切断するユーザーのセッションID。
+    :param socketio: SocketIOインスタンス。
     """
     if sid in client_states:
         logoff_message_text = util.get_text_by_key(
@@ -81,9 +86,9 @@ def kick_user_session(sid, socketio):
 
 class WebTerminalHandler:
     """
-    Manages the state and logic for a single web terminal session.
-    An instance of this class is created for each connected client.
-    It orchestrates the BBS main loop and I/O between the client and the server.
+    単一のWebターミナルセッションの状態とロジックを管理します。
+    接続されたクライアントごとにインスタンスが生成され、
+    BBSのメインループとクライアント・サーバー間のI/Oを統括します。
     """
 
     def __init__(self, sid, user_session, ip_address, socketio):
@@ -105,7 +110,7 @@ class WebTerminalHandler:
         self.pending_attachment = None
         self.is_mobile = False
         # クライアントのUIを制御するためのカスタムエスケープシーケンスのパターン
-        # これらはBPS遅延の影響を受けずに一括で送信する必要がある
+        # これらのシーケンスはBPS遅延の影響を受けずに一括で送信する必要がある
         self.control_sequence_pattern = re.compile(
             r'('
             r'\x1b\]GRBBS;[^\x07]*\x07'  # OSC: LINE_EDITなど
@@ -119,7 +124,7 @@ class WebTerminalHandler:
 
         @self.socketio.on('get_bbs_list')
         def handle_get_bbs_list():
-            """F7キーで開かれるBBSリストポップアップからのデータ要求を処理します。"""
+            """クライアントのBBSリストポップアップ(F7)からのデータ要求を処理します。"""
             if not self.user_session.get('user_id'):
                 return  # 未認証の場合は何もしない
 
@@ -133,7 +138,7 @@ class WebTerminalHandler:
 
         @self.socketio.on('submit_bbs_link')
         def handle_submit_bbs_link(data):
-            """BBSリストポップアップからの新規リンク申請を処理します。"""
+            """クライアントのBBSリストポップアップからの新規リンク申請を処理します。"""
             user_id = self.user_session.get('user_id')
             if not user_id:
                 return
@@ -155,6 +160,11 @@ class WebTerminalHandler:
                                    'success': False, 'message': 'Failed to submit link. URL might already exist.'})
 
     class WebChannel:
+        """
+        WebTerminalHandlerとBBSのコアロジック間の通信を仲介する内部クラス。
+        従来のソケット通信を模倣したインターフェースを提供します。
+        """
+
         def __init__(self, handler_instance, ip_addr):
             self.handler = handler_instance
             self.ip_address = ip_addr
@@ -246,6 +256,11 @@ class WebTerminalHandler:
             return "".join(line_buffer)
 
         def process_input(self):
+            """
+            クライアントからの入力を一行受け取ります（エコーバックあり）。
+
+            :return: ユーザーが入力した文字列。
+            """
             return self._process_input_internal(echo=True)
 
         def hide_process_input(self):
@@ -253,9 +268,9 @@ class WebTerminalHandler:
 
         def process_multiline_input(self):
             """
-            Webクライアントのマルチラインエディタを起動し、その結果を待ち受けます。
-            サーバー側から `\x1b[?2034h` を送信してエディタを開き、
-            クライアント側は `multiline_input_submit` イベントで結果を返します。
+            Webクライアントのマルチラインエディタを起動し、その入力を待ち受けます。
+            サーバーから特殊シーケンスを送信してエディタを開き、クライアントは
+            `multiline_input_submit` イベントで結果を返します。
             """
             # Send a special escape sequence to open the multiline editor
             self.send(b'\x1b[?2034h')
@@ -269,43 +284,16 @@ class WebTerminalHandler:
             # The full text is now in the input queue
             return self.handler.input_queue.popleft()
 
-    def _sender_worker(self):
-        while not self.stop_worker_event.is_set():
-            try:
-                text_to_send = self.output_queue.popleft()
-
-                # テキストを制御シーケンスと通常のテキストに分割
-                parts = self.control_sequence_pattern.split(text_to_send)
-
-                for part in parts:
-                    if not part:
-                        continue
-
-                    # partが制御シーケンスと完全に一致するかチェック
-                    if self.control_sequence_pattern.fullmatch(part):
-                        # 制御シーケンスは遅延なしで即時送信
-                        self.socketio.emit('server_output', part, to=self.sid)
-                    else:
-                        # 通常のテキストはBPS設定に従って送信
-                        if self.bps_delay > 0:
-                            for char in part:
-                                if self.stop_worker_event.is_set():
-                                    break
-                                self.socketio.emit(
-                                    'server_output', char, to=self.sid)
-                                self.socketio.sleep(self.bps_delay)
-                        else:
-                            self.socketio.emit(
-                                'server_output', part, to=self.sid)
-            except IndexError:
-                self.socketio.sleep(0.01)  # キューが空の場合は少し待つ
-
     def stop_worker(self):
         self.main_thread_active = False
         self.channel.close()
         self.stop_worker_event.set()
 
     def _bbs_main_loop(self):
+        """
+        BBSのメインループ。ユーザー認証後のメインメニュー表示とコマンド処理を
+        担当するバックグラウンドタスク。
+        """
         server_pref_dict = {}
         try:
             server_pref_dict = database.read_server_pref()
@@ -370,3 +358,38 @@ class WebTerminalHandler:
             self.stop_worker()
             logging.info(
                 f"BBS main loop finished ({self.user_session.get('username')})")
+
+    def _sender_worker(self):
+        """
+        出力キューからテキストを取り出し、クライアントに送信するバックグラウンドタスク。
+        BPSレートをシミュレートするための遅延処理もここで行います。
+        """
+        while not self.stop_worker_event.is_set():
+            try:
+                text_to_send = self.output_queue.popleft()
+
+                # テキストを制御シーケンスと通常のテキストに分割
+                parts = self.control_sequence_pattern.split(text_to_send)
+
+                for part in parts:
+                    if not part:
+                        continue
+
+                    # partが制御シーケンスと完全に一致するかチェック
+                    if self.control_sequence_pattern.fullmatch(part):
+                        # 制御シーケンスは遅延なしで即時送信
+                        self.socketio.emit('server_output', part, to=self.sid)
+                    else:
+                        # 通常のテキストはBPS設定に従って送信
+                        if self.bps_delay > 0:
+                            for char in part:
+                                if self.stop_worker_event.is_set():
+                                    break
+                                self.socketio.emit(
+                                    'server_output', char, to=self.sid)
+                                self.socketio.sleep(self.bps_delay)
+                        else:
+                            self.socketio.emit(
+                                'server_output', part, to=self.sid)
+            except IndexError:
+                self.socketio.sleep(0.01)  # キューが空の場合は少し待つ

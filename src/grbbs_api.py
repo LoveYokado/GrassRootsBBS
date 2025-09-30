@@ -22,7 +22,7 @@ class GrbbsApi:
 
     def __init__(self, channel, plugin_id, online_members_func):
         """
-        :param channel: クライアントとの通信チャンネル。
+        :param channel: クライアントとの通信を仲介するチャンネルオブジェクト。
         :param plugin_id: 実行中のプラグインのID。
         :param online_members_func: オンラインメンバーリストを取得するためのコールバック関数。
         """
@@ -33,7 +33,7 @@ class GrbbsApi:
     def send(self, message):
         """クライアントにメッセージを送信します。
 
-        :param message: 送信する文字列またはバイト列。
+        :param message: 送信する文字列またはバイトデータ。
         """
         if isinstance(message, str):
             self._chan.send(message.encode('utf-8'))
@@ -43,7 +43,7 @@ class GrbbsApi:
     def get_input(self, echo=True):
         """クライアントからの入力を一行受け取ります。
 
-        :param echo: 入力内容をエコーバックするかどうか。デフォルトはTrue。
+        :param echo: 入力内容をクライアントにエコーバックするかどうか。デフォルトはTrue。
         :return: ユーザーが入力した文字列。
         """
         if echo:
@@ -58,7 +58,7 @@ class GrbbsApi:
     def save_data(self, key, value):
         """
         このプラグイン専用のデータをキーと値のペアで保存します。
-        値はJSONとしてシリアライズ可能なオブジェクトである必要があります。
+        値はJSONとしてシリアライズ可能なオブジェクト（辞書、リスト、文字列など）である必要があります。
 
         :param key: データのキー（文字列）。
         :param value: 保存する値。
@@ -71,7 +71,7 @@ class GrbbsApi:
         """
         指定されたキーに対応する、このプラグイン専用のデータを取得します。
 
-        :param key: 取得するデータのキー（文字列）。
+        :param key: 取得するデータのキー。
         :return: 対応するデータ。存在しない場合はNone。
         """
         from . import database
@@ -81,7 +81,7 @@ class GrbbsApi:
         """
         指定されたキーのデータを削除します。
 
-        :param key: 削除するデータのキー（文字列）。
+        :param key: 削除するデータのキー。
         :return: 成功した場合はTrue、失敗した場合はFalse。
         """
         from . import database
@@ -90,7 +90,7 @@ class GrbbsApi:
     def get_all_data(self):
         """
         このプラグインが保存した全てのデータを辞書として取得します。
-        `key`が辞書のキー、`value`が辞書の値となります。
+        キーと値のペアが格納された辞書が返されます。
         """
         from . import database
         return database.get_all_plugin_data(self._plugin_id)
@@ -101,7 +101,7 @@ class GrbbsApi:
         パスワードやメールアドレスなどの機密情報は含まれません。
 
         :param username: 情報を取得したいユーザーのログインID。
-        :return: ユーザー情報の辞書。ユーザーが存在しない場合はNone。
+        :return: ユーザー情報の辞書。ユーザーが存在しない場合はNoneを返します。
                  辞書には 'id', 'name', 'level', 'comment', 'registdate', 'lastlogin' が含まれる可能性があります。
         """
         from . import database
@@ -113,7 +113,7 @@ class GrbbsApi:
         現在オンラインのユーザーのリストを取得します。
         IPアドレスなどの機密情報は含まれません。
 
-        :return: オンラインユーザー情報のリスト（辞書型配列）。
+        :return: オンラインユーザー情報のリスト（辞書の配列）。
                  各辞書には 'user_id', 'username', 'display_name' が含まれる可能性があります。
         """
         if not self._online_members_func:
