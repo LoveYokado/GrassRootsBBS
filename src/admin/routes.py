@@ -1775,3 +1775,180 @@ def reorder_chat_items():
     except Exception as e:
         logging.error(f"Error reordering chat items: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@admin_bp.route('/bbs_menu', methods=['GET', 'POST'])
+@sysop_required
+def bbs_management():
+    """
+    BBSメニューの階層構造を管理するページ。
+    bbs_mode3.yaml の読み込み、編集、保存を行います。
+    """
+    def find_item_and_parent(items, item_id, parent=None):
+        """IDでアイテムを再帰的に探し、アイテムとその親、インデックスを返す"""
+        if not isinstance(items, list):
+            return None, None, -1
+        for i, item in enumerate(items):
+            if item.get('id') == item_id:
+                return item, parent, i
+            if 'items' in item:
+                found_item, found_parent, found_index = find_item_and_parent(
+                    item['items'], item_id, item)
+                if found_item:
+                    return found_item, found_parent, found_index
+        return None, None, -1
+
+    if request.method == 'POST':
+        bbs_config = util.load_bbs_config()
+        action = request.form.get('action')
+
+        try:
+            if action == 'add':
+                parent_id = request.form.get('parent_id')
+                new_id = request.form.get('id').strip()
+                new_type = request.form.get('type')
+
+                if not new_id:
+                    flash('ID is required.', 'danger')
+                else:
+                    new_item = {'id': new_id, 'type': new_type}
+
+                    if parent_id == 'root_categories':
+                        bbs_config.setdefault(
+                            'categories', []).append(new_item)
+                    else:
+                        parent_item, _, _ = find_item_and_parent(
+                            bbs_config.get('categories', []), parent_id)
+                        if parent_item and parent_item.get('type') == 'child':
+                            parent_item.setdefault(
+                                'items', []).append(new_item)
+                        else:
+                            flash(
+                                f"Parent item '{parent_id}' not found or is not a category.", 'danger')
+
+            elif action == 'edit':
+                item_id = request.form.get('id')
+                item, _, _ = find_item_and_parent(
+                    bbs_config.get('categories', []), item_id)
+
+                if item:
+                    # name と description はオプショナルなので、空の場合はキーごと削除
+                    name = request.form.get('name', '').strip()
+                    description = request.form.get('description', '').strip()
+                    if name:
+                        item['name'] = name
+                    elif 'name' in item:
+                        del item['name']
+                    if description:
+                        item['description'] = description
+                    elif 'description' in item:
+                        del item['description']
+                else:
+                    flash(f"Item '{item_id}' not found for editing.", 'danger')
+
+            elif action == 'delete':
+                item_id = request.form.get('id')
+                item, parent, index = find_item_and_parent(
+                    bbs_config.get('categories', []), item_id)
+                target_list = None
+                if item:
+                    if parent:
+                        target_list = parent.get('items')
+                    else:
+                        target_list = bbs_config.get('categories')
+
+                if item and target_list is not None and index != -1:
+                    del target_list[index]
+                else:
+                    flash(
+                        f"Item '{item_id}' not found for deletion.", 'danger')
+
+            util.save_bbs_config(bbs_config)
+            flash('BBS menu configuration updated successfully.', 'success')
+
+        except Exception as e:
+            flash(f"An error occurred: {e}", 'danger')
+
+        return redirect(url_for('admin.bbs_management'))
+
+    bbs_config = util.load_bbs_config()
+
+    # YAML内のボードID(shortcut_id)とDBの主キー(id)をマッピングする辞書を作成
+    board_id_map = {}
+    all_boards, _ = database.get_all_boards_for_sysop_list(per_page=9999)
+    if all_boards:
+        board_id_map = {board['shortcut_id']: board['id']
+                        for board in all_boards}
+
+    # テンプレートに渡すデータにDBのIDを追加
+    def enrich_items_with_db_id(items):
+        if not isinstance(items, list):
+            return
+        for item in items:
+            if item.get('type') == 'board':
+                item['db_id'] = board_id_map.get(item.get('id'))
+            if 'items' in item and isinstance(item.get('items'), list):
+                enrich_items_with_db_id(item['items'])
+    enrich_items_with_db_id(bbs_config.get('categories', []))
+
+    return render_template('admin/bbs_management.html', title="BBS Menu Management", bbs_config=bbs_config)
+
+
+@admin_bp.route('/bbs_menu/reorder', methods=['POST'])
+@sysop_required
+def reorder_bbs_items():
+    """BBSメニューアイテムの並び替えAPI"""
+    data = request.get_json()
+    parent_id = data.get('parent_id')
+    ordered_ids = data.get('ordered_ids')
+
+    if not parent_id or not ordered_ids:
+        return jsonify({'status': 'error', 'message': 'Missing data.'}), 400
+
+    try:
+        bbs_config = util.load_bbs_config()
+
+        all_items_map = {}
+        all_lists = []
+
+        def build_map_and_collect_lists(items):
+            if not isinstance(items, list):
+                return
+            all_lists.append(items)
+            for item in items:
+                all_items_map[item['id']] = item
+                if item.get('type') == 'child' and 'items' in item and isinstance(item['items'], list):
+                    build_map_and_collect_lists(item['items'])
+        build_map_and_collect_lists(bbs_config.get('categories', []))
+
+        target_list = None
+        if parent_id == 'root_categories':
+            target_list = bbs_config.get('categories', [])
+        else:
+            parent_item = all_items_map.get(parent_id)
+            if parent_item and parent_item.get('type') == 'child':
+                target_list = parent_item.setdefault('items', [])
+
+        if target_list is None:
+            return jsonify({'status': 'error', 'message': f"Parent '{parent_id}' not found or is not a category."}), 404
+
+        moved_item_ids = set(ordered_ids)
+        for lst in all_lists:
+            lst[:] = [item for item in lst if item['id'] not in moved_item_ids]
+
+        reordered_items = []
+        for item_id in ordered_ids:
+            if item_id in all_items_map:
+                reordered_items.append(all_items_map[item_id])
+            else:
+                logging.warning(
+                    f"Reordering BBS menu: Item with ID '{item_id}' not found in map.")
+
+        target_list[:] = reordered_items
+
+        util.save_bbs_config(bbs_config)
+        return jsonify({'status': 'success'})
+
+    except Exception as e:
+        logging.error(f"Error reordering BBS menu items: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500

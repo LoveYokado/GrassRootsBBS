@@ -77,6 +77,35 @@ def save_chat_config(config_data):
         yaml.dump(config_data, f, allow_unicode=True, sort_keys=False)
 
 
+def load_bbs_config():
+    """
+    BBSメニュー設定ファイル(`bbs_mode3.yaml`)を読み込み、辞書として返します。
+    """
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(project_root, 'setting', 'bbs_mode3.yaml')
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        logging.warning(f"BBS config file not found at {config_path}")
+        return {}
+    except yaml.YAMLError as e:
+        logging.error(f"Error parsing bbs_mode3.yaml: {e}")
+        return {}
+
+
+def save_bbs_config(config_data):
+    """
+    指定された辞書データをBBSメニュー設定ファイル(`bbs_mode3.yaml`)に書き込みます。
+
+    :param config_data: 書き込む設定データ（辞書）。
+    """
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(project_root, 'setting', 'bbs_mode3.yaml')
+    with open(config_path, 'w', encoding='utf-8') as f:
+        yaml.dump(config_data, f, allow_unicode=True, sort_keys=False)
+
+
 def load_app_config_from_path(config_file_path):
     """
     指定されたパスのTOMLファイルからアプリケーション設定を読み込み、
