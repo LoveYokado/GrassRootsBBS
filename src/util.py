@@ -46,6 +46,35 @@ def get_tracking_code():
         return ""
 
 
+def load_chat_config():
+    """
+    setting/chatroom.yaml を読み込み、Pythonの辞書として返します。
+    ファイルが存在しない、またはパースに失敗した場合は空の辞書を返します。
+    """
+    # current_app はリクエストコンテキスト外で使えないため、app_configからパスを構築
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(project_root, 'setting', 'chatroom.yaml')
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f) or {}
+    except FileNotFoundError:
+        logging.warning(f"Chat config file not found at {config_path}")
+        return {}
+    except yaml.YAMLError as e:
+        logging.error(f"Error parsing chatroom.yaml: {e}")
+        return {}
+
+
+def save_chat_config(config_data):
+    """
+    Pythonの辞書を setting/chatroom.yaml に書き込みます。
+    """
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    config_path = os.path.join(project_root, 'setting', 'chatroom.yaml')
+    with open(config_path, 'w', encoding='utf-8') as f:
+        yaml.dump(config_data, f, allow_unicode=True, sort_keys=False)
+
+
 def load_app_config_from_path(config_file_path):
     """
     Initializes the global `app_config` dictionary from a specified TOML file path.

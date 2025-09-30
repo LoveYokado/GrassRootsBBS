@@ -61,4 +61,36 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // --- chat_management.html: モーダルの制御 ---
+    const addModal = document.getElementById('addModal');
+    if (addModal) {
+        addModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const parentId = button.getAttribute('data-parent-id');
+            const modalParentIdInput = addModal.querySelector('#add-parent-id');
+            modalParentIdInput.value = parentId;
+        });
+    }
+
+    const editModal = document.getElementById('editModal');
+    if (editModal) {
+        editModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const id = button.getAttribute('data-id');
+            const name = button.getAttribute('data-name');
+            const description = button.getAttribute('data-description');
+            const type = button.getAttribute('data-type');
+            const push = button.getAttribute('data-push') === 'true';
+
+            editModal.querySelector('.modal-title').textContent = 'Edit: ' + name;
+            editModal.querySelector('#edit-id').value = id;
+            editModal.querySelector('#edit-name').value = name;
+            editModal.querySelector('#edit-description').value = description;
+
+            const pushGroup = editModal.querySelector('#edit-push-group');
+            pushGroup.style.display = (type === 'room') ? 'block' : 'none';
+            editModal.querySelector('#edit-push').checked = push;
+        });
+    }
+
 });

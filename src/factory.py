@@ -21,6 +21,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from flask import Flask
 from flask import request, abort
+from markupsafe import escape, Markup
 from flask_session import Session
 from flask_socketio import SocketIO
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -143,6 +144,15 @@ def create_app():
             return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
         except (ValueError, OSError):
             return "Invalid Date"
+
+    @app.template_filter('nl2br')
+    def nl2br_filter(s):
+        """Converts newlines in a string to <br> tags for safe HTML rendering."""
+        if not s:
+            return ""
+        # First, escape the string to prevent XSS, then replace newlines.
+        s_escaped = escape(s)
+        return Markup(s_escaped.replace('\n', '<br>\n'))
 
     # --- リクエストフック ---
     @app.before_request

@@ -19,6 +19,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from ..decorators import sysop_required
 
 import toml
+import yaml
 import shutil
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -1525,3 +1526,113 @@ def access_log_viewer():
 
     return render_template('admin/log_viewer.html', title=g.texts.get('access_log', {}).get('title', 'Access Log Viewer'), logs=logs, error_logs=error_logs, search_params=search_params, search_params_for_per_page=search_params_for_per_page, pagination=pagination,
                            sort_by=sort_by, order=order, next_order=next_order)
+
+
+@admin_bp.route('/chatrooms', methods=['GET', 'POST'])
+@sysop_required
+def chat_management():
+    """
+    チャットルームの階層構造を管理するページ。
+    chatroom.yaml の読み込み、編集、保存を行います。
+    """
+    config_path = os.path.join(
+        current_app.config['PROJECT_ROOT'], 'setting', 'chatroom.yaml')
+
+    def find_item_and_parent(items, item_id, parent=None):
+        """IDでアイテムを再帰的に探し、アイテムとその親、インデックスを返す"""
+        for i, item in enumerate(items):
+            if item.get('id') == item_id:
+                return item, parent, i
+            if 'items' in item:
+                found_item, found_parent, found_index = find_item_and_parent(
+                    item['items'], item_id, item)
+                if found_item:
+                    return found_item, found_parent, found_index
+        return None, None, -1
+
+    if request.method == 'POST':
+        chat_config = util.load_chat_config()
+        action = request.form.get('action')
+
+        try:
+            if action == 'add':
+                parent_id = request.form.get('parent_id')
+                new_id = request.form.get('id').strip()
+                new_name = request.form.get('name').strip()
+                new_type = request.form.get('type')
+
+                if not new_id or not new_name:
+                    flash('ID and Name are required.', 'danger')
+                else:
+                    new_item = {'id': new_id, 'name': new_name,
+                                'type': new_type}
+                    if new_type == 'room':
+                        new_item['push'] = 'push' in request.form
+                    if new_type == 'child':
+                        new_item['items'] = []
+
+                    if parent_id == 'root_categories':
+                        chat_config.setdefault(
+                            'categories', []).append(new_item)
+                    elif parent_id == 'root_global':
+                        chat_config.setdefault('global', []).append(new_item)
+                    else:
+                        parent_item, _, _ = find_item_and_parent(
+                            chat_config.get('categories', []), parent_id)
+                        if parent_item and parent_item.get('type') == 'child':
+                            parent_item.setdefault(
+                                'items', []).append(new_item)
+                        else:
+                            flash(
+                                f"Parent item '{parent_id}' not found or is not a category.", 'danger')
+
+            elif action == 'edit':
+                item_id = request.form.get('id')
+                item, _, _ = find_item_and_parent(
+                    chat_config.get('categories', []), item_id)
+                if not item:
+                    item, _, _ = find_item_and_parent(
+                        chat_config.get('global', []), item_id)
+
+                if item:
+                    item['name'] = request.form.get(
+                        'name', item['name']).strip()
+                    item['description'] = request.form.get(
+                        'description', item.get('description', '')).strip()
+                    if item['type'] == 'room':
+                        item['push'] = 'push' in request.form
+                else:
+                    flash(f"Item '{item_id}' not found for editing.", 'danger')
+
+            elif action == 'delete':
+                item_id = request.form.get('id')
+                item, parent, index = find_item_and_parent(
+                    chat_config.get('categories', []), item_id)
+                target_list = None
+                if item:
+                    if parent:
+                        target_list = parent.get('items')
+                    else:
+                        target_list = chat_config.get('categories')
+                else:
+                    item, parent, index = find_item_and_parent(
+                        chat_config.get('global', []), item_id)
+                    if item:
+                        target_list = chat_config.get('global')
+
+                if item and target_list is not None and index != -1:
+                    del target_list[index]
+                else:
+                    flash(
+                        f"Item '{item_id}' not found for deletion.", 'danger')
+
+            util.save_chat_config(chat_config)
+            flash('Chat configuration updated successfully.', 'success')
+
+        except Exception as e:
+            flash(f"An error occurred: {e}", 'danger')
+
+        return redirect(url_for('admin.chat_management'))
+
+    chat_config = util.load_chat_config()
+    return render_template('admin/chat_management.html', title="Chat Room Management", chat_config=chat_config)
