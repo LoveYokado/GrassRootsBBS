@@ -111,8 +111,6 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content" style="background-color: #2a2a2a; color: #fff;">
             <form method="post" action="{{ url_for('admin.chat_management') }}">
-                <input type="hidden" name="action" value="add">
-                <input type="hidden" name="parent_id" id="add-parent-id">
                 <div class="modal-header">
                     <h5 class="modal-title">Add New Item</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -120,6 +118,8 @@
                     </button>
                 </div>
                 <div class="modal-body">
+                    <input type="hidden" name="action" value="add">
+                    <input type="hidden" name="parent_id" id="add-parent-id">
                     <div class="form-group">
                         <label for="add-id">ID (Unique, English characters only)</label>
                         <input type="text" class="form-control" id="add-id" name="id" required>
@@ -154,8 +154,6 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content" style="background-color: #2a2a2a; color: #fff;">
             <form method="post" action="{{ url_for('admin.chat_management') }}">
-                <input type="hidden" name="action" value="edit">
-                <input type="hidden" name="id" id="edit-id">
                 <div class="modal-header">
                     <h5 class="modal-title">Edit Item</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -163,6 +161,8 @@
                     </button>
                 </div>
                 <div class="modal-body">
+                    <input type="hidden" name="action" value="edit">
+                    <input type="hidden" name="id" id="edit-id">
                     <div class="form-group">
                         <label for="edit-name">Name</label>
                         <input type="text" class="form-control" id="edit-name" name="name" required>
@@ -195,7 +195,7 @@
         var button = $(event.relatedTarget);
         var parentId = button.data('parent-id');
         var modal = $(this);
-        modal.find('.modal-body #add-parent-id').val(parentId);
+        modal.find('#add-parent-id').val(parentId);
     });
 
     // Edit Modal: Populate form with item data
@@ -209,7 +209,7 @@
 
         var modal = $(this);
         modal.find('.modal-title').text('Edit: ' + name);
-        modal.find('.modal-body #edit-id').val(id);
+        modal.find('#edit-id').val(id);
         modal.find('.modal-body #edit-name').val(name);
         modal.find('.modal-body #edit-description').val(description);
 
