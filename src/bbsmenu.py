@@ -3,11 +3,11 @@
 
 """
 BBSメニューハンドラ
-
+ 
 このモジュールは、BBSのトップメニューから利用可能な様々なコマンドの
 ハンドラ関数を含んでいます。オンラインユーザーの表示、オンラインサインアップ、
 新着記事の探索といった機能が含まれます。これらの関数は、通常
-`command_dispatcher.py` から呼び出されます。
+`command_dispatcher.py` から呼び出されます。 
 """
 
 import textwrap
@@ -21,7 +21,7 @@ from . import bbs_manager
 
 def who_menu(chan, online_members_dict, current_menu_mode):
     """
-    オンラインメンバー一覧を表示する
+    オンラインメンバーの一覧を表示します。
     """
     util.send_text_by_key(
         chan, "who_menu.header", current_menu_mode)
@@ -184,7 +184,7 @@ def handle_online_signup(chan, menu_mode):
 
 def _perform_exploration(chan, login_id, display_name, user_id_pk, user_level, menu_mode, ip_address, exploration_list_str):
     """
-    指定された探索リストに基づいて掲示板を巡回し、未読記事を表示する共通関数。
+    指定された探索リストに基づいて掲示板を巡回し、未読記事を表示する共通関数です。
     """
     util.send_text_by_key(
         chan, "explore_new_articles.start_message", menu_mode
@@ -254,7 +254,7 @@ def _perform_exploration(chan, login_id, display_name, user_id_pk, user_level, m
 
 def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str):  # noqa
     """
-    新アーティクル探索 ('n' コマンド) のハンドラ。
+    新アーティクル探索 ('n' コマンド) のハンドラです。
     ユーザーの個人探索リストまたはサーバーのデフォルトリストを使用します。
     """
     # ユーザー個人の探索リストを取得
@@ -270,7 +270,7 @@ def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id
 
 def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str, default_exploration_list_str: str):  # noqa
     """
-    全シグ探索 ('x' コマンド) のハンドラ。
+    全シグ探索 ('x' コマンド) のハンドラです。
     サーバーのデフォルト探索リストのみを使用します。
     """
     # 引数で渡された共通探索リストを使用
@@ -286,7 +286,7 @@ def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id
 
 
 def _get_exploration_list_for_user(user_id_pk):
-    """ユーザーの探索リストを取得します。個人設定がなければサーバーのデフォルトを使用します。"""
+    """ユーザーの探索リストを取得します。個人設定がなければサーバーのデフォルトリストを使用します。"""
     exploration_list_str = database.get_user_exploration_list(user_id_pk)
     if not exploration_list_str:
         server_prefs = database.read_server_pref()
@@ -296,7 +296,7 @@ def _get_exploration_list_for_user(user_id_pk):
 
 def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):  # noqa
     """
-    新アーティクル見出し表示。
+    新アーティクル見出し表示 ('h' コマンド) のハンドラです。
     探索リスト内の各掲示板について、未読記事のタイトルのみを一覧表示します。
     """
     util.send_text_by_key(
@@ -397,7 +397,7 @@ def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_leve
 
 def handle_auto_download(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):  # noqa
     """
-    自動ダウンロード。
+    自動ダウンロード ('a' コマンド) のハンドラです。
     探索リスト内の各掲示板の未読記事を、ヘッダと本文を含めて連続で表示します。
     """
     util.send_text_by_key(

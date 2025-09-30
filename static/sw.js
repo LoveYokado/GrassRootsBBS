@@ -1,8 +1,8 @@
-// Service Worker for GR-BBS
+/* Service Worker for GR-BBS */
 
 self.addEventListener('install', (event) => {
     console.log('Service Worker installing.');
-    // self.skipWaiting(); // Forces the waiting service worker to become the active service worker.
+    // self.skipWaiting(); // 待機中のService Workerを強制的にアクティブにします。
 });
 
 self.addEventListener('activate', event => {
@@ -23,7 +23,7 @@ self.addEventListener('push', (event) => {
     const options = {
         body: data.body || 'You have a new notification.',
         icon: '/static/icons/icon-192x192.png',
-        badge: '/static/icons/icon-96x96.png',
+        badge: '/static/icons/icon-96x96.png', 
         // 通知自体にデータを添付する
         data: {
             url: data.data ? data.data.url : '/'
@@ -37,18 +37,18 @@ self.addEventListener('notificationclick', (event) => {
     console.log('[Service Worker] Notification click Received.');
     event.notification.close();
     const targetUrl = event.notification.data.url || '/';
-
+ 
     // このオリジンに属するウィンドウを探す
     event.waitUntil(
         clients.matchAll({
             type: "window",
             includeUncontrolled: true
         }).then((clientList) => {
-            // 既に開いているウィンドウがあれば、それにメッセージを送信してフォーカスを当てる
+            // 既に開いているウィンドウがあれば、それにフォーカスを当てる
             for (const client of clientList) {
                 if (client.url && 'focus' in client) {
                     // メッセージを送信して、クライアント側でコマンドを実行させる
-                    client.postMessage({ type: 'execute_shortcut', url: targetUrl });
+                    client.postMessage({ type: 'execute_shortcut', url: targetUrl }); 
                     return client.focus();
                 }
             }

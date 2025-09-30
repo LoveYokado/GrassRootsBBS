@@ -3,9 +3,9 @@
 
 """ユーティリティモジュール
 
-このモジュールは、GrassRootsBBSアプリケーション全体で共通して使用される
+このモジュールは、GrassRootsBBSアプリケーション全体で共通して使用される 
 ヘルパー関数を提供します。設定ファイルの読み書き、テキスト処理、
-パスワードハッシュ化、データフォーマットなど、多岐にわたる機能を含み、
+パスワードハッシュ化、データフォーマットなど、多岐にわたる機能を含み、 
 コードの再利用性を高める役割を担います。
 """
 
@@ -32,9 +32,9 @@ _master_text_data_cache = None
 
 def get_tracking_code():
     """
-    トラッキングコードファイル(`trackingcode.txt`)を読み込み、内容を返します。
+    トラッキングコードファイル(`trackingcode.txt`)を読み込み、その内容を返します。
 
-    ファイルが存在しない、または読み込みに失敗した場合は空文字列を返します。
+    ファイルが存在しない場合や読み込みに失敗した場合は、空文字列を返します。
     """
     try:
         with open('setting/trackingcode.txt', 'r', encoding='utf-8') as f:
@@ -48,9 +48,9 @@ def get_tracking_code():
 
 def load_chat_config():
     """
-    チャットルーム設定ファイル(`chatroom.yaml`)を読み込み、辞書として返します。
+    チャットルーム設定ファイル(`chatroom.yaml`)を読み込み、辞書として返します。 
 
-    ファイルが存在しない、またはYAMLのパースに失敗した場合は空の辞書を返します。
+    ファイルが存在しない場合やYAMLのパースに失敗した場合は、空の辞書を返します。
     """
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path = os.path.join(project_root, 'setting', 'chatroom.yaml')
@@ -67,7 +67,7 @@ def load_chat_config():
 
 def save_chat_config(config_data):
     """
-    指定された辞書データをチャットルーム設定ファイル(`chatroom.yaml`)に書き込みます。
+    指定された辞書データをチャットルーム設定ファイル(`chatroom.yaml`)に書き込みます。 
 
     :param config_data: 書き込む設定データ（辞書）。
     """
@@ -79,7 +79,7 @@ def save_chat_config(config_data):
 
 def load_bbs_config():
     """
-    BBSメニュー設定ファイル(`bbs_mode3.yaml`)を読み込み、辞書として返します。
+    BBSメニュー設定ファイル(`bbs_mode3.yaml`)を読み込み、辞書として返します。 
     """
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     config_path = os.path.join(project_root, 'setting', 'bbs_mode3.yaml')
@@ -96,7 +96,7 @@ def load_bbs_config():
 
 def save_bbs_config(config_data):
     """
-    指定された辞書データをBBSメニュー設定ファイル(`bbs_mode3.yaml`)に書き込みます。
+    指定された辞書データをBBSメニュー設定ファイル(`bbs_mode3.yaml`)に書き込みます。 
 
     :param config_data: 書き込む設定データ（辞書）。
     """
@@ -108,7 +108,7 @@ def save_bbs_config(config_data):
 
 def load_app_config_from_path(config_file_path):
     """
-    指定されたパスのTOMLファイルからアプリケーション設定を読み込み、
+    指定されたパスのTOMLファイルからアプリケーション設定を読み込み、 
     グローバルな `app_config` 辞書を初期化します。
 
     :param config_file_path: 設定ファイルのパス。
@@ -129,7 +129,7 @@ def load_app_config_from_path(config_file_path):
 
 def save_app_config(config_data, config_file_path):
     """
-    設定辞書を指定されたパスのTOMLファイルに保存します。
+    設定辞書を指定されたパスのTOMLファイルに保存します。 
 
     :param config_data: 保存する設定データ（辞書）。
     :param config_file_path: 保存先のファイルパス。
@@ -146,7 +146,7 @@ def save_app_config(config_data, config_file_path):
 
 def verify_password(stored_password_hash, salt_hex, provided_password):
     """
-    提供されたパスワードが、保存されているハッシュとソルトと一致するか検証します。
+    提供されたパスワードが、保存されているハッシュとソルトと一致するか検証します。 
 
     :param stored_password_hash: データベースに保存されているハッシュ化済みパスワード。
     :param salt_hex: パスワードのハッシュ化に使用されたソルト（16進数文字列）。
@@ -169,9 +169,9 @@ def verify_password(stored_password_hash, salt_hex, provided_password):
 
 def _validate_config_or_log_warnings():
     """
-    読み込まれた設定ファイルの基本的な検証を行います。
+    読み込まれた設定ファイルの基本的な検証を行います。 
 
-    必須セクションが存在しない場合に警告ログを出力します。
+    必須セクションが存在しない場合に警告ログを出力します。 
     """
     required_sections = {"security", "webapp"}
     for section in required_sections:
@@ -181,10 +181,10 @@ def _validate_config_or_log_warnings():
 
 def load_master_text_data():
     """
-    メインのテキストデータファイル(`textdata.yaml`)を読み込み、メモリにキャッシュします。
+    メインのテキストデータファイル(`textdata.yaml`)を読み込み、メモリにキャッシュします。 
 
-    一度読み込んだデータはキャッシュされ、2回目以降の呼び出しではキャッシュから返されます。
-    これにより、ファイルI/Oのオーバーヘッドを削減します。
+    一度読み込んだデータはキャッシュされ、2回目以降の呼び出しではキャッシュから返されます。 
+    これにより、ファイルI/Oのオーバーヘッドを削減します。 
     """
     global _master_text_data_cache
     if _master_text_data_cache is not None:
@@ -210,7 +210,7 @@ def load_master_text_data():
 
 def get_text_by_key(key_string, menu_mode, default_value=""):
     """
-    キャッシュされたテキストデータから、指定されたキーとメニューモードに対応する文字列を取得します。
+    キャッシュされたテキストデータから、指定されたキーとメニューモードに対応する文字列を取得します。 
 
     例: `get_text_by_key("user_pref_menu.header", "1")`
     :param key_string: ドット区切りのキー (例: "top_menu.menu")。
@@ -254,7 +254,7 @@ def get_text_by_key(key_string, menu_mode, default_value=""):
 
 def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=True, **kwargs):
     """
-    指定されたキーのテキストを取得し、プレースホルダを置換してクライアントに送信します。
+    指定されたキーのテキストを取得し、プレースホルダを置換してクライアントに送信します。 
 
     :param chan: 送信先のチャンネルオブジェクト。
     :param key_string: 取得するテキストのキー。
@@ -313,9 +313,9 @@ def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=
 
 def send_top_menu(chan, menu_mode):
     """
-    トップメニューのUIとテキストを表示します。
+    トップメニューのUIとテキストを表示します。 
 
-    モバイルクライアント向けに、専用の操作ボタンを表示するための
+    モバイルクライアント向けに、専用の操作ボタンを表示するための 
     エスケープシーケンスも送信します。
     """
     chan.send(b'\x1b[?2031h')
@@ -324,9 +324,8 @@ def send_top_menu(chan, menu_mode):
 
 
 def hash_password(password):
-    """Hashes a password using PBKDF2 and returns the salt and hash."""
     """
-    パスワードをPBKDF2でハッシュ化し、ソルトとハッシュを返します。
+    パスワードをPBKDF2でハッシュ化し、ソルトとハッシュを返します。 
 
     :return: (salt_hex, hashed_password_hex) のタプル。
     """
@@ -348,9 +347,9 @@ def hash_password(password):
 
 def prompt_handler(chan, login_id, menu_mode='2'):
     """
-    プロンプトを表示する前に呼び出される定型処理。
+    プロンプトを表示する前に呼び出される定型処理です。 
 
-    新着メールや電報の有無をチェックし、通知を表示します。
+    新着メールや電報の有無をチェックし、通知を表示します。 
     :return: (サーバー設定辞書, メール通知フラグ) のタプル。
     """
     from . import database
@@ -373,9 +372,9 @@ def prompt_handler(chan, login_id, menu_mode='2'):
 
 def load_yaml_file_for_shortcut(filename: str):
     """
-    設定ファイル(`config.toml`)で指定されたパスからYAMLファイルをロードします。
+    設定ファイル(`config.toml`)で指定されたパスからYAMLファイルをロードします。 
 
-    主にショートカット機能や掲示板マネージャで使用されます。
+    主にショートカット機能や掲示板マネージャで使用されます。 
     :param filename: `config.toml`で定義されたYAMLファイルのパス。
     """
     filepath = filename  # filename is now expected to be a full path from config.toml
@@ -392,7 +391,7 @@ def load_yaml_file_for_shortcut(filename: str):
 
 def _search_items_recursive(items_list, target_id, menu_mode, expected_type):
     """
-    入れ子になったリストから特定のIDとタイプを持つアイテムを再帰的に検索するヘルパー関数。
+    入れ子になったリストから特定のIDとタイプを持つアイテムを再帰的に検索するヘルパー関数です。
     """
     if not items_list:
         return None, None
@@ -419,7 +418,7 @@ def _search_items_recursive(items_list, target_id, menu_mode, expected_type):
 
 def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
     """
-    YAML設定データから、指定されたIDとタイプを持つアイテムを再帰的に検索します。
+    YAML設定データから、指定されたIDとタイプを持つアイテムを再帰的に検索します。 
 
     :param config_data: 検索対象のYAMLデータ（辞書）。
     :param target_id: 検索するアイテムのID。
@@ -450,9 +449,9 @@ def find_item_in_yaml(config_data, target_id, menu_mode, expected_type):
 
 def handle_shortcut(context, shortcut_input: str):
     """
-    ショートカットコマンド（例: `;bbs_free`）を処理します。
+    ショートカットコマンド（例: `;bbs_free`）を処理します。 
 
-    入力がショートカットとして処理された場合は `True` を返します。
+    入力がショートカットとして処理された場合は `True` を返します。 
     ゲストユーザーはショートカット機能を利用できません。
     :param context: コマンド実行コンテキスト。
     :param shortcut_input: ユーザーが入力した文字列。
@@ -536,7 +535,7 @@ def handle_shortcut(context, shortcut_input: str):
 
 def check_new_mail(chan, username, current_menu_mode, notified_in_session):
     """
-    新着メールを確認し、現在のセッションでまだ通知されていなければユーザーに通知します。
+    新着メールを確認し、現在のセッションでまだ通知されていなければユーザーに通知します。 
 
     :param chan: チャンネルオブジェクト。
     :param username: ユーザー名。
@@ -586,7 +585,7 @@ def check_new_mail(chan, username, current_menu_mode, notified_in_session):
 
 def telegram_send(chan, display_name, online_members_ids, current_menu_mode, is_mobile=False):
     """
-    オンラインユーザーに電報を送信する対話的なプロセスを処理します。
+    オンラインユーザーに電報を送信する対話的なプロセスを処理します。 
 
     :param chan: チャンネルオブジェクト。
     :param display_name: 送信者の表示名。
@@ -693,7 +692,7 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode, is_
 
 def strip_ansi(text):
     """
-    文字列からANSIエスケープシーケンスを削除します。
+    文字列からANSIエスケープシーケンスを削除します。 
     """
     ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
     return ansi_escape.sub('', text)
@@ -701,7 +700,7 @@ def strip_ansi(text):
 
 def truncate_ansi_string(text, max_width):
     """
-    ANSIエスケープシーケンスを含む文字列を、指定された表示幅に切り詰めます。
+    ANSIエスケープシーケンスを含む文字列を、指定された表示幅に切り詰めます。 
 
     :param text: 対象の文字列。
     :param max_width: 最大表示幅。
@@ -736,9 +735,9 @@ def truncate_ansi_string(text, max_width):
 
 def telegram_recieve(chan, username, current_menu_mode, is_mobile=False):
     """
-    ユーザー宛の未読電報を取得・表示し、データベースから削除します。
+    ユーザー宛の未読電報を取得・表示し、データベースから削除します。 
 
-    受信制限やブラックリスト設定を考慮して、表示する電報をフィルタリングします。
+    受信制限やブラックリスト設定を考慮して、表示する電報をフィルタリングします。 
     """
     from . import database
     # 電報受信設定を取得
@@ -814,7 +813,7 @@ def telegram_recieve(chan, username, current_menu_mode, is_mobile=False):
 
 def is_valid_email(email: str) -> bool:
     """
-    メールアドレスの形式を簡易的に検証します。
+    メールアドレスの形式を簡易的に検証します。 
 
     :return: 有効な形式であればTrue、そうでなければFalse。
     """
@@ -828,7 +827,7 @@ def is_valid_email(email: str) -> bool:
 
 def generate_random_password(length=12):
     """
-    暗号学的に安全なランダムパスワードを生成します。
+    暗号学的に安全なランダムパスワードを生成します。 
 
     :param length: 生成するパスワードの長さ。
     """
@@ -839,7 +838,7 @@ def generate_random_password(length=12):
 
 def display_exploration_list(chan, list_str: str):
     """
-    カンマ区切りの探索リスト文字列を整形して表示するヘルパー関数。
+    カンマ区切りの探索リスト文字列を整形して表示するヘルパー関数です。 
 
     :param list_str: 探索リストの文字列 (例: "A,B,C")。
     """
@@ -857,7 +856,7 @@ def display_exploration_list(chan, list_str: str):
 
 def prompt_and_save_exploration_list(chan, menu_mode: str, save_callback: callable):
     """
-    探索リストの入力を促し、指定されたコールバック関数で保存する共通関数。
+    探索リストの入力を促し、指定されたコールバック関数で保存する共通関数です。 
 
     :param chan: チャンネルオブジェクト。
     :param menu_mode: 現在のメニューモード。
@@ -906,9 +905,9 @@ def prompt_and_save_exploration_list(chan, menu_mode: str, save_callback: callab
 
 def initialize_database_and_sysop():
     """
-    データベースの初回セットアップを実行します。
+    データベースの初回セットアップを実行します。 
 
-    この関数は、データベースが未初期化であると判断された場合にのみ呼び出されます。
+    この関数は、データベースが未初期化であると判断された場合にのみ呼び出されます。 
     テーブル作成と、環境変数で指定された初期シスオペユーザーの作成を行います。
     """
     logging.info("Database not initialized. Running initial setup.")
@@ -931,7 +930,7 @@ def initialize_database_and_sysop():
 
 def format_timestamp(timestamp, default_str='N/A', date_format='%Y-%m-%d %H:%M'):
     """
-    UNIXタイムスタンプを、人間が読める形式の日時文字列に安全にフォーマットします。
+    UNIXタイムスタンプを、人間が読める形式の日時文字列に安全にフォーマットします。 
 
     :param timestamp: フォーマットするUNIXタイムスタンプ。
     :param default_str: タイムスタンプが無効な場合に返す文字列。
@@ -949,9 +948,9 @@ def format_timestamp(timestamp, default_str='N/A', date_format='%Y-%m-%d %H:%M')
 
 def generate_guest_hash(ip_address: str) -> str:
     """
-    IPアドレスからゲストユーザー識別用の一貫性のある短いハッシュを生成します。
+    IPアドレスからゲストユーザー識別用の一貫性のある短いハッシュを生成します。 
 
-    `config.toml`の`GUEST_ID_SALT`を使用してハッシュ化します。
+    `config.toml`の`GUEST_ID_SALT`を使用してハッシュ化します。 
     :param ip_address: ゲストユーザーのIPアドレス。
     :return: 7文字のハッシュ文字列。
     """
@@ -972,9 +971,9 @@ def generate_guest_hash(ip_address: str) -> str:
 
 def get_display_name(login_id: str, ip_address: str) -> str:
     """
-    ユーザーの表示名を取得します。
+    ユーザーの表示名を取得します。 
 
-    GUESTユーザーの場合は、IPアドレスに基づいた動的なID (`GUEST(hash)`) を生成します。
+    GUESTユーザーの場合は、IPアドレスに基づいた動的なID (`GUEST(hash)`) を生成します。 
     :param login_id: ユーザーのログインID。
     :param ip_address: ユーザーのIPアドレス。
     :return: 表示名。
@@ -987,9 +986,9 @@ def get_display_name(login_id: str, ip_address: str) -> str:
 
 def shorten_text_by_slicing(text, width, placeholder="..."):
     """
-    テキストを指定された表示幅に単純なスライスで短縮します。
+    テキストを指定された表示幅に単純なスライスで短縮します。 
 
-    `textwrap.shorten`と異なり、単語の途中でも切り詰めます。
+    `textwrap.shorten`と異なり、単語の途中でも切り詰めます。 
     :param text: 対象のテキスト。
     :param width: 最大表示幅。
     :param placeholder: 末尾に付与する省略記号。
@@ -1008,7 +1007,7 @@ def shorten_text_by_slicing(text, width, placeholder="..."):
 
 def format_file_size(size_in_bytes):
     """
-    バイト単位のファイルサイズを、人間が読みやすい形式 (B, KB, MB) にフォーマットします。
+    バイト単位のファイルサイズを、人間が読みやすい形式 (B, KB, MB) にフォーマットします。 
 
     :param size_in_bytes: ファイルサイズ（バイト）。
     :return: フォーマットされた文字列 (例: "1.2 MB")。
@@ -1026,9 +1025,9 @@ def format_file_size(size_in_bytes):
 
 def send_push_notification(subscription_info_json, payload_json):
     """
-    単一の購読情報を使用して、購読済みクライアントにプッシュ通知を送信します。
+    単一の購読情報を使用して、購読済みクライアントにプッシュ通知を送信します。 
 
-    VAPIDキーはファイルから読み込み、ライブラリが期待する形式に変換して使用します。
+    VAPIDキーはファイルから読み込み、ライブラリが期待する形式に変換して使用します。 
     :param subscription_info_json: ブラウザから取得した購読情報のJSON文字列。
     :param payload_json: 通知として送信するペイロードのJSON文字列。
     :return: 送信に成功すればTrue、失敗すればFalse。
@@ -1079,7 +1078,7 @@ def send_push_notification(subscription_info_json, payload_json):
 
 def scan_file_with_clamav(filepath):
     """
-    指定されたファイルをClamAVデーモン (clamd) を使ってスキャンします。
+    指定されたファイルをClamAVデーモン (clamd) を使ってスキャンします。 
 
     :param filepath: スキャンするファイルの絶対パス。
     :return: (is_safe, message) のタプル。
@@ -1119,7 +1118,7 @@ def scan_file_with_clamav(filepath):
 
 def create_thumbnail(original_path, thumbnail_path, size=(100, 100)):
     """
-    指定された画像ファイルからサムネイルを生成し、JPEG形式で保存します。
+    指定された画像ファイルからサムネイルを生成し、JPEG形式で保存します。 
 
     :param original_path: 元の画像ファイルのパス。
     :param thumbnail_path: サムネイルを保存するパス。

@@ -58,6 +58,9 @@
                 {% if item.push %}
                 <span class="badge badge-success">Push</span>
                 {% endif %}
+                {% if item.lock %}
+                <span class="badge badge-secondary">Lock</span>
+                {% endif %}
                 {% else %}
                 <span class="badge badge-warning">Category</span>
                 {% endif %}
@@ -69,7 +72,8 @@
                 {% endif %}
                 <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#editModal"
                     data-id="{{ item.id }}" data-name="{{ item.name }}" data-description="{{ item.description or '' }}"
-                    data-type="{{ item.type }}" data-push="{{ 'true' if item.push else 'false' }}">Edit</button>
+                    data-type="{{ item.type }}" data-push="{{ 'true' if item.push else 'false' }}"
+                    data-lock="{{ 'true' if item.lock else 'false' }}">Edit</button>
                 <form method="post" action="{{ url_for('admin.chat_management') }}" style="display: inline;"
                     onsubmit="return confirm('Are you sure you want to delete \'{{ item.name }}\'?');">
                     <input type="hidden" name="action" value="delete">
@@ -139,6 +143,9 @@
                         <label><input type="checkbox" name="push" value="true"> Enable Push Notification on
                             Entry</label>
                     </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" name="lock" value="true"> Enable Room Lock Feature</label>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -176,6 +183,10 @@
                             on
                             Entry</label>
                     </div>
+                    <div class="form-group" id="edit-lock-group">
+                        <label><input type="checkbox" id="edit-lock" name="lock" value="true"> Enable Room Lock
+                            Feature</label>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -207,6 +218,7 @@
         var description = button.data('description');
         var type = button.data('type');
         var push = button.data('push');
+        var lock = button.data('lock');
 
         var modal = $(this);
         modal.find('.modal-title').text('Edit: ' + name);
@@ -217,8 +229,11 @@
         if (type === 'room') {
             $('#edit-push-group').show();
             modal.find('.modal-body #edit-push').prop('checked', push);
+            $('#edit-lock-group').show();
+            modal.find('.modal-body #edit-lock').prop('checked', lock);
         } else {
             $('#edit-push-group').hide();
+            $('#edit-lock-group').hide();
         }
     });
 

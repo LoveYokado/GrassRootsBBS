@@ -1,7 +1,7 @@
 /*
 SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 SPDX-License-Identifier: MIT
-*/
+*/ 
 
 /**
  * Base64URLエンコードされた文字列をArrayBufferに変換します。
@@ -10,7 +10,7 @@ SPDX-License-Identifier: MIT
  */
 function base64urlToBuffer(base64urlString) {
     const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
+    const rawData = window.atob(base64); 
     const outputArray = new Uint8Array(rawData.length);
     for (let i = 0; i < rawData.length; ++i) {
         outputArray[i] = rawData.charCodeAt(i);
@@ -19,7 +19,7 @@ function base64urlToBuffer(base64urlString) {
 }
 
 /**
- * ArrayBufferをBase64URLエンコードされた文字列に変換します。
+ * ArrayBufferをBase64URLエンコードされた文字列に変換します。 
  * @param {ArrayBuffer} buffer - 変換するArrayBuffer
  * @returns {string}
  */
@@ -168,7 +168,7 @@ function applyTheme(themeName) {
         }
     });
 
-    // テーマに応じてANSIカラーボタンの表示/非表示を切り替えます
+    // テーマに応じてANSIカラーボタンの表示/非表示を切り替えます。
     const ansiColorButtons = document.getElementById('ansi-color-buttons');
     if (ansiColorButtons) {
         if (themeName === 'green' || themeName === 'amber') {
@@ -179,14 +179,14 @@ function applyTheme(themeName) {
     }
     localStorage.setItem('terminalTheme', themeName);
     updateThemeButtons(themeName);
-    if (!isDipSwitchUpdating) updateDipSwitches('theme', themeName);
+    if (!isDipSwitchUpdating) updateDipSwitches('theme', themeName); 
 }
 
 function applyFont(fontName) {
     const fontFamily = `"${fontName}", "Courier New", monospace`;
     term.options.fontFamily = fontFamily;
 
-    localStorage.setItem('terminalFont', fontName);
+    localStorage.setItem('terminalFont', fontName); 
     updateFontButtons(fontName);
     if (!isDipSwitchUpdating) updateDipSwitches('font', fontName); // eslint-disable-line no-undef
     setTimeout(() => updateTerminalLayout(), 0);
@@ -217,7 +217,7 @@ function updateFontSizeButtons(size) {
 function applySpeed(speedName) {
     socket.emit('set_speed', speedName);
     localStorage.setItem('terminalSpeed', speedName);
-    updateSpeedButtons(speedName);
+    updateSpeedButtons(speedName); 
     if (!isDipSwitchUpdating) updateDipSwitches('speed', speedName); // eslint-disable-line no-undef
 }
 
@@ -289,7 +289,7 @@ function updateDipSwitches(groupName, value) {
     } else if (groupName === 'font') {
         numericValue = fontMap[value];
     } else if (groupName === 'speed') {
-        numericValue = speedMap[value];
+        numericValue = speedMap[value]; 
     } else if (groupName === 'fontsize') {
         numericValue = fontsizeMap[value]; // eslint-disable-line no-undef
     } else if (groupName === 'effect') {
@@ -314,7 +314,7 @@ function updateDipSwitches(groupName, value) {
 const isMobileForTermInit = window.matchMedia('(max-width: 992px)').matches; // eslint-disable-line no-unused-vars
 const term = new Terminal({
     cursorBlink: true,
-    fontSize: 16,
+    fontSize: 16, 
     scrollback: 1000, // ターミナルのスクロールバックを1000行に設定
 });
 const fitAddon = new FitAddon.FitAddon();
@@ -324,7 +324,7 @@ term.open(document.getElementById('terminal'));
 
 function updateTerminalLayout() {
     const chassis = document.querySelector('.monitor-chassis');
-    const screenContainer = document.querySelector('.monitor-screen');
+    const screenContainer = document.querySelector('.monitor-screen'); 
     const terminalContainer = document.getElementById('terminal');
     const isMobile = window.matchMedia('(max-width: 992px)').matches;
     const isFullscreen = chassis.classList.contains('fullscreen'); // eslint-disable-line no-unused-vars
@@ -390,7 +390,7 @@ attachmentInput.addEventListener('change', () => {
         socket.emit('clear_pending_attachment'); // ファイル選択がキャンセルされた場合
     }
 });
-
+// 
 socket.on('attachment_upload_success', (data) => {
     console.log(`Upload complete: ${data.original_filename}`);
 });
@@ -399,7 +399,7 @@ socket.on('attachment_upload_error', (data) => {
     console.error(`Upload error: ${data.message}`); // eslint-disable-line no-undef
     attachmentInput.value = '';
 });
-// --- ポップアップ関連の要素取得 ---
+// --- ポップアップ関連の要素取得 --- 
 
 const popupOverlay = document.getElementById('popup-overlay');
 const popupWindow = document.getElementById('popup-window');
@@ -437,7 +437,7 @@ const bbsDetailDescription = document.getElementById('bbs-detail-description');
 const bbsListJumpBtn = document.getElementById('bbs-list-jump-btn');
 let currentBbsLinks = [];
 
-const bbsSubmissionOverlay = document.getElementById('bbs-submission-overlay');
+const bbsSubmissionOverlay = document.getElementById('bbs-submission-overlay'); 
 const bbsSubmissionWindow = document.getElementById('bbs-submission-window');
 const bbsSubmissionCloseBtn = document.getElementById('bbs-submission-close-btn');
 const bbsSubmissionName = document.getElementById('bbs-submission-name');
@@ -575,7 +575,7 @@ function closeLogViewer() {
 }
 
 /**
- * BBSリストのポップアップを開きます。
+ * BBSリストのポップアップを開きます。 
  * サーバーにリストデータを要求し、ポップアップを表示します。
  */
 function openBbsListPopup() {
@@ -590,7 +590,7 @@ function openBbsListPopup() {
     bbsListWindow.classList.add('visible');
 }
 
-// BBSリストのポップアップを閉じます
+// BBSリストのポップアップを閉じます。
 function closeBbsListPopup() {
     bbsListOverlay.classList.remove('visible');
     bbsListWindow.classList.remove('visible');
@@ -634,7 +634,7 @@ document.getElementById('bbs-list-submit-new-btn').addEventListener('click', () 
     bbsSubmissionWindow.classList.add('visible');
 });
 
-function closeBbsSubmissionPopup() {
+function closeBbsSubmissionPopup() { 
     bbsSubmissionOverlay.classList.remove('visible');
     bbsSubmissionWindow.classList.remove('visible');
 }
@@ -655,7 +655,7 @@ document.getElementById('bbs-submission-submit-btn').addEventListener('click', (
     }
 });
 
-// --- ファンクションキーの生成とイベント設定 ---
+// --- ファンクションキーの生成とイベント設定 --- 
 const fkeysLeftContainer = document.getElementById('f-keys-left');
 const fkeysRightContainer = document.getElementById('f-keys-right');
 
@@ -663,7 +663,7 @@ for (let i = 1; i <= 8; i++) {
     const key = document.createElement('div');
     key.classList.add('f-key');
     const fkeyId = `f${i}`; // eslint-disable-line no-unused-vars
-    const definition = fkeyDefinitions[fkeyId];
+    const definition = fkeyDefinitions[fkeyId]; 
 
     if (definition) {
         key.textContent = `${definition.label}`;
@@ -770,7 +770,7 @@ function populateUserList(users) {
     });
 }
 
-// 検索機能
+// 検索機能 
 userSelectorSearch.addEventListener('input', () => {
     const searchTerm = userSelectorSearch.value.toLowerCase();
     const filteredUsers = allUsersForSelector.filter(user =>
@@ -825,7 +825,7 @@ bbsStationsList.addEventListener('click', (e) => {
     }
 });
 
-// --- 設定ポップアップ内のボタンイベント ---
+// --- 設定ポップアップ内のボタンイベント --- 
 document.getElementById('theme-selector').addEventListener('click', (e) => {
     if (e.target.tagName === 'BUTTON') {
         applyTheme(e.target.dataset.theme);
@@ -857,7 +857,7 @@ document.getElementById('effect-selector').addEventListener('click', (e) => {
     }
 });
 
-// --- パスワード入力モードの管理 ---
+// --- パスワード入力モードの管理 --- 
 let isPasswordInputMode = false;
 
 socket.on('start_password_input', () => {
@@ -884,7 +884,7 @@ term.onData(data => {
     }
 });
 
-// --- モバイル用操作パネルの表示/非表示管理 ---
+// --- モバイル用操作パネルの表示/非表示管理 --- 
 function hideAllMobileControls() {
     const controls = [
         document.getElementById('mobile-bbs-controls'),
@@ -906,7 +906,7 @@ function hideAllMobileControls() {
     monitorScreen.style.paddingBottom = '';
 }
 
-// --- サーバーからの出力処理 ---
+// --- サーバーからの出力処理 --- 
 socket.on('server_output', data => {
         const passkeyRegisterPattern = /\x1b\[\?2027h/;
     if (passkeyRegisterPattern.test(data)) {
@@ -1168,7 +1168,7 @@ socket.on('server_output', data => {
         data = data.replace(userSelectorPattern, '');
     }
 
-    // --- 自動スクロール & レイアウト補正ロジック ---
+    // --- 自動スクロール & レイアウト補正ロジック --- 
     const buffer = term.buffer.active;
     // 処理前に、ユーザーが既に一番下までスクロールしているか確認
     const isScrolledToBottom = buffer.viewportY + term.rows >= buffer.baseY + buffer.length;
@@ -1260,7 +1260,7 @@ socket.on('log_content', (data) => {
 socket.on('error_message', (data) => {
     term.writeln(`\r\n\x1b[31m[Error] ${data.message}\x1b[0m`);
     socket.emit('client_input', '\r'); // eslint-disable-line no-undef
-});
+}); 
 // --- ロギング状態の管理 ---
 
 let isLogging = false;
@@ -1401,7 +1401,7 @@ function saveDipSwitchSettings() {
     localStorage.setItem('dipSwitchSettings', JSON.stringify(settings));
 }
 
-function loadDipSwitchSettings() {
+function loadDipSwitchSettings() { 
     const savedSettings = localStorage.getItem('dipSwitchSettings');
     if (savedSettings) {
         const settings = JSON.parse(savedSettings);
@@ -1438,7 +1438,7 @@ socket.on('connect', () => {
     document.querySelector('.dip-switch-panel').dispatchEvent(new Event('change', { bubbles: true }));
 });
 
-// --- ポップアップウィンドウのドラッグ移動機能 ---
+// --- ポップアップウィンドウのドラッグ移動機能 --- 
 function makePopupDraggable(popup) {
     const header = popup.querySelector('.popup-header');
     if (!header) return;
@@ -1472,8 +1472,8 @@ function makePopupDraggable(popup) {
 document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
 makePopupDraggable(logViewerWindow);
 
-// --- DOM読み込み完了後の初期化処理 ---
-// --- PWAインストール関連のロジック ---
+// --- DOM読み込み完了後の初期化処理 --- 
+// --- PWAインストール関連のロジック --- 
 let deferredPrompt;
 const installButtonContainer = document.createElement('div');
 installButtonContainer.id = 'pwa-install-container';
@@ -1571,7 +1571,7 @@ document.addEventListener('DOMContentLoaded', () => {
         sidenav.appendChild(link);
     }
     // --- Service Workerの登録 ---
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator) { 
         navigator.serviceWorker.register(URLS.serviceWorker)
             .then(registration => {
                 console.log('Service Worker registered with scope:', registration.scope);
@@ -1579,7 +1579,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(error => console.log('Service Worker registration failed:', error));
     }
 
-    // --- 設定ポップアップ内のタブ切り替え機能 ---
+    // --- 設定ポップアップ内のタブ切り替え機能 --- 
     document.querySelector('.tab-buttons').addEventListener('click', (e) => {
         if (e.target.classList.contains('tab-button')) {
             const tabId = e.target.dataset.tab;
@@ -1591,7 +1591,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- モバイル用操作パネルのボタンイベント設定 ---
+    // --- モバイル用操作パネルのボタンイベント設定 --- 
     const keyMaps = {
         'bbs-btn-end-write': '^', 'bbs-btn-up': 'k', 'bbs-btn-down': 'j', 'bbs-btn-left': 'h',
         'bbs-btn-right': 'l', 'bbs-btn-read': '\r', 'bbs-btn-write': 'w', 'bbs-btn-delete': '*',
@@ -1619,7 +1619,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('confirm-btn-y').addEventListener('click', () => { socket.emit('client_input', 'y\r'); }); // eslint-disable-line no-undef
     document.getElementById('confirm-btn-n').addEventListener('click', () => { socket.emit('client_input', 'n\r'); }); // eslint-disable-line no-undef
 
-    // --- ウィンドウリサイズとキーボード表示のイベントハンドラ ---
+    // --- ウィンドウリサイズとキーボード表示のイベントハンドラ --- 
     window.addEventListener('resize', debounce(updateTerminalLayout, 100));
     if ('visualViewport' in window) {
         const vv = window.visualViewport;
@@ -1663,14 +1663,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- ハンバーガーメニュー（サイドナビ）の開閉ロジック ---
+// --- ハンバーガーメニュー（サイドナビ）の開閉ロジック --- 
 function openNav() {
     document.getElementById("sidenav").style.width = "250px";
 }
 
 function closeNav() {
     document.getElementById("sidenav").style.width = "0";
-}
+} 
 
 /**
  * 関数が連続して呼び出されるのを防ぎ、最後の呼び出しから指定時間後に一度だけ実行します。
@@ -1687,7 +1687,7 @@ function debounce(func, wait) {
     };
 }
 
-// 新しいPasskeyの登録フローを開始
+// 新しいPasskeyの登録フローを開始します。
 async function registerNewPasskey(callback) {
     let options;
     try {

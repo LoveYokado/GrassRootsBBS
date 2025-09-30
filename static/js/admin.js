@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- dashboard.html: Chart.jsの初期化 ---
-    // chartData変数は、HTML内の<script>タグで定義されていることを想定
+    // chartData変数は、HTML内の<script>タグで定義されていることを前提とします。
     const activityChartCanvas = document.getElementById('activityChart');
     if (activityChartCanvas && typeof chartData !== 'undefined') {
         const ctx = activityChartCanvas.getContext('2d');

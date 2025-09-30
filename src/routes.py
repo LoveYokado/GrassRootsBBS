@@ -3,9 +3,9 @@
 
 """
 Webアプリケーションルート
-
+ 
 このモジュールは、ログイン、ログアウト、メインのターミナルページなど、
-アプリケーションの標準的なWebルートをすべて定義します。Flaskのブループリントを
+アプリケーションの標準的なWebルートをすべて定義します。FlaskのBlueprintを
 使用してこれらのルートを整理し、コアアプリロジックから分離しています。
 """
 
@@ -27,7 +27,7 @@ web_bp = Blueprint('web', __name__)
 
 
 def base64url_to_bytes(s: str) -> bytes:
-    """Converts a base64url encoded string to bytes, adding padding if necessary."""
+    """Base64URLでエンコードされた文字列をバイトに変換します。必要に応じてパディングを追加します。"""
     s_bytes = s.encode('utf-8')
     rem = len(s_bytes) % 4
     if rem > 0:
@@ -36,7 +36,7 @@ def base64url_to_bytes(s: str) -> bytes:
 
 
 def login_required(f):
-    """A decorator to ensure a user is logged in before accessing a page."""
+    """ユーザーがページにアクセスする前にログインしていることを確認するデコレータ。"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -47,13 +47,13 @@ def login_required(f):
 
 @web_bp.route('/manifest.json')
 def manifest():
-    """Serves the PWA manifest file."""
+    """PWAマニフェストファイルを配信します。"""
     return send_from_directory(current_app.static_folder, 'manifest.json')
 
 
 @web_bp.route('/sw.js')
 def service_worker():
-    """Serves the PWA Service Worker file."""
+    """PWAサービスワーカーファイルを配信します。"""
     response = send_from_directory(current_app.static_folder, 'sw.js')
     response.headers['Content-Type'] = 'application/javascript'
     response.headers['Service-Worker-Allowed'] = '/'
@@ -63,7 +63,7 @@ def service_worker():
 @web_bp.route('/')
 @login_required
 def index():
-    """Renders the main terminal page for logged-in users."""
+    """ログイン済みユーザー向けのメインのターミナルページを描画します。"""
     menu_mode = session.get('menu_mode', '2')
     fkey_definitions = {
         "f1": {"label": "SETTING", "action": "open_popup"},
@@ -121,7 +121,7 @@ def index():
 @web_bp.route('/login', methods=['GET', 'POST'])
 @extensions.limiter.limit("10 per minute")
 def login():
-    """Handles the user login process, including password and Passkey authentication."""
+    """ユーザーのログイン処理（パスワード認証およびPasskey認証）をハンドリングします。"""
     webapp_config = current_app.config.get('WEBAPP', {})
     page_title = webapp_config.get('LOGIN_PAGE_TITLE', 'Login')
     logo_path = webapp_config.get('LOGIN_PAGE_LOGO_PATH')
@@ -212,7 +212,7 @@ def login():
 
 @web_bp.route('/logout')
 def logout():
-    """Logs the user out and clears the session."""
+    """ユーザーをログアウトさせ、セッションをクリアします。"""
     menu_mode = session.get('menu_mode', '2')
     session.clear()
     return render_template('logout.html', menu_mode=menu_mode)
@@ -222,7 +222,7 @@ def logout():
 @login_required
 @extensions.limiter.limit("20 per minute")
 def passkey_register_options():
-    """API endpoint to generate options for Passkey registration."""
+    """Passkey登録用のオプションを生成するAPIエンドポイント。"""
     user_id = session.get('user_id')
     username = session.get('username')
     options_json_str = passkey_handler.generate_registration_options_for_user(
@@ -236,7 +236,7 @@ def passkey_register_options():
 @login_required
 @extensions.limiter.limit("10 per minute")
 def passkey_verify_registration():
-    """API endpoint to verify a Passkey registration response."""
+    """Passkey登録レスポンスを検証するAPIエンドポイント。"""
     user_id = session.get('user_id')
     challenge_str = session.pop("passkey_registration_challenge", None)
     challenge_bytes = base64url_to_bytes(challenge_str)
@@ -254,7 +254,7 @@ def passkey_verify_registration():
 @web_bp.route('/passkey/login-options', methods=['POST'])
 @extensions.limiter.limit("20 per minute")
 def passkey_login_options():
-    """API endpoint to generate options for Passkey authentication."""
+    """Passkey認証用のオプションを生成するAPIエンドポイント。"""
     username = request.get_json().get('username', '').upper()
     options_json_str = passkey_handler.generate_authentication_options_for_user(
         username)
@@ -268,7 +268,7 @@ def passkey_login_options():
 @web_bp.route('/passkey/verify-login', methods=['POST'])
 @extensions.limiter.limit("10 per minute")
 def passkey_verify_login():
-    """API endpoint to verify a Passkey authentication response and log the user in."""
+    """Passkey認証レスポンスを検証し、ユーザーをログインさせるAPIエンドポイント。"""
     challenge_str = session.pop("passkey_login_challenge", None)
     challenge_bytes = base64url_to_bytes(challenge_str)
     credential_json = json.dumps(request.get_json())
@@ -296,7 +296,7 @@ def passkey_verify_login():
 @web_bp.route('/attachments/<path:filename>')
 @login_required
 def download_attachment(filename):
-    """Serves a previously uploaded attachment or its thumbnail."""
+    """アップロード済みの添付ファイルまたはそのサムネイルを配信します。"""
     is_thumbnail = filename.startswith('thumbnails/')
     actual_filename = filename.replace(
         'thumbnails/', '') if is_thumbnail else filename
@@ -320,6 +320,36 @@ def download_attachment(filename):
 @web_bp.route('/download_log/<path:filename>')
 @login_required
 def download_log(filename):
-    """Serves a saved session log file for download."""
+    """保存されたセッションログファイルをダウンロード用に配信します。"""
     session_log_dir = current_app.config.get('SESSION_LOG_DIR')
     return send_from_directory(session_log_dir, filename, as_attachment=True)
+
+
+@web_bp.route('/plugins/<plugin_id>/js/<path:filename>')
+@login_required
+def serve_plugin_js(plugin_id, filename):
+    """プラグイン専用のJavaScriptファイルを配信します。"""
+    # パストラバーサル攻撃を防ぐための基本的な検証
+    if '..' in plugin_id or '/' in plugin_id or '\\' in plugin_id:
+        return "Invalid plugin ID", 400
+    if '..' in filename or filename.startswith('/'):
+        return "Invalid filename", 400
+
+    plugin_js_dir = os.path.join(
+        current_app.config['PLUGINS_DIR'], plugin_id, 'js')
+    return send_from_directory(plugin_js_dir, filename)
+
+
+@web_bp.route('/plugins/<plugin_id>/static/<path:filename>')
+@login_required
+def serve_plugin_static(plugin_id, filename):
+    """プラグイン専用の静的ファイル(CSS,画像など)を配信します。"""
+    # パストラバーサル攻撃を防ぐための基本的な検証
+    if '..' in plugin_id or '/' in plugin_id or '\\' in plugin_id:
+        return "Invalid plugin ID", 400
+    if '..' in filename or filename.startswith('/'):
+        return "Invalid filename", 400
+
+    plugin_static_dir = os.path.join(
+        current_app.config['PLUGINS_DIR'], plugin_id, 'static')
+    return send_from_directory(plugin_static_dir, filename)

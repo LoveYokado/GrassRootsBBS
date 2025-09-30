@@ -5,11 +5,11 @@
 
 """
 プラグインマネージャ
-
+ 
 このモジュールは、プラグインの発見、読み込み、実行を担当します。
 専用の 'plugins' ディレクトリをスキャンし、各プラグインの 'plugin.toml'
 ファイルからメタデータを読み込み、依存関係をチェックし、ホストアプリケーションと
-安全に対話するためのサンドボックス化されたAPIを提供します。
+安全に対話するためのサンドボックス化されたAPIを提供します。 
 """
 
 import os
@@ -34,9 +34,7 @@ _loaded_plugins = {}
 
 def load_plugins():
     """
-    Scans the 'plugins' directory, reads metadata, checks dependencies and
-    database settings, and loads all valid and enabled plugins.
-    'plugins' ディレクトリをスキャンし、メタデータ、依存関係、DB設定をチェックして、
+    'plugins' ディレクトリをスキャンし、メタデータ、依存関係、DB設定をチェックして、 
     有効なすべてのプラグインをロードします。
     """
     global _loaded_plugins
@@ -116,7 +114,7 @@ def load_plugins():
 
 def get_loaded_plugins():
     """
-    ロード済みのプラグインのリストを、BBSのプラグインメニュー表示用に整形して返します。
+    ロード済みのプラグインのリストを、BBSのプラグインメニュー表示用に整形して返します。 
 
     :return: プラグイン情報の辞書のリスト。
     """
@@ -133,7 +131,7 @@ def get_loaded_plugins():
 
 def run_plugin(plugin_id, context):
     """
-    指定されたIDのプラグインを実行します。
+    指定されたIDのプラグインを実行します。 
     プラグインには機能が制限された安全なAPIを持つコンテキストが提供され、
     config.tomlで定義されたタイムアウトの対象となります。
     """
@@ -175,7 +173,7 @@ def run_plugin(plugin_id, context):
 
 def get_all_available_plugins():
     """
-    'plugins' ディレクトリをスキャンし、利用可能な全てのプラグインの情報を返します。
+    'plugins' ディレクトリをスキャンし、利用可能な全てのプラグインの情報を返します。 
     データベースから取得した有効/無効の状態も含まれ、主に管理画面で使用されます。
     """
     available_plugins = []

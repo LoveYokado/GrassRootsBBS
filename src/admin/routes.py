@@ -3,8 +3,8 @@
 
 """管理画面 (Admin Panel) のルーティング
 
-このモジュールは、FlaskのBlueprintを使用して、BBSの管理機能に関する
-全てのWebルート（例: `/admin/dashboard`, `/admin/users`）を定義します。
+このモジュールは、FlaskのBlueprintを利用して、BBSの管理機能に関連する
+全てのWebルート（例: `/admin/dashboard`, `/admin/users`など）を定義します。
 """
 
 import json
@@ -27,10 +27,10 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @admin_bp.route('/bbs_list', methods=['GET', 'POST'])
 @sysop_required
 def bbs_list():
-    """BBSリンク一覧の管理ページ
+    """BBSリンク一覧の管理ページ (F7キー)
 
-    F7キーで表示されるBBSリンクの追加、削除、承認状態の変更を処理します。
-    GETリクエストで一覧を表示し、POSTリクエストで各種操作を実行します。
+    F7キーで表示されるBBSリンク（他BBSへのショートカット）の追加、削除、
+    承認状態の変更を処理します。
     """
     if request.method == 'POST':
         action = request.form.get('action')
@@ -116,9 +116,9 @@ def bbs_list():
 @admin_bp.route('/bbs_list/edit/<int:link_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_bbs_link(link_id):
-    """BBSリンクの編集ページ
+    """BBSリンクの編集ページ (F7キー)
 
-    指定されたIDのBBSリンクの名前、URL、説明を編集します。
+    指定されたIDのBBSリンク（他BBSへのショートカット）の名前、URL、説明を編集します。
     :param link_id: 編集対象のBBSリンクのID。
     """
     link = database.bbs_list_manager.get_by_id(link_id)
@@ -152,10 +152,10 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 
 def _process_texts_for_mode(node, menu_mode):
     """
-    YAMLから読み込んだ辞書を再帰的に処理し、指定されたmenu_modeのテキストを抽出します。
+    YAMLから読み込んだ辞書を再帰的に処理し、指定されたmenu_modeのテキストを抽出するヘルパー関数。
 
     これにより、テンプレート側では `g.texts.dashboard.title` のように
-    シンプルにテキストデータへアクセスできます。
+    モードを意識することなく、シンプルにテキストデータへアクセスできます。
     """
     if isinstance(node, dict):
         mode_key = f"mode_{menu_mode}"
@@ -170,7 +170,7 @@ def _process_texts_for_mode(node, menu_mode):
 @admin_bp.before_request
 def load_admin_texts():
     """
-    各リクエストの前に、ユーザーのメニューモード設定に応じたテキストデータをロードします。
+    各リクエストの前に、ユーザーのメニューモード設定に応じたテキストデータをロードするフック。
 
     ロードされたテキストは `g.texts` に格納され、テンプレート内で利用できます。
     """
@@ -181,7 +181,8 @@ def load_admin_texts():
 @admin_bp.route('/')
 @sysop_required
 def dashboard():
-    """
+    """管理画面のダッシュボードページ
+
     管理画面のダッシュボードページ
 
     ユーザー数や投稿数などの統計情報、サーバーのシステムヘルス、
@@ -310,7 +311,7 @@ def who_online():
 @admin_bp.route('/who/kick/<sid>', methods=['POST'])
 @sysop_required
 def kick_user(sid):
-    """ユーザーの強制切断
+    """ユーザーの強制切断 (キック)
 
     指定されたセッションIDを持つユーザーの接続を強制的に切断します。
     :param sid: 切断対象のセッションID。
@@ -394,7 +395,7 @@ def user_list():
 @admin_bp.route('/users/new', methods=['GET', 'POST'])
 @sysop_required
 def new_user():
-    """新規ユーザー作成ページ
+    """新規ユーザー作成ページ (管理者用)
 
     管理者が手動で新しいユーザーアカウントを作成します。
     """
@@ -431,7 +432,7 @@ def new_user():
 @admin_bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_user(user_id):
-    """ユーザー編集ページ
+    """ユーザー編集ページ (管理者用)
 
     指定されたユーザーのレベル、メールアドレス、コメント、パスワードなどを編集します。
     :param user_id: 編集対象のユーザーID。
@@ -478,7 +479,7 @@ def edit_user(user_id):
 @admin_bp.route('/users/edit/<int:user_id>/delete_passkey/<int:passkey_id>', methods=['POST'])
 @sysop_required
 def delete_user_passkey(user_id, passkey_id):
-    """ユーザーのPasskey削除
+    """ユーザーのPasskey削除 (管理者用)
 
     指定されたユーザーに紐づく特定のPasskeyを削除します。
     :param user_id: 対象のユーザーID。
@@ -496,7 +497,7 @@ def delete_user_passkey(user_id, passkey_id):
 @admin_bp.route('/users/delete/<int:user_id>', methods=['POST'])
 @sysop_required
 def delete_user(user_id):
-    """ユーザーの削除
+    """ユーザーの削除 (管理者用)
 
     指定されたユーザーをデータベースから物理削除します。
     :param user_id: 削除対象のユーザーID。
@@ -605,7 +606,7 @@ def board_list():
 @admin_bp.route('/boards/new', methods=['GET', 'POST'])
 @sysop_required
 def new_board():
-    """新規掲示板作成ページ
+    """新規掲示板作成ページ (管理者用)
 
     新しい掲示板を作成し、各種設定（パーミッション、添付ファイルなど）を行います。
     """
@@ -661,7 +662,7 @@ def new_board():
 @admin_bp.route('/boards/edit/<int:board_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_board(board_id):
-    """掲示板編集ページ
+    """掲示板編集ページ (管理者用)
 
     既存の掲示板の各種設定（名前、説明、パーミッション、オペレーターなど）を編集します。
     :param board_id: 編集対象の掲示板ID。
@@ -787,7 +788,7 @@ def edit_board(board_id):
 @admin_bp.route('/boards/delete/<int:board_id>', methods=['POST'])
 @sysop_required
 def delete_board(board_id):
-    """掲示板の物理削除
+    """掲示板の物理削除 (管理者用)
 
     指定された掲示板と、それに関連する全ての記事や権限設定を物理削除します。
     :param board_id: 削除対象の掲示板ID。
@@ -810,7 +811,7 @@ def delete_board(board_id):
 @admin_bp.route('/articles', methods=['GET'])
 @sysop_required
 def article_search():
-    """記事管理（検索）ページ
+    """記事管理ページ (検索)
 
     全掲示板を横断して、キーワードや投稿者名で記事を検索します。
     検索結果から記事の論理削除や復元が可能です。
@@ -894,7 +895,7 @@ def article_search():
 @admin_bp.route('/articles/delete/<int:article_id>', methods=['POST'])
 @sysop_required
 def delete_article(article_id):
-    """記事の論理削除/復元
+    """記事の論理削除/復元 (管理者用)
 
     指定された記事の削除フラグ (`is_deleted`) をトグルします。
     :param article_id: 対象の記事ID。
@@ -922,7 +923,7 @@ def delete_article(article_id):
 @admin_bp.route('/articles/bulk-action', methods=['POST'])
 @sysop_required
 def bulk_action_articles():
-    """記事の一括操作
+    """記事の一括操作 (管理者用)
 
     記事検索ページで選択された複数の記事に対して、
     一括で論理削除または復元を実行します。
@@ -958,7 +959,7 @@ def bulk_action_articles():
 @admin_bp.route('/attachments')
 @sysop_required
 def attachment_list():
-    """添付ファイル管理ページ
+    """添付ファイル管理ページ (管理者用)
 
     アップロードされた全添付ファイルの一覧を表示します。
     また、ClamAVによってウイルスが検出され、隔離されたファイルの一覧も表示し、
@@ -1038,7 +1039,7 @@ def attachment_list():
 @admin_bp.route('/attachments/quarantine/delete/<path:filename>', methods=['POST'])
 @sysop_required
 def delete_quarantined_file(filename):
-    """隔離ファイルの削除
+    """隔離ファイルの削除 (管理者用)
 
     指定されたファイルを隔離ディレクトリから物理削除し、関連するログエントリも削除します。
     :param filename: 削除するファイル名。
@@ -1078,7 +1079,7 @@ def delete_quarantined_file(filename):
 @admin_bp.route('/settings', methods=['GET', 'POST'])
 @sysop_required
 def system_settings():
-    """システム設定ページ
+    """システム設定ページ (管理者用)
 
     各トップメニュー機能（BBS、チャットなど）を利用するための最低ユーザーレベルや、
     デフォルトの探索リスト、ログインメッセージなどを設定します。
@@ -1122,7 +1123,7 @@ def system_settings():
 @admin_bp.route('/backup', methods=['GET', 'POST'])
 @sysop_required
 def backup_management():
-    """データ管理（バックアップ・リストア）ページ
+    """データ管理ページ (バックアップ・リストア)
 
     手動でのバックアップ作成、バックアップファイルからのリストア、
     自動バックアップのスケジュール設定、データ全消去などを行います。
@@ -1188,7 +1189,7 @@ def backup_management():
 @admin_bp.route('/backup/create', methods=['POST'])
 @sysop_required
 def create_backup_route():
-    """手動バックアップの作成
+    """手動バックアップの作成 (管理者用)
 
     新しいバックアップファイル（データベースと設定ファイルのアーカイブ）を作成します。
     """
@@ -1208,7 +1209,7 @@ def create_backup_route():
 @admin_bp.route('/backup/download/<path:filename>')
 @sysop_required
 def download_backup(filename):
-    """バックアップファイルのダウンロード
+    """バックアップファイルのダウンロード (管理者用)
 
     指定されたバックアップファイルをクライアントにダウンロードさせます。
     :param filename: ダウンロードするファイル名。
@@ -1219,7 +1220,7 @@ def download_backup(filename):
 @admin_bp.route('/backup/delete/<path:filename>', methods=['POST'])
 @sysop_required
 def delete_backup(filename):
-    """バックアップファイルの削除
+    """バックアップファイルの削除 (管理者用)
 
     指定されたバックアップファイルをサーバーから物理削除します。
     :param filename: 削除するファイル名。
@@ -1244,7 +1245,7 @@ def delete_backup(filename):
 @admin_bp.route('/backup/restore/<path:filename>', methods=['POST'])
 @sysop_required
 def restore_from_backup(filename):
-    """バックアップからのリストア
+    """バックアップからのリストア (管理者用)
 
     指定されたバックアップファイルからデータをリストアします。
     リストア完了後、サーバーは自動的に再起動されます。
@@ -1274,7 +1275,7 @@ def restore_from_backup(filename):
 @admin_bp.route('/wipe-data', methods=['POST'])
 @sysop_required
 def wipe_all_data():
-    """全データの消去
+    """全データの消去 (管理者用)
 
     データベースと関連ディレクトリ内の全BBSデータを消去し、システムを初期状態に戻します。
     完了後、サーバーは自動的に再起動されます。この操作は元に戻せません。
@@ -1305,7 +1306,7 @@ def wipe_all_data():
 @admin_bp.route('/plugins')
 @sysop_required
 def plugin_management():
-    """プラグイン管理ページ
+    """プラグイン管理ページ (管理者用)
 
     インストールされているプラグインの一覧を表示し、
     それぞれの有効/無効状態を切り替えることができます。
@@ -1341,7 +1342,7 @@ def plugin_management():
 @admin_bp.route('/plugins/toggle', methods=['POST'])
 @sysop_required
 def toggle_plugin_status():
-    """プラグインの有効/無効切り替え
+    """プラグインの有効/無効切り替え (管理者用)
 
     指定されたプラグインの有効/無効状態をデータベース上で切り替えます。
     変更を適用するには、サーバーの再起動が必要です。
@@ -1367,7 +1368,7 @@ def toggle_plugin_status():
 @admin_bp.route('/plugins/data/<plugin_id>')
 @sysop_required
 def plugin_data_view(plugin_id):
-    """プラグインデータ閲覧ページ
+    """プラグインデータ閲覧ページ (管理者用)
 
     特定のプラグインが `grbbs_api` を介して保存したデータを表示します。
     :param plugin_id: 対象のプラグインID。
@@ -1397,7 +1398,7 @@ def plugin_data_view(plugin_id):
 @admin_bp.route('/plugins/data/<plugin_id>/delete/<key>', methods=['POST'])
 @sysop_required
 def delete_plugin_data_key(plugin_id, key):
-    """プラグインデータの個別削除
+    """プラグインデータの個別削除 (管理者用)
 
     指定されたプラグインの、特定のキーに対応するデータを削除します。
     :param plugin_id: 対象のプラグインID。
@@ -1413,7 +1414,7 @@ def delete_plugin_data_key(plugin_id, key):
 @admin_bp.route('/plugins/data/<plugin_id>/delete_all', methods=['POST'])
 @sysop_required
 def delete_all_plugin_data(plugin_id):
-    """プラグインデータの全削除
+    """プラグインデータの全削除 (管理者用)
 
     指定されたプラグインが保存した全てのデータを削除します。
     :param plugin_id: 対象のプラグインID。
@@ -1429,7 +1430,7 @@ def delete_all_plugin_data(plugin_id):
 @admin_bp.route('/config-editor', methods=['GET', 'POST'])
 @sysop_required
 def config_editor():
-    """設定ファイルエディタ
+    """設定ファイルエディタ (管理者用)
 
     メインの設定ファイル `config.toml` をWeb UIから直接編集・保存します。
     保存前にTOML形式の構文チェックが行われます。
@@ -1472,7 +1473,7 @@ def config_editor():
 @admin_bp.route('/broadcast', methods=['POST'])
 @sysop_required
 def broadcast():
-    """メッセージ一斉送信（ブロードキャスト）
+    """メッセージ一斉送信（ブロードキャスト） (管理者用)
 
     オンライン中の全ユーザーに対して、電報機能を利用して
     メッセージを一斉に送信します。
@@ -1514,7 +1515,7 @@ def broadcast():
 @admin_bp.route('/restart', methods=['POST'])
 @sysop_required
 def restart_server():
-    """サーバーの再起動
+    """サーバーの再起動 (管理者用)
 
     サーバープロセスを安全に再起動します。
     """
@@ -1536,7 +1537,7 @@ def restart_server():
 @admin_bp.route('/access-log')
 @sysop_required
 def access_log_viewer():
-    """ログビューアページ
+    """ログビューアページ (管理者用)
 
     データベースに記録されたアクセスログと、ファイルに記録されたエラーログを表示します。
     アクセスログはIPアドレス、ユーザー名、イベントタイプでフィルタリング可能です。
@@ -1611,7 +1612,7 @@ def access_log_viewer():
 @admin_bp.route('/chatrooms', methods=['GET', 'POST'])
 @sysop_required
 def chat_management():
-    """チャットルーム管理ページ
+    """チャットルーム管理ページ (管理者用)
 
     チャットルームの階層構造を管理します。
     `chatroom.yaml` の読み込み、項目の追加・編集・削除、保存を行います。
@@ -1649,6 +1650,7 @@ def chat_management():
                                 'type': new_type}
                     if new_type == 'room':
                         new_item['push'] = 'push' in request.form
+                        new_item['lock'] = 'lock' in request.form
                     if new_type == 'child':
                         new_item['items'] = []
 
@@ -1682,6 +1684,7 @@ def chat_management():
                         'description', item.get('description', '')).strip()
                     if item['type'] == 'room':
                         item['push'] = 'push' in request.form
+                        item['lock'] = 'lock' in request.form
                 else:
                     flash(f"Item '{item_id}' not found for editing.", 'danger')
 
@@ -1728,7 +1731,7 @@ def chat_management():
 @admin_bp.route('/chatrooms/reorder', methods=['POST'])
 @sysop_required
 def reorder_chat_items():
-    """チャットアイテムの並び替えAPI
+    """チャットアイテムの並び替えAPI (管理者用)
 
     管理画面からのドラッグ＆ドロップ操作に応じて、
     チャットルームやカテゴリの表示順を更新し、`chatroom.yaml`に保存します。
@@ -1781,7 +1784,7 @@ def reorder_chat_items():
 @sysop_required
 def bbs_management():
     """
-    BBSメニューの階層構造を管理するページ。
+    BBSメニューの階層構造を管理するページ (管理者用)。
     bbs_mode3.yaml の読み込み、編集、保存を行います。
     """
     def find_item_and_parent(items, item_id, parent=None):
@@ -1897,7 +1900,7 @@ def bbs_management():
 @admin_bp.route('/bbs_menu/reorder', methods=['POST'])
 @sysop_required
 def reorder_bbs_items():
-    """BBSメニューアイテムの並び替えAPI"""
+    """BBSメニューアイテムの並び替えAPI (管理者用)"""
     data = request.get_json()
     parent_id = data.get('parent_id')
     ordered_ids = data.get('ordered_ids')
