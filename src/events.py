@@ -18,6 +18,7 @@ import uuid
 import json
 import shutil
 from werkzeug.utils import secure_filename
+from . import database
 
 from . import terminal_handler, util
 
@@ -64,6 +65,8 @@ def init_events(socketio, app):
         display_name = util.get_display_name(username, ip_addr)
         logging.getLogger('grbbs.access').info(
             f"CONNECT - User: {username}, DisplayName: {display_name}, IP: {ip_addr}, SID: {request.sid}")
+        database.log_access_event(ip_address=ip_addr, event_type='CONNECT',
+                                  username=username, display_name=display_name, message=f"SID: {request.sid}")
 
         sid = request.sid
         user_session_data = {
@@ -87,7 +90,7 @@ def init_events(socketio, app):
             handler.bps_delay = terminal_handler.BPS_DELAYS.get(speed_name, 0)
 
     @socketio.on('disconnect')
-    def handle_disconnect():
+    def handle_disconnect(sid=None):
         """
         クライアントの切断を処理します。
         """
@@ -95,14 +98,15 @@ def init_events(socketio, app):
             terminal_handler.current_webapp_clients = max(
                 0, terminal_handler.current_webapp_clients - 1)
 
-        sid = request.sid
+        sid = sid if sid else request.sid  # disconnectイベントはsidを引数として受け取る場合がある
         username = session.get('username', 'Unknown')
         display_name = "Unknown"
         if sid in terminal_handler.client_states:
             display_name = terminal_handler.client_states[sid].user_session.get(
                 'display_name', username)
-        logging.getLogger('grbbs.access').info(
-            f"DISCONNECT - User: {username}, DisplayName: {display_name}, SID: {sid}")
+        ip_addr = request.remote_addr or 'N/A'
+        database.log_access_event(ip_address=ip_addr, event_type='DISCONNECT',
+                                  username=username, display_name=display_name, message=f"SID: {sid}")
 
         if sid in terminal_handler.client_states:
             terminal_handler.client_states[sid].stop_worker()

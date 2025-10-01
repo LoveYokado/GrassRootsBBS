@@ -1042,14 +1042,14 @@ class AccessLogManager:
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
 
-    def log_event(self, ip_address, event_type, user_id=None, username=None, message=None):
+    def log_event(self, ip_address, event_type, user_id=None, username=None, display_name=None, message=None):
         """ログイン試行、ファイルアップロードなどのアクセスイベントをログに記録します。"""
         query = """
-            INSERT INTO access_logs (timestamp, ip_address, user_id, username, event_type, message)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO access_logs (timestamp, ip_address, user_id, username, display_name, event_type, message)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
         params = (int(time.time()), ip_address, user_id,
-                  username, event_type, message)
+                  username, display_name, event_type, message)
         self._db.execute_query(query, params)
 
     def get_logs(self, page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
@@ -1081,7 +1081,7 @@ class AccessLogManager:
 
         # データを取得するクエリ
         query = f"""
-            SELECT id, timestamp, ip_address, user_id, username, event_type, message
+            SELECT id, timestamp, ip_address, user_id, username, display_name, event_type, message
             FROM access_logs
             {where_sql}
         """
@@ -1714,6 +1714,26 @@ class DatabaseInitializer:
                 """
                 cursor.execute(create_query)
                 logging.info("データベースマイグレーション: 'access_logs'テーブルを作成しました。")
+            else:
+                # display_name カラムが存在しない場合に追加
+                cursor.execute(
+                    "SHOW COLUMNS FROM `access_logs` LIKE 'display_name'")
+                if not cursor.fetchone():
+                    alter_query = "ALTER TABLE `access_logs` ADD COLUMN `display_name` VARCHAR(255) AFTER `username`"
+                    cursor.execute(alter_query)
+                    logging.info(
+                        "データベースマイグレーション: 'access_logs'テーブルに'display_name'カラムを追加しました。")
+
+                # username カラムのNULL許容を変更
+                cursor.execute(
+                    "SHOW COLUMNS FROM `access_logs` WHERE Field = 'username'")
+                col_info = cursor.fetchone()
+                if col_info and col_info['Null'] == 'NO':
+                    alter_query = "ALTER TABLE `access_logs` MODIFY `username` VARCHAR(255) NULL"
+                    cursor.execute(alter_query)
+                    logging.info(
+                        "データベースマイグレーション: 'access_logs'テーブルの'username'カラムをNULL許容に変更しました。")
+
             # --- bbs_listテーブルの存在チェックと作成 ---
             cursor.execute("SHOW TABLES LIKE 'bbs_list'")
             if not cursor.fetchone():
@@ -2078,8 +2098,13 @@ def upsert_plugin_setting(plugin_id: str, is_enabled: bool):
     return plugins.upsert_setting(plugin_id, is_enabled)
 
 
-def log_access_event(ip_address, event_type, user_id=None, username=None, message=None):
-    return access_logs.log_event(ip_address, event_type, user_id, username, message)
+def log_access_event(ip_address, event_type, user_id=None, username=None, display_name=None, message=None):
+    # GUESTの場合、display_nameがなければ生成する
+    if username and username.upper() == 'GUEST' and not display_name:
+        from . import util  # 循環インポートを避ける
+        display_name = util.get_display_name(username, ip_address)
+
+    return access_logs.log_event(ip_address, event_type, user_id, username, display_name, message)
 
 
 def get_access_logs(page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):

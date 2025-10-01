@@ -33,6 +33,11 @@
                             class="form-control">
                     </div>
                     <div class="form-group" style="flex-grow: 1;">
+                        <label for="display_name">Display Name</label>
+                        <input type="text" id="display_name" name="display_name"
+                            value="{{ search_params.display_name or '' }}" class="form-control">
+                    </div>
+                    <div class="form-group" style="flex-grow: 1;">
                         <label for="event">Event Type</label>
                         <input type="text" id="event" name="event" value="{{ search_params.event or '' }}"
                             class="form-control">
@@ -82,11 +87,19 @@
                                             href="{{ url_for('admin.access_log_viewer', sort_by='ip_address', order=next_order if sort_by == 'ip_address' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">IP
                                             Address
                                             {% if sort_by == 'ip_address' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
-                                            %}</a></th>
+                                            %}</a>
+                                    </th>
                                     <th><a
                                             href="{{ url_for('admin.access_log_viewer', sort_by='username', order=next_order if sort_by == 'username' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">User
                                             {% if sort_by == 'username' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
-                                            %}</a></th>
+                                            %}</a>
+                                    </th>
+                                    <th><a
+                                            href="{{ url_for('admin.access_log_viewer', sort_by='display_name', order=next_order if sort_by == 'display_name' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Display
+                                            Name
+                                            {% if sort_by == 'display_name' %}{{ '▲' if order == 'asc' else '▼' }}{%
+                                            endif %}</a>
+                                    </th>
                                     <th><a
                                             href="{{ url_for('admin.access_log_viewer', sort_by='event_type', order=next_order if sort_by == 'event_type' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event) }}">Event
                                             Type
@@ -100,15 +113,17 @@
                                 <tr>
                                     <td style="white-space: nowrap;">{{ log.timestamp | timestamp_to_datetime }}</td>
                                     <td>{{ log.ip_address }}</td>
-                                    <td>{% if log.user_id %}<a
-                                            href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">{{ log.username
-                                            or log.user_id }}</a>{% else %}{{ log.username or 'N/A' }}{% endif %}</td>
+                                    <td>{% if log.user_id and 'GUEST' not in (log.username or '')|upper %}<a
+                                            href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">{{
+                                            log.username or log.user_id }}</a>{% else %}{{ log.username or 'N/A'
+                                        }}{% endif %}</td>
+                                    <td>{{ log.display_name or 'N/A' }}</td>
                                     <td>{{ log.event_type }}</td>
                                     <td>{{ log.message }}</td>
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="5" class="text-center">No access logs found.</td>
+                                    <td colspan="6" class="text-center">No access logs found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
