@@ -106,6 +106,7 @@
                                             {% if sort_by == 'event_type' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
                                             %}</a></th>
                                     <th>Message</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -119,11 +120,15 @@
                                         }}{% endif %}</td>
                                     <td>{{ log.display_name or 'N/A' }}</td>
                                     <td>{{ log.event_type }}</td>
-                                    <td>{{ log.message }}</td>
+                                    <td style="word-break: break-all;">{{ log.message }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.ip_ban_list', ip_address=log.ip_address) }}"
+                                            class="btn btn-sm btn-danger">BAN</a>
+                                    </td>
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="6" class="text-center">No access logs found.</td>
+                                    <td colspan="7" class="text-center">No access logs found.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

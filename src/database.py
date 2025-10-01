@@ -3,7 +3,7 @@
 
 """
 データベース抽象化レイヤー (DAL)
-
+ 
 このモジュールは、全てのデータベース操作に対する構造化された抽象的な
 インターフェースを提供します。各クラスが特定のテーブルやデータの論理的な
 グループを担当し、関連するSQLクエリをカプセル化するマネージャー方式を採用しています。
@@ -37,8 +37,8 @@ plugin_data_manager = None
 
 class DBManager:
     """
-    データベース接続とクエリ実行を管理するコアクラス。
-    コネクションプールを保持し、他のマネージャークラスに共有されます。
+    データベース接続とクエリ実行を管理するコアクラス。 
+    コネクションプールを保持し、他のマネージャークラスに共有されます。 
     """
     _pool = None
 
@@ -76,12 +76,12 @@ class DBManager:
             raise
 
     def execute_query(self, query, params=None, fetch=None):
-        """クエリを実行し、結果を取得する汎用メソッドです。
+        """クエリを実行し、結果を取得する汎用メソッドです。 
 
         :param query: 実行するSQLクエリ文字列。
         :param params: クエリにバインドするパラメータのタプル。
         :param fetch: 'one' (単一行), 'all' (全行), または None (INSERT/UPDATE/DELETE)。
-        :return: fetchの結果、またはINSERT時のlastrowid。エラー時はNone。
+        :return: fetchの結果、またはINSERT時のlastrowid。エラー時はNone。 
         """
         conn = None
         cursor = None
@@ -110,11 +110,11 @@ class DBManager:
 
     def update_record(self, table, set_data, where_data):
         """
-        指定されたテーブルのレコードを更新する汎用的なメソッドです。
+        指定されたテーブルのレコードを更新する汎用的なメソッドです。 
 
         :param table: 更新するテーブル名。
         :param set_data: 更新するカラムと値の辞書 (例: {'col1': 'val1'})。
-        :param where_data: 更新対象を特定するWHERE句の辞書 (例: {'id': 1})。
+        :param where_data: 更新対象を特定するWHERE句の辞書 (例: {'id': 1})。 
         """
         if not set_data or not where_data:
             logging.error("update_record: set_data or where_data is empty.")
@@ -188,10 +188,10 @@ class UserManager:
 
     def get_total_count(self):
         """
-        登録されている総ユーザー数を取得します。
-        管理画面のダッシュボードなどで使用されます。
+        登録されている総ユーザー数を取得します。 
+        管理画面のダッシュボードなどで使用されます。 
 
-        :return: ユーザーの総数 (int)。
+        :return: ユーザーの総数 (int)。 
         """
         query = "SELECT COUNT(*) as count FROM users"
         result = self._db.execute_query(query, fetch='one')
@@ -1267,14 +1267,14 @@ class BBSListManager:
         self._db = db_manager_instance
 
     def get_by_id(self, link_id):
-        """
+        """ 
         指定されたIDのBBSリンクを1件取得します。管理画面の編集ページなどで使用されます。
         """
         query = "SELECT * FROM bbs_list WHERE id = %s"
         return self._db.execute_query(query, (link_id,), fetch='one')
 
     def get_approved(self):
-        """
+        """ 
         承認済み(`approved`)のすべてのBBSリンクを取得します。
         F7キーのBBSリストなどで使用されます。
         """
@@ -1282,7 +1282,7 @@ class BBSListManager:
         return self._db.execute_query(query, fetch='all')
 
     def get_all_for_admin(self, page=1, per_page=15, sort_by='status', order='asc'):
-        """
+        """ 
         管理画面用に、ページネーションとソート機能付きで全てのステータスのBBSリンクを取得します。
         """
         allowed_columns = {
@@ -1317,7 +1317,7 @@ class BBSListManager:
         return links, total_items
 
     def add(self, name, url, description, source='sysop', submitted_by=None):
-        """
+        """ 
         新しいBBSリンクをDBに追加します。`source`が'sysop'の場合は自動で承認済みになります。
         """
         status = 'approved' if source == 'sysop' else 'pending'
@@ -1342,7 +1342,7 @@ class BBSListManager:
         return self._db.execute_query(query, params) is not None
 
     def update_status(self, link_id, status):
-        """
+        """ 
         指定されたIDのBBSリンクのステータス（'approved', 'rejected', 'pending'）を更新します。
         """
         if status not in ['approved', 'rejected', 'pending']:
@@ -1651,7 +1651,7 @@ class DatabaseInitializer:
 
     def apply_migrations(self):
         """
-        アプリケーション起動時に、データベーススキーマの変更（マイグレーション）を適用します。
+        アプリケーション起動時に、データベーススキーマの変更（マイグレーション）を適用します。 
         """
         conn = self._db.get_connection()
         cursor = None
@@ -2320,7 +2320,7 @@ def delete_ip_ban(ban_id):
 
 
 def init_app(app):
-    """
+    """ 
     Flaskアプリケーションインスタンスを使用してデータベースを初期化します。
     """
     db_config_from_file = app.config.get('DATABASE', {})

@@ -86,7 +86,7 @@ class CommandHandler:
 
     def _update_read_progress(self, board_id_pk, article_number):
         """
-        ユーザーの閲覧進捗を更新します。
+        ユーザーの閲覧進捗を更新します。 
         指定された掲示板で指定された記事番号まで読んだことを記録
         """
         # board_id_pk は int なので、辞書のキーとして使うために文字列に変換
@@ -100,7 +100,7 @@ class CommandHandler:
     def display_board_entry_sequence(self):
         """
         掲示板に入室した際の初期シーケンス（ヘッダと看板の表示）を実行します。 
-        (このメソッドは現在呼び出されていませんが、将来的な利用のために残されています)
+        (このメソッドは現在呼び出されていませんが、将来的な利用のために残されています) 
         """
         if not self.current_board:
             logging.error("現在のボードが設定されていません。")
@@ -1666,7 +1666,7 @@ class CommandHandler:
 
     def write_article(self, parent_article=None):
         """
-        記事を新規作成します。スレッドへの返信もこの関数で処理します。
+        記事を新規作成します。スレッドへの返信もこの関数で処理します。 
         :param parent_article: 返信対象の親記事データ。新規スレッドの場合はNone。
         :return: 処理結果を示す文字列 ('posted', 'cancelled', 'failed')。
         """
@@ -1912,7 +1912,7 @@ class CommandHandler:
 
 def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_address):
     """
-    BBS機能のエントリーポイントです。
+    BBS機能のエントリーポイントです。 
     ショートカットIDが指定されていれば直接その掲示板へ、なければメニューを表示する。
     メニューモードに応じて、手書きメニュー(mode 1)と階層メニュー(mode 2, 3)を切り替える。
     """

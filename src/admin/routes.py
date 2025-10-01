@@ -1614,6 +1614,7 @@ def access_log_viewer():
 @sysop_required
 def ip_ban_list():
     """IPアドレスによるアクセス制限（BAN）を管理するページ。"""
+    ip_to_ban = request.args.get('ip_address', '')
     if request.method == 'POST':
         action = request.form.get('action')
 
@@ -1654,7 +1655,7 @@ def ip_ban_list():
         bans = []
         user_map = {}
 
-    return render_template('admin/ip_ban_list.html', title="IP Ban Management", bans=bans, user_map=user_map)
+    return render_template('admin/ip_ban_list.html', title="IP Ban Management", bans=bans, user_map=user_map, ip_to_ban=ip_to_ban)
 
 
 @admin_bp.route('/chatrooms', methods=['GET', 'POST'])

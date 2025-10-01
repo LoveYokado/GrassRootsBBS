@@ -21,8 +21,8 @@
                 <div class="form-row align-items-end">
                     <div class="col-md-4">
                         <label for="ip_address">IP Address or CIDR</label>
-                        <input type="text" id="ip_address" name="ip_address" class="form-control"
-                            placeholder="e.g., 192.0.2.1 or 192.0.2.0/24" required>
+                        <input type="text" id="ip_address" name="ip_address" value="{{ ip_to_ban }}"
+                            class="form-control" placeholder="e.g., 192.0.2.1 or 192.0.2.0/24" required>
                     </div>
                     <div class="col-md-6">
                         <label for="reason">Reason (Optional)</label>
