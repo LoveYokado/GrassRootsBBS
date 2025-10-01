@@ -234,12 +234,8 @@ def create_app():
         'WEBAPP', {}).get('ORIGIN', 'http://localhost:5000'))
     allowed_origins = allowed_origins_str.split(
         ',') if allowed_origins_str else []
-
-    # ProxyFixがSocketIOにも適用されるように、engineio_optionsを設定
-    engineio_options = {"async_mode": "gevent", "ws_proxy_fix": True}
-    socketio.init_app(
-        app, cors_allowed_origins=allowed_origins, **engineio_options)
-
+    socketio.init_app(app, async_mode='gevent',
+                      cors_allowed_origins=allowed_origins)
     init_events(socketio, app)
 
     # --- スケジュールジョブ (バックアップ) ---

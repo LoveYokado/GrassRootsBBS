@@ -55,7 +55,7 @@ def get_webapp_online_members():
                     "user_id": user_session.get('user_id'),
                     "username": login_id,
                     "display_name": user_session.get('display_name', login_id),
-                    "addr": (handler.ip_address, 0),
+                    "addr": handler.channel.getpeername(),
                     "menu_mode": user_session.get('menu_mode', '?'),
                     "connect_time": handler.connect_time
                 }
