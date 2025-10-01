@@ -8,7 +8,8 @@ services:
       - ./private_key.pem:/app/private_key.pem:ro # 秘密鍵を読み取り専用でマウント
       - ./public_key.pem:/app/public_key.pem:ro # 公開鍵を読み取り専用でマウント
       - ./templates:/app/templates # テンプレートファイルをマウント
-      - ./static:/app/static # 静的ファイルをマウント
+      - ./static:/app/static # 静的ファイルをマウント 
+      - ./setting:/app/setting # 設定ファイルをマウント
     ports:
       - "5000:5000"
     environment:

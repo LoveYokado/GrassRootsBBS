@@ -155,7 +155,6 @@ docker-compose up --build -d
 ### 7. BBS へのアクセス
 
 Web ブラウザで `http://localhost:5000` にアクセスしてください。
+管理画面には `http://localhost:5000/admin` からアクセスできます。（この `/admin` の部分は `setting/config.toml` で変更可能です）
 
 BBS の詳しい使い方や管理方法については、manual.md を参照してください。
-
-管理画面には `http://localhost:5000/admin` からアクセスできます。

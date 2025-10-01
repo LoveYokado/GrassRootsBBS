@@ -61,6 +61,9 @@ guestID = `GUEST/GUEST`
 ip_restriction_enabled = false # trueで有効化
 # 許可するIPアドレス/CIDRのリスト (例: ["192.168.1.10", "192.168.1.0/24", "127.0.0.1"])
 allowed_ips = ["127.0.0.1", "::1"]
+# 管理画面のURLプレフィックス。セキュリティ向上のため、推測されにくい文字列に変更することを推奨します。
+# 例: url_prefix = "/adm-panel"
+url_prefix = "/admin"
 
 [push]
 VAPID_PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----

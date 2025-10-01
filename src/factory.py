@@ -127,9 +127,13 @@ def create_app():
     app.config['LOCKOUT_TIME_SECONDS'] = app.config.get(
         'SECURITY', {}).get('LOCKOUT_TIME_SECONDS', 300)
 
+    # --- 管理画面のURLプレフィックスを設定 ---
+    admin_config = app.config.get('ADMIN', {})
+    admin_prefix = admin_config.get('url_prefix', '/admin')
+
     # --- Blueprintの登録 ---
     app.register_blueprint(web_bp)
-    app.register_blueprint(admin_bp, url_prefix='/admin')
+    app.register_blueprint(admin_bp, url_prefix=admin_prefix)
 
     errors.register_error_handlers(app)
 
@@ -163,8 +167,7 @@ def create_app():
 
         `config.toml` の `[admin]` セクションで `ip_restriction_enabled` が `True` の場合にのみ有効です。 
         """
-        if request.path.startswith('/admin'):
-            admin_config = app.config.get('ADMIN', {})
+        if request.path.startswith(admin_prefix):
             if not admin_config.get('ip_restriction_enabled', False):
                 return
             allowed_ips_str = admin_config.get(
