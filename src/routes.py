@@ -178,7 +178,7 @@ def login():
             session['menu_mode'] = user_auth_info.get('menu_mode', '2')
             logging.info(f"WebUI Login Success: {username}")
             database.log_access_event(ip_address=request.remote_addr, event_type='LOGIN_SUCCESS',
-                                      user_id=user_auth_info['id'], username=user_auth_info['name'], message='Password authentication successful.')
+                                      user_id=user_auth_info['id'], username=user_auth_info['name'], display_name=user_auth_info['name'], message='Password authentication successful.')
             database.update_record('users', {'lastlogin': int(time.time())}, {
                                    'id': user_auth_info['id']})
             return redirect(url_for('web.index'))
@@ -285,7 +285,7 @@ def passkey_verify_login():
         session['userlevel'] = user_data['level']
         session['menu_mode'] = user_data.get('menu_mode', '2')
         database.log_access_event(ip_address=request.remote_addr, event_type='LOGIN_SUCCESS',
-                                  user_id=user_data['id'], username=user_data['name'], message='Passkey authentication successful.')
+                                  user_id=user_data['id'], username=user_data['name'], display_name=user_data['name'], message='Passkey authentication successful.')
         database.update_record('users', {'lastlogin': int(time.time())}, {
                                'id': user_data['id']})
         return jsonify({"verified": True})

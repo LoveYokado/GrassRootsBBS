@@ -3,7 +3,7 @@
 
 """
 データベース抽象化レイヤー (DAL)
-
+ 
 このモジュールは、全てのデータベース操作に対する構造化された抽象的な
 インターフェースを提供します。各クラスが特定のテーブルやデータの論理的な
 グループを担当し、関連するSQLクエリをカプセル化するマネージャー方式を採用しています。
@@ -31,13 +31,14 @@ push_subscriptions = None
 passkeys = None
 bbs_list_manager = None
 initializer = None
+ip_bans = None
 plugin_data_manager = None
 
 
 class DBManager:
     """
-    データベース接続とクエリ実行を管理するコアクラス。
-    コネクションプールを保持し、他のマネージャークラスに共有されます。
+    データベース接続とクエリ実行を管理するコアクラス。 
+    コネクションプールを保持し、他のマネージャークラスに共有されます。 
     """
     _pool = None
 
@@ -75,12 +76,12 @@ class DBManager:
             raise
 
     def execute_query(self, query, params=None, fetch=None):
-        """クエリを実行し、結果を取得する汎用メソッドです。
+        """クエリを実行し、結果を取得する汎用メソッドです。 
 
         :param query: 実行するSQLクエリ文字列。
         :param params: クエリにバインドするパラメータのタプル。
         :param fetch: 'one' (単一行), 'all' (全行), または None (INSERT/UPDATE/DELETE)。
-        :return: fetchの結果、またはINSERT時のlastrowid。エラー時はNone。
+        :return: fetchの結果、またはINSERT時のlastrowid。エラー時はNone。 
         """
         conn = None
         cursor = None
@@ -109,11 +110,11 @@ class DBManager:
 
     def update_record(self, table, set_data, where_data):
         """
-        指定されたテーブルのレコードを更新する汎用的なメソッドです。
+        指定されたテーブルのレコードを更新する汎用的なメソッドです。 
 
         :param table: 更新するテーブル名。
         :param set_data: 更新するカラムと値の辞書 (例: {'col1': 'val1'})。
-        :param where_data: 更新対象を特定するWHERE句の辞書 (例: {'id': 1})。
+        :param where_data: 更新対象を特定するWHERE句の辞書 (例: {'id': 1})。 
         """
         if not set_data or not where_data:
             logging.error("update_record: set_data or where_data is empty.")
@@ -187,10 +188,10 @@ class UserManager:
 
     def get_total_count(self):
         """
-        登録されている総ユーザー数を取得します。
-        管理画面のダッシュボードなどで使用されます。
+        登録されている総ユーザー数を取得します。 
+        管理画面のダッシュボードなどで使用されます。 
 
-        :return: ユーザーの総数 (int)。
+        :return: ユーザーの総数 (int)。 
         """
         query = "SELECT COUNT(*) as count FROM users"
         result = self._db.execute_query(query, fetch='one')
@@ -1042,14 +1043,14 @@ class AccessLogManager:
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
 
-    def log_event(self, ip_address, event_type, user_id=None, username=None, message=None):
+    def log_event(self, ip_address, event_type, user_id=None, username=None, display_name=None, message=None):
         """ログイン試行、ファイルアップロードなどのアクセスイベントをログに記録します。"""
         query = """
-            INSERT INTO access_logs (timestamp, ip_address, user_id, username, event_type, message)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO access_logs (timestamp, ip_address, user_id, username, display_name, event_type, message)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
         params = (int(time.time()), ip_address, user_id,
-                  username, event_type, message)
+                  username, display_name, event_type, message)
         self._db.execute_query(query, params)
 
     def get_logs(self, page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
@@ -1081,7 +1082,7 @@ class AccessLogManager:
 
         # データを取得するクエリ
         query = f"""
-            SELECT id, timestamp, ip_address, user_id, username, event_type, message
+            SELECT id, timestamp, ip_address, user_id, username, display_name, event_type, message
             FROM access_logs
             {where_sql}
         """
@@ -1266,14 +1267,14 @@ class BBSListManager:
         self._db = db_manager_instance
 
     def get_by_id(self, link_id):
-        """
+        """ 
         指定されたIDのBBSリンクを1件取得します。管理画面の編集ページなどで使用されます。
         """
         query = "SELECT * FROM bbs_list WHERE id = %s"
         return self._db.execute_query(query, (link_id,), fetch='one')
 
     def get_approved(self):
-        """
+        """ 
         承認済み(`approved`)のすべてのBBSリンクを取得します。
         F7キーのBBSリストなどで使用されます。
         """
@@ -1281,7 +1282,7 @@ class BBSListManager:
         return self._db.execute_query(query, fetch='all')
 
     def get_all_for_admin(self, page=1, per_page=15, sort_by='status', order='asc'):
-        """
+        """ 
         管理画面用に、ページネーションとソート機能付きで全てのステータスのBBSリンクを取得します。
         """
         allowed_columns = {
@@ -1316,7 +1317,7 @@ class BBSListManager:
         return links, total_items
 
     def add(self, name, url, description, source='sysop', submitted_by=None):
-        """
+        """ 
         新しいBBSリンクをDBに追加します。`source`が'sysop'の場合は自動で承認済みになります。
         """
         status = 'approved' if source == 'sysop' else 'pending'
@@ -1341,7 +1342,7 @@ class BBSListManager:
         return self._db.execute_query(query, params) is not None
 
     def update_status(self, link_id, status):
-        """
+        """ 
         指定されたIDのBBSリンクのステータス（'approved', 'rejected', 'pending'）を更新します。
         """
         if status not in ['approved', 'rejected', 'pending']:
@@ -1363,6 +1364,45 @@ class BBSListManager:
             return cursor.rowcount > 0
         except mysql.connector.Error as e:
             logging.error(f"BBSリンクの削除に失敗しました: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+
+class IpBanManager:
+    """'ip_bans' テーブルに関連する全てのデータベース操作を管理します。"""
+
+    def __init__(self, db_manager_instance):
+        self._db = db_manager_instance
+
+    def get_all(self):
+        """全てのBANルールを取得します。"""
+        query = "SELECT * FROM ip_bans ORDER BY created_at DESC"
+        return self._db.execute_query(query, fetch='all')
+
+    def add(self, ip_address, reason, added_by):
+        """新しいBANルールを追加します。"""
+        query = "INSERT INTO ip_bans (ip_address, reason, added_by, created_at) VALUES (%s, %s, %s, %s)"
+        params = (ip_address, reason, added_by, int(time.time()))
+        return self._db.execute_query(query, params) is not None
+
+    def delete(self, ban_id):
+        """指定されたIDのBANルールを削除します。"""
+        query = "DELETE FROM ip_bans WHERE id = %s"
+        conn = self._db.get_connection()
+        cursor = None
+        try:
+            cursor = conn.cursor()
+            cursor.execute(query, (ban_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        except mysql.connector.Error as e:
+            logging.error(f"IP BANルールの削除に失敗しました: {e}")
             if conn:
                 conn.rollback()
             return False
@@ -1611,7 +1651,7 @@ class DatabaseInitializer:
 
     def apply_migrations(self):
         """
-        アプリケーション起動時に、データベーススキーマの変更（マイグレーション）を適用します。
+        アプリケーション起動時に、データベーススキーマの変更（マイグレーション）を適用します。 
         """
         conn = self._db.get_connection()
         cursor = None
@@ -1714,6 +1754,26 @@ class DatabaseInitializer:
                 """
                 cursor.execute(create_query)
                 logging.info("データベースマイグレーション: 'access_logs'テーブルを作成しました。")
+            else:
+                # display_name カラムが存在しない場合に追加
+                cursor.execute(
+                    "SHOW COLUMNS FROM `access_logs` LIKE 'display_name'")
+                if not cursor.fetchone():
+                    alter_query = "ALTER TABLE `access_logs` ADD COLUMN `display_name` VARCHAR(255) AFTER `username`"
+                    cursor.execute(alter_query)
+                    logging.info(
+                        "データベースマイグレーション: 'access_logs'テーブルに'display_name'カラムを追加しました。")
+
+                # username カラムのNULL許容を変更
+                cursor.execute(
+                    "SHOW COLUMNS FROM `access_logs` WHERE Field = 'username'")
+                col_info = cursor.fetchone()
+                if col_info and col_info['Null'] == 'NO':
+                    alter_query = "ALTER TABLE `access_logs` MODIFY `username` VARCHAR(255) NULL"
+                    cursor.execute(alter_query)
+                    logging.info(
+                        "データベースマイグレーション: 'access_logs'テーブルの'username'カラムをNULL許容に変更しました。")
+
             # --- bbs_listテーブルの存在チェックと作成 ---
             cursor.execute("SHOW TABLES LIKE 'bbs_list'")
             if not cursor.fetchone():
@@ -1753,6 +1813,21 @@ class DatabaseInitializer:
                     cursor.execute(alter_query)
                     logging.info(
                         "データベースマイグレーション: 'bbs_list'テーブルに'submitted_by'カラムを追加しました。")
+
+            # --- ip_bansテーブルの存在チェックと作成 ---
+            cursor.execute("SHOW TABLES LIKE 'ip_bans'")
+            if not cursor.fetchone():
+                create_query = """
+                CREATE TABLE `ip_bans` (
+                    `id` INT PRIMARY KEY AUTO_INCREMENT,
+                    `ip_address` VARCHAR(255) NOT NULL UNIQUE,
+                    `reason` TEXT,
+                    `added_by` INT,
+                    `created_at` INT NOT NULL
+                )
+                """
+                cursor.execute(create_query)
+                logging.info("データベースマイグレーション: 'ip_bans'テーブルを作成しました。")
 
         except Exception as e:
             logging.error(f"Database migration failed: {e}", exc_info=True)
@@ -1837,6 +1912,7 @@ push_subscriptions = PushSubscriptionManager(db_manager)
 passkeys = PasskeyManager(db_manager)
 bbs_list_manager = BBSListManager(db_manager)
 initializer = DatabaseInitializer(db_manager)
+ip_bans = IpBanManager(db_manager)
 plugin_data_manager = PluginDataManager(db_manager)
 
 
@@ -2078,8 +2154,13 @@ def upsert_plugin_setting(plugin_id: str, is_enabled: bool):
     return plugins.upsert_setting(plugin_id, is_enabled)
 
 
-def log_access_event(ip_address, event_type, user_id=None, username=None, message=None):
-    return access_logs.log_event(ip_address, event_type, user_id, username, message)
+def log_access_event(ip_address, event_type, user_id=None, username=None, display_name=None, message=None):
+    # GUESTの場合、display_nameがなければ生成する
+    if username and username.upper() == 'GUEST' and not display_name:
+        from . import util  # 循環インポートを避ける
+        display_name = util.get_display_name(username, ip_address)
+
+    return access_logs.log_event(ip_address, event_type, user_id, username, display_name, message)
 
 
 def get_access_logs(page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
@@ -2221,8 +2302,25 @@ def update_bbs_link_status(link_id: int, status: str) -> bool:
     return bbs_list_manager.update_status(link_id, status)
 
 
+# --- IP Ban Functions ---
+
+def get_all_ip_bans():
+    """全てのIP BANルールを取得します。"""
+    return ip_bans.get_all()
+
+
+def add_ip_ban(ip_address, reason, added_by):
+    """新しいIP BANルールを追加します。"""
+    return ip_bans.add(ip_address, reason, added_by)
+
+
+def delete_ip_ban(ban_id):
+    """指定されたIDのIP BANルールを削除します。"""
+    return ip_bans.delete(ban_id)
+
+
 def init_app(app):
-    """
+    """ 
     Flaskアプリケーションインスタンスを使用してデータベースを初期化します。
     """
     db_config_from_file = app.config.get('DATABASE', {})

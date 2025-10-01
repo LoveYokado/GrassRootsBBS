@@ -1,5 +1,5 @@
 function base64urlToBuffer(base64urlString) {
-    const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/'); 
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
     for (let i = 0; i < rawData.length; ++i) {
@@ -10,7 +10,7 @@ function base64urlToBuffer(base64urlString) {
 
 function bufferToBase64url(buffer) {
     const bytes = new Uint8Array(buffer);
-    let str = '';
+    let str = ''; 
     for (const charCode of bytes) {
         str += String.fromCharCode(charCode);
     }
@@ -102,7 +102,7 @@ async function startPasskeyLogin(username = '') {
     }
 }
 
-// イベントリスナーの登録
+// イベントリスナーの登録 
 document.addEventListener('DOMContentLoaded', () => {
     if (PASSKEY_USERNAME) {
         startPasskeyLogin(PASSKEY_USERNAME);

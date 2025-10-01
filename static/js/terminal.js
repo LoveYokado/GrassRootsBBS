@@ -9,7 +9,7 @@ SPDX-License-Identifier: MIT
  * @returns {ArrayBuffer}
  */
 function base64urlToBuffer(base64urlString) {
-    const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = base64urlString.replace(/-/g, '+').replace(/_/g, '/'); 
     const rawData = window.atob(base64); 
     const outputArray = new Uint8Array(rawData.length);
     for (let i = 0; i < rawData.length; ++i) {
@@ -18,12 +18,12 @@ function base64urlToBuffer(base64urlString) {
     return outputArray.buffer;
 }
 
-/**
+/** 
  * ArrayBufferをBase64URLエンコードされた文字列に変換します。 
  * @param {ArrayBuffer} buffer - 変換するArrayBuffer
  * @returns {string}
  */
-function bufferToBase64url(buffer) {
+function bufferToBase64url(buffer) { 
     const bytes = new Uint8Array(buffer);
     let str = '';
     for (const charCode of bytes) {
@@ -168,7 +168,7 @@ function applyTheme(themeName) {
         }
     });
 
-    // テーマに応じてANSIカラーボタンの表示/非表示を切り替えます。
+    // テーマに応じてANSIカラーボタンの表示/非表示を切り替えます。 
     const ansiColorButtons = document.getElementById('ansi-color-buttons');
     if (ansiColorButtons) {
         if (themeName === 'green' || themeName === 'amber') {
@@ -590,7 +590,7 @@ function openBbsListPopup() {
     bbsListWindow.classList.add('visible');
 }
 
-// BBSリストのポップアップを閉じます。
+// BBSリストのポップアップを閉じます。 
 function closeBbsListPopup() {
     bbsListOverlay.classList.remove('visible');
     bbsListWindow.classList.remove('visible');
@@ -1687,7 +1687,7 @@ function debounce(func, wait) {
     };
 }
 
-// 新しいPasskeyの登録フローを開始します。
+// 新しいPasskeyの登録フローを開始します。 
 async function registerNewPasskey(callback) {
     let options;
     try {

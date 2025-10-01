@@ -161,6 +161,27 @@ def create_app():
 
     # --- リクエストフック ---
     @app.before_request
+    def check_ip_ban():
+        """ 
+        リクエスト毎に、アクセス元のIPアドレスがBANリストに含まれていないかチェックします。
+        """
+        # このチェックを管理画面のIP制限より先に行う
+        try:
+            banned_ips = database.get_all_ip_bans()
+            if not banned_ips:
+                return
+
+            remote_ip_str = request.remote_addr
+            if not remote_ip_str:
+                return
+
+            remote_ip = ipaddress.ip_address(remote_ip_str)
+            if any(remote_ip in ipaddress.ip_network(ban['ip_address'], strict=False) for ban in banned_ips):
+                abort(403)  # Forbidden
+        except Exception as e:
+            logging.error(f"IP BANチェック中にエラーが発生しました: {e}")
+
+    @app.before_request
     def restrict_admin_access_by_ip():
         """
         リクエスト毎に、管理画面 (`/admin`) へのアクセスをIPアドレスで制限します。 

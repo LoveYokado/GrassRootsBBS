@@ -3,9 +3,9 @@
 
 """
 Webターミナルセッションハンドラ
-このモジュールは、個々のWebターミナルセッションを管理するための中核ロジックを含んでいます。
+このモジュールは、個々のWebターミナルセッションを管理するための中核ロジックを含んでいます。 
 WebTerminalHandlerクラスが各クライアントのセッション状態を管理し、BBSのメインループとI/Oを統括します。
-また、接続されている全クライアントのグローバルな状態管理も行います。
+また、接続されている全クライアントのグローバルな状態管理も行います。 
 """
 
 import logging
@@ -40,9 +40,9 @@ BPS_DELAYS = {
 
 def get_webapp_online_members():
     """
-    現在オンラインのWebターミナルユーザーのリストを生成します。
+    現在オンラインのWebターミナルユーザーのリストを生成します。 
 
-    :return: オンラインユーザーの情報を格納した辞書。キーはセッションID。
+    :return: オンラインユーザーの情報を格納した辞書。キーはセッションID。 
     """
     members = {}
     for sid, handler in client_states.copy().items():
@@ -64,10 +64,10 @@ def get_webapp_online_members():
 
 def kick_user_session(sid, socketio):
     """
-    指定されたセッションIDのユーザーセッションを強制的に切断します。
-    主に管理画面からの操作を想定しています。
+    指定されたセッションIDのユーザーセッションを強制的に切断します。 
+    主に管理画面からの操作を想定しています。 
 
-    :param sid: 切断するユーザーのセッションID。
+    :param sid: 切断するユーザーのセッションID。 
     :param socketio: SocketIOインスタンス。
     """
     if sid in client_states:
@@ -86,9 +86,9 @@ def kick_user_session(sid, socketio):
 
 class WebTerminalHandler:
     """
-    単一のWebターミナルセッションの状態とロジックを管理します。
+    単一のWebターミナルセッションの状態とロジックを管理します。 
     接続されたクライアントごとにインスタンスが生成され、
-    BBSのメインループとクライアント・サーバー間のI/Oを統括します。
+    BBSのメインループとクライアント・サーバー間のI/Oを統括します。 
     """
 
     def __init__(self, sid, user_session, ip_address, socketio):
@@ -161,8 +161,8 @@ class WebTerminalHandler:
 
     class WebChannel:
         """
-        WebTerminalHandlerとBBSのコアロジック間の通信を仲介する内部クラス。
-        従来のソケット通信を模倣したインターフェースを提供します。
+        WebTerminalHandlerとBBSのコアロジック間の通信を仲介する内部クラス。 
+        従来のソケット通信を模倣したインターフェースを提供します。 
         """
 
         def __init__(self, handler_instance, ip_addr):
@@ -257,9 +257,9 @@ class WebTerminalHandler:
 
         def process_input(self):
             """
-            クライアントからの入力を一行受け取ります（エコーバックあり）。
+            クライアントからの入力を一行受け取ります（エコーバックあり）。 
 
-            :return: ユーザーが入力した文字列。
+            :return: ユーザーが入力した文字列。 
             """
             return self._process_input_internal(echo=True)
 
@@ -268,9 +268,9 @@ class WebTerminalHandler:
 
         def process_multiline_input(self):
             """
-            Webクライアントのマルチラインエディタを起動し、その入力を待ち受けます。
+            Webクライアントのマルチラインエディタを起動し、その入力を待ち受けます。 
             サーバーから特殊シーケンスを送信してエディタを開き、クライアントは
-            `multiline_input_submit` イベントで結果を返します。
+            `multiline_input_submit` イベントで結果を返します。 
             """
             # Send a special escape sequence to open the multiline editor
             self.send(b'\x1b[?2034h')
@@ -291,7 +291,7 @@ class WebTerminalHandler:
 
     def _bbs_main_loop(self):
         """
-        BBSのメインループ。ユーザー認証後のメインメニュー表示とコマンド処理を
+        BBSのメインループ。ユーザー認証後のメインメニュー表示とコマンド処理を 
         担当するバックグラウンドタスク。
         """
         server_pref_dict = {}
@@ -361,8 +361,8 @@ class WebTerminalHandler:
 
     def _sender_worker(self):
         """
-        出力キューからテキストを取り出し、クライアントに送信するバックグラウンドタスク。
-        BPSレートをシミュレートするための遅延処理もここで行います。
+        出力キューからテキストを取り出し、クライアントに送信するバックグラウンドタスク。 
+        BPSレートをシミュレートするための遅延処理もここで行います。 
         """
         while not self.stop_worker_event.is_set():
             try:

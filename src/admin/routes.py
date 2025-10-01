@@ -16,6 +16,7 @@ from .. import database, util, backup_util, plugin_manager, terminal_handler
 import psutil
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g, current_app
 from ..decorators import sysop_required
+import ipaddress
 
 import toml
 import yaml
@@ -1607,6 +1608,54 @@ def access_log_viewer():
 
     return render_template('admin/log_viewer.html', title=g.texts.get('access_log', {}).get('title', 'Access Log Viewer'), logs=logs, error_logs=error_logs, search_params=search_params, search_params_for_per_page=search_params_for_per_page, pagination=pagination,
                            sort_by=sort_by, order=order, next_order=next_order)
+
+
+@admin_bp.route('/ip_bans', methods=['GET', 'POST'])
+@sysop_required
+def ip_ban_list():
+    """IPアドレスによるアクセス制限（BAN）を管理するページ。"""
+    ip_to_ban = request.args.get('ip_address', '')
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'add':
+            ip_address = request.form.get('ip_address', '').strip()
+            reason = request.form.get('reason', '').strip()
+            if not ip_address:
+                flash('IP Address/CIDR is required.', 'danger')
+            else:
+                try:
+                    # 入力されたIP/CIDRが妥当か検証
+                    ipaddress.ip_network(ip_address, strict=False)
+                    if database.add_ip_ban(ip_address, reason, session.get('user_id')):
+                        flash(f'Successfully banned {ip_address}.', 'success')
+                    else:
+                        flash(
+                            f'Failed to ban {ip_address}. The IP address/CIDR might already exist in the ban list.', 'danger')
+                except ValueError:
+                    flash(
+                        f'Invalid IP Address or CIDR notation: {ip_address}', 'danger')
+
+        elif action == 'delete':
+            ban_id = request.form.get('id')
+            if ban_id:
+                if database.delete_ip_ban(ban_id):
+                    flash('IP ban rule has been removed.', 'success')
+                else:
+                    flash('Failed to remove IP ban rule.', 'danger')
+
+        return redirect(url_for('admin.ip_ban_list'))
+
+    try:
+        bans = database.get_all_ip_bans()
+        user_ids = {ban['added_by'] for ban in bans if ban.get('added_by')}
+        user_map = database.get_user_names_from_user_ids(list(user_ids))
+    except Exception as e:
+        flash(f"Error retrieving IP ban list: {e}", 'danger')
+        bans = []
+        user_map = {}
+
+    return render_template('admin/ip_ban_list.html', title="IP Ban Management", bans=bans, user_map=user_map, ip_to_ban=ip_to_ban)
 
 
 @admin_bp.route('/chatrooms', methods=['GET', 'POST'])
