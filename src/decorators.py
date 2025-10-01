@@ -3,9 +3,9 @@
 
 """
 カスタムデコレータ
-
+ 
 このモジュールは、Flaskのルートで使用するカスタムデコレータを定義します。
-デコレータはビュー関数をラップし、ページへのアクセスを許可する前に
+デコレータはビュー関数をラップし、ページへのアクセスを許可する前に 
 ユーザー権限をチェックするなどの前処理ロジックを追加します。
 """
 
@@ -15,8 +15,8 @@ from flask import session, redirect, url_for, flash
 
 def sysop_required(f):
     """
-    ユーザーがSysOp (user_level == 5) であることを確認するデコレータ。
-    未ログインの場合はログインページへ、権限がない場合はトップページへリダイレクトします。
+    ユーザーがSysOp (user_level == 5) であることを確認するデコレータです。
+    未ログインの場合はログインページへ、権限がない場合はターミナル画面へリダイレクトします。
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -25,6 +25,6 @@ def sysop_required(f):
             return redirect(url_for('web.login'))
         if session.get('userlevel') != 5:  # SysOpのレベル(5)かチェック
             flash('You do not have permission to access this page.', 'danger')
-            return redirect(url_for('index'))  # ターミナル画面へ
+            return redirect(url_for('web.index'))  # ターミナル画面へ
         return f(*args, **kwargs)
     return decorated_function
