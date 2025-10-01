@@ -61,9 +61,7 @@ def init_events(socketio, app):
             terminal_handler.current_webapp_clients += 1
 
         username = session.get('username', 'Unknown')
-        # X-Forwarded-Forヘッダーがあればそれを優先し、なければremote_addrを使用
-        ip_addr = request.headers.get(
-            'X-Forwarded-For', request.remote_addr) or 'N/A'
+        ip_addr = util.get_client_ip()
         display_name = util.get_display_name(username, ip_addr)
         logging.getLogger('grbbs.access').info(
             f"CONNECT - User: {username}, DisplayName: {display_name}, IP: {ip_addr}, SID: {request.sid}")
@@ -109,9 +107,7 @@ def init_events(socketio, app):
         if handler:
             display_name = handler.user_session.get(
                 'display_name', username)
-        # X-Forwarded-Forヘッダーがあればそれを優先し、なければremote_addrを使用
-        ip_addr = request.headers.get(
-            'X-Forwarded-For', request.remote_addr) or 'N/A'
+        ip_addr = util.get_client_ip()
         database.log_access_event(ip_address=ip_addr, event_type='DISCONNECT',
                                   username=username, display_name=display_name, message=f"SID: {sid}")
 

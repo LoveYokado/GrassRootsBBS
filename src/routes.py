@@ -158,11 +158,9 @@ def login():
                 for sid, handler in client_states.copy().items():
                     if handler.user_session.get('username') == username:
                         error = util.get_text_by_key("auth.already_logged_in", handler.user_session.get(
-                            'menu_mode', '2')).replace('\r\n', '')  # noqa
-                        database.log_access_event(
-                            ip_address=request.headers.get(
-                                'X-Forwarded-For', request.remote_addr),
-                            event_type='LOGIN_FAILURE', username=username, message='Multi-login detected.')
+                            'menu_mode', '2')).replace('\r\n', '')
+                        database.log_access_event(ip_address=util.get_client_ip(),
+                                                  event_type='LOGIN_FAILURE', username=username, message='Multi-login detected.')
                         return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
 
             if not is_guest:
@@ -179,7 +177,7 @@ def login():
             session['userlevel'] = user_auth_info['level']
             session['menu_mode'] = user_auth_info.get('menu_mode', '2')
             logging.info(f"WebUI Login Success: {username}")
-            database.log_access_event(ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
+            database.log_access_event(ip_address=util.get_client_ip(),
                                       event_type='LOGIN_SUCCESS',
                                       user_id=user_auth_info['id'], username=user_auth_info['name'], display_name=user_auth_info['name'], message='Password authentication successful.')
             database.update_record('users', {'lastlogin': int(time.time())}, {
@@ -194,15 +192,15 @@ def login():
                     ) + current_app.config['LOCKOUT_TIME_SECONDS']
                     lockout_minutes = current_app.config['LOCKOUT_TIME_SECONDS'] / 60
                     error = util.get_text_by_key("auth.account_locked_permanent", session.get(
-                        'menu_mode', '2')).format(lockout_minutes=lockout_minutes)  # noqa
-                    database.log_access_event(ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
+                        'menu_mode', '2')).format(lockout_minutes=lockout_minutes)
+                    database.log_access_event(ip_address=util.get_client_ip(),
                                               event_type='ACCOUNT_LOCKED', username=username,
                                               message=f"Account locked for user '{username}' due to too many failed attempts.")
                 else:
                     error = 'IDまたはパスワードが違います。'
             else:
                 error = 'IDまたはパスワードが違います。'
-            database.log_access_event(ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
+            database.log_access_event(ip_address=util.get_client_ip(),
                                       event_type='LOGIN_FAILURE',
                                       username=username, message=f"Invalid password for user '{username}'.")
             logging.warning(f"WebUI Login Failed: {username}")
@@ -289,7 +287,7 @@ def passkey_verify_login():
         session['username'] = user_data['name']
         session['userlevel'] = user_data['level']
         session['menu_mode'] = user_data.get('menu_mode', '2')
-        database.log_access_event(ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
+        database.log_access_event(ip_address=util.get_client_ip(),
                                   event_type='LOGIN_SUCCESS',
                                   user_id=user_data['id'], username=user_data['name'], display_name=user_data['name'], message='Passkey authentication successful.')
         database.update_record('users', {'lastlogin': int(time.time())}, {

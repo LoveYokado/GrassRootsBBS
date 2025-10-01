@@ -171,7 +171,7 @@ def create_app():
             if not banned_ips:
                 return
 
-            remote_ip_str = request.remote_addr
+            remote_ip_str = util.get_client_ip()
             if not remote_ip_str:
                 return
 
@@ -193,7 +193,7 @@ def create_app():
                 return
             allowed_ips_str = admin_config.get(
                 'ALLOWED_IPS', ['127.0.0.1', '::1'])
-            remote_ip_str = request.remote_addr
+            remote_ip_str = util.get_client_ip()
             if not remote_ip_str:
                 abort(403)
             try:

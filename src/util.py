@@ -19,6 +19,7 @@ import datetime
 import re
 import secrets
 import string
+from flask import request
 import json
 import base64
 from pywebpush import webpush, WebPushException
@@ -1021,6 +1022,26 @@ def format_file_size(size_in_bytes):
         return f"{size_in_kb:.1f} KB"
     size_in_mb = size_in_kb / 1024
     return f"{size_in_mb:.1f} MB"
+
+
+def get_client_ip():
+    """
+    リクエストからクライアントの真のIPアドレスを取得します。
+    リバースプロキシ環境 (X-Forwarded-For) とSocketIO接続の両方に対応します。
+    """
+    # SocketIOの接続イベントの場合、environから直接取得する
+    if request and 'engineio.socket' in request.environ:
+        eio_environ = request.environ.get('engineio.socket').environ
+        # X-Forwarded-For ヘッダーがあればそれを、なければREMOTE_ADDRを使用
+        ip = eio_environ.get('HTTP_X_FORWARDED_FOR',
+                             eio_environ.get('REMOTE_ADDR'))
+        return ip or 'N/A'
+
+    # 通常のHTTPリクエストの場合
+    # ProxyFixミドルウェアが適切に設定されていれば、request.remote_addrが正しいIPを返す
+    # 念のためX-Forwarded-Forもチェックする
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    return ip or 'N/A'
 
 
 def send_push_notification(subscription_info_json, payload_json):
