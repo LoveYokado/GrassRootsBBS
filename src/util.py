@@ -1030,6 +1030,29 @@ def get_client_ip():
     リバースプロキシ環境 (X-Forwarded-For) とSocketIO接続の両方に対応します。
     """
     # SocketIOの接続イベントの場合、environから直接取得する
+    if request and hasattr(request, 'environ') and 'engineio.socket' in request.environ:
+        eio_environ = request.environ.get('engineio.socket').environ
+        # X-Forwarded-For ヘッダーがあればそれを、なければREMOTE_ADDRを使用
+        ip_list = eio_environ.get('HTTP_X_FORWARDED_FOR')
+        if ip_list:
+            return ip_list.split(',')[0].strip()
+        return eio_environ.get('REMOTE_ADDR') or 'N/A'
+
+    # 通常のHTTPリクエストの場合
+    # ProxyFixミドルウェアが適切に設定されていれば、request.remote_addrが正しいIPを返す
+    # 念のためX-Forwarded-Forもチェックする
+    ip_list = request.headers.get('X-Forwarded-For')
+    if ip_list:
+        return ip_list.split(',')[0].strip()
+    return request.remote_addr or 'N/A'
+
+
+def get_client_ip():
+    """
+    リクエストからクライアントの真のIPアドレスを取得します。
+    リバースプロキシ環境 (X-Forwarded-For) とSocketIO接続の両方に対応します。
+    """
+    # SocketIOの接続イベントの場合、environから直接取得する
     if request and 'engineio.socket' in request.environ:
         eio_environ = request.environ.get('engineio.socket').environ
         # X-Forwarded-For ヘッダーがあればそれを、なければREMOTE_ADDRを使用

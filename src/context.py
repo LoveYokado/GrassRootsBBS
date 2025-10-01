@@ -44,4 +44,5 @@ class CommandContext:
     @property
     def ip_address(self) -> str:
         """クライアントのIPアドレス"""
-        return self.chan.getpeername()[0] if self.chan.getpeername() else 'N/A'
+        from . import util  # 循環インポートを避ける
+        return util.get_client_ip()

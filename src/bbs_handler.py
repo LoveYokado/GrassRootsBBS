@@ -1676,12 +1676,7 @@ class CommandHandler:
             return
 
         board_id_pk = self.current_board['id']  # sqlite3のオブジェクトを取得
-        client_ip = None
-        try:
-            client_ip = self.chan.getpeername(
-            )[0] if self.chan.getpeername() else None
-        except Exception:  # getpeername が失敗するケースも考慮
-            client_ip = None
+        client_ip = util.get_client_ip()
 
         if not self.permission_manager.can_write_to_board(self.current_board, self.user_id_pk, self.userlevel):
             util.send_text_by_key(
