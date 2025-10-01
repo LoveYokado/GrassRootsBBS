@@ -31,6 +31,7 @@ push_subscriptions = None
 passkeys = None
 bbs_list_manager = None
 initializer = None
+ip_bans = None
 plugin_data_manager = None
 
 
@@ -1373,6 +1374,45 @@ class BBSListManager:
                 conn.close()
 
 
+class IpBanManager:
+    """'ip_bans' テーブルに関連する全てのデータベース操作を管理します。"""
+
+    def __init__(self, db_manager_instance):
+        self._db = db_manager_instance
+
+    def get_all(self):
+        """全てのBANルールを取得します。"""
+        query = "SELECT * FROM ip_bans ORDER BY created_at DESC"
+        return self._db.execute_query(query, fetch='all')
+
+    def add(self, ip_address, reason, added_by):
+        """新しいBANルールを追加します。"""
+        query = "INSERT INTO ip_bans (ip_address, reason, added_by, created_at) VALUES (%s, %s, %s, %s)"
+        params = (ip_address, reason, added_by, int(time.time()))
+        return self._db.execute_query(query, params) is not None
+
+    def delete(self, ban_id):
+        """指定されたIDのBANルールを削除します。"""
+        query = "DELETE FROM ip_bans WHERE id = %s"
+        conn = self._db.get_connection()
+        cursor = None
+        try:
+            cursor = conn.cursor()
+            cursor.execute(query, (ban_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+        except mysql.connector.Error as e:
+            logging.error(f"IP BANルールの削除に失敗しました: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+
 class DatabaseInitializer:
     """データベースの初期セットアップとマイグレーションを管理します。"""
 
@@ -1774,6 +1814,21 @@ class DatabaseInitializer:
                     logging.info(
                         "データベースマイグレーション: 'bbs_list'テーブルに'submitted_by'カラムを追加しました。")
 
+            # --- ip_bansテーブルの存在チェックと作成 ---
+            cursor.execute("SHOW TABLES LIKE 'ip_bans'")
+            if not cursor.fetchone():
+                create_query = """
+                CREATE TABLE `ip_bans` (
+                    `id` INT PRIMARY KEY AUTO_INCREMENT,
+                    `ip_address` VARCHAR(255) NOT NULL UNIQUE,
+                    `reason` TEXT,
+                    `added_by` INT,
+                    `created_at` INT NOT NULL
+                )
+                """
+                cursor.execute(create_query)
+                logging.info("データベースマイグレーション: 'ip_bans'テーブルを作成しました。")
+
         except Exception as e:
             logging.error(f"Database migration failed: {e}", exc_info=True)
         finally:
@@ -1857,6 +1912,7 @@ push_subscriptions = PushSubscriptionManager(db_manager)
 passkeys = PasskeyManager(db_manager)
 bbs_list_manager = BBSListManager(db_manager)
 initializer = DatabaseInitializer(db_manager)
+ip_bans = IpBanManager(db_manager)
 plugin_data_manager = PluginDataManager(db_manager)
 
 
@@ -2244,6 +2300,23 @@ def get_all_bbs_links_for_admin(page=1, per_page=15, sort_by: str = 'status', or
 def update_bbs_link_status(link_id: int, status: str) -> bool:
     """指定されたBBSリンクの承認ステータスを更新します。"""
     return bbs_list_manager.update_status(link_id, status)
+
+
+# --- IP Ban Functions ---
+
+def get_all_ip_bans():
+    """全てのIP BANルールを取得します。"""
+    return ip_bans.get_all()
+
+
+def add_ip_ban(ip_address, reason, added_by):
+    """新しいIP BANルールを追加します。"""
+    return ip_bans.add(ip_address, reason, added_by)
+
+
+def delete_ip_ban(ban_id):
+    """指定されたIDのIP BANルールを削除します。"""
+    return ip_bans.delete(ban_id)
 
 
 def init_app(app):
