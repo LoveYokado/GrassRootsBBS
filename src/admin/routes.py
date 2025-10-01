@@ -239,6 +239,7 @@ def dashboard():
 
 @admin_bp.route('/who')
 @sysop_required
+@extensions.limiter.exempt
 def who_online():
     """オンラインユーザー一覧ページ
 
@@ -324,10 +325,7 @@ def kick_user(sid):
     display_name = member_to_kick.get(
         'display_name', f'session {sid}') if member_to_kick else f'session {sid}'
 
-    kicked = False
-    if sid in terminal_handler.client_states:
-        socketio.disconnect(sid)
-        kicked = True
+    kicked = terminal_handler.kick_user_session(sid, socketio)
 
     if kicked:
         flash(f"User '{display_name}' has been kicked.", 'success')
