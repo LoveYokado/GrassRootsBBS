@@ -12,7 +12,7 @@ import os
 from datetime import datetime, timedelta
 import time
 import logging
-from .. import database, util, backup_util, plugin_manager, terminal_handler
+from .. import database, util, backup_util, plugin_manager, terminal_handler, extensions
 import psutil
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g, current_app
 from ..decorators import sysop_required
