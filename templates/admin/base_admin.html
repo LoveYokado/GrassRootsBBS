@@ -35,13 +35,14 @@
             <a href="{{ url_for('admin.dashboard') }}">{{ g.texts.get('nav', {}).get('dashboard', 'Dashboard') }}</a>
             <a href="{{ url_for('admin.user_list') }}">{{ g.texts.get('nav', {}).get('user_management', 'User
                 Management') }}</a>
+            <a href="{{ url_for('admin.chat_management') }}"
+                class="{{ 'active' if request.endpoint == 'admin.chat_management' else '' }}">Chat Management
+            </a>
             <a href="{{ url_for('admin.bbs_management') }}"
                 class="{{ 'active' if request.endpoint == 'admin.bbs_management' else '' }}">
                 BBS Management
             </a>
-            <a href="{{ url_for('admin.chat_management') }}"
-                class="{{ 'active' if request.endpoint == 'admin.chat_management' else '' }}">Chat Management
-            </a>
+
         </div>
         <div class="nav-row">
             <a href="{{ url_for('admin.content_management') }}"
