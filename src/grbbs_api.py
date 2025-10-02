@@ -5,9 +5,9 @@
 
 """
 GR-BBS プラグインAPI
-
+ 
 このモジュールは、プラグインに提供される安全なAPIクラスを定義します。
-これは「ファサード」または「ブリッジ」として機能し、ホストアプリケーションの
+これは「ファサード」または「ブリッジ」として機能し、ホストアプリケーションの 
 機能を、制限された安全な形でプラグインに公開します。
 """
 
@@ -16,8 +16,8 @@ class GrbbsApi:
 
     """
     プラグインに提供される安全なAPIクラスです。
-    これは「ファサード」または「ブリッジ」として機能し、ホストアプリケーションの
-    機能を、制限された安全な形でプラグインに公開します。
+    これは「ファサード」または「ブリッジ」として機能し、ホストアプリケーションの機能を、
+    制限された安全な形でプラグインに公開します。
     """
 
     def __init__(self, channel, plugin_id, online_members_func):
@@ -102,7 +102,7 @@ class GrbbsApi:
 
         :param username: 情報を取得したいユーザーのログインID。
         :return: ユーザー情報の辞書。ユーザーが存在しない場合はNoneを返します。
-                 辞書には 'id', 'name', 'level', 'comment', 'registdate', 'lastlogin' が含まれる可能性があります。
+                 辞書には 'id', 'name', 'level', 'comment', 'registdate', 'lastlogin' が含まれる可能性があります。 
         """
         from . import database
         # ユーザー名はAPI側で大文字に変換する
@@ -111,10 +111,10 @@ class GrbbsApi:
     def get_online_users(self):
         """
         現在オンラインのユーザーのリストを取得します。
-        IPアドレスなどの機密情報は含まれません。
+        IPアドレスなどの機密情報は含まれません。 
 
         :return: オンラインユーザー情報のリスト（辞書の配列）。
-                 各辞書には 'user_id', 'username', 'display_name' が含まれる可能性があります。
+                 各辞書には 'user_id', 'username', 'display_name' が含まれる可能性があります。 
         """
         if not self._online_members_func:
             return []

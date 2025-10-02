@@ -3,11 +3,11 @@
 
 """
 手書きメニューハンドラ
-
+ 
 このモジュールは、主に「モード1」で使用される、手動で定義された
-テキストベースのメニューを処理します。YAML設定ファイルを読み込んで、
+テキストベースのメニューを処理します。YAML設定ファイルを読み込んで、 
 入れ子になった一連のメニューを構築・ナビゲートし、最終的にBBS掲示板への
-入室などの特定のアクションに繋げます。
+入室などの特定のアクションに繋げます。 
 """
 
 import yaml
@@ -74,11 +74,11 @@ def _display_manual_menu(chan, menu_data, current_menu_mode):
 
 def process_manual_menu(chan, login_id: str, menu_mode: str, menu_config_path: str, initial_menu_id: str, menu_type: str):
     """
-    手書きメニューを処理するメイン関数です。
+    手書きメニューを処理するメイン関数です。 
 
     :param menu_type: "bbs" または "chat" など、最終的なアクションの種類を示します。
     :return:
-        - BBSの場合: 選択された `board_id` (文字列)
+        - BBSの場合: 選択された `board_id` (文字列) 
         - Chatの場合: 選択された room の `action` dict
         - メニュー終了の場合: "exit_bbs_menu" などの特別な文字列
         - トップメニューへ戻る場合: "back_to_top"

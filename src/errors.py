@@ -3,9 +3,9 @@
 
 """
 カスタムエラーハンドラ
-
+ 
 このモジュールは、404 (Not Found) や 500 (Internal Server Error) といった
-一般的なHTTPエラーに対するカスタムエラーページを定義します。これにより、
+一般的なHTTPエラーに対するカスタムエラーページを定義します。これにより、 
 デフォルトのエラーページよりもユーザーフレンドリーな体験を提供します。
 """
 
@@ -14,7 +14,7 @@ import logging
 
 
 def register_error_handlers(app):
-    """Registers custom error handlers for the Flask application."""
+    """Flaskアプリケーションにカスタムエラーハンドラを登録します。"""
 
     @app.errorhandler(429)
     def ratelimit_handler(e):

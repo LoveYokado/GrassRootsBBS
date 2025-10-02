@@ -3,9 +3,9 @@
 
 """
 チャットハンドラ
-
+ 
 このモジュールは、リアルタイムチャットルームのサーバーサイドロジックを管理します。
-ユーザーの入退室、メッセージのブロードキャスト、履歴管理、チャットルーム内の
+ユーザーの入退室、メッセージのブロードキャスト、履歴管理、チャットルーム内の 
 特別なコマンド（ロック、状況確認など）を処理します。
 グローバルな辞書を使用して、アクティブなルームとユーザーの状態を保持します。
 """
@@ -43,7 +43,7 @@ ONLINE_MEMBERS_FUNC = None
 def get_room_history(room_id: str) -> collections.deque:
     """
     指定されたルームIDのメッセージ履歴を取得または新規作成します。
-    スレッドセーフな操作のためにロックを使用します。
+    スレッドセーフな操作のためにロックを使用します。 
     """
     with chat_rooms_lock:
         if room_id not in chat_room_histories:
@@ -67,8 +67,8 @@ def broadcast_to_room(room_id: str, display_name: str,
                       exclude_login_id: str = None,
                       message_key_for_system: str = None,
                       format_args_for_system: dict = None):
-    """ルーム内のすべてのユーザーにメッセージをブロードキャストします。
-    各ユーザーの menu_mode に応じたフォーマットで送信する。
+    """ルーム内のすべてのユーザーにメッセージをブロードキャストします。 
+    各ユーザーの `menu_mode` に応じたフォーマットで送信します。
     """
     with chat_rooms_lock:
         if room_id in active_chat_rooms:
@@ -159,13 +159,13 @@ def broadcast_to_room(room_id: str, display_name: str,
 
 
 def set_online_members_function_for_chat(func):
-    """外部モジュールからオンラインメンバーリスト取得関数をセットします。"""
+    """外部モジュールからオンラインメンバーリスト取得用の関数をセットします。"""
     global ONLINE_MEMBERS_FUNC
     ONLINE_MEMBERS_FUNC = func
 
 
 def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_name: str, menu_mode: str, user_id: int):
-    """ユーザーがルームに入室した際の処理を行います。
+    """ユーザーがルームに入室した際の処理を行います。 
     アクティブユーザーリストに追加し、入室通知をブロードキャストし、必要に応じてPush通知を送信します。
     """
     with chat_rooms_lock:
@@ -230,8 +230,9 @@ def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_n
 
 
 def user_leaves_room(room_id: str, login_id: str, display_name: str, room_name: str):
-    """ユーザーがルームから退室した際の処理を行います。
-    アクティブユーザーリストから削除し、退室通知をブロードキャストします。オーナーが退室した場合はルームをアンロックします。
+    """ユーザーがルームから退室した際の処理を行います。 
+    アクティブユーザーリストから削除し、退室通知をブロードキャストします。
+    オーナーが退室した場合はルームをアンロックします。
     """
     chan_left = None
     user_was_in_room = False
@@ -510,7 +511,7 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
 
 
 def handle_chat_menu(chan, login_id, display_name, menu_mode, user_id, online_members_func):
-    """チャットの階層メニューを表示し、選択されたルームへの入室を処理します。"""
+    """チャットの階層メニューを表示し、選択されたルームへの入室を処理するエントリーポイントです。"""
     paths_config = util.app_config.get('paths', {})
     chatroom_config_path = paths_config.get('chatroom_yaml')
     if not chatroom_config_path:

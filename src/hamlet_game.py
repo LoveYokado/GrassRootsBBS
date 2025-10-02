@@ -4,9 +4,9 @@
 
 """
 ハムレットゲーム（四目並べ）
-
+ 
 このモジュールは、プロジェクトの元となったBBSソフトウェア「BIG-Model」に
-付属していたゲームへのオマージュとして、「ハムレットゲーム」と名付けられた
+付属していたゲームへのオマージュとして、「ハムレットゲーム」と名付けられた 
 「コネクトフォー」風のゲームを実装します。
 1人プレイ用に、単純なヒューリスティックベースのAIを搭載しています。
 """
@@ -34,14 +34,14 @@ SYMBOL_EMPTY = " "
 
 
 def create_board():
-    """空のゲーム盤 (6x6のNumpy配列) を作成します。"""
+    """空のゲーム盤 (6x7のNumpy配列) を作成します。"""
     return np.zeros((ROWS, COLS), dtype=int)  # 6x7の盤面を作成
 
 
 def drop_piece(board, col, player):
     """
-    指定された列にプレイヤーの駒を落とす。
-    成功した場合はTrue、列が満杯の場合はFalseを返す。
+    指定された列にプレイヤーの駒を落とします。
+    成功した場合はTrue、列が満杯の場合はFalseを返します。
     """
     for r in range(ROWS - 1, -1, -1):
         if board[r, col] == EMPTY:
@@ -57,8 +57,8 @@ def is_valid_location(board, col):
 
 def check_win(board, player):
     """
-    指定されたプレイヤーが connect_n 個連続で並べたかどうかをチェックする。
-    縦、横、斜め（両方向）をチェックする。
+    指定されたプレイヤーが `CONNECT_N` 個連続で駒を並べたかどうかをチェックします。
+    縦、横、斜め (両方向) をチェックします。
     """
     # 横方向のチェック
     for r in range(ROWS):
@@ -88,7 +88,7 @@ def check_win(board, player):
 
 
 def get_valid_locations(board):
-    """駒を置けるすべての有効な列のリストを返します。"""
+    """駒を置ける全ての有効な列のリストを返します。"""
     valid_cols = []
     for col in range(COLS):
         if is_valid_location(board, col):
@@ -98,8 +98,8 @@ def get_valid_locations(board):
 
 def evaluate_position(board, player):
     """
-    現在の盤面を指定されたプレイヤーにとってどれだけ有利かを評価する。
-    ここでは、単純にリーチに近い形（3連+空き1マスなど）の数を数える。
+    現在の盤面を指定されたプレイヤーにとってどれだけ有利かを評価します。
+    ここでは、単純にリーチに近い形 (3連+空き1マスなど) の数を数えます。
     """
     score = 0
     # 横方向の評価
@@ -145,9 +145,7 @@ def evaluate_position(board, player):
 
 
 def ai_choose_column_heuristic(board):
-    """
-    AIがヒューリスティックに基づいて最適な列を選ぶ戦略。
-    """
+    """AIがヒューリスティックに基づいて最適な列を選ぶ戦略です。"""
     valid_cols = get_valid_locations(board)
     if not valid_cols:
         return -1
@@ -187,7 +185,7 @@ def ai_choose_column_heuristic(board):
 
 
 def is_board_full(board):
-    """ゲーム盤がすべて埋まっているかチェックします。"""
+    """ゲーム盤が全て埋まっているかチェックします。"""
     return np.all(board != EMPTY)
 
 
@@ -220,7 +218,7 @@ def get_player_symbol(player_id):
 
 
 def run_game_vs_ai(chan, menu_mode):
-    """人間 対 AI のゲームを実行するメインループ。"""
+    """人間 対 AI のゲームを実行するメインループです。"""
     board = create_board()
     game_over = False
     turn = 0

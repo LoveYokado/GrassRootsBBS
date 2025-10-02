@@ -3,9 +3,9 @@
 
 """
 コマンドディスパッチャ
-
+ 
 このモジュールは、トップメニューで入力されたユーザーコマンドの
-中央ルーターとして機能します。コマンド文字列（例: 'b', 'c', '?'）を
+中央ルーターとして機能します。コマンド文字列 (例: 'b', 'c', '?') を 
 対応するハンドラ関数にマッピングし、実行前に権限チェックを行います。
 """
 
@@ -25,14 +25,14 @@ from . import hamlet_game
 
 
 def handle_help_h(context):
-    """'h' ヘルプコマンドを処理し、コマンド一覧を表示します。"""
+    """`h` ヘルプコマンドを処理し、コマンド一覧を表示します。"""
     util.send_text_by_key(
         context.chan, "top_menu.help_h", context.menu_mode)
     return {'status': 'continue'}
 
 
 def handle_help_q(context):
-    """'?' ヘルプコマンドを処理し、コマンド説明を表示します。"""
+    """`?` ヘルプコマンドを処理し、コマンド説明を表示します。"""
     util.send_text_by_key(
         context.chan, "top_menu.help_q", context.menu_mode)
     util.send_top_menu(context.chan, context.menu_mode)
@@ -40,7 +40,7 @@ def handle_help_q(context):
 
 
 def handle_explore_new_articles(context):
-    """'n' コマンドを処理し、新着記事の探索を開始します。"""
+    """`n` コマンドを処理し、新着記事の探索を開始します。"""
     bbsmenu._handle_explore_new_articles(
         context.chan, context.login_id, context.display_name, context.user_id,
         context.user_level, context.menu_mode, context.ip_address
@@ -50,7 +50,7 @@ def handle_explore_new_articles(context):
 
 
 def handle_full_sig_exploration(context):
-    """'x' コマンドを処理し、全シグ（掲示板）の探索を開始します。"""
+    """`x` コマンドを処理し、全シグ (掲示板) の探索を開始します。"""
     default_exploration_list = context.server_pref.get(
         "default_exploration_list", "")
     bbsmenu._handle_full_sig_exploration(
@@ -62,7 +62,7 @@ def handle_full_sig_exploration(context):
 
 
 def handle_new_article_headlines(context):
-    """'o' コマンドを処理し、新着記事の見出し一覧を表示します。"""
+    """`o` コマンドを処理し、新着記事の見出し一覧を表示します。"""
     bbsmenu.handle_new_article_headlines(
         context.chan, context.login_id, context.user_id, context.user_level, context.menu_mode
     )
@@ -71,7 +71,7 @@ def handle_new_article_headlines(context):
 
 
 def handle_auto_download(context):
-    """'a' コマンドを処理し、新着記事の自動ダウンロードを開始します。"""
+    """`a` コマンドを処理し、新着記事の自動ダウンロードを開始します。"""
     bbsmenu.handle_auto_download(
         context.chan, context.login_id, context.user_id, context.user_level, context.menu_mode
     )
@@ -80,7 +80,7 @@ def handle_auto_download(context):
 
 
 def handle_sysop_menu(context):
-    """'s' コマンドを処理し、シスオペメニューを表示します。"""
+    """`s` コマンドを処理し、シスオペメニューを表示します。"""
     context.chan.send(b'\x1b[?2031l')
     result = sysop_menu.sysop_menu(
         context.chan, context.login_id, context.display_name, context.menu_mode)
@@ -90,7 +90,7 @@ def handle_sysop_menu(context):
 
 
 def handle_bbs(context):
-    """'b' コマンドを処理し、電子掲示板機能を開始します。"""
+    """`b` コマンドを処理し、電子掲示板機能を開始します。"""
     context.chan.send(b'\x1b[?2031l')
     bbs_handler.handle_bbs_menu(
         context.chan, context.login_id, context.display_name,
@@ -102,7 +102,7 @@ def handle_bbs(context):
 
 
 def handle_chat(context):
-    """'c' コマンドを処理し、チャット機能を開始します。"""
+    """`c` コマンドを処理し、チャット機能を開始します。"""
     context.chan.send(b'\x1b[?2031l')
     # 新しく作成したチャットメニューハンドラを呼び出す
     chat_handler.handle_chat_menu(
@@ -115,7 +115,7 @@ def handle_chat(context):
 
 
 def handle_who_menu(context):
-    """'w' コマンドを処理し、オンラインメンバーの一覧を表示します。"""
+    """`w` コマンドを処理し、オンラインメンバーの一覧を表示します。"""
     online_members_dict = context.online_members_func()
     bbsmenu.who_menu(context.chan, online_members_dict,
                      context.menu_mode)
@@ -124,7 +124,7 @@ def handle_who_menu(context):
 
 
 def handle_telegram(context):
-    """'#' または '!' コマンドを処理し、電報送信機能を開始します。"""
+    """`#` または `!` コマンドを処理し、電報送信機能を開始します。"""
     online_members_dict = context.online_members_func()
     # オンラインメンバーの辞書から、SIDではなくログインIDのリストを抽出する
     online_user_logins = [
@@ -142,7 +142,7 @@ def handle_telegram(context):
 
 
 def handle_user_pref_menu(context):
-    """'u' コマンドを処理し、ユーザー環境設定メニューを表示します。"""
+    """`u` コマンドを処理し、ユーザー環境設定メニューを表示します。"""
     context.chan.send(b'\x1b[?2031l')
     result = user_pref_menu.userpref_menu(
         context.chan, context.login_id, context.display_name, context.menu_mode)
@@ -159,7 +159,7 @@ def handle_user_pref_menu(context):
 
 
 def handle_mail(context):
-    """'m' コマンドを処理し、メールボックス機能を開始します。"""
+    """`m` コマンドを処理し、メールボックス機能を開始します。"""
     context.chan.send(b'\x1b[?2031l')
     result = mail_handler.mail(
         context.chan, context.login_id, context.menu_mode)
@@ -192,7 +192,7 @@ def handle_hamlet_game(context):
 
 
 def handle_plugin_menu(context):
-    """'p' コマンドを処理し、プラグインメニューを表示します。"""
+    """`p` コマンドを処理し、プラグインメニューを表示します。"""
     # トップメニューのボタンを非表示にする
     context.chan.send(b'\x1b[?2031l')
     # 循環インポートを避けるため、ここでインポートする
@@ -237,8 +237,7 @@ COMMAND_DISPATCH_TABLE = {
 
 def dispatch_command(command, context):
     """
-    コマンドをディスパッチテーブルに基づいて処理します。
-    実行前に権限チェックも行います。
+    コマンドをディスパッチテーブルに基づいて処理し、実行前に権限チェックも行います。
     """
     command_info = COMMAND_DISPATCH_TABLE.get(command)
     if not command_info:
