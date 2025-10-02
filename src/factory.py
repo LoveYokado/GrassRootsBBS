@@ -18,8 +18,8 @@ from logging.handlers import RotatingFileHandler
 import redis
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from flask import Flask
-from flask import request, abort
+from flask import Flask, Response
+from flask import request
 from markupsafe import escape, Markup
 from flask_session import Session
 from flask_socketio import SocketIO
@@ -165,6 +165,10 @@ def create_app():
         """ 
         リクエスト毎に、アクセス元のIPアドレスがBANリストに含まれていないかチェックします。
         """
+        # Socket.IO関連のパスは events.py で処理するため、このチェックをスキップ
+        if request.path.startswith('/socket.io'):
+            return
+
         # このチェックを管理画面のIP制限より先に行う
         try:
             banned_ips = database.get_all_ip_bans()
@@ -177,7 +181,9 @@ def create_app():
 
             remote_ip = ipaddress.ip_address(remote_ip_str)
             if any(remote_ip in ipaddress.ip_network(ban['ip_address'], strict=False) for ban in banned_ips):
-                abort(403)  # Forbidden
+                # BANされたIPからのアクセスは、エラーページをレンダリングせず、
+                # 空の403レスポンスを返して即座に接続を拒否する。
+                return Response('Forbidden', status=403)
         except Exception as e:
             logging.error(f"IP BANチェック中にエラーが発生しました: {e}")
 
@@ -201,9 +207,9 @@ def create_app():
                 is_allowed = any(remote_ip in ipaddress.ip_network(
                     allowed, strict=False) for allowed in allowed_ips_str)
                 if not is_allowed:
-                    abort(403)
+                    return Response('Forbidden', status=403)
             except ValueError:
-                abort(403)
+                return Response('Forbidden', status=403)
 
     @app.after_request
     def add_security_headers(response):
