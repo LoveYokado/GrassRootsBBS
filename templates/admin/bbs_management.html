@@ -1,6 +1,6 @@
 {% extends "admin/base_admin.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}BBS Management{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
@@ -96,21 +96,135 @@
 {% endmacro %}
 
 {% block content %}
-<h1>{{ title }}</h1>
-<p>Manage the structure of your BBS menu (for Mode 2 & 3). Changes are saved to <code>bbs_mode3.yaml</code>.</p>
+<h1>BBS Management</h1>
 
-<div class="bbs-tree">
-    <h3>Categories</h3>
-    {{ render_bbs_tree(bbs_config.categories, 'root_categories') }}
-    <button type="button" class="btn btn-primary mt-2" data-toggle="modal" data-target="#addModal"
-        data-parent-id="root_categories">Add Top-Level Category</button>
+<ul class="nav nav-tabs" id="bbsManagementTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if tab == 'list' %}active{% endif %}" id="list-tab"
+            href="{{ url_for('admin.bbs_management', tab='list') }}" role="tab" aria-controls="list"
+            aria-selected="{{ 'true' if tab == 'list' else 'false' }}">Board List</a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if tab == 'menu' %}active{% endif %}" id="menu-tab"
+            href="{{ url_for('admin.bbs_management', tab='menu') }}" role="tab" aria-controls="menu"
+            aria-selected="{{ 'true' if tab == 'menu' else 'false' }}">Menu Structure</a>
+    </li>
+</ul>
+
+<div class="tab-content" id="bbsManagementTabContent" style="padding-top: 20px;">
+    {# --- Board List Tab --- #}
+    <div class="tab-pane fade {% if tab == 'list' %}show active{% endif %}" id="list" role="tabpanel"
+        aria-labelledby="list-tab">
+        <p>Create and manage BBS boards. You can search for boards by ID or name.</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
+            <form method="get" action="{{ url_for('admin.bbs_management') }}" style="display: flex; gap: 1em;">
+                <input type="hidden" name="tab" value="list">
+                <input type="text" name="q" value="{{ search_params.q or '' }}" placeholder="Search by ID or Name...">
+                <div class="form-actions">
+                    <button type="submit">Search</button>
+                    <a href="{{ url_for('admin.bbs_management', tab='list') }}">Clear</a>
+                </div>
+            </form>
+            <a href="{{ url_for('admin.new_board') }}" class="form-actions" style="padding: 10px 15px;">Add New
+                Board</a>
+        </div>
+
+        {% include 'admin/_pagination.html' %}
+
+        <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+            <thead>
+                <tr>
+                    <th><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='shortcut_id', order=next_order if sort_by == 'shortcut_id' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">ID
+                            {% if sort_by == 'shortcut_id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th style="width: 20%;"><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Name
+                            {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='board_type', order=next_order if sort_by == 'board_type' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Type
+                            {% if sort_by == 'board_type' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='operators', order=next_order if sort_by == 'operators' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Operators
+                            {% if sort_by == 'operators' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='default_permission', order=next_order if sort_by == 'default_permission' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Default
+                            Perm {% if sort_by == 'default_permission' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                            %}</a>
+                    </th>
+                    <th><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='read_level', order=next_order if sort_by == 'read_level' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">R/W
+                            {% if sort_by == 'read_level' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='status', order=next_order if sort_by == 'status' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Status
+                            {% if sort_by == 'status' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='allow_attachments', order=next_order if sort_by == 'allow_attachments' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Attachments
+                            {% if sort_by == 'allow_attachments' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a>
+                    </th>
+                    <th><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='post_count', order=next_order if sort_by == 'post_count' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Posts
+                            {% if sort_by == 'post_count' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.bbs_management', tab='list', sort_by='last_posted_at', order=next_order if sort_by == 'last_posted_at' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Last
+                            Post {% if sort_by == 'last_posted_at' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a>
+                    </th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for board in boards %}
+                <tr>
+                    <td>{{ board.shortcut_id }}</td>
+                    <td style=" word-break: break-all;">{{ board.name }}</td>
+                    <td>{{ board.board_type }}</td>
+                    <td>{{ board.operator_names_str }}</td>
+                    <td>{{ board.default_permission }}</td>
+                    <td>{{ board.read_level }}/{{ board.write_level }}</td>
+                    <td>{{ board.status }}</td>
+                    <td>{{ 'Yes' if board.allow_attachments else 'No' }}</td>
+                    <td>{{ board.post_count }}</td>
+                    <td>{{ board.last_posted_at|int|timestamp_to_datetime if board.last_posted_at else 'N/A' }}</td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_board', board_id=board.id) }}">Edit</a> |
+                        <form method="post" action="{{ url_for('admin.delete_board', board_id=board.id) }}"
+                            style="display: inline;"
+                            onsubmit="return confirm('Are you sure you want to delete board \'{{ board.name }}\' and all its articles? This action cannot be undone.');">
+                            <button type="submit" class="action-link-delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="11">No boards found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% include 'admin/_pagination.html' %}
+    </div>
+
+    {# --- Menu Structure Tab --- #}
+    <div class="tab-pane fade {% if tab == 'menu' %}show active{% endif %}" id="menu" role="tabpanel"
+        aria-labelledby="menu-tab">
+        <p>Manage the structure of your BBS menu (for Mode 2 & 3). Changes are saved to <code>bbs_mode3.yaml</code>.
+        </p>
+        <div class="bbs-tree">
+            <h3>Categories</h3>
+            {% if bbs_config and 'categories' in bbs_config %}
+            {{ render_bbs_tree(bbs_config.categories, 'root_categories') }}
+            {% endif %}
+            <button type="button" class="btn btn-primary mt-2" data-toggle="modal" data-target="#addModal"
+                data-parent-id="root_categories">Add Top-Level Category</button>
+        </div>
+    </div>
 </div>
 
 <!-- Add Modal -->
 <div class="modal fade" id="addModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content" style="background-color: #2a2a2a; color: #fff;">
-            <form method="post" action="{{ url_for('admin.bbs_management') }}">
+            <form method="post" action="{{ url_for('admin.bbs_management', tab='menu') }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Add New Item</h5><button type="button" class="close"
                         data-dismiss="modal"><span aria-hidden="true" style="color: #fff;">&times;</span></button>
@@ -143,7 +257,7 @@
 <div class="modal fade" id="editModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content" style="background-color: #2a2a2a; color: #fff;">
-            <form method="post" action="{{ url_for('admin.bbs_management') }}">
+            <form method="post" action="{{ url_for('admin.bbs_management', tab='menu') }}">
                 <div class="modal-header">
                     <h5 class="modal-title">Edit Item</h5><button type="button" class="close" data-dismiss="modal"><span
                             aria-hidden="true" style="color: #fff;">&times;</span></button>
