@@ -3,9 +3,9 @@
 
 """
 Webアプリケーションルート
-
+ 
 このモジュールは、ログイン、ログアウト、メインのターミナルページなど、
-アプリケーションの標準的なWebルートをすべて定義します。FlaskのBlueprintを
+アプリケーションの標準的なWebルートをすべて定義します。FlaskのBlueprintを 
 使用してこれらのルートを整理し、コアアプリロジックから分離しています。
 """
 
@@ -27,7 +27,7 @@ web_bp = Blueprint('web', __name__)
 
 
 def base64url_to_bytes(s: str) -> bytes:
-    """Base64URLでエンコードされた文字列をバイトに変換します。必要に応じてパディングを追加します。"""
+    """Base64URLでエンコードされた文字列をバイトにデコードします。必要に応じてパディングを追加します。"""
     s_bytes = s.encode('utf-8')
     rem = len(s_bytes) % 4
     if rem > 0:
@@ -36,7 +36,7 @@ def base64url_to_bytes(s: str) -> bytes:
 
 
 def login_required(f):
-    """ユーザーがページにアクセスする前にログインしていることを確認するデコレータ。"""
+    """ユーザーがログイン済みかを確認するデコレータ。未ログインの場合はログインページへリダイレクトします。"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -47,13 +47,13 @@ def login_required(f):
 
 @web_bp.route('/manifest.json')
 def manifest():
-    """PWAマニフェストファイルを配信します。"""
+    """PWA (Progressive Web App) のマニフェストファイルを配信します。"""
     return send_from_directory(current_app.static_folder, 'manifest.json')
 
 
 @web_bp.route('/sw.js')
 def service_worker():
-    """PWAサービスワーカーファイルを配信します。"""
+    """PWAのバックグラウンド処理を担うサービスワーカーファイルを配信します。"""
     response = send_from_directory(current_app.static_folder, 'sw.js')
     response.headers['Content-Type'] = 'application/javascript'
     response.headers['Service-Worker-Allowed'] = '/'
@@ -63,7 +63,7 @@ def service_worker():
 @web_bp.route('/')
 @login_required
 def index():
-    """ログイン済みユーザー向けのメインのターミナルページを描画します。"""
+    """メインのターミナルページを描画します。ログイン済みユーザー専用です。"""
     menu_mode = session.get('menu_mode', '2')
     fkey_definitions = {
         "f1": {"label": "SETTING", "action": "open_popup"},
@@ -121,7 +121,7 @@ def index():
 @web_bp.route('/login', methods=['GET', 'POST'])
 @extensions.limiter.limit("10 per minute")
 def login():
-    """ユーザーのログイン処理（パスワード認証およびPasskey認証）をハンドリングします。"""
+    """ユーザーのログイン処理（パスワードおよびPasskey認証）をハンドリングします。"""
     webapp_config = current_app.config.get('WEBAPP', {})
     page_title = webapp_config.get('LOGIN_PAGE_TITLE', 'Login')
     logo_path = webapp_config.get('LOGIN_PAGE_LOGO_PATH')
@@ -158,11 +158,9 @@ def login():
                 for sid, handler in client_states.copy().items():
                     if handler.user_session.get('username') == username:
                         error = util.get_text_by_key("auth.already_logged_in", handler.user_session.get(
-                            'menu_mode', '2')).replace('\r\n', '')  # noqa
-                        database.log_access_event(
-                            ip_address=request.headers.get(
-                                'X-Forwarded-For', request.remote_addr),
-                            event_type='LOGIN_FAILURE', username=username, message='Multi-login detected.')
+                            'menu_mode', '2')).replace('\r\n', '')
+                        database.log_access_event(ip_address=util.get_client_ip(),
+                                                  event_type='LOGIN_FAILURE', username=username, message='Multi-login detected.')
                         return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
 
             if not is_guest:
@@ -179,7 +177,7 @@ def login():
             session['userlevel'] = user_auth_info['level']
             session['menu_mode'] = user_auth_info.get('menu_mode', '2')
             logging.info(f"WebUI Login Success: {username}")
-            database.log_access_event(ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
+            database.log_access_event(ip_address=util.get_client_ip(),
                                       event_type='LOGIN_SUCCESS',
                                       user_id=user_auth_info['id'], username=user_auth_info['name'], display_name=user_auth_info['name'], message='Password authentication successful.')
             database.update_record('users', {'lastlogin': int(time.time())}, {
@@ -194,15 +192,15 @@ def login():
                     ) + current_app.config['LOCKOUT_TIME_SECONDS']
                     lockout_minutes = current_app.config['LOCKOUT_TIME_SECONDS'] / 60
                     error = util.get_text_by_key("auth.account_locked_permanent", session.get(
-                        'menu_mode', '2')).format(lockout_minutes=lockout_minutes)  # noqa
-                    database.log_access_event(ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
+                        'menu_mode', '2')).format(lockout_minutes=lockout_minutes)
+                    database.log_access_event(ip_address=util.get_client_ip(),
                                               event_type='ACCOUNT_LOCKED', username=username,
                                               message=f"Account locked for user '{username}' due to too many failed attempts.")
                 else:
                     error = 'IDまたはパスワードが違います。'
             else:
                 error = 'IDまたはパスワードが違います。'
-            database.log_access_event(ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
+            database.log_access_event(ip_address=util.get_client_ip(),
                                       event_type='LOGIN_FAILURE',
                                       username=username, message=f"Invalid password for user '{username}'.")
             logging.warning(f"WebUI Login Failed: {username}")
@@ -217,7 +215,7 @@ def login():
 
 @web_bp.route('/logout')
 def logout():
-    """ユーザーをログアウトさせ、セッションをクリアします。"""
+    """ユーザーをログアウトさせ、セッションを破棄します。"""
     menu_mode = session.get('menu_mode', '2')
     session.clear()
     return render_template('logout.html', menu_mode=menu_mode)
@@ -227,7 +225,7 @@ def logout():
 @login_required
 @extensions.limiter.limit("20 per minute")
 def passkey_register_options():
-    """Passkey登録用のオプションを生成するAPIエンドポイント。"""
+    """Passkey登録用のチャレンジとオプションを生成するAPIエンドポイント。"""
     user_id = session.get('user_id')
     username = session.get('username')
     options_json_str = passkey_handler.generate_registration_options_for_user(
@@ -241,7 +239,7 @@ def passkey_register_options():
 @login_required
 @extensions.limiter.limit("10 per minute")
 def passkey_verify_registration():
-    """Passkey登録レスポンスを検証するAPIエンドポイント。"""
+    """クライアントから送られたPasskey登録情報を検証し、DBに保存するAPIエンドポイント。"""
     user_id = session.get('user_id')
     challenge_str = session.pop("passkey_registration_challenge", None)
     challenge_bytes = base64url_to_bytes(challenge_str)
@@ -259,7 +257,7 @@ def passkey_verify_registration():
 @web_bp.route('/passkey/login-options', methods=['POST'])
 @extensions.limiter.limit("20 per minute")
 def passkey_login_options():
-    """Passkey認証用のオプションを生成するAPIエンドポイント。"""
+    """Passkey認証用のチャレンジとオプションを生成するAPIエンドポイント。"""
     username = request.get_json().get('username', '').upper()
     options_json_str = passkey_handler.generate_authentication_options_for_user(
         username)
@@ -273,7 +271,7 @@ def passkey_login_options():
 @web_bp.route('/passkey/verify-login', methods=['POST'])
 @extensions.limiter.limit("10 per minute")
 def passkey_verify_login():
-    """Passkey認証レスポンスを検証し、ユーザーをログインさせるAPIエンドポイント。"""
+    """クライアントから送られたPasskey認証情報を検証し、ユーザーをログインさせるAPIエンドポイント。"""
     challenge_str = session.pop("passkey_login_challenge", None)
     challenge_bytes = base64url_to_bytes(challenge_str)
     credential_json = json.dumps(request.get_json())
@@ -289,7 +287,7 @@ def passkey_verify_login():
         session['username'] = user_data['name']
         session['userlevel'] = user_data['level']
         session['menu_mode'] = user_data.get('menu_mode', '2')
-        database.log_access_event(ip_address=request.headers.get('X-Forwarded-For', request.remote_addr),
+        database.log_access_event(ip_address=util.get_client_ip(),
                                   event_type='LOGIN_SUCCESS',
                                   user_id=user_data['id'], username=user_data['name'], display_name=user_data['name'], message='Passkey authentication successful.')
         database.update_record('users', {'lastlogin': int(time.time())}, {
@@ -302,7 +300,7 @@ def passkey_verify_login():
 @web_bp.route('/attachments/<path:filename>')
 @login_required
 def download_attachment(filename):
-    """アップロード済みの添付ファイルまたはそのサムネイルを配信します。"""
+    """アップロードされた添付ファイルまたはそのサムネイルを配信します。"""
     is_thumbnail = filename.startswith('thumbnails/')
     actual_filename = filename.replace(
         'thumbnails/', '') if is_thumbnail else filename
@@ -326,7 +324,7 @@ def download_attachment(filename):
 @web_bp.route('/download_log/<path:filename>')
 @login_required
 def download_log(filename):
-    """保存されたセッションログファイルをダウンロード用に配信します。"""
+    """保存されたセッションログファイルをクライアントにダウンロードさせます。"""
     session_log_dir = current_app.config.get('SESSION_LOG_DIR')
     return send_from_directory(session_log_dir, filename, as_attachment=True)
 
@@ -334,7 +332,7 @@ def download_log(filename):
 @web_bp.route('/plugins/<plugin_id>/js/<path:filename>')
 @login_required
 def serve_plugin_js(plugin_id, filename):
-    """プラグイン専用のJavaScriptファイルを配信します。"""
+    """プラグイン専用のJavaScriptファイルを配信するためのルート。"""
     # パストラバーサル攻撃を防ぐための基本的な検証
     if '..' in plugin_id or '/' in plugin_id or '\\' in plugin_id:
         return "Invalid plugin ID", 400
@@ -349,7 +347,7 @@ def serve_plugin_js(plugin_id, filename):
 @web_bp.route('/plugins/<plugin_id>/static/<path:filename>')
 @login_required
 def serve_plugin_static(plugin_id, filename):
-    """プラグイン専用の静的ファイル(CSS,画像など)を配信します。"""
+    """プラグイン専用の静的ファイル(CSS, 画像など)を配信するためのルート。"""
     # パストラバーサル攻撃を防ぐための基本的な検証
     if '..' in plugin_id or '/' in plugin_id or '\\' in plugin_id:
         return "Invalid plugin ID", 400

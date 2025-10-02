@@ -3,9 +3,9 @@
 
 """
 階層メニューエンジン
-
+ 
 このモジュールは、YAML設定ファイルで定義された、入れ子構造の
-テキストベースメニューを作成・ナビゲートするための汎用エンジンを提供します。
+テキストベースメニューを作成・ナビゲートするための汎用エンジンを提供します。 
 """
 
 import logging
@@ -26,7 +26,7 @@ class MenuEngine:
         self.current_path_names = []
 
     def _load_config(self):
-        """階層メニュー設定ファイルを読み込む"""
+        """階層メニューのYAML設定ファイルを読み込みます。"""
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
                 self.config = yaml.safe_load(f)
@@ -36,7 +36,7 @@ class MenuEngine:
             return False
 
     def _enrich_board_items(self, items):
-        """掲示板アイテムのリストにDBから名前と説明を補完する"""
+        """掲示板アイテムのリストに、データベースから名前と説明を補完します。"""
         if not items:
             return []
         enriched_items = []
@@ -63,7 +63,7 @@ class MenuEngine:
         return enriched_items
 
     def _display_menu(self, items):
-        """現在のメニュー項目を表示する"""
+        """現在の階層のメニュー項目をクライアントに表示します。"""
         for i, item in enumerate(items):
             item_name = item.get('name', 'No name')
             item_description = item.get('description', '')
@@ -80,7 +80,7 @@ class MenuEngine:
                         f"{indent_spaces}{line.strip()}\r\n".encode('utf-8'))
 
     def _navigate_menu(self, items):
-        """メニューを表示し、ユーザーの選択を処理する"""
+        """メニューを表示し、ユーザーの選択を処理します。"""
         if not items:
             logging.error("メニュー項目が空です。")
             return "back"
@@ -119,7 +119,7 @@ class MenuEngine:
             return "continue"
 
     def run(self):
-        """階層メニューを処理するメインループ"""
+        """階層メニューを処理するメインループです。"""
         if not self._load_config() or 'categories' not in self.config:
             util.send_text_by_key(
                 self.chan, "common_messages.error", self.menu_mode)
@@ -162,7 +162,7 @@ class MenuEngine:
 
 
 def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, menu_type: str, enrich_boards: bool = False):
-    """階層メニューを処理するためのラッパー関数"""
+    """階層メニューを処理するためのエントリーポイントとなるラッパー関数です。"""
     menu = MenuEngine(chan, config_path, menu_mode,
                       menu_type, enrich_boards)
     return menu.run()

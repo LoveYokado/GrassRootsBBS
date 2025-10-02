@@ -3,8 +3,8 @@
 
 """アプリケーションファクトリ
 
-このモジュールは、Flaskアプリケーションインスタンスの作成と設定を行う 
-`create_app()` ファクトリ関数を提供します。
+このモジュールは、Flaskアプリケーションインスタンスの作成と設定を行う
+`create_app()` ファクトリ関数を提供します。 
 """
 import json
 
@@ -18,8 +18,8 @@ from logging.handlers import RotatingFileHandler
 import redis
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from flask import Flask
-from flask import request, abort
+from flask import Flask, Response
+from flask import request
 from markupsafe import escape, Markup
 from flask_session import Session
 from flask_socketio import SocketIO
@@ -35,11 +35,11 @@ socketio = SocketIO()
 
 def create_app():
     """
-    Flaskアプリケーションインスタンスを作成し、各種設定を初期化します。 
+    Flaskアプリケーションインスタンスを作成し、各種設定を初期化します。
 
-    このファクトリ関数は、アプリケーションの全体的な設定（設定ファイル読み込み、
-    ロギング、ディレクトリ作成）、Blueprintの登録、エラーハンドリング、
-    拡張機能（レートリミット、セッション管理など）の初期化を担当します。 
+    このファクトリ関数は、アプリケーションの全体的な設定 (設定ファイル読み込み、
+    ロギング、ディレクトリ作成)、Blueprintの登録、エラーハンドリング、
+    拡張機能 (レートリミット、セッション管理など) の初期化を担当します。
     """
     # --- パス設定 ---
     _current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -163,37 +163,43 @@ def create_app():
     @app.before_request
     def check_ip_ban():
         """ 
-        リクエスト毎に、アクセス元のIPアドレスがBANリストに含まれていないかチェックします。
+        各リクエストの前に、アクセス元のIPアドレスがBANリストに含まれていないかチェックします。
         """
+        # Socket.IO関連のパスは events.py で処理するため、このチェックをスキップ
+        if request.path.startswith('/socket.io'):
+            return
+
         # このチェックを管理画面のIP制限より先に行う
         try:
             banned_ips = database.get_all_ip_bans()
             if not banned_ips:
                 return
 
-            remote_ip_str = request.remote_addr
+            remote_ip_str = util.get_client_ip()
             if not remote_ip_str:
                 return
 
             remote_ip = ipaddress.ip_address(remote_ip_str)
             if any(remote_ip in ipaddress.ip_network(ban['ip_address'], strict=False) for ban in banned_ips):
-                abort(403)  # Forbidden
+                # BANされたIPからのアクセスは、エラーページをレンダリングせず、
+                # 空の403レスポンスを返して即座に接続を拒否する。
+                return Response('Forbidden', status=403)
         except Exception as e:
             logging.error(f"IP BANチェック中にエラーが発生しました: {e}")
 
     @app.before_request
     def restrict_admin_access_by_ip():
         """
-        リクエスト毎に、管理画面 (`/admin`) へのアクセスをIPアドレスで制限します。 
+        各リクエストの前に、管理画面 (`/admin`) へのアクセスをIPアドレスで制限します。
 
-        `config.toml` の `[admin]` セクションで `ip_restriction_enabled` が `True` の場合にのみ有効です。 
+        `config.toml` の `[admin]` セクションで `ip_restriction_enabled` が `True` の場合にのみ有効です。
         """
         if request.path.startswith(admin_prefix):
             if not admin_config.get('ip_restriction_enabled', False):
                 return
             allowed_ips_str = admin_config.get(
                 'ALLOWED_IPS', ['127.0.0.1', '::1'])
-            remote_ip_str = request.remote_addr
+            remote_ip_str = util.get_client_ip()
             if not remote_ip_str:
                 abort(403)
             try:
@@ -201,16 +207,16 @@ def create_app():
                 is_allowed = any(remote_ip in ipaddress.ip_network(
                     allowed, strict=False) for allowed in allowed_ips_str)
                 if not is_allowed:
-                    abort(403)
+                    return Response('Forbidden', status=403)
             except ValueError:
-                abort(403)
+                return Response('Forbidden', status=403)
 
     @app.after_request
     def add_security_headers(response):
         """
-        全てのリクエストのレスポンスにセキュリティ関連のHTTPヘッダーを追加します。 
+        全てのリクエストのレスポンスにセキュリティ関連のHTTPヘッダーを追加します。
 
-        Content-Security-Policy (CSP) などを含み、XSSなどの攻撃に対する防御を強化します。 
+        Content-Security-Policy (CSP) などを含み、XSSなどの攻撃に対する防御を強化します。
         """
         csp = (
             "default-src 'self';"
@@ -234,16 +240,20 @@ def create_app():
         'WEBAPP', {}).get('ORIGIN', 'http://localhost:5000'))
     allowed_origins = allowed_origins_str.split(
         ',') if allowed_origins_str else []
-    socketio.init_app(app, async_mode='gevent',
-                      cors_allowed_origins=allowed_origins)
+
+    # ProxyFixがSocketIOにも適用されるように、engineio_optionsを設定
+    engineio_options = {"async_mode": "gevent", "ws_proxy_fix": True}
+    socketio.init_app(
+        app, cors_allowed_origins=allowed_origins, **engineio_options)
+
     init_events(socketio, app)
 
     # --- スケジュールジョブ (バックアップ) ---
     def scheduled_backup_job():
         """
-        `apscheduler`によって定期的に実行されるバックアップジョブです。 
+        `apscheduler`によって定期的に実行されるバックアップジョブです。
 
-        バックアップ作成後、古いバックアップファイルのクリーンアップも行います。 
+        バックアップ作成後、古いバックアップファイルのクリーンアップも行います。
         """
         with app.app_context():
             logging.info("Starting scheduled backup job...")

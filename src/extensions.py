@@ -3,9 +3,9 @@
 
 """
 Flask拡張機能の初期化
-
+ 
 このモジュールは、レートリミット用のFlask-Limiterなど、
-アプリケーション全体で使用されるFlask拡張機能を初期化します。
+アプリケーション全体で使用されるFlask拡張機能を初期化します。 
 """
 
 from flask_limiter import Limiter

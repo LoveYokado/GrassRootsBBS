@@ -3,9 +3,9 @@
 
 """
 データベース抽象化レイヤー (DAL)
- 
+
 このモジュールは、全てのデータベース操作に対する構造化された抽象的な
-インターフェースを提供します。各クラスが特定のテーブルやデータの論理的な
+インターフェースを提供します。各クラスが特定のテーブルやデータの論理的な 
 グループを担当し、関連するSQLクエリをカプセル化するマネージャー方式を採用しています。
 """
 
@@ -37,8 +37,8 @@ plugin_data_manager = None
 
 class DBManager:
     """
-    データベース接続とクエリ実行を管理するコアクラス。 
-    コネクションプールを保持し、他のマネージャークラスに共有されます。 
+    データベース接続とクエリ実行を管理するコアクラスです。
+    コネクションプールを保持し、他のマネージャークラスに共有されます。
     """
     _pool = None
 
@@ -76,11 +76,11 @@ class DBManager:
             raise
 
     def execute_query(self, query, params=None, fetch=None):
-        """クエリを実行し、結果を取得する汎用メソッドです。 
+        """クエリを実行し、結果を取得する汎用メソッドです。
 
         :param query: 実行するSQLクエリ文字列。
         :param params: クエリにバインドするパラメータのタプル。
-        :param fetch: 'one' (単一行), 'all' (全行), または None (INSERT/UPDATE/DELETE)。
+        :param fetch: 'one' (単一行), 'all' (全行), または None (INSERT/UPDATE/DELETE)。 
         :return: fetchの結果、またはINSERT時のlastrowid。エラー時はNone。 
         """
         conn = None
@@ -110,10 +110,10 @@ class DBManager:
 
     def update_record(self, table, set_data, where_data):
         """
-        指定されたテーブルのレコードを更新する汎用的なメソッドです。 
+        指定されたテーブルのレコードを更新する汎用的なメソッドです。
 
         :param table: 更新するテーブル名。
-        :param set_data: 更新するカラムと値の辞書 (例: {'col1': 'val1'})。
+        :param set_data: 更新するカラムと値の辞書 (例: {'col1': 'val1'})。 
         :param where_data: 更新対象を特定するWHERE句の辞書 (例: {'id': 1})。 
         """
         if not set_data or not where_data:
@@ -130,7 +130,7 @@ class DBManager:
 
 
 class UserManager:
-    """'users' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`users` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -188,8 +188,8 @@ class UserManager:
 
     def get_total_count(self):
         """
-        登録されている総ユーザー数を取得します。 
-        管理画面のダッシュボードなどで使用されます。 
+        登録されている総ユーザー数を取得します。
+        管理画面のダッシュボードなどで使用されます。
 
         :return: ユーザーの総数 (int)。 
         """
@@ -327,7 +327,7 @@ class UserManager:
 
 
 class BoardManager:
-    """'boards' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`boards` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -501,7 +501,7 @@ class BoardManager:
 
 
 class ArticleManager:
-    """'articles' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`articles` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -788,7 +788,7 @@ class ArticleManager:
 
 
 class MailManager:
-    """'mails' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`mails` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -943,7 +943,7 @@ class MailManager:
 
 
 class TelegramManager:
-    """'telegram' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`telegram` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -989,7 +989,7 @@ class TelegramManager:
 
 
 class ServerPrefManager:
-    """'server_pref' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`server_pref` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -1014,7 +1014,7 @@ class ServerPrefManager:
 
 
 class PluginManagerDB:  # Renamed to avoid conflict with plugin_manager.py
-    """'plugins' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`plugins` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -1038,7 +1038,7 @@ class PluginManagerDB:  # Renamed to avoid conflict with plugin_manager.py
 
 
 class AccessLogManager:
-    """'access_logs' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`access_logs` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -1105,7 +1105,7 @@ class AccessLogManager:
 
 
 class BoardPermissionManager:
-    """'board_user_permissions' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`board_user_permissions` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -1134,7 +1134,7 @@ class BoardPermissionManager:
 
 
 class PushSubscriptionManager:
-    """'push_subscriptions' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`push_subscriptions` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -1206,7 +1206,7 @@ class PushSubscriptionManager:
 
 
 class PasskeyManager:
-    """'passkeys' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`passkeys` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -1261,20 +1261,20 @@ class PasskeyManager:
 
 
 class BBSListManager:
-    """'bbs_list' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`bbs_list` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
 
     def get_by_id(self, link_id):
-        """ 
+        """
         指定されたIDのBBSリンクを1件取得します。管理画面の編集ページなどで使用されます。
         """
         query = "SELECT * FROM bbs_list WHERE id = %s"
         return self._db.execute_query(query, (link_id,), fetch='one')
 
     def get_approved(self):
-        """ 
+        """
         承認済み(`approved`)のすべてのBBSリンクを取得します。
         F7キーのBBSリストなどで使用されます。
         """
@@ -1282,7 +1282,7 @@ class BBSListManager:
         return self._db.execute_query(query, fetch='all')
 
     def get_all_for_admin(self, page=1, per_page=15, sort_by='status', order='asc'):
-        """ 
+        """
         管理画面用に、ページネーションとソート機能付きで全てのステータスのBBSリンクを取得します。
         """
         allowed_columns = {
@@ -1317,7 +1317,7 @@ class BBSListManager:
         return links, total_items
 
     def add(self, name, url, description, source='sysop', submitted_by=None):
-        """ 
+        """
         新しいBBSリンクをDBに追加します。`source`が'sysop'の場合は自動で承認済みになります。
         """
         status = 'approved' if source == 'sysop' else 'pending'
@@ -1342,7 +1342,7 @@ class BBSListManager:
         return self._db.execute_query(query, params) is not None
 
     def update_status(self, link_id, status):
-        """ 
+        """
         指定されたIDのBBSリンクのステータス（'approved', 'rejected', 'pending'）を更新します。
         """
         if status not in ['approved', 'rejected', 'pending']:
@@ -1375,7 +1375,7 @@ class BBSListManager:
 
 
 class IpBanManager:
-    """'ip_bans' テーブルに関連する全てのデータベース操作を管理します。"""
+    """`ip_bans` テーブルに関連する全てのデータベース操作を管理します。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -1414,7 +1414,7 @@ class IpBanManager:
 
 
 class DatabaseInitializer:
-    """データベースの初期セットアップとマイグレーションを管理します。"""
+    """データベースの初期セットアップとマイグレーションを管理するクラスです。"""
 
     def __init__(self, db_manager_instance):
         self._db = db_manager_instance
@@ -1430,7 +1430,7 @@ class DatabaseInitializer:
             return False
 
     def initialize_and_sysop(self, sysop_id, sysop_password, sysop_email):
-        """全てのテーブルを作成し、デフォルトデータ（シスオペ、ゲストユーザー等）を挿入します。"""
+        """全てのテーブルを作成し、デフォルトデータ (シスオペ、ゲストユーザー等) を挿入します。"""
         # utilモジュールはdatabase.pyの外部にあるため、ここでインポートする
         from . import util
         try:
@@ -1651,7 +1651,7 @@ class DatabaseInitializer:
 
     def apply_migrations(self):
         """
-        アプリケーション起動時に、データベーススキーマの変更（マイグレーション）を適用します。 
+        アプリケーション起動時に、データベーススキーマの変更 (マイグレーション) を適用します。
         """
         conn = self._db.get_connection()
         cursor = None
@@ -1838,9 +1838,9 @@ class DatabaseInitializer:
 
 class PluginDataManager:
     """
-    'plugin_data'テーブルに関連する全てのデータベース操作を管理します。
-    各プラグインは、自身の `plugin_id` に紐付いたデータ領域のみを
-    読み書きできます。
+    `plugin_data`テーブルに関連する全てのデータベース操作を管理します。
+    各プラグインは、自身の `plugin_id` に紐付いたデータ領域のみを読み書きできます。
+    これにより、プラグイン間のデータが衝突することを防ぎます。
     """
 
     def __init__(self, db_manager_instance):
@@ -1860,8 +1860,8 @@ class PluginDataManager:
 
     def get(self, plugin_id, key):
         """
-        指定されたプラグインIDとキーに紐づくデータを取得します。データはJSONから
-        デシリアライズされたPythonオブジェクトとして返されます。
+        指定されたプラグインIDとキーに紐づくデータを取得します。
+        データはJSONからデシリアライズされたPythonオブジェクトとして返されます。
         """
         query = "SELECT `value` FROM plugin_data WHERE plugin_id = %s AND `key` = %s"
         result = self._db.execute_query(query, (plugin_id, key), fetch='one')
@@ -1886,8 +1886,8 @@ class PluginDataManager:
 
     def delete_all(self, plugin_id):
         """
-        指定されたプラグインIDに紐づく全てのデータを削除します。プラグインの
-        アンインストール時などに使用されることを想定しています。
+        指定されたプラグインIDに紐づく全てのデータを削除します。
+        プラグインのアンインストール時などに使用されることを想定しています。
         """
         query = "DELETE FROM plugin_data WHERE plugin_id = %s"
         return self._db.execute_query(query, (plugin_id,)) is not None
@@ -2321,7 +2321,7 @@ def delete_ip_ban(ban_id):
 
 def init_app(app):
     """ 
-    Flaskアプリケーションインスタンスを使用してデータベースを初期化します。
+    Flaskアプリケーションインスタンスを使用してデータベース接続プールを初期化します。
     """
     db_config_from_file = app.config.get('DATABASE', {})
     db_config = {

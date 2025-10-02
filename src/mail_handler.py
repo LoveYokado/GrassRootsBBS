@@ -993,11 +993,6 @@ def mail_write(chan, login_id, menu_mode='2'):
         util.send_text_by_key(chan, "mail_handler.no_body", menu_mode)
         return
 
-    ip_address = None
-    try:
-        ip_address = chan.getpeername()[0] if chan.getpeername() else None
-    except Exception:
-        pass  # getpeernameが失敗するケースも考慮
-
+    ip_address = util.get_client_ip()
     _confirm_and_send(chan, login_id, menu_mode,
                       recipient_info_list, subject, body, ip_address=ip_address)

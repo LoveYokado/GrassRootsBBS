@@ -19,6 +19,7 @@ import datetime
 import re
 import secrets
 import string
+from flask import request
 import json
 import base64
 from pywebpush import webpush, WebPushException
@@ -1021,6 +1022,31 @@ def format_file_size(size_in_bytes):
         return f"{size_in_kb:.1f} KB"
     size_in_mb = size_in_kb / 1024
     return f"{size_in_mb:.1f} MB"
+
+
+def get_client_ip():
+    """
+    リクエストからクライアントの真のIPアドレスを取得します。
+    リバースプロキシ環境 (X-Forwarded-For) とSocketIO接続の両方に対応します。
+    """
+    # SocketIOの接続イベントの場合、environから直接取得する
+    # このコンテキストでは、request.environ['engineio.socket'] に接続情報が格納されている
+    if request and hasattr(request, 'environ') and 'engineio.socket' in request.environ:
+        eio_environ = request.environ.get('engineio.socket').environ
+        # Nginxなどのリバースプロキシは 'HTTP_X_FORWARDED_FOR' を設定する
+        ip_list = eio_environ.get('HTTP_X_FORWARDED_FOR')
+        if ip_list:
+            # 'client, proxy1, proxy2' のようにカンマ区切りで渡されることがあるため、最初のIPを取得
+            return ip_list.split(',')[0].strip()
+        # フォールバックとしてREMOTE_ADDRを使用
+        return eio_environ.get('REMOTE_ADDR') or 'N/A'
+
+    # 通常のHTTPリクエストの場合
+    # ProxyFixが有効なら request.remote_addr が正しいIPを指すが、ヘッダーを直接見る方が確実
+    ip_list = request.headers.get('X-Forwarded-For')
+    if ip_list:
+        return ip_list.split(',')[0].strip()
+    return request.remote_addr or 'N/A'
 
 
 def send_push_notification(subscription_info_json, payload_json):
