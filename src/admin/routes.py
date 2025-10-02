@@ -1183,49 +1183,6 @@ def delete_all_plugin_data(plugin_id):
     return redirect(url_for('admin.plugin_data_view', plugin_id=plugin_id))
 
 
-@admin_bp.route('/config-editor', methods=['GET', 'POST'])
-@sysop_required
-def config_editor():
-    """設定ファイルエディタ (管理者用)。
-
-    メインの設定ファイル `config.toml` をWeb UIから直接編集・保存します。
-    保存前にTOML形式の構文チェックが行われます。
-    """
-    config_path = os.path.join(
-        backup_util.PROJECT_ROOT, 'setting', 'config.toml')
-
-    if request.method == 'POST':
-        new_content = request.form.get('config_content', '')
-
-        try:
-            parsed_config = toml.loads(new_content)
-        except toml.TomlDecodeError as e:
-            flash(f"Invalid TOML format. Changes not saved: {e}", 'danger')
-            return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=new_content)
-
-        try:
-            backup_path = config_path + '.bak'
-            if os.path.exists(config_path):
-                shutil.copy2(config_path, backup_path)
-
-            if util.save_app_config(parsed_config, config_path):
-                flash(
-                    'Configuration file saved successfully. A restart is often required for changes to take effect.', 'success')
-            return redirect(url_for('admin.config_editor'))
-        except Exception as e:
-            flash(f"Error saving configuration file: {e}", 'danger')
-            return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=new_content)
-
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config_content = f.read()
-    except Exception as e:
-        config_content = f"# Error reading config file: {e}"
-        flash(f'Error reading configuration file: {e}', 'danger')
-
-    return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=config_content)
-
-
 @admin_bp.route('/broadcast', methods=['POST'])
 @sysop_required
 def broadcast():
