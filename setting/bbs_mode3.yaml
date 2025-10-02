@@ -1,70 +1,46 @@
-# ==============================================================================
-# 掲示板メニュー設定 (モード2 & 3用)
-#
-# このファイルは、「モード2」および「モード3」で表示される掲示板メニューの
-# 階層構造を定義します。システムはこのファイルを読み込み、ユーザーが
-# ナビゲートするメニューを動的に生成します。
-#
-# 構造:
-#   categories:
-#     - id: カテゴリや掲示板を一意に識別するためのID。
-#           typeが"board"の場合、データベースのboardsテーブルのshortcut_idと一致させる必要があります。
-#       number: (任意) 同じ階層内での表示順。
-#       name: (任意) 表示名。省略した場合はデータベースから取得されます。
-#       description: (任意) 短い説明文。省略した場合はデータベースから取得されます。
-#       type: "child" (サブカテゴリ) または "board" (掲示板へのリンク)。
-#       items: ("child"の場合のみ必須) サブカテゴリや掲示板のリスト。
-#
-# ==============================================================================
-
 categories:
-  # --- General Category / 総合カテゴリ ---
-  - id: "bbs_general"
+- id: bbs_general
+  number: 1
+  name: 総合掲示板
+  description: 自由な話題で盛り上がりましょう！
+  type: child
+  items:
+  - id: bbs_free
     number: 1
-    name: "総合掲示板"
-    description: "自由な話題で盛り上がりましょう！"
-    type: "child" # type: "child" は、この項目が他の項目を含むカテゴリであることを示します。
-    items:
-      - id: "bbs_free"
-        number: 1
-        type: "board" # type: "board" は、これが掲示板への直接リンクであることを示します。
-
-  # --- Hobby Category / 趣味カテゴリ ---
-  - id: "bbs_hobby"
+    type: board
+- id: bbs_hobby
+  number: 2
+  name: 趣味
+  description: 趣味に関する話題はこちら
+  type: child
+  items:
+  - id: bbs_hobby_game
+    number: 1
+    type: board
+  - id: bbs_hobby_anime
     number: 2
-    name: "趣味"
-    description: "趣味に関する話題はこちら"
-    type: "child"
-    items:
-      - id: "bbs_hobby_game"
-        number: 1
-        type: "board"
-      - id: "bbs_hobby_anime"
-        number: 2
-        type: "board"
-      - id: "bbs_hobby_music_create"
-        number: 3
-        name: "音楽制作"
-        type: "child"
-        items:
-          - id: "bbs_dtm_general"
-            number: 1
-            type: "board"
-          - id: "bbs_vocaloid"
-            number: 2
-            description: "ボーカロイドに関する話題"
-            type: "board"
-
-  # --- Local Category / 地域カテゴリ ---
-  - id: "bbs_local"
+    type: board
+  - id: bbs_hobby_music_create
     number: 3
-    name: "地域"
-    description: "地域ごとの話題はこちら"
-    type: "child"
+    name: 音楽制作
+    type: child
     items:
-      - id: "bbs_local_hokkaido"
-        number: 1
-        type: "board"
-      - id: "bbs_local_tokyo"
-        number: 2
-        type: "board"
+    - id: bbs_dtm_general
+      number: 1
+      type: board
+    - id: bbs_vocaloid
+      number: 2
+      description: ボーカロイドに関する話題
+      type: board
+- id: bbs_local
+  number: 3
+  name: 地域
+  description: 地域ごとの話題はこちら
+  type: child
+  items:
+  - id: bbs_local_hokkaido
+    number: 1
+    type: board
+  - id: bbs_local_tokyo
+    number: 2
+    type: board

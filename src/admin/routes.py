@@ -524,84 +524,6 @@ def delete_user(user_id):
     return redirect(url_for('admin.user_list'))
 
 
-@admin_bp.route('/boards')
-@sysop_required
-def board_list():
-    """掲示板管理ページ。
-
-    登録されている全掲示板の一覧を表示します。
-    掲示板名での検索、各項目でのソートが可能です。
-    """
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 15, type=int)
-    sort_by = request.args.get('sort_by', 'shortcut_id')
-    order = request.args.get('order', 'asc')
-    search_term = request.args.get('q', '')
-
-    next_order = 'desc' if order == 'asc' else 'asc'
-
-    try:
-        boards_from_db, total_items = database.get_all_boards_for_sysop_list(
-            page=page, per_page=per_page, sort_by=sort_by, order=order, search_term=search_term)
-        total_pages = (total_items + per_page - 1) // per_page
-    except Exception as e:
-        flash(f"Error retrieving board list: {e}", 'danger')
-        boards_from_db = []
-        total_items = 0
-        total_pages = 0
-
-    search_params = {
-        'q': search_term,
-        'sort_by': sort_by,
-        'order': order,
-        'per_page': per_page
-    }
-    search_params_for_per_page = {k: v for k,
-                                  v in request.args.items() if k != 'per_page'}
-
-    pagination = {
-        'page': page, 'per_page': per_page, 'total_items': total_items,
-        'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages
-    }
-
-    enriched_boards = []
-
-    if boards_from_db:
-        operator_ids_to_fetch = set()
-        for board in boards_from_db:
-            try:
-                operator_ids = json.loads(board.get('operators') or '[]')
-                if operator_ids:
-                    operator_ids_to_fetch.update(operator_ids)
-            except (json.JSONDecodeError, TypeError):
-                continue
-
-        id_to_name_map = database.get_user_names_from_user_ids(
-            list(operator_ids_to_fetch))
-
-        for board in boards_from_db:
-            mutable_board = dict(board)
-            try:
-                operator_ids = json.loads(
-                    mutable_board.get('operators') or '[]')
-                operator_names = [id_to_name_map.get(
-                    op_id, f"(ID:{op_id})") for op_id in operator_ids]
-                mutable_board['operator_names_str'] = ", ".join(
-                    operator_names) if operator_names else 'N/A'
-            except (json.JSONDecodeError, TypeError):
-                mutable_board['operator_names_str'] = '(Error)'
-            enriched_boards.append(mutable_board)
-
-    if sort_by == 'operators':
-        enriched_boards.sort(key=lambda x: x.get(
-            'operator_names_str', ''), reverse=(order == 'desc'))
-
-    return render_template(
-        'admin/board_list.html', title='Board Management', boards=enriched_boards, pagination=pagination,
-        sort_by=sort_by, order=order, next_order=next_order, search_params=search_params,
-        search_params_for_per_page=search_params_for_per_page)
-
-
 @admin_bp.route('/boards/new', methods=['GET', 'POST'])
 @sysop_required
 def new_board():
@@ -651,7 +573,7 @@ def new_board():
 
         if database.create_board_entry(shortcut_id, name, description, operators_json, default_permission, "", "active", read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies):
             flash(f"Board '{name}' has been created successfully.", 'success')
-            return redirect(url_for('admin.board_list'))
+            return redirect(url_for('admin.bbs_management', tab='list'))
         else:
             flash('Failed to create board.', 'danger')
 
@@ -669,7 +591,7 @@ def edit_board(board_id):
     board = database.get_board_by_id(board_id)
     if not board:
         flash(f"Board with ID {board_id} not found.", 'danger')
-        return redirect(url_for('admin.board_list'))
+        return redirect(url_for('admin.bbs_management', tab='list'))
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
@@ -755,7 +677,7 @@ def edit_board(board_id):
         else:
             flash(f"Failed to update board '{name}'.", 'danger')
 
-        return redirect(url_for('admin.board_list'))
+        return redirect(url_for('admin.bbs_management', tab='list'))
 
     current_operator_ids_json = board.get('operators', '[]')
     try:
@@ -796,7 +718,7 @@ def delete_board(board_id):
 
     if not board_to_delete:
         flash(f"Board with ID {board_id} not found.", 'danger')
-        return redirect(url_for('admin.board_list'))
+        return redirect(url_for('admin.bbs_management', tab='list'))
 
     if database.delete_board_and_related_data(board_id):
         flash(
@@ -804,91 +726,7 @@ def delete_board(board_id):
     else:
         flash(f"Failed to delete board '{board_to_delete['name']}'.", 'danger')
 
-    return redirect(url_for('admin.board_list'))
-
-
-@admin_bp.route('/articles', methods=['GET'])
-@sysop_required
-def article_search():
-    """記事管理ページ (検索)。
-
-    全掲示板を横断して、キーワードや投稿者名で記事を検索します。
-    検索結果から記事の論理削除や復元が可能です。
-    """
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 15, type=int)
-    keyword = request.args.get('q', '')
-    author_name = request.args.get('author', '')
-
-    articles = []
-    total_items = 0
-    total_pages = 0
-    article_id_search = None
-
-    if keyword or author_name:
-        author_id = None
-        author_name_guest = None
-        if author_name:
-            user = database.get_user_auth_info(author_name)
-            if user:
-                author_id = user['id']
-            else:
-                author_name_guest = author_name
-
-        if keyword and keyword.lower().startswith('id:'):
-            try:
-                article_id_search = int(keyword.split(':')[1])
-            except (ValueError, IndexError):
-                article_id_search = None
-
-        articles_from_db, total_items = database.search_all_articles(
-            page=page,
-            per_page=per_page,
-            keyword=keyword,
-            author_id=author_id,
-            author_name_guest=author_name_guest,
-            article_id=article_id_search
-        )
-
-        total_pages = (total_items + per_page - 1) // per_page
-
-        if articles_from_db:
-            user_ids_to_fetch = {
-                art['user_id'] for art in articles_from_db if str(art['user_id']).isdigit()}
-            id_to_name_map = database.get_user_names_from_user_ids(
-                list(user_ids_to_fetch))
-
-            for art in articles_from_db:
-                mutable_art = dict(art)
-                user_id_str = str(mutable_art['user_id'])
-                if user_id_str.isdigit():
-                    mutable_art['author_display_name'] = id_to_name_map.get(
-                        int(user_id_str), f"(ID:{user_id_str})")
-                else:
-                    mutable_art['author_display_name'] = user_id_str
-                articles.append(mutable_art)
-
-    search_params = {
-        'q': keyword,
-        'author': author_name,
-        'per_page': per_page
-    }
-    search_params_for_per_page = {k: v for k,
-                                  v in request.args.items() if k != 'per_page'}
-
-    pagination = {
-        'page': page, 'per_page': per_page, 'total_items': total_items,
-        'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages
-    }
-
-    return render_template('admin/article_search.html',
-                           title='Article Management',
-                           articles=articles,
-                           pagination=pagination,
-                           search_params=search_params,
-                           search_params_for_per_page=search_params_for_per_page,
-                           search_keyword=keyword,
-                           search_author=author_name)
+    return redirect(url_for('admin.bbs_management', tab='list'))
 
 
 @admin_bp.route('/articles/delete/<int:article_id>', methods=['POST'])
@@ -902,7 +740,7 @@ def delete_article(article_id):
     article = database.get_article_by_id(article_id)
     if not article:
         flash(f"Article ID {article_id} not found.", 'danger')
-        return redirect(request.referrer or url_for('admin.article_search'))
+        return redirect(request.referrer or url_for('admin.content_management', tab='articles'))
 
     was_deleted = article['is_deleted']
 
@@ -916,7 +754,7 @@ def delete_article(article_id):
         flash(
             f"Failed to update status for article ID {article_id}.", 'danger')
 
-    return redirect(request.referrer or url_for('admin.article_search'))
+    return redirect(request.referrer or url_for('admin.content_management', tab='articles'))
 
 
 @admin_bp.route('/articles/bulk-action', methods=['POST'])
@@ -932,14 +770,14 @@ def bulk_action_articles():
 
     if not action or not selected_ids_str:
         flash('No action or no articles selected.', 'warning')
-        return redirect(request.referrer or url_for('admin.article_search'))
+        return redirect(request.referrer or url_for('admin.content_management', tab='articles'))
 
     selected_ids = [int(id_str)
                     for id_str in selected_ids_str if id_str.isdigit()]
 
     if not selected_ids:
         flash('No valid articles selected.', 'warning')
-        return redirect(request.referrer or url_for('admin.article_search'))
+        return redirect(request.referrer or url_for('admin.content_management', tab='articles'))
 
     if action == 'delete':
         updated_count = database.bulk_update_articles_deleted_status(
@@ -952,94 +790,13 @@ def bulk_action_articles():
     else:
         flash('Invalid action.', 'danger')
 
-    return redirect(request.referrer or url_for('admin.article_search'))
-
-
-@admin_bp.route('/attachments')
-@sysop_required
-def attachment_list():
-    """添付ファイル管理ページ (管理者用)。
-
-    アップロードされた全添付ファイルの一覧を表示します。
-    また、ClamAVによってウイルスが検出され、隔離されたファイルの一覧も表示し、
-    ここから物理削除が可能です。
-    """
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 15, type=int)
-    sort_by = request.args.get('sort_by', 'created_at')
-    order = request.args.get('order', 'desc')
-
-    next_order = 'desc' if order == 'asc' else 'asc'
-
-    try:
-        articles_with_attachments, total_items = database.get_all_articles_with_attachments(
-            page=page, per_page=per_page, sort_by=sort_by, order=order)
-        total_pages = (total_items + per_page - 1) // per_page
-    except Exception as e:
-        flash(f"Error retrieving attachment list: {e}", 'danger')
-        articles_with_attachments = []
-        total_items = 0
-        total_pages = 0
-
-    enriched_attachments = []
-    if articles_with_attachments:
-        user_ids_to_fetch = {art['user_id'] for art in articles_with_attachments if str(
-            art['user_id']).isdigit()}
-        id_to_name_map = database.get_user_names_from_user_ids(
-            list(user_ids_to_fetch))
-
-        attachment_dir = util.app_config.get('WEBAPP', {}).get(
-            'ATTACHMENT_UPLOAD_DIR', 'data/attachments')
-
-        for art in articles_with_attachments:
-            mutable_art = dict(art)
-            user_id_str = str(mutable_art['user_id'])
-            if user_id_str.isdigit():
-                mutable_art['author_display_name'] = id_to_name_map.get(
-                    int(user_id_str), f"(ID:{user_id_str})")
-            else:
-                mutable_art['author_display_name'] = user_id_str
-
-            filepath = os.path.join(attachment_dir, art['attachment_filename'])
-            is_safe, scan_message = util.scan_file_with_clamav(filepath)
-            mutable_art['scan_status'] = 'safe' if is_safe else 'infected'
-            mutable_art['scan_message'] = scan_message
-
-            enriched_attachments.append(mutable_art)
-
-    quarantined_files = []
-    quarantine_dir_rel = util.app_config.get('clamav', {}).get(
-        'quarantine_directory', 'data/quarantine')
-    quarantine_dir_abs = os.path.join(
-        current_app.config['PROJECT_ROOT'], quarantine_dir_rel)
-    log_file_path = os.path.join(quarantine_dir_abs, 'quarantine_log.json')
-    try:
-        if os.path.exists(log_file_path):
-            with open(log_file_path, 'r', encoding='utf-8') as f:
-                quarantined_files = json.load(f)
-            if isinstance(quarantined_files, list):
-                quarantined_files.sort(key=lambda x: x.get(
-                    'timestamp', 0), reverse=True)
-    except (json.JSONDecodeError, IOError) as e:
-        flash(f"Could not read quarantine log: {e}", 'danger')  # noqa
-
-    search_params = {'sort_by': sort_by, 'order': order, 'per_page': per_page}
-    search_params_for_per_page = {k: v for k,
-                                  v in request.args.items() if k != 'per_page'}
-
-    pagination = {'page': page, 'per_page': per_page, 'total_items': total_items,
-                  'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages}
-
-    return render_template('admin/attachment_list.html', title='Attachment Management', attachments=enriched_attachments, quarantined_files=quarantined_files,
-                           pagination=pagination, sort_by=sort_by, order=order, next_order=next_order,
-                           search_params=search_params, search_params_for_per_page=search_params_for_per_page)
+    return redirect(request.referrer or url_for('admin.content_management', tab='articles'))
 
 
 @admin_bp.route('/attachments/quarantine/delete/<path:filename>', methods=['POST'])
 @sysop_required
 def delete_quarantined_file(filename):
     """隔離ファイルの削除 (管理者用)。
-
     指定されたファイルを隔離ディレクトリから物理的に削除し、関連するログエントリも削除します。
     :param filename: 削除するファイル名。
     """
@@ -1055,7 +812,7 @@ def delete_quarantined_file(filename):
             os.remove(filepath)
     except OSError as e:
         flash(f"Error deleting file '{filename}': {e}", 'danger')
-        return redirect(url_for('admin.attachment_list'))
+        return redirect(url_for('admin.content_management', tab='attachments'))
 
     try:
         if os.path.exists(log_file_path):
@@ -1072,7 +829,7 @@ def delete_quarantined_file(filename):
         flash(
             f"File was deleted, but failed to update quarantine log: {e}", 'danger')
 
-    return redirect(url_for('admin.attachment_list'))
+    return redirect(url_for('admin.content_management', tab='attachments'))
 
 
 @admin_bp.route('/settings', methods=['GET', 'POST'])
@@ -1424,49 +1181,6 @@ def delete_all_plugin_data(plugin_id):
     else:
         flash(f"Failed to delete all data for plugin '{plugin_id}'.", 'danger')
     return redirect(url_for('admin.plugin_data_view', plugin_id=plugin_id))
-
-
-@admin_bp.route('/config-editor', methods=['GET', 'POST'])
-@sysop_required
-def config_editor():
-    """設定ファイルエディタ (管理者用)。
-
-    メインの設定ファイル `config.toml` をWeb UIから直接編集・保存します。
-    保存前にTOML形式の構文チェックが行われます。
-    """
-    config_path = os.path.join(
-        backup_util.PROJECT_ROOT, 'setting', 'config.toml')
-
-    if request.method == 'POST':
-        new_content = request.form.get('config_content', '')
-
-        try:
-            parsed_config = toml.loads(new_content)
-        except toml.TomlDecodeError as e:
-            flash(f"Invalid TOML format. Changes not saved: {e}", 'danger')
-            return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=new_content)
-
-        try:
-            backup_path = config_path + '.bak'
-            if os.path.exists(config_path):
-                shutil.copy2(config_path, backup_path)
-
-            if util.save_app_config(parsed_config, config_path):
-                flash(
-                    'Configuration file saved successfully. A restart is often required for changes to take effect.', 'success')
-            return redirect(url_for('admin.config_editor'))
-        except Exception as e:
-            flash(f"Error saving configuration file: {e}", 'danger')
-            return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=new_content)
-
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            config_content = f.read()
-    except Exception as e:
-        config_content = f"# Error reading config file: {e}"
-        flash(f'Error reading configuration file: {e}', 'danger')
-
-    return render_template('admin/config_editor.html', title=g.texts.get('config_editor', {}).get('title', 'Configuration Editor'), config_content=config_content)
 
 
 @admin_bp.route('/broadcast', methods=['POST'])
@@ -1827,13 +1541,12 @@ def reorder_chat_items():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-@admin_bp.route('/bbs_menu', methods=['GET', 'POST'])
+@admin_bp.route('/bbs', methods=['GET', 'POST'])
 @sysop_required
 def bbs_management():
-    """BBSメニュー管理ページ (管理者用)。
+    """BBS管理ページ (一覧 & メニュー)。
 
-    BBSメニューの階層構造をWeb UIから管理します。
-    bbs_mode3.yaml の読み込み、編集、保存を行います。
+    掲示板の一覧管理と、BBSメニューの階層構造管理をタブで切り替えて行います。
     """
     def find_item_and_parent(items, item_id, parent=None):
         """IDでアイテムを再帰的に探し、アイテムとその親、インデックスを返す"""
@@ -1849,7 +1562,9 @@ def bbs_management():
                     return found_item, found_parent, found_index
         return None, None, -1
 
-    if request.method == 'POST':
+    tab = request.args.get('tab', 'list')
+
+    if request.method == 'POST':  # This POST is for menu management
         bbs_config = util.load_bbs_config()
         action = request.form.get('action')
 
@@ -1920,29 +1635,207 @@ def bbs_management():
         except Exception as e:
             flash(f"An error occurred: {e}", 'danger')
 
-        return redirect(url_for('admin.bbs_management'))
+        return redirect(url_for('admin.bbs_management', tab='menu'))
 
-    bbs_config = util.load_bbs_config()
+    # --- GET Request Handling ---
+    if tab == 'list':
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 15, type=int)
+        sort_by = request.args.get('sort_by', 'shortcut_id')
+        order = request.args.get('order', 'asc')
+        search_term = request.args.get('q', '')
+        next_order = 'desc' if order == 'asc' else 'asc'
 
-    # YAML内のボードID(shortcut_id)とDBの主キー(id)をマッピングする辞書を作成
-    board_id_map = {}
-    all_boards, _ = database.get_all_boards_for_sysop_list(per_page=9999)
-    if all_boards:
-        board_id_map = {board['shortcut_id']: board['id']
-                        for board in all_boards}
+        try:
+            boards_from_db, total_items = database.get_all_boards_for_sysop_list(
+                page=page, per_page=per_page, sort_by=sort_by, order=order, search_term=search_term)
+            total_pages = (total_items + per_page - 1) // per_page
+        except Exception as e:
+            flash(f"Error retrieving board list: {e}", 'danger')
+            boards_from_db, total_items, total_pages = [], 0, 0
 
-    # テンプレートに渡すデータにDBのIDを追加
-    def enrich_items_with_db_id(items):
-        if not isinstance(items, list):
-            return
-        for item in items:
-            if item.get('type') == 'board':
-                item['db_id'] = board_id_map.get(item.get('id'))
-            if 'items' in item and isinstance(item.get('items'), list):
-                enrich_items_with_db_id(item['items'])
-    enrich_items_with_db_id(bbs_config.get('categories', []))
+        search_params = {'tab': 'list', 'q': search_term,
+                         'sort_by': sort_by, 'order': order, 'per_page': per_page}
+        search_params_for_per_page = {
+            k: v for k, v in request.args.items() if k != 'per_page'}
 
-    return render_template('admin/bbs_management.html', title="BBS Menu Management", bbs_config=bbs_config)
+        pagination = {'page': page, 'per_page': per_page, 'total_items': total_items,
+                      'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages}
+
+        enriched_boards = []
+        if boards_from_db:
+            operator_ids_to_fetch = {op_id for board in boards_from_db for op_id in json.loads(
+                board.get('operators') or '[]')}
+            id_to_name_map = database.get_user_names_from_user_ids(
+                list(operator_ids_to_fetch))
+
+            for board in boards_from_db:
+                mutable_board = dict(board)
+                try:
+                    operator_ids = json.loads(
+                        mutable_board.get('operators') or '[]')
+                    operator_names = [id_to_name_map.get(
+                        op_id, f"(ID:{op_id})") for op_id in operator_ids]
+                    mutable_board['operator_names_str'] = ", ".join(
+                        operator_names) if operator_names else 'N/A'
+                except (json.JSONDecodeError, TypeError):
+                    mutable_board['operator_names_str'] = '(Error)'
+                enriched_boards.append(mutable_board)
+
+        if sort_by == 'operators':
+            enriched_boards.sort(key=lambda x: x.get(
+                'operator_names_str', ''), reverse=(order == 'desc'))
+
+        return render_template(
+            'admin/bbs_management.html', title='BBS Management', tab='list',
+            boards=enriched_boards, pagination=pagination,
+            sort_by=sort_by, order=order, next_order=next_order,
+            search_params=search_params, search_params_for_per_page=search_params_for_per_page,
+            bbs_config={}  # Add empty bbs_config for the list tab
+        )
+
+    elif tab == 'menu':
+        bbs_config = util.load_bbs_config()
+        board_id_map = {}
+        all_boards, _ = database.get_all_boards_for_sysop_list(per_page=9999)
+        if all_boards:
+            board_id_map = {board['shortcut_id']: board['id']
+                            for board in all_boards}
+
+        def enrich_items_with_db_id(items):
+            if not isinstance(items, list):
+                return
+            for item in items:
+                if item.get('type') == 'board':
+                    item['db_id'] = board_id_map.get(item.get('id'))
+                if 'items' in item and isinstance(item.get('items'), list):
+                    enrich_items_with_db_id(item['items'])
+        enrich_items_with_db_id(bbs_config.get('categories', []))
+
+        return render_template(
+            'admin/bbs_management.html', title="BBS Management", tab='menu',
+            bbs_config=bbs_config,
+            search_params={},  # Add empty search_params for the menu tab
+            # Add empty search_params_for_per_page for the menu tab
+            search_params_for_per_page={},
+            # Add pagination object with total_pages
+            pagination={'total_pages': 0},
+            boards=[],  # Add empty boards for the menu tab
+            # Add other variables expected by the list tab template
+            next_order='asc',
+            sort_by='',
+            order=''
+        )
+
+    # Fallback redirect
+    return redirect(url_for('admin.bbs_management', tab='list'))
+
+
+@admin_bp.route('/access', methods=['GET', 'POST'])
+@sysop_required
+def access_management():
+    """アクセス管理ページ (ログ & IP BAN)。"""
+    tab = request.args.get('tab', 'logs')
+    ip_to_ban = request.args.get('ip_address', '')
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'add':
+            ip_address = request.form.get('ip_address', '').strip()
+            reason = request.form.get('reason', '').strip()
+            if not ip_address:
+                flash('IP Address/CIDR is required.', 'danger')
+            else:
+                try:
+                    ipaddress.ip_network(ip_address, strict=False)
+                    if database.add_ip_ban(ip_address, reason, session.get('user_id')):
+                        flash(f'Successfully banned {ip_address}.', 'success')
+                    else:
+                        flash(
+                            f'Failed to ban {ip_address}. The IP address/CIDR might already exist.', 'danger')
+                except ValueError:
+                    flash(
+                        f'Invalid IP Address or CIDR notation: {ip_address}', 'danger')
+        elif action == 'delete':
+            ban_id = request.form.get('id')
+            if ban_id and database.delete_ip_ban(ban_id):
+                flash('IP ban rule has been removed.', 'success')
+            else:
+                flash('Failed to remove IP ban rule.', 'danger')
+        return redirect(url_for('admin.access_management', tab='bans'))
+
+    # --- GET Request Handling ---
+    if tab == 'logs':
+        page = request.args.get('page', 1, type=int)
+        search_ip = request.args.get('ip', '')
+        search_user = request.args.get('user', '')
+        search_display_name = request.args.get('display_name', '')
+        search_event = request.args.get('event', '')
+        sort_by = request.args.get('sort_by', 'timestamp')
+        order = request.args.get('order', 'desc')
+        per_page = request.args.get('per_page', 15, type=int)
+        if page < 1:
+            page = 1
+
+        error_logs = []
+        try:
+            log_dir = os.path.join(current_app.config['PROJECT_ROOT'], 'logs')
+            error_log_path = os.path.join(log_dir, 'grbbs.error.log')
+            if os.path.exists(error_log_path):
+                with open(error_log_path, 'r', encoding='utf-8') as f:
+                    error_logs = f.readlines()[::-1]
+        except Exception as e:
+            flash(f"Error reading error log file: {e}", 'danger')
+
+        try:
+            logs, total_items = database.get_access_logs(
+                page=page, per_page=per_page, ip_address=search_ip, username=search_user,
+                display_name=search_display_name, event_type=search_event, sort_by=sort_by, order=order
+            )
+            total_pages = (total_items + per_page - 1) // per_page
+        except Exception as e:
+            flash(f"Error retrieving access logs: {e}", 'danger')
+            logs, total_items, total_pages = [], 0, 0
+
+        search_params = {
+            'tab': 'logs', 'ip': search_ip, 'user': search_user, 'display_name': search_display_name,
+            'event': search_event, 'sort_by': sort_by, 'order': order, 'per_page': per_page
+        }
+        search_params_for_per_page = {k: v for k, v in request.args.items() if k not in [
+            'per_page', 'tab']}
+        pagination = {
+            'page': page, 'per_page': per_page, 'total_items': total_items,
+            'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages
+        }
+        next_order = 'desc' if order == 'asc' else 'asc'
+
+        return render_template(
+            'admin/access_management.html', title='Access Management', tab='logs',
+            logs=logs, error_logs=error_logs, search_params=search_params,
+            search_params_for_per_page=search_params_for_per_page, pagination=pagination,
+            sort_by=sort_by, order=order, next_order=next_order,
+            # Dummy data for bans tab
+            bans=[], user_map={}, ip_to_ban=''
+        )
+
+    elif tab == 'bans':
+        try:
+            bans = database.get_all_ip_bans()
+            user_ids = {ban['added_by'] for ban in bans if ban.get('added_by')}
+            user_map = database.get_user_names_from_user_ids(list(user_ids))
+        except Exception as e:
+            flash(f"Error retrieving IP ban list: {e}", 'danger')
+            bans, user_map = [], {}
+
+        return render_template(
+            'admin/access_management.html', title="Access Management", tab='bans',
+            bans=bans, user_map=user_map, ip_to_ban=ip_to_ban,
+            # Dummy data for logs tab
+            logs=[], error_logs=[], search_params={}, search_params_for_per_page={},
+            pagination={'total_pages': 0}, sort_by='', order='', next_order=''
+        )
+
+    return redirect(url_for('admin.access_management', tab='logs'))
 
 
 @admin_bp.route('/bbs_menu/reorder', methods=['POST'])
@@ -2003,3 +1896,140 @@ def reorder_bbs_items():
     except Exception as e:
         logging.error(f"Error reordering BBS menu items: {e}", exc_info=True)
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@admin_bp.route('/content', methods=['GET'])
+@sysop_required
+def content_management():
+    """コンテンツ管理ページ (記事 & 添付ファイル)。"""
+    tab = request.args.get('tab', 'articles')
+
+    if tab == 'articles':
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 15, type=int)
+        keyword = request.args.get('q', '')
+        author_name = request.args.get('author', '')
+
+        articles = []
+        total_items = 0
+        total_pages = 0
+        article_id_search = None
+
+        if keyword or author_name:
+            author_id = None
+            author_name_guest = None
+            if author_name:
+                user = database.get_user_auth_info(author_name)
+                if user:
+                    author_id = user['id']
+                else:
+                    author_name_guest = author_name
+
+            if keyword and keyword.lower().startswith('id:'):
+                try:
+                    article_id_search = int(keyword.split(':')[1])
+                except (ValueError, IndexError):
+                    article_id_search = None
+
+            articles_from_db, total_items = database.search_all_articles(
+                page=page, per_page=per_page, keyword=keyword, author_id=author_id,
+                author_name_guest=author_name_guest, article_id=article_id_search
+            )
+            total_pages = (total_items + per_page - 1) // per_page
+
+            if articles_from_db:
+                user_ids_to_fetch = {
+                    art['user_id'] for art in articles_from_db if str(art['user_id']).isdigit()}
+                id_to_name_map = database.get_user_names_from_user_ids(
+                    list(user_ids_to_fetch))
+                for art in articles_from_db:
+                    mutable_art = dict(art)
+                    user_id_str = str(mutable_art['user_id'])
+                    if user_id_str.isdigit():
+                        mutable_art['author_display_name'] = id_to_name_map.get(
+                            int(user_id_str), f"(ID:{user_id_str})")
+                    else:
+                        mutable_art['author_display_name'] = user_id_str
+                    articles.append(mutable_art)
+
+        search_params = {'tab': 'articles', 'q': keyword,
+                         'author': author_name, 'per_page': per_page}
+        search_params_for_per_page = {k: v for k, v in request.args.items() if k not in [
+            'per_page', 'tab']}
+        pagination = {'page': page, 'per_page': per_page, 'total_items': total_items,
+                      'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages}
+
+        return render_template('admin/content_management.html', title='Content Management', tab='articles',
+                               articles=articles, pagination=pagination, search_params=search_params,
+                               search_params_for_per_page=search_params_for_per_page,
+                               search_keyword=keyword, search_author=author_name,
+                               # Dummy data for attachments tab
+                               attachments=[], quarantined_files=[], sort_by='', order='', next_order='')
+
+    elif tab == 'attachments':
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 15, type=int)
+        sort_by = request.args.get('sort_by', 'created_at')
+        order = request.args.get('order', 'desc')
+        next_order = 'desc' if order == 'asc' else 'asc'
+
+        try:
+            articles_with_attachments, total_items = database.get_all_articles_with_attachments(
+                page=page, per_page=per_page, sort_by=sort_by, order=order)
+            total_pages = (total_items + per_page - 1) // per_page
+        except Exception as e:
+            flash(f"Error retrieving attachment list: {e}", 'danger')
+            articles_with_attachments, total_items, total_pages = [], 0, 0
+
+        enriched_attachments = []
+        if articles_with_attachments:
+            user_ids_to_fetch = {art['user_id'] for art in articles_with_attachments if str(
+                art['user_id']).isdigit()}
+            id_to_name_map = database.get_user_names_from_user_ids(
+                list(user_ids_to_fetch))
+            attachment_dir = current_app.config.get('ATTACHMENT_DIR')
+
+            for art in articles_with_attachments:
+                mutable_art = dict(art)
+                user_id_str = str(mutable_art['user_id'])
+                if user_id_str.isdigit():
+                    mutable_art['author_display_name'] = id_to_name_map.get(
+                        int(user_id_str), f"(ID:{user_id_str})")
+                else:
+                    mutable_art['author_display_name'] = user_id_str
+                filepath = os.path.join(
+                    attachment_dir, art['attachment_filename'])
+                is_safe, scan_message = util.scan_file_with_clamav(filepath)
+                mutable_art['scan_status'] = 'safe' if is_safe else 'infected'
+                mutable_art['scan_message'] = scan_message
+                enriched_attachments.append(mutable_art)
+
+        quarantined_files = []
+        quarantine_dir_rel = util.app_config.get('clamav', {}).get(
+            'quarantine_directory', 'data/quarantine')
+        quarantine_dir_abs = os.path.join(
+            current_app.config['PROJECT_ROOT'], quarantine_dir_rel)
+        log_file_path = os.path.join(quarantine_dir_abs, 'quarantine_log.json')
+        try:
+            if os.path.exists(log_file_path):
+                with open(log_file_path, 'r', encoding='utf-8') as f:
+                    quarantined_files = json.load(f)
+                if isinstance(quarantined_files, list):
+                    quarantined_files.sort(key=lambda x: x.get(
+                        'timestamp', 0), reverse=True)
+        except (json.JSONDecodeError, IOError) as e:
+            flash(f"Could not read quarantine log: {e}", 'danger')
+
+        search_params = {'tab': 'attachments', 'sort_by': sort_by,
+                         'order': order, 'per_page': per_page}
+        search_params_for_per_page = {k: v for k, v in request.args.items() if k not in [
+            'per_page', 'tab']}
+        pagination = {'page': page, 'per_page': per_page, 'total_items': total_items,
+                      'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages}
+
+        return render_template('admin/content_management.html', title='Content Management', tab='attachments',
+                               attachments=enriched_attachments, quarantined_files=quarantined_files,
+                               pagination=pagination, sort_by=sort_by, order=order, next_order=next_order,
+                               search_params=search_params, search_params_for_per_page=search_params_for_per_page,
+                               # Dummy data for articles tab
+                               articles=[], search_keyword='', search_author='')
