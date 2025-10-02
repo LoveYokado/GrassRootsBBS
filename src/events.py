@@ -17,6 +17,7 @@ import glob
 import uuid
 import json
 import shutil
+import ipaddress
 from werkzeug.utils import secure_filename
 from . import database
 
@@ -33,6 +34,22 @@ def init_events(socketio, app):
         """
         新しいクライアントのWebSocket接続を処理します。
         """
+        # --- IP BANチェック ---
+        # HTTPリクエストだけでなく、WebSocket接続時にもBANチェックを行う
+        try:
+            banned_ips = database.get_all_ip_bans()
+            if banned_ips:
+                remote_ip_str = util.get_client_ip()
+                if remote_ip_str:
+                    remote_ip = ipaddress.ip_address(remote_ip_str)
+                    if any(remote_ip in ipaddress.ip_network(ban['ip_address'], strict=False) for ban in banned_ips):
+                        logging.warning(
+                            f"Banned IP {remote_ip_str} tried to connect via WebSocket.")
+                        return False  # 接続を拒否
+        except Exception as e:
+            logging.error(f"WebSocket接続時のIP BANチェック中にエラー: {e}")
+            return False  # 安全のためエラー時も接続を拒否
+
         if 'user_id' not in session:
             return False
 
