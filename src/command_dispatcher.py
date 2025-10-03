@@ -93,8 +93,8 @@ def handle_bbs(context):
     """`b` コマンドを処理し、電子掲示板機能を開始します。"""
     context.chan.send(b'\x1b[?2031l')
     bbs_handler.handle_bbs_menu(
-        context.chan, context.login_id, context.display_name,
-        context.menu_mode, shortcut_id=None, ip_address=context.ip_address
+        context.chan, context.login_id, context.display_name, context.menu_mode,
+        shortcut_id=None, ip_address=context.ip_address
     )
     # 掲示板メニューから抜けたときにトップメニューを再表示
     util.send_top_menu(context.chan, context.menu_mode)
@@ -162,7 +162,7 @@ def handle_mail(context):
     """`m` コマンドを処理し、メールボックス機能を開始します。"""
     context.chan.send(b'\x1b[?2031l')
     result = mail_handler.mail(
-        context.chan, context.login_id, context.menu_mode)
+        context.chan, context.login_id, context.menu_mode, context.ip_address)
     if result == "back_to_top":
         util.send_top_menu(context.chan, context.menu_mode)
     # mail_handler.mail は内部でループし、終了時に "back_to_top" または None を返す

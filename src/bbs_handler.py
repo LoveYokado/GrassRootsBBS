@@ -1676,7 +1676,6 @@ class CommandHandler:
             return
 
         board_id_pk = self.current_board['id']  # sqlite3のオブジェクトを取得
-        client_ip = util.get_client_ip()
 
         if not self.permission_manager.can_write_to_board(self.current_board, self.user_id_pk, self.userlevel):
             util.send_text_by_key(
@@ -1825,7 +1824,7 @@ class CommandHandler:
                 # ゲストの場合、IPからハッシュ付きの表示名を生成
                 # util.get_display_name は 'GUEST(hash)' を返す
                 user_identifier = util.get_display_name(
-                    self.login_id, client_ip)
+                    self.login_id, self.ip_address)
             else:
                 # 登録ユーザーの場合、ユーザーID(数値)を使用
                 user_identifier = self.user_id_pk
@@ -1881,7 +1880,7 @@ class CommandHandler:
             # --- 記事をDBに保存 ---
             if self.article_manager.create_article(
                 board_id_pk, user_identifier, title, body,
-                ip_address=client_ip,
+                ip_address=self.ip_address,
                 attachment_filename=attachment_filename,
                 attachment_originalname=attachment_originalname,
                 attachment_size=attachment_size

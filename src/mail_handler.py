@@ -512,7 +512,7 @@ class MailViewer:
         self._display_current_header()
 
 
-def mail(chan, login_id, menu_mode):
+def mail(chan, login_id, menu_mode, ip_address):
     """
     メール機能のメインエントリーポイントです。
     トップメニューから 'M' が選択されたときに呼び出されます。
@@ -549,7 +549,7 @@ def mail(chan, login_id, menu_mode):
                     return result  # 切断など
             elif choice == 'w':
                 chan.send(b'\x1b[?2029l')  # メインのメールボタンを非表示
-                mail_write(chan, login_id, menu_mode)
+                mail_write(chan, login_id, menu_mode, ip_address)
                 chan.send(b'\x1b[?2029h')  # メインのメールボタンを再表示
                 continue
             elif choice == 'r':
@@ -972,7 +972,7 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
         util.send_text_by_key(chan, "common_messages.db_error", menu_mode)
 
 
-def mail_write(chan, login_id, menu_mode='2'):
+def mail_write(chan, login_id, menu_mode='2', ip_address=None):
     """
     メール作成のメインハンドラです。
     宛先、件名、本文の入力を順に受け付け、最終確認を経てメールを送信します。
@@ -993,6 +993,5 @@ def mail_write(chan, login_id, menu_mode='2'):
         util.send_text_by_key(chan, "mail_handler.no_body", menu_mode)
         return
 
-    ip_address = util.get_client_ip()
     _confirm_and_send(chan, login_id, menu_mode,
                       recipient_info_list, subject, body, ip_address=ip_address)

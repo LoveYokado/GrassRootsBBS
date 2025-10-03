@@ -44,5 +44,4 @@ class CommandContext:
     @property
     def ip_address(self) -> str:
         """クライアントのIPアドレス"""
-        from . import util  # 循環インポートを避ける
-        return util.get_client_ip()
+        return self.chan.ip_address
