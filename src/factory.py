@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""アプリケーションファクトリ
+"""アプリケーションファクトリ。
 
-このモジュールは、Flaskアプリケーションインスタンスの作成と設定を行う
-`create_app()` ファクトリ関数を提供します。 
+このモジュールは、Flaskアプリケーションインスタンスの作成と設定を行う、
+`create_app()` ファクトリ関数を提供します。
 """
 import json
 
@@ -35,11 +35,14 @@ socketio = SocketIO()
 
 def create_app():
     """
-    Flaskアプリケーションインスタンスを作成し、各種設定を初期化します。
+    Flaskアプリケーションインスタンスを作成し、設定を初期化します。
 
-    このファクトリ関数は、アプリケーションの全体的な設定 (設定ファイル読み込み、
-    ロギング、ディレクトリ作成)、Blueprintの登録、エラーハンドリング、
-    拡張機能 (レートリミット、セッション管理など) の初期化を担当します。
+    このファクトリ関数は、アプリケーションの全体的な設定（設定ファイルの読み込み、
+    ロギング、ディレクトリ作成）、Blueprintの登録、エラーハンドリング、
+    拡張機能（レートリミット、セッション管理など）の初期化を担当します。
+
+    Returns:
+        (Flask, SocketIO): 設定済みのFlaskアプリケーションとSocketIOインスタンスのタプル。
     """
     # --- パス設定 ---
     _current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -145,6 +148,7 @@ def create_app():
 
     @app.template_filter('timestamp_to_datetime')
     def timestamp_to_datetime_filter(ts):
+        """UNIXタイムスタンプを 'YYYY-MM-DD HH:MM:SS' 形式の文字列に変換するJinja2フィルタ。"""
         try:
             return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
         except (ValueError, OSError):
@@ -152,7 +156,7 @@ def create_app():
 
     @app.template_filter('nl2br')
     def nl2br_filter(s):
-        """文字列内の改行をHTMLの`<br>`タグに変換します（XSS対策済み）。"""
+        """文字列内の改行をHTMLの<br>タグに変換するJinja2フィルタ（XSS対策済み）。"""
         if not s:
             return ""
         # First, escape the string to prevent XSS, then replace newlines.
@@ -162,9 +166,7 @@ def create_app():
     # --- リクエストフック ---
     @app.before_request
     def check_ip_ban():
-        """ 
-        各リクエストの前に、アクセス元のIPアドレスがBANリストに含まれていないかチェックします。
-        """
+        """各リクエストの前に、アクセス元のIPアドレスがBANリストに含まれていないかチェックします。"""
         # Socket.IO関連のパスは events.py で処理するため、このチェックをスキップ
         if request.path.startswith('/socket.io'):
             return
@@ -190,9 +192,9 @@ def create_app():
     @app.before_request
     def restrict_admin_access_by_ip():
         """
-        各リクエストの前に、管理画面 (`/admin`) へのアクセスをIPアドレスで制限します。
+        管理画面 (`/admin`) へのアクセスをIPアドレスで制限します。
 
-        `config.toml` の `[admin]` セクションで `ip_restriction_enabled` が `True` の場合にのみ有効です。
+        `config.toml` の `[admin]` セクションで `ip_restriction_enabled` が `True` の場合にのみ有効になります。
         """
         if request.path.startswith(admin_prefix):
             if not admin_config.get('ip_restriction_enabled', False):
@@ -214,7 +216,7 @@ def create_app():
     @app.after_request
     def add_security_headers(response):
         """
-        全てのリクエストのレスポンスにセキュリティ関連のHTTPヘッダーを追加します。
+        すべてのレスポンスにセキュリティ関連のHTTPヘッダーを追加します。
 
         Content-Security-Policy (CSP) などを含み、XSSなどの攻撃に対する防御を強化します。
         """
@@ -251,9 +253,9 @@ def create_app():
     # --- スケジュールジョブ (バックアップ) ---
     def scheduled_backup_job():
         """
-        `apscheduler`によって定期的に実行されるバックアップジョブです。
+        定期的に実行されるバックアップジョブ。
 
-        バックアップ作成後、古いバックアップファイルのクリーンアップも行います。
+        `apscheduler` によって呼び出され、バックアップ作成後に古いファイルをクリーンアップします。
         """
         with app.app_context():
             logging.info("Starting scheduled backup job...")

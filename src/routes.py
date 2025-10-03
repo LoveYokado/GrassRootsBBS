@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: MIT
 
 """
-Webアプリケーションルート
- 
-このモジュールは、ログイン、ログアウト、メインのターミナルページなど、
-アプリケーションの標準的なWebルートをすべて定義します。FlaskのBlueprintを 
-使用してこれらのルートを整理し、コアアプリロジックから分離しています。
+Webアプリケーションのルート定義。
+
+このモジュールは、ログイン、ログアウト、メインのターミナルページといった、
+アプリケーションの標準的なWebルートを定義します。FlaskのBlueprintを
+使用して、これらのルートをコアロジックから分離し、整理しています。
 """
 
 from flask import (
@@ -27,7 +27,14 @@ web_bp = Blueprint('web', __name__)
 
 
 def base64url_to_bytes(s: str) -> bytes:
-    """Base64URLでエンコードされた文字列をバイトにデコードします。必要に応じてパディングを追加します。"""
+    """Base64URLでエンコードされた文字列をバイト列にデコードします。
+
+    Args:
+        s: Base64URLでエンコードされた文字列。
+
+    Returns:
+        デコードされたバイト列。
+    """
     s_bytes = s.encode('utf-8')
     rem = len(s_bytes) % 4
     if rem > 0:
@@ -36,7 +43,7 @@ def base64url_to_bytes(s: str) -> bytes:
 
 
 def login_required(f):
-    """ユーザーがログイン済みかを確認するデコレータ。未ログインの場合はログインページへリダイレクトします。"""
+    """ログイン必須を強制するデコレータ。"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
@@ -53,7 +60,7 @@ def manifest():
 
 @web_bp.route('/sw.js')
 def service_worker():
-    """PWAのバックグラウンド処理を担うサービスワーカーファイルを配信します。"""
+    """PWAのService Workerファイルを配信します。"""
     response = send_from_directory(current_app.static_folder, 'sw.js')
     response.headers['Content-Type'] = 'application/javascript'
     response.headers['Service-Worker-Allowed'] = '/'
@@ -63,7 +70,11 @@ def service_worker():
 @web_bp.route('/')
 @login_required
 def index():
-    """メインのターミナルページを描画します。ログイン済みユーザー専用です。"""
+    """メインのターミナルページを描画します。
+
+    ログイン済みのユーザーに対して、ターミナルUIを表示します。
+    ファンクションキーの定義、各種設定値、Push通知用のVAPID公開鍵などをテンプレートに渡します。
+    """
     menu_mode = session.get('menu_mode', '2')
     fkey_definitions = {
         "f1": {"label": "SETTING", "action": "open_popup"},
@@ -121,7 +132,11 @@ def index():
 @web_bp.route('/login', methods=['GET', 'POST'])
 @extensions.limiter.limit("10 per minute")
 def login():
-    """ユーザーのログイン処理（パスワードおよびPasskey認証）をハンドリングします。"""
+    """ログインページと認証処理をハンドリングします。
+
+    GETリクエストではログインページを表示します。
+    POSTリクエストでは、ユーザー名とパスワードによる認証、またはPasskey認証フローを開始します。
+    """
     webapp_config = current_app.config.get('WEBAPP', {})
     page_title = webapp_config.get('LOGIN_PAGE_TITLE', 'Login')
     logo_path = webapp_config.get('LOGIN_PAGE_LOGO_PATH')
@@ -215,7 +230,10 @@ def login():
 
 @web_bp.route('/logout')
 def logout():
-    """ユーザーをログアウトさせ、セッションを破棄します。"""
+    """ログアウト処理を行います。
+
+    ユーザーセッションをクリアし、ログアウト完了ページを表示します。
+    """
     menu_mode = session.get('menu_mode', '2')
     session.clear()
     return render_template('logout.html', menu_mode=menu_mode)
@@ -225,7 +243,7 @@ def logout():
 @login_required
 @extensions.limiter.limit("20 per minute")
 def passkey_register_options():
-    """Passkey登録用のチャレンジとオプションを生成するAPIエンドポイント。"""
+    """Passkey登録用のオプションを生成するAPIエンドポイント。"""
     user_id = session.get('user_id')
     username = session.get('username')
     options_json_str = passkey_handler.generate_registration_options_for_user(
@@ -239,7 +257,7 @@ def passkey_register_options():
 @login_required
 @extensions.limiter.limit("10 per minute")
 def passkey_verify_registration():
-    """クライアントから送られたPasskey登録情報を検証し、DBに保存するAPIエンドポイント。"""
+    """Passkey登録情報を検証し、DBに保存するAPIエンドポイント。"""
     user_id = session.get('user_id')
     challenge_str = session.pop("passkey_registration_challenge", None)
     challenge_bytes = base64url_to_bytes(challenge_str)
@@ -257,7 +275,7 @@ def passkey_verify_registration():
 @web_bp.route('/passkey/login-options', methods=['POST'])
 @extensions.limiter.limit("20 per minute")
 def passkey_login_options():
-    """Passkey認証用のチャレンジとオプションを生成するAPIエンドポイント。"""
+    """Passkey認証用のオプションを生成するAPIエンドポイント。"""
     username = request.get_json().get('username', '').upper()
     options_json_str = passkey_handler.generate_authentication_options_for_user(
         username)
@@ -271,7 +289,7 @@ def passkey_login_options():
 @web_bp.route('/passkey/verify-login', methods=['POST'])
 @extensions.limiter.limit("10 per minute")
 def passkey_verify_login():
-    """クライアントから送られたPasskey認証情報を検証し、ユーザーをログインさせるAPIエンドポイント。"""
+    """Passkey認証情報を検証し、ユーザーをログインさせるAPIエンドポイント。"""
     challenge_str = session.pop("passkey_login_challenge", None)
     challenge_bytes = base64url_to_bytes(challenge_str)
     credential_json = json.dumps(request.get_json())
@@ -300,7 +318,11 @@ def passkey_verify_login():
 @web_bp.route('/attachments/<path:filename>')
 @login_required
 def download_attachment(filename):
-    """アップロードされた添付ファイルまたはそのサムネイルを配信します。"""
+    """添付ファイルまたはサムネイルを配信します。
+
+    Args:
+        filename: 配信するファイル名。サムネイルの場合は 'thumbnails/' プレフィックスが付与されます。
+    """
     is_thumbnail = filename.startswith('thumbnails/')
     actual_filename = filename.replace(
         'thumbnails/', '') if is_thumbnail else filename
@@ -324,7 +346,11 @@ def download_attachment(filename):
 @web_bp.route('/download_log/<path:filename>')
 @login_required
 def download_log(filename):
-    """保存されたセッションログファイルをクライアントにダウンロードさせます。"""
+    """保存されたセッションログファイルをダウンロードさせます。
+
+    Args:
+        filename: ダウンロードするログファイル名。
+    """
     session_log_dir = current_app.config.get('SESSION_LOG_DIR')
     return send_from_directory(session_log_dir, filename, as_attachment=True)
 
@@ -332,7 +358,12 @@ def download_log(filename):
 @web_bp.route('/plugins/<plugin_id>/js/<path:filename>')
 @login_required
 def serve_plugin_js(plugin_id, filename):
-    """プラグイン専用のJavaScriptファイルを配信するためのルート。"""
+    """プラグイン専用のJavaScriptファイルを配信します。
+
+    Args:
+        plugin_id: プラグインのID。
+        filename: 配信するJavaScriptファイル名。
+    """
     # パストラバーサル攻撃を防ぐための基本的な検証
     if '..' in plugin_id or '/' in plugin_id or '\\' in plugin_id:
         return "Invalid plugin ID", 400
@@ -347,7 +378,12 @@ def serve_plugin_js(plugin_id, filename):
 @web_bp.route('/plugins/<plugin_id>/static/<path:filename>')
 @login_required
 def serve_plugin_static(plugin_id, filename):
-    """プラグイン専用の静的ファイル(CSS, 画像など)を配信するためのルート。"""
+    """プラグイン専用の静的ファイル(CSS, 画像など)を配信します。
+
+    Args:
+        plugin_id: プラグインのID。
+        filename: 配信する静的ファイル名。
+    """
     # パストラバーサル攻撃を防ぐための基本的な検証
     if '..' in plugin_id or '/' in plugin_id or '\\' in plugin_id:
         return "Invalid plugin ID", 400
