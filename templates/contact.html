@@ -58,12 +58,14 @@
             style="text-align: center; margin-top: 20px; border-top: 1px solid rgba(0, 255, 0, 0.2); padding-top: 15px;">
             <p>{{ util.get_text_by_key('contact_page.sns_footer_text', lang, 'You can also contact us via the following
                 social media.<br>(Please ensure you can receive direct messages.)') | safe }}</p>
-            <a href="{{ site_info.contact_x_url }}" target="_blank" rel="noopener noreferrer" style="margin: 0 10px;">X
-                (Twitter)</a>
-            <a href="{{ site_info.contact_threads_url }}" target="_blank" rel="noopener noreferrer"
-                style="margin: 0 10px;">Threads</a>
-            <a href="{{ site_info.contact_bluesky_url }}" target="_blank" rel="noopener noreferrer"
-                style="margin: 0 10px;">Bluesky</a>
+            {% if site_info.contact_x_url %}<a href="{{ site_info.contact_x_url }}" target="_blank"
+                rel="noopener noreferrer" style="margin: 0 10px;">X (Twitter)</a>{% endif %}
+            {% if site_info.contact_threads_url %}<a href="{{ site_info.contact_threads_url }}" target="_blank"
+                rel="noopener noreferrer" style="margin: 0 10px;">Threads</a>{% endif %}
+            {% if site_info.contact_bluesky_url %}<a href="{{ site_info.contact_bluesky_url }}" target="_blank"
+                rel="noopener noreferrer" style="margin: 0 10px;">Bluesky</a>{% endif %}
+            {% if site_info.contact_mastodon_url %}<a href="{{ site_info.contact_mastodon_url }}" target="_blank"
+                rel="noopener noreferrer" style="margin: 0 10px;">Mastodon</a>{% endif %}
         </div>
         <a href="{{ url_for('web.login') }}" style="display: block; text-align: center; margin-top: 20px;">{{-
             util.get_text_by_key('contact_page.back_to_login', lang, 'Back to Login') -}}</a>

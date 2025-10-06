@@ -58,6 +58,7 @@ contact_email = "[連絡先メールアドレス]"
 contact_x_url = "[ご自身のXアカウントのURL]"
 contact_threads_url = "[ご自身のThreadsアカウントのURL]"
 contact_bluesky_url = "[ご自身のBlueskyアカウントのURL]"
+contact_mastodon_url = "[ご自身のMastodonアカウントのURL]"
 
 [admin]
 # 管理画面へのIPアドレスアクセス制限

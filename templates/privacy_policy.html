@@ -80,14 +80,25 @@
 
             <h2>8. お問い合わせ窓口</h2>
             <p id="contact-info">個人情報の開示・訂正・利用停止等のご請求、または本ポリシーに関するご質問は、以下の窓口にご連絡ください。</p>
-            <p><strong>メールアドレス:</strong> {{ site_info.contact_email | default('[連絡先メールアドレス]') }}</p>
+            {% if site_info.contact_x_url %}
             <p><strong>X (Twitter):</strong> <a href="{{ site_info.contact_x_url }}" target="_blank"
-                    rel="noopener noreferrer">{{ site_info.contact_x_url }}</a>
-            </p>
+                    rel="noopener noreferrer">{{ site_info.contact_x_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_threads_url %}
             <p><strong>Threads:</strong> <a href="{{ site_info.contact_threads_url }}" target="_blank"
                     rel="noopener noreferrer">{{ site_info.contact_threads_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_bluesky_url %}
             <p><strong>Bluesky:</strong> <a href="{{ site_info.contact_bluesky_url }}" target="_blank"
                     rel="noopener noreferrer">{{ site_info.contact_bluesky_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_mastodon_url %}
+            <p><strong>Mastodon:</strong> <a href="{{ site_info.contact_mastodon_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_mastodon_url }}</a></p>
+            {% endif %}
+            <p>{{ util.get_text_by_key('privacy_policy_page.contact_form_link_text', lang) |
+                format(contact_url=url_for('web.contact')) | safe }}
+            </p>
         </div>
         {% else %}
         <div class="english-section">
@@ -164,13 +175,24 @@
             <h2 id="contact-info-en">8. Contact Information</h2>
             <p>For requests regarding the disclosure, correction, or suspension of use of personal information, or for
                 any questions regarding this policy, please contact us at the following:</p>
-            <p><strong>Email:</strong> {{ site_info.contact_email | default('[Your contact email address here]') }}</p>
+            {% if site_info.contact_x_url %}
             <p><strong>X (Twitter):</strong> <a href="{{ site_info.contact_x_url }}" target="_blank"
                     rel="noopener noreferrer">{{ site_info.contact_x_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_threads_url %}
             <p><strong>Threads:</strong> <a href="{{ site_info.contact_threads_url }}" target="_blank"
                     rel="noopener noreferrer">{{ site_info.contact_threads_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_bluesky_url %}
             <p><strong>Bluesky:</strong> <a href="{{ site_info.contact_bluesky_url }}" target="_blank"
                     rel="noopener noreferrer">{{ site_info.contact_bluesky_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_mastodon_url %}
+            <p><strong>Mastodon:</strong> <a href="{{ site_info.contact_mastodon_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_mastodon_url }}</a></p>
+            {% endif %}
+            <p class="lang-en">{{ util.get_text_by_key('privacy_policy_page.contact_form_link_text', lang) |
+                format(contact_url=url_for('web.contact')) | safe }}</p>
         </div>
         {% endif %}
 
