@@ -140,9 +140,10 @@ def login():
     # ブラウザの言語設定からロケールを取得 (ja or en)
     locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
 
+    site_info = current_app.config.get('SITE_INFO', {})
     webapp_config = current_app.config.get('WEBAPP', {})
-    # textdata.yamlからテキストを取得
-    page_title = util.get_text_by_key('login_page.title', locale, 'Login')
+    # config.tomlからサイト名を取得し、なければデフォルト値を設定
+    page_title = site_info.get('server_name', 'GR-BBS')
     message = util.get_text_by_key('login_page.message', locale, 'Welcome.')
 
     logo_path = webapp_config.get('LOGIN_PAGE_LOGO_PATH')
