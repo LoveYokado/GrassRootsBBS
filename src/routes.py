@@ -239,6 +239,12 @@ def logout():
     return render_template('logout.html', menu_mode=menu_mode)
 
 
+@web_bp.route('/privacy')
+def privacy_policy():
+    """プライバシーポリシーページを表示します。"""
+    return render_template('privacy_policy.html')
+
+
 @web_bp.route('/passkey/register-options', methods=['POST'])
 @login_required
 @extensions.limiter.limit("20 per minute")

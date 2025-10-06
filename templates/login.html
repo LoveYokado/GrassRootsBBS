@@ -45,6 +45,10 @@
             <button id="passkey-login-btn" class="passkey-button">{{ util.get_text_by_key('login.passkey_login_button',
                 session.get('menu_mode', '2'), 'Login with Passkey') }}</button>
         </div>
+        <div class="login-footer">
+            <a href="{{ url_for('web.privacy_policy') }}">Privacy policy</a>
+            <a href="#">Contact Us (未実装)</a>
+        </div>
     </div>
     <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
     <script>

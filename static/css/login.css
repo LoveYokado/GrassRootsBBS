@@ -130,6 +130,20 @@ button:active {
   flex: 1;
 }
 
+.login-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0, 255, 0, 0.2);
+  display: flex;
+  justify-content: space-around;
+  font-size: 0.9em;
+}
+
+.login-footer a {
+  color: #00aa00;
+  text-decoration: none;
+}
+
 /* --- レスポンシブ対応 --- */
 @media screen and (max-width: 992px) {
   body {
