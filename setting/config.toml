@@ -49,9 +49,15 @@ WEBAPP_BIND_PORT = 50000
 MAX_CONCURRENT_WEBAPP_CLIENTS = 4        # WebAppの同時接続可能クライアント数(0で無制限)
 WEBAPP_USER = 'user'                     # WebAppのデフォルトユーザー名 (本番環境では変更を推奨)
 WEBAPP_PASSWORD = 'pass'                 # WebAppのデフォルトパスワード (本番環境では変更を強く推奨)
-LOGIN_PAGE_TITLE = "GR-BBS Login"
 LOGIN_PAGE_LOGO_PATH = "images/logo.png" # static/からの相対パス
 
+[site_info]
+operator_name = "[事業者名または運営者名]"
+server_name = "[あなたのBBS名]"
+contact_email = "[連絡先メールアドレス]"
+contact_x_url = "[ご自身のXアカウントのURL]"
+contact_threads_url = "[ご自身のThreadsアカウントのURL]"
+contact_bluesky_url = "[ご自身のBlueskyアカウントのURL]"
 
 [admin]
 # 管理画面へのIPアドレスアクセス制限

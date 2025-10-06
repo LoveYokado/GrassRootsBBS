@@ -250,13 +250,15 @@ def logout():
 @web_bp.route('/privacy')
 def privacy_policy():
     """プライバシーポリシーページを表示します。"""
+    site_info = current_app.config.get('SITE_INFO', {})
     locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
-    return render_template('privacy_policy.html', lang=locale)
+    return render_template('privacy_policy.html', lang=locale, site_info=site_info)
 
 
 @web_bp.route('/contact', methods=['GET', 'POST'])
 def contact():
     """お問い合わせフォームの表示と処理を行います。"""
+    site_info = current_app.config.get('SITE_INFO', {})
     locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
     text_data = {
         'all_fields_required': util.get_text_by_key('contact_page.all_fields_required', locale, 'All fields are required.'),
@@ -299,7 +301,7 @@ def contact():
         user_data = database.get_user_by_id(session.get('user_id'))
         if user_data:
             user_email = user_data.get('email', '')
-    return render_template('contact.html', user_email=user_email, lang=locale)
+    return render_template('contact.html', user_email=user_email, lang=locale, site_info=site_info)
 
 
 @web_bp.route('/passkey/register-options', methods=['POST'])

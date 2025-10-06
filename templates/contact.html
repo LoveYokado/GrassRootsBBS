@@ -58,10 +58,11 @@
             style="text-align: center; margin-top: 20px; border-top: 1px solid rgba(0, 255, 0, 0.2); padding-top: 15px;">
             <p>{{ util.get_text_by_key('contact_page.sns_footer_text', lang, 'You can also contact us via the following
                 social media.<br>(Please ensure you can receive direct messages.)') | safe }}</p>
-            <a href="[ご自身のXアカウントのURL]" target="_blank" rel="noopener noreferrer" style="margin: 0 10px;">X (Twitter)</a>
-            <a href="[ご自身のThreadsアカウントのURL]" target="_blank" rel="noopener noreferrer"
+            <a href="{{ site_info.contact_x_url }}" target="_blank" rel="noopener noreferrer" style="margin: 0 10px;">X
+                (Twitter)</a>
+            <a href="{{ site_info.contact_threads_url }}" target="_blank" rel="noopener noreferrer"
                 style="margin: 0 10px;">Threads</a>
-            <a href="[ご自身のBlueskyアカウントのURL]" target="_blank" rel="noopener noreferrer"
+            <a href="{{ site_info.contact_bluesky_url }}" target="_blank" rel="noopener noreferrer"
                 style="margin: 0 10px;">Bluesky</a>
         </div>
         <a href="{{ url_for('web.login') }}" style="display: block; text-align: center; margin-top: 20px;">{{-
