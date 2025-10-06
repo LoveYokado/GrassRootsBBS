@@ -292,7 +292,7 @@ def contact():
         # システムメールとして送信
         if database.send_system_mail(sysop_user_id, mail_subject, mail_body):
             # flashの代わりに、テンプレートに直接メッセージを渡す
-            return render_template('contact.html', success_message=text_data['send_success'], lang=locale)
+            return render_template('contact.html', success_message=text_data['send_success'], lang=locale, site_info=site_info)
         else:
             flash(text_data['send_failed_retry'], 'danger')
             return redirect(url_for('web.contact'))
