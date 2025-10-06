@@ -264,6 +264,7 @@ def contact():
     text_data = {
         'all_fields_required': util.get_text_by_key('contact_page.all_fields_required', locale, 'All fields are required.'),
         'send_failed_admin': util.get_text_by_key('contact_page.send_failed_admin', locale, 'Failed to send message. Please contact the administrator.'),
+        'mail_body_template': util.get_text_by_key('contact_page.mail_body_template', locale),
         'send_success': util.get_text_by_key('contact_page.send_success', locale, 'Thank you for your inquiry. Your message has been sent successfully.'),
         'send_failed_retry': util.get_text_by_key('contact_page.send_failed_retry', locale, 'Failed to send message. Please try again later.'),
     }
@@ -287,7 +288,13 @@ def contact():
 
         # メールの件名と本文を作成
         mail_subject = f"[Contact Form] {subject}"
-        mail_body = f"お名前: {name}\nメールアドレス: {email}\n\n--- お問い合わせ内容 ---\n{message}"
+        ip_address = util.get_client_ip()
+        mail_body = text_data['mail_body_template'].format(
+            name=name,
+            email=email,
+            ip_address=ip_address,
+            message=message
+        )
 
         # システムメールとして送信
         if database.send_system_mail(sysop_user_id, mail_subject, mail_body):

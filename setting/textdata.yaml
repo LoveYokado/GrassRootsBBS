@@ -4479,6 +4479,20 @@ contact_page:
   send_failed_retry:
     ja: メッセージの送信に失敗しました。時間をおいて再度お試しください。
     en: Failed to send message. Please try again later.
+  mail_body_template:
+    ja: |
+      お名前: {name}
+      メールアドレス: {email}
+      IPアドレス: {ip_address}
+
+      --- お問い合わせ内容 ---
+      {message}
+    en: |
+      Name: {name}
+      Email: {email}
+      IP Address: {ip_address}
+
+      --- Message ---
 
 privacy_policy_page:
   contact_form_link_text:
