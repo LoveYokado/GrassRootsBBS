@@ -11,7 +11,7 @@ Webアプリケーションのルート定義。
 
 from flask import (
     Blueprint, render_template, request, session, redirect, url_for,
-    send_from_directory, jsonify, Response, current_app
+    send_from_directory, jsonify, Response, current_app, flash
 )
 from functools import wraps
 import base64
@@ -243,6 +243,46 @@ def logout():
 def privacy_policy():
     """プライバシーポリシーページを表示します。"""
     return render_template('privacy_policy.html')
+
+
+@web_bp.route('/contact', methods=['GET', 'POST'])
+def contact():
+    """お問い合わせフォームの表示と処理を行います。"""
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        subject = request.form.get('subject')
+        message = request.form.get('message')
+
+        if not all([name, email, subject, message]):
+            flash('すべての項目を入力してください。', 'danger')
+            return redirect(url_for('web.contact'))
+
+        # シスオペのユーザーIDを取得
+        sysop_user_id = database.get_sysop_user_id()
+        if not sysop_user_id:
+            logging.error("お問い合わせメールの送信先（シスオペ）が見つかりません。")
+            flash('メッセージの送信に失敗しました。管理者にお問い合わせください。', 'danger')
+            return redirect(url_for('web.contact'))
+
+        # メールの件名と本文を作成
+        mail_subject = f"[Contact Form] {subject}"
+        mail_body = f"お名前: {name}\nメールアドレス: {email}\n\n--- お問い合わせ内容 ---\n{message}"
+
+        # システムメールとして送信
+        if database.send_system_mail(sysop_user_id, mail_subject, mail_body):
+            # flashの代わりに、テンプレートに直接メッセージを渡す
+            return render_template('contact.html', success_message='お問い合わせいただきありがとうございます。メッセージは正常に送信されました。')
+        else:
+            flash('メッセージの送信に失敗しました。時間をおいて再度お試しください。', 'danger')
+            return redirect(url_for('web.contact'))
+
+    user_email = ''
+    if 'user_id' in session:
+        user_data = database.get_user_by_id(session.get('user_id'))
+        if user_data:
+            user_email = user_data.get('email', '')
+    return render_template('contact.html', user_email=user_email)
 
 
 @web_bp.route('/passkey/register-options', methods=['POST'])
