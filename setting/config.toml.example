@@ -1,22 +1,27 @@
 # このファイルを config.toml としてコピーし、あなたの環境に合わせて値を設定してください。
 # Copy this file to config.toml and set the values for your environment.
 
+[site_info]
+# サイト運営者名と、あなたのBBSの名前
+# Operator name and the name of your BBS.
+operator_name = "SYSOP"
+server_name = "My GR-BBS"
+
+# お問い合わせ先のSNSアカウントURL (空欄にすると非表示になります)
+# Contact SNS account URLs (will be hidden if left blank).
+contact_x_url = ""
+contact_threads_url = ""
+contact_bluesky_url = ""
+contact_mastodon_url = ""
+
 [webapp]
 # BBSにアクセスする際のURL。PasskeyやPush通知で必要です。
 # The URL to access your BBS. Required for Passkey and Push notifications.
 ORIGIN = "http://localhost:5000"
 
-# ログインページのタイトル
-# Title for the login page.
-LOGIN_PAGE_TITLE = "GR-BBS"
-
 # ログインページのロゴ画像のパス (static/からの相対パス)
 # Path to the logo image on the login page (relative to static/).
 LOGIN_PAGE_LOGO_PATH = "images/logo.png"
-
-# ログインページのメッセージ
-# Message displayed on the login page.
-LOGIN_PAGE_MESSAGE = "Welcome to GrassRootsBBS"
 
 # Passkeyで使われるドメイン名 (ポート番号は含めない)
 # Relying Party ID for Passkey (should not include the port).
