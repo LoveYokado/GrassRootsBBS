@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""管理画面 (Admin Panel) のルーティング
+"""管理画面 (Admin Panel) のルーティング定義。
 
-このモジュールは、FlaskのBlueprintを利用して、BBSの管理機能に関連する全てのWebルート
-(例: `/admin/dashboard`, `/admin/users`など) を定義します。
+このモジュールは、FlaskのBlueprintを利用して、BBSの管理機能に関連する
+全てのWebルート (例: `/admin/dashboard`, `/admin/users`など) を定義します。
 """
 
 import json
@@ -28,10 +28,10 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @admin_bp.route('/bbs_list', methods=['GET', 'POST'])
 @sysop_required
 def bbs_list():
-    """BBSリンク一覧の管理ページ (F7キー)。
+    """BBSリンク一覧 (F7キー) の管理ページ。
 
-    F7キーで表示されるBBSリンク (他BBSへのショートカット) の追加、削除、
-    承認状態の変更を処理します。
+    F7キーで表示される他BBSへのショートカットリンクについて、
+    一覧表示、追加、削除、承認状態の変更を処理します。
     """
     if request.method == 'POST':
         action = request.form.get('action')
@@ -117,9 +117,10 @@ def bbs_list():
 @admin_bp.route('/bbs_list/edit/<int:link_id>', methods=['GET', 'POST'])
 @sysop_required
 def edit_bbs_link(link_id):
-    """BBSリンクの編集ページ (F7キー)。
+    """BBSリンクの編集ページ。
 
-    指定されたIDのBBSリンク (他BBSへのショートカット) の名前、URL、説明を編集します。
+    指定されたIDのBBSリンクの名前、URL、説明を編集します。
+
     :param link_id: 編集対象のBBSリンクのID。
     """
     link = database.bbs_list_manager.get_by_id(link_id)
@@ -153,10 +154,10 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 
 def _process_texts_for_mode(node, menu_mode):
     """
-    YAMLから読み込んだ辞書を再帰的に処理し、指定されたmenu_modeのテキストを抽出するヘルパー関数です。
+    YAMLから読み込んだ辞書を再帰的に処理し、指定されたmenu_modeのテキストを抽出します。
 
-    これにより、テンプレート側では `g.texts.dashboard.title` のように、
-    モードを意識することなく、シンプルにテキストデータへアクセスできます。
+    このヘルパー関数により、テンプレート側では `g.texts.dashboard.title` のように、
+    メニューモードを意識することなくテキストデータへアクセスできます。
     """
     if isinstance(node, dict):
         mode_key = f"mode_{menu_mode}"
@@ -171,9 +172,9 @@ def _process_texts_for_mode(node, menu_mode):
 @admin_bp.before_request
 def load_admin_texts():
     """
-    各リクエストの前に、ユーザーのメニューモード設定に応じたテキストデータをロードするフックです。
+    各リクエストの前に、ユーザーのメニューモード設定に応じたテキストデータをロードします。
 
-    ロードされたテキストは `g.texts` に格納され、テンプレート内で動的に利用されます。
+    このリクエストフックにより、ロードされたテキストが `g.texts` に格納され、テンプレート内で利用可能になります。
     """
     menu_mode = session.get('menu_mode', '3')
     g.texts = _process_texts_for_mode(util.load_master_text_data(), menu_mode)
@@ -183,8 +184,6 @@ def load_admin_texts():
 @sysop_required
 def dashboard():
     """管理画面のダッシュボードページ。
-
-    管理画面のダッシュボードページ。
 
     ユーザー数や投稿数などの統計情報、サーバーのシステムヘルス、
     最近のアクティビティグラフなどを表示します。
@@ -434,6 +433,7 @@ def edit_user(user_id):
     """ユーザー編集ページ (管理者用)。
 
     指定されたユーザーのレベル、メールアドレス、コメント、パスワードなどを編集・更新します。
+
     :param user_id: 編集対象のユーザーID。
     """
     edit_user_texts = g.texts.get('admin_edit_user', {})
@@ -481,6 +481,7 @@ def delete_user_passkey(user_id, passkey_id):
     """ユーザーのPasskey削除 (管理者用)。
 
     指定されたユーザーに紐づく特定のPasskeyをデータベースから削除します。
+
     :param user_id: 対象のユーザーID。
     :param passkey_id: 削除するPasskeyのID。
     """
@@ -499,6 +500,7 @@ def delete_user(user_id):
     """ユーザーの削除 (管理者用)。
 
     指定されたユーザーアカウントをデータベースから物理的に削除します。
+
     :param user_id: 削除対象のユーザーID。
     """
     user_to_delete = database.get_user_by_id(user_id)
@@ -586,6 +588,7 @@ def edit_board(board_id):
     """掲示板編集ページ (管理者用)。
 
     既存の掲示板の各種設定 (名前、説明、パーミッション、オペレーターなど) を編集します。
+
     :param board_id: 編集対象の掲示板ID。
     """
     board = database.get_board_by_id(board_id)
@@ -712,6 +715,7 @@ def delete_board(board_id):
     """掲示板の物理削除 (管理者用)。
 
     指定された掲示板と、それに関連する全ての記事や権限設定をデータベースから物理削除します。
+
     :param board_id: 削除対象の掲示板ID。
     """
     board_to_delete = database.get_board_by_id(board_id)
@@ -735,6 +739,7 @@ def delete_article(article_id):
     """記事の論理削除/復元 (管理者用)。
 
     指定された記事の削除フラグ (`is_deleted`) をトグル (0と1を反転) します。
+
     :param article_id: 対象の記事ID。
     """
     article = database.get_article_by_id(article_id)
@@ -797,7 +802,9 @@ def bulk_action_articles():
 @sysop_required
 def delete_quarantined_file(filename):
     """隔離ファイルの削除 (管理者用)。
+
     指定されたファイルを隔離ディレクトリから物理的に削除し、関連するログエントリも削除します。
+
     :param filename: 削除するファイル名。
     """
     quarantine_dir_rel = util.app_config.get('clamav', {}).get(
@@ -968,6 +975,7 @@ def download_backup(filename):
     """バックアップファイルのダウンロード (管理者用)。
 
     指定されたバックアップファイルをクライアントにダウンロードさせます。
+
     :param filename: ダウンロードするファイル名。
     """
     return send_from_directory(BACKUP_DIR, filename, as_attachment=True)
@@ -979,6 +987,7 @@ def delete_backup(filename):
     """バックアップファイルの削除 (管理者用)。
 
     指定されたバックアップファイルをサーバーから物理的に削除します。
+
     :param filename: 削除するファイル名。
     """
     try:
@@ -1005,6 +1014,7 @@ def restore_from_backup(filename):
 
     指定されたバックアップファイルからデータをリストア (復元) します。
     リストア完了後、サーバーは自動的に再起動されます。
+
     :param filename: リストアに使用するバックアップファイル名。
     """
     try:
@@ -1127,6 +1137,7 @@ def plugin_data_view(plugin_id):
     """プラグインデータ閲覧ページ (管理者用)。
 
     特定のプラグインが `grbbs_api` を介して保存したデータをJSON形式で表示します。
+
     :param plugin_id: 対象のプラグインID。
     """
     all_plugins = plugin_manager.get_all_available_plugins()
@@ -1157,6 +1168,7 @@ def delete_plugin_data_key(plugin_id, key):
     """プラグインデータの個別削除 (管理者用)。
 
     指定されたプラグインの、特定のキーに対応するデータをデータベースから削除します。
+
     :param plugin_id: 対象のプラグインID。
     :param key: 削除するデータのキー。
     """
@@ -1173,6 +1185,7 @@ def delete_all_plugin_data(plugin_id):
     """プラグインデータの全削除 (管理者用)。
 
     指定されたプラグインが保存した全てのデータをデータベースから削除します。
+
     :param plugin_id: 対象のプラグインID。
     """
     if database.delete_all_plugin_data(plugin_id):
@@ -1252,7 +1265,7 @@ def restart_server():
 def access_log_viewer():
     """ログビューアページ (管理者用)。
 
-    データベースに記録されたアクセスログと、ファイルに記録されたエラーログを閲覧します。
+    データベースに記録されたアクセスログと、ファイルベースのエラーログを閲覧します。
     アクセスログはIPアドレス、ユーザー名、イベントタイプでフィルタリング可能です。
     """
     page = request.args.get('page', 1, type=int)
@@ -1325,7 +1338,11 @@ def access_log_viewer():
 @admin_bp.route('/ip_bans', methods=['GET', 'POST'])
 @sysop_required
 def ip_ban_list():
-    """IPアドレスによるアクセス制限 (BAN) を管理するページ。"""
+    """IPアドレスによるアクセス制限 (BAN) を管理するページ。
+
+    特定のIPアドレスやCIDRブロックからのアクセスを拒否するルールを追加・削除します。
+    ログビューアからIPアドレスを渡して、このページを開くこともできます。
+    """
     ip_to_ban = request.args.get('ip_address', '')
     if request.method == 'POST':
         action = request.form.get('action')
@@ -1375,7 +1392,7 @@ def ip_ban_list():
 def chat_management():
     """チャットルーム管理ページ (管理者用)。
 
-    チャットルームの階層構造をWeb UIから管理します。
+    Web UIからチャットルームの階層構造を管理します。
     `chatroom.yaml` の読み込み、項目の追加・編集・削除、保存を行います。
     """
     config_path = os.path.join(
@@ -1494,7 +1511,7 @@ def chat_management():
 def reorder_chat_items():
     """チャットアイテムの並び替えAPI (管理者用)。
 
-    管理画面からのドラッグ＆ドロップ操作に応じて、
+    チャット管理画面からのドラッグ＆ドロップ操作に応じて、
     チャットルームやカテゴリの表示順を更新し、`chatroom.yaml`に保存します。
     """
     data = request.get_json()
@@ -1546,7 +1563,7 @@ def reorder_chat_items():
 def bbs_management():
     """BBS管理ページ (一覧 & メニュー)。
 
-    掲示板の一覧管理と、BBSメニューの階層構造管理をタブで切り替えて行います。
+    掲示板の一覧管理と、BBSメニューの階層構造管理をタブ形式で提供します。
     """
     def find_item_and_parent(items, item_id, parent=None):
         """IDでアイテムを再帰的に探し、アイテムとその親、インデックスを返す"""
@@ -1734,7 +1751,11 @@ def bbs_management():
 @admin_bp.route('/access', methods=['GET', 'POST'])
 @sysop_required
 def access_management():
-    """アクセス管理ページ (ログ & IP BAN)。"""
+    """アクセス管理ページ (ログ & IP BAN)。
+
+    アクセスログの閲覧と、IPアドレスによるアクセス制限(BAN)を
+    タブ形式で一元管理します。
+    """
     tab = request.args.get('tab', 'logs')
     ip_to_ban = request.args.get('ip_address', '')
 
@@ -1841,7 +1862,11 @@ def access_management():
 @admin_bp.route('/bbs_menu/reorder', methods=['POST'])
 @sysop_required
 def reorder_bbs_items():
-    """BBSメニューアイテムの並び替えAPI (管理者用)。"""
+    """BBSメニューアイテムの並び替えAPI (管理者用)。
+
+    BBS管理画面の「メニュー構造」タブからのドラッグ＆ドロップ操作に応じて、
+    BBSメニューの表示順を更新し、`bbs_mode3.yaml`に保存します。
+    """
     data = request.get_json()
     parent_id = data.get('parent_id')
     ordered_ids = data.get('ordered_ids')
@@ -1901,7 +1926,11 @@ def reorder_bbs_items():
 @admin_bp.route('/content', methods=['GET'])
 @sysop_required
 def content_management():
-    """コンテンツ管理ページ (記事 & 添付ファイル)。"""
+    """コンテンツ管理ページ (記事 & 添付ファイル)。
+
+    全掲示板を横断した記事の検索・論理削除と、
+    添付ファイルの一覧・管理をタブ形式で提供します。
+    """
     tab = request.args.get('tab', 'articles')
 
     if tab == 'articles':

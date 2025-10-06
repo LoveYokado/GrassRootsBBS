@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-WebSocketイベントハンドラ
- 
-このモジュールは、Webターミナルクライアントとのリアルタイム通信のための
-SocketIOイベントハンドラをすべて定義します。接続と認証から入力処理、
-切断までのクライアント接続のライフサイクルを管理します。 
+"""WebSocketイベントハンドラ。
+
+このモジュールは、Webターミナルクライアントとのリアルタイム通信を担う
+SocketIOイベントハンドラを定義します。クライアント接続のライフサイクル
+(接続、認証、入力処理、切断) を管理します。
 """
 
 from flask import request, session, url_for, current_app
@@ -26,13 +25,13 @@ from . import terminal_handler, util
 
 def init_events(socketio, app):
     """
-    全てのSocketIOイベントハンドラを初期化し、登録します。 
+    全てのSocketIOイベントハンドラを初期化し、登録します。
     """
 
     @socketio.on('connect')
     def handle_connect(auth=None):
         """
-        新しいクライアントのWebSocket接続を処理し、セッションを初期化します。 
+        新しいクライアントのWebSocket接続を処理し、セッションを初期化します。
         """
         # --- IP BANチェック ---
         # HTTPリクエストだけでなく、WebSocket接続時にもBANチェックを行う
@@ -98,7 +97,7 @@ def init_events(socketio, app):
     @socketio.on('set_speed')
     def handle_set_speed(speed_name):
         """
-        クライアントからBPSレート設定を受け取り、ターミナルの通信速度をシミュレートします。 
+        クライアントからBPSレート設定を受け取り、ターミナルの通信速度をシミュレートします。
         """
         sid = request.sid
         if sid in terminal_handler.client_states:
@@ -109,7 +108,7 @@ def init_events(socketio, app):
     @socketio.on('disconnect')
     def handle_disconnect():
         """
-        クライアントの切断イベントを処理し、関連リソースをクリーンアップします。 
+        クライアントの切断イベントを処理し、関連リソースをクリーンアップします。
         """
         with terminal_handler.current_webapp_clients_lock:
             terminal_handler.current_webapp_clients = max(
@@ -135,7 +134,7 @@ def init_events(socketio, app):
     @socketio.on('client_input')
     def handle_client_input(data):
         """
-        クライアントからのキーボード入力を受け取り、対応するハンドラの入力キューに追加します。 
+        クライアントからのキーボード入力を受け取り、対応するハンドラの入力キューに追加します。
         """
         sid = request.sid
         if sid in terminal_handler.client_states:
@@ -146,7 +145,7 @@ def init_events(socketio, app):
     @socketio.on('toggle_logging')
     def handle_toggle_logging():
         """
-        クライアントのセッションログ記録の開始/停止を切り替えます。 
+        クライアントのセッションログ記録の開始/停止を切り替えます。
         """
         sid = request.sid
         if sid in terminal_handler.client_states:
@@ -185,7 +184,7 @@ def init_events(socketio, app):
     @socketio.on('get_log_files')
     def handle_get_log_files():
         """
-        ユーザーが保存したログファイルの一覧を取得し、クライアントに送信します。 
+        ユーザーが保存したログファイルの一覧を取得し、クライアントに送信します。
         """
         if 'user_id' not in session:
             return
@@ -229,7 +228,7 @@ def init_events(socketio, app):
     @socketio.on('get_log_content')
     def handle_get_log_content(data):
         """
-        指定されたログファイルの内容を読み込み、クライアントに送信します。 
+        指定されたログファイルの内容を読み込み、クライアントに送信します。
         """
         if 'user_id' not in session:
             return
@@ -259,7 +258,7 @@ def init_events(socketio, app):
     @socketio.on('get_current_log_buffer')
     def handle_get_current_log_buffer():
         """
-        現在メモリ上にあるログバッファの内容をクライアントに送信します。 
+        現在メモリ上にあるログバッファの内容をクライアントに送信します。
         """
         sid = request.sid
         if sid in terminal_handler.client_states:
@@ -279,7 +278,7 @@ def init_events(socketio, app):
     @socketio.on('upload_attachment')
     def handle_upload_attachment(data):
         """
-        クライアントからのファイルアップロードを処理し、BBSの添付ファイルとして準備します。 
+        クライアントからのファイルアップロードを処理し、BBSの添付ファイルとして準備します。
         """
         sid = request.sid
         if sid not in terminal_handler.client_states:
@@ -422,7 +421,7 @@ def init_events(socketio, app):
     @socketio.on('clear_pending_attachment')
     def handle_clear_pending_attachment():
         """
-        セッションで保留中の添付ファイル情報をクリアします。 
+        セッションで保留中の添付ファイル情報をクリアします。
         """
         sid = request.sid
         if sid in terminal_handler.client_states:
@@ -435,7 +434,7 @@ def init_events(socketio, app):
     @socketio.on('set_client_mode')
     def handle_set_client_mode(data):
         """
-        クライアントの表示モード（モバイルかデスクトップか）を受け取り、セッションに記録します。 
+        クライアントの表示モード（モバイルかデスクトップか）を受け取り、セッションに記録します。
         """
         sid = request.sid
         handler = terminal_handler.client_states.get(sid)
@@ -447,8 +446,8 @@ def init_events(socketio, app):
     @socketio.on('multiline_input_submit')
     def handle_multiline_input_submit(data):
         """
-        Webのマルチラインエディタから送信された内容を受け取り、 
-        対応するハンドラの入力キューに入れます。 
+        Webのマルチラインエディタから送信された内容を受け取り、
+        対応するハンドラの入力キューに入れます。
         """
         sid = request.sid
         handler = terminal_handler.client_states.get(sid)
