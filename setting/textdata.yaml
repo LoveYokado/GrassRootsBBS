@@ -4388,3 +4388,97 @@ terminal_ui:
       mode_1: "保存されているログファイルはありません。"
       mode_2: "保存されているログファイルはありません。"
       mode_3: "No saved log files."
+# setting/textdata.yaml に追記
+
+login_page:
+  title:
+    ja: ログイン
+    en: Login
+  message:
+    ja: |
+      ようこそ。
+      IDとパスワードを入力してください。
+      ゲストIDは `GUEST/GUEST` です。
+    en: |
+      Welcome.
+      Please enter your ID and PASSWORD.
+      guestID = `GUEST/GUEST`
+  username_placeholder:
+    ja: ユーザー名
+    en: Username
+  password_placeholder:
+    ja: パスワード (Passkeyの場合は空欄)
+    en: Password (or leave blank for Passkey)
+  login_button:
+    ja: ログイン
+    en: Login
+  passkey_login_button:
+    ja: Passkeyでログイン
+    en: Login with Passkey
+  privacy_policy_link:
+    ja: プライバシーポリシー
+    en: Privacy Policy
+  contact_link:
+    ja: お問い合わせ
+    en: Contact Us
+  invalid_credentials:
+    ja: IDまたはパスワードが違います。
+    en: Invalid ID or password.
+
+logout_page:
+  title:
+    ja: ログアウトしました
+    en: Logged Out
+  message:
+    ja: ご利用ありがとうございました。
+    en: Thank you for using our service.
+  prompt:
+    ja: 再びログインするには、このウィンドウを閉じてください。
+    en: To log in again, please close this window.
+
+contact_page:
+  title:
+    ja: お問い合わせ
+    en: Contact Us
+  name_label:
+    ja: お名前
+    en: Name
+  email_label:
+    ja: メールアドレス
+    en: Email Address
+  subject_label:
+    ja: 件名
+    en: Subject
+  message_label:
+    ja: お問い合わせ内容
+    en: Message
+  submit_button:
+    ja: 送信
+    en: Send
+  sns_alt_text:
+    ja: または、下記のSNSアカウントでもご連絡いただけます。
+    en: Alternatively, you can contact us via the SNS accounts below.
+  agreement_prefix:
+    ja: お問い合わせを送信することにより、
+    en: By submitting this form, you agree to our
+  privacy_policy_link:
+    ja: プライバシーポリシー
+    en: Privacy Policy
+  sns_footer_text:
+    ja: または、以下のSNSからもお問い合わせいただけます。<br>（ダイレクトメッセージの受信が許可されていることをご確認ください）
+    en: You can also contact us via the following social media.<br>(Please ensure you can receive direct messages.)
+  back_to_login:
+    ja: ログイン画面に戻る
+    en: Back to Login
+  all_fields_required:
+    ja: すべての項目を入力してください。
+    en: All fields are required.
+  send_failed_admin:
+    ja: メッセージの送信に失敗しました。管理者にお問い合わせください。
+    en: Failed to send message. Please contact the administrator.
+  send_success:
+    ja: お問い合わせいただきありがとうございます。メッセージは正常に送信されました。
+    en: Thank you for your inquiry. Your message has been sent successfully.
+  send_failed_retry:
+    ja: メッセージの送信に失敗しました。時間をおいて再度お試しください。
+    en: Failed to send message. Please try again later.

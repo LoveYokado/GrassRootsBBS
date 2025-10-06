@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="{{ lang }}">
 
 <head>
     <meta charset="UTF-8">
@@ -27,27 +27,35 @@
         {% if logo_path %}
         <img src="{{ url_for('static', filename=logo_path) }}" alt="Logo" class="logo">
         {% endif %}
-        <h1>{{ page_title }}</h1>
+        <h1>{{ page_title }}</h1> {# nl2br フィルタを適用 #}
         {% if message %}
-        <p class="message">{{ message }}</p>
+        <p class="message">{{ message | nl2br | safe }}</p>
         {% endif %}
         {% if error %}
         <p class="error">{{ error }}</p>
         {% endif %}
         <form id="login-form" method="post">
-            <input type="text" id="username" name="username" placeholder="Username" required
+            <input type="text" id="username" name="username"
+                placeholder="{{ util.get_text_by_key('login_page.username_placeholder', lang, 'Username') }}" required
                 autocomplete="username webauthn">
-            <input type="password" id="password" name="password" placeholder="Password (or leave blank for Passkey)"
+            <input type="password" id="password" name="password"
+                placeholder="{{ util.get_text_by_key('login_page.password_placeholder', lang, 'Password (or leave blank for Passkey)') }}"
                 autocomplete="current-password">
-            <button type="submit" id="login-button">Login</button>
+            <button type="submit" id="login-button">{{ util.get_text_by_key('login_page.login_button', lang, 'Login')
+                }}</button>
         </form>
         <div>
-            <button id="passkey-login-btn" class="passkey-button">{{ util.get_text_by_key('login.passkey_login_button',
-                session.get('menu_mode', '2'), 'Login with Passkey') }}</button>
+            <button id="passkey-login-btn" class="passkey-button">{{
+                util.get_text_by_key('login_page.passkey_login_button',
+                lang, 'Login with Passkey') }}</button>
         </div>
         <div class="login-footer">
-            <a href="{{ url_for('web.privacy_policy') }}">プライバシーポリシー</a>
-            <a href="{{ url_for('web.contact') }}">お問い合わせ</a>
+            <a href="{{ url_for('web.privacy_policy') }}">{{ util.get_text_by_key('login_page.privacy_policy_link',
+                lang,
+                'Privacy Policy') }}</a>
+            <a href="{{ url_for('web.contact') }}">{{ util.get_text_by_key('login_page.contact_link', lang, 'Contact
+                Us')
+                }}</a>
         </div>
     </div>
     <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
