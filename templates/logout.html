@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="{{ lang }}">
 
 
 <head>
     <meta charset="UTF-8">
-    <title>Logged Out - GR-BBS</title>
+    <title>{{ util.get_text_by_key('logout_page.title', lang, 'Logged Out') }} - GR-BBS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <!-- ファビコン -->
@@ -18,7 +18,8 @@
 </head>
 
 <body>
-    <pre>{{ util.get_text_by_key('logoff.message', menu_mode) }}<div class="prompt">{{ util.get_text_by_key('logoff.prompt', menu_mode) }}</div></pre>
+    <pre>{{ util.get_text_by_key('logout_page.message', lang) }}<div class="prompt">{{
+            util.get_text_by_key('logout_page.prompt', lang) }}</div></pre>
     <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
     <script>
         const LOGOUT_URLS = {

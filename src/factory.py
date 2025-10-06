@@ -159,9 +159,8 @@ def create_app():
         """文字列内の改行をHTMLの<br>タグに変換するJinja2フィルタ（XSS対策済み）。"""
         if not s:
             return ""
-        # First, escape the string to prevent XSS, then replace newlines.
-        s_escaped = escape(s)
-        return Markup(s_escaped.replace('\n', '<br>\n'))
+        # `<code>` タグなどを安全にエスケープしつつ、改行を <br> に変換する
+        return escape(s).replace('\n', Markup('<br>\n'))
 
     # --- リクエストフック ---
     @app.before_request

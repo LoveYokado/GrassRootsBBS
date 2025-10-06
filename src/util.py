@@ -209,13 +209,15 @@ def load_master_text_data():
         return _master_text_data_cache
 
 
-def get_text_by_key(key_string, menu_mode, default_value=""):
+def get_text_by_key(key_string, mode_or_lang, default_value=""):
     """
-    キャッシュされたテキストデータから、指定されたキーとメニューモードに対応する文字列を取得します。 
+    キャッシュされたテキストデータから、指定されたキーとモード/言語に対応する文字列を取得します。
 
     例: `get_text_by_key("user_pref_menu.header", "1")`
+    例: `get_text_by_key("login.title", "ja")`
+
     :param key_string: ドット区切りのキー (例: "top_menu.menu")。
-    :param menu_mode: メニューモード ('1', '2', '3')。
+    :param mode_or_lang: メニューモード ('1', '2', '3') または言語 ('ja', 'en')。
     :param default_value: キーが見つからない場合に返すデフォルト値。
     :return: 取得したテキスト文字列。
     """
@@ -232,8 +234,12 @@ def get_text_by_key(key_string, menu_mode, default_value=""):
             current_level_data = current_level_data[key_part]
 
         if isinstance(current_level_data, dict):
-            mode_specific_key = f"mode_{menu_mode}"
-            text_value = current_level_data[mode_specific_key]
+            # まず言語キー (ja, en) を試し、次にモードキー (mode_1, mode_2) を試す
+            if mode_or_lang in current_level_data:
+                text_value = current_level_data[mode_or_lang]
+            else:
+                mode_specific_key = f"mode_{mode_or_lang}"
+                text_value = current_level_data[mode_specific_key]
 
             if text_value is None:
                 return ""  # YAMLで値が空の場合、Noneが返るので空文字列に変換
@@ -245,16 +251,16 @@ def get_text_by_key(key_string, menu_mode, default_value=""):
         else:
             # キーの終端が辞書ではなかった場合
             logging.warning(
-                f"キー {key_string}の終端が予期した形式ではありません。(mode_{menu_mode}を持つ辞書にしてください)")
+                f"キー {key_string}の終端が予期した形式ではありません。({mode_or_lang} をキーに持つ辞書にしてください)")
             return default_value
     except (KeyError, TypeError):
         logging.warning(
-            f"キー {key_string} (mode_{menu_mode}) に対応するテキストデータが見つかりません。")
+            f"キー {key_string} (mode/lang: {mode_or_lang}) に対応するテキストデータが見つかりません。")
         return default_value
 
 
 def send_text_by_key(chan, key_string, menu_mode, default_value="", add_newline=True, **kwargs):
-    """
+    """ 
     指定されたキーのテキストを取得し、プレースホルダを置換してクライアントに送信します。 
 
     :param chan: 送信先のチャンネルオブジェクト。

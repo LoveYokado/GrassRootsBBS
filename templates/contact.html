@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="{{ lang }}">
 
 <head>
     <meta charset="UTF-8">
@@ -16,31 +16,35 @@
 
 <body>
     <div class="static-container" style="max-width: 600px;">
-        <h1>お問い合わせ</h1>
+        <h1>{{ util.get_text_by_key('contact_page.title', lang, 'Contact Us') }}</h1>
         <form method="post">
             <div class="form-group">
-                <label for="name">お名前</label>
+                <label for="name">{{ util.get_text_by_key('contact_page.name_label', lang, 'Name') }}</label>
                 <input type="text" id="name" name="name" value="{{ session.get('username', '') }}" required
                     class="form-control">
             </div>
             <div class="form-group">
-                <label for="email">メールアドレス</label>
+                <label for="email">{{ util.get_text_by_key('contact_page.email_label', lang, 'Email Address') }}</label>
                 <input type="email" id="email" name="email" value="{{ user_email or '' }}" required
                     class="form-control">
-                <small>または、下記のSNSアカウントでもご連絡いただけます。</small>
+                <small>{{ util.get_text_by_key('contact_page.sns_alt_text', lang, 'Alternatively, you can contact us
+                    via the SNS accounts below.') }}</small>
             </div>
             <div class="form-group">
-                <label for="subject">件名</label>
+                <label for="subject">{{ util.get_text_by_key('contact_page.subject_label', lang, 'Subject') }}</label>
                 <input type="text" id="subject" name="subject" required class="form-control">
             </div>
             <div class="form-group">
-                <label for="message">お問い合わせ内容</label>
+                <label for="message">{{ util.get_text_by_key('contact_page.message_label', lang, 'Message') }}</label>
                 <textarea id="message" name="message" rows="5" required class="form-control"></textarea>
             </div>
-            <button type="submit">送信</button>
+            <button type="submit">{{ util.get_text_by_key('contact_page.submit_button', lang, 'Send') }}</button>
         </form>
         <p style="font-size: 0.8em; text-align: center; margin-top: 15px;">
-            お問い合わせを送信することにより、<a href="{{ url_for('web.privacy_policy') }}#contact-info">プライバシーポリシー</a>に同意したものとみなされます。
+            {{ util.get_text_by_key('contact_page.agreement_prefix', lang, 'By submitting this form, you agree to our')
+            |
+            safe }} <a href="{{ url_for('web.privacy_policy') }}#contact-info">{{
+                util.get_text_by_key('contact_page.privacy_policy_link', lang, 'Privacy Policy') }}</a>.
         </p>
         {% if success_message %}
         <script>
@@ -52,14 +56,16 @@
         {% endif %}
         <div
             style="text-align: center; margin-top: 20px; border-top: 1px solid rgba(0, 255, 0, 0.2); padding-top: 15px;">
-            <p>または、以下のSNSからもお問い合わせいただけます。<br>（ダイレクトメッセージの受信が許可されていることをご確認ください）</p>
+            <p>{{ util.get_text_by_key('contact_page.sns_footer_text', lang, 'You can also contact us via the following
+                social media.<br>(Please ensure you can receive direct messages.)') | safe }}</p>
             <a href="[ご自身のXアカウントのURL]" target="_blank" rel="noopener noreferrer" style="margin: 0 10px;">X (Twitter)</a>
             <a href="[ご自身のThreadsアカウントのURL]" target="_blank" rel="noopener noreferrer"
                 style="margin: 0 10px;">Threads</a>
             <a href="[ご自身のBlueskyアカウントのURL]" target="_blank" rel="noopener noreferrer"
                 style="margin: 0 10px;">Bluesky</a>
         </div>
-        <a href="{{ url_for('web.login') }}" style="display: block; text-align: center; margin-top: 20px;">ログイン画面に戻る</a>
+        <a href="{{ url_for('web.login') }}" style="display: block; text-align: center; margin-top: 20px;">{{-
+            util.get_text_by_key('contact_page.back_to_login', lang, 'Back to Login') -}}</a>
     </div>
 </body>
 

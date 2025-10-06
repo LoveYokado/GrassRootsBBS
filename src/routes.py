@@ -137,10 +137,15 @@ def login():
     GETリクエストではログインページを表示します。
     POSTリクエストでは、ユーザー名とパスワードによる認証、またはPasskey認証フローを開始します。
     """
+    # ブラウザの言語設定からロケールを取得 (ja or en)
+    locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
+
     webapp_config = current_app.config.get('WEBAPP', {})
-    page_title = webapp_config.get('LOGIN_PAGE_TITLE', 'Login')
+    # textdata.yamlからテキストを取得
+    page_title = util.get_text_by_key('login_page.title', locale, 'Login')
+    message = util.get_text_by_key('login_page.message', locale, 'Welcome.')
+
     logo_path = webapp_config.get('LOGIN_PAGE_LOGO_PATH')
-    message = webapp_config.get('LOGIN_PAGE_MESSAGE', 'Welcome.')
 
     if request.method == 'POST':
         username = request.form.get('username', '').upper()
@@ -159,7 +164,7 @@ def login():
         if not is_guest and session.get('lockout_expiration', 0) > time.time():
             remaining_time = session.get('lockout_expiration', 0) - time.time()
             error = util.get_text_by_key("auth.account_locked_temporary", session.get(
-                'menu_mode', '2')).format(remaining_time=remaining_time)
+                'menu_mode', locale)).format(remaining_time=remaining_time)
             return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
 
         user_auth_info = database.get_user_auth_info(username)
@@ -172,7 +177,7 @@ def login():
             if not is_guest:
                 for sid, handler in client_states.copy().items():
                     if handler.user_session.get('username') == username:
-                        error = util.get_text_by_key("auth.already_logged_in", handler.user_session.get(
+                        error = util.get_text_by_key("auth.already_logged_in", handler.user_session.get(  # noqa
                             'menu_mode', '2')).replace('\r\n', '')
                         database.log_access_event(ip_address=util.get_client_ip(),
                                                   event_type='LOGIN_FAILURE', username=username, message='Multi-login detected.')
@@ -206,26 +211,28 @@ def login():
                     session['lockout_expiration'] = time.time(
                     ) + current_app.config['LOCKOUT_TIME_SECONDS']
                     lockout_minutes = current_app.config['LOCKOUT_TIME_SECONDS'] / 60
-                    error = util.get_text_by_key("auth.account_locked_permanent", session.get(
-                        'menu_mode', '2')).format(lockout_minutes=lockout_minutes)
+                    error = util.get_text_by_key("auth.account_locked_permanent", locale).format(
+                        lockout_minutes=lockout_minutes)
                     database.log_access_event(ip_address=util.get_client_ip(),
                                               event_type='ACCOUNT_LOCKED', username=username,
                                               message=f"Account locked for user '{username}' due to too many failed attempts.")
                 else:
-                    error = 'IDまたはパスワードが違います。'
+                    error = util.get_text_by_key(
+                        'login_page.invalid_credentials', locale, 'Invalid ID or password.')
             else:
-                error = 'IDまたはパスワードが違います。'
+                error = util.get_text_by_key(
+                    'login_page.invalid_credentials', locale, 'Invalid ID or password.')
             database.log_access_event(ip_address=util.get_client_ip(),
                                       event_type='LOGIN_FAILURE',
                                       username=username, message=f"Invalid password for user '{username}'.")
             logging.warning(f"WebUI Login Failed: {username}")
-            return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message)
+            return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message, lang=locale)
 
     # Passkey認証フローのためにリダイレクトされてきた場合の処理
     passkey_username = session.pop('passkey_login_username', None)
 
-    return render_template('login.html', page_title=page_title, logo_path=logo_path,
-                           message=message, passkey_username_for_js=passkey_username)
+    return render_template('login.html', page_title=page_title, logo_path=logo_path, message=message,
+                           passkey_username_for_js=passkey_username, lang=locale)
 
 
 @web_bp.route('/logout')
@@ -234,20 +241,30 @@ def logout():
 
     ユーザーセッションをクリアし、ログアウト完了ページを表示します。
     """
-    menu_mode = session.get('menu_mode', '2')
+    # ログアウト前にロケールを取得
+    locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
     session.clear()
-    return render_template('logout.html', menu_mode=menu_mode)
+    return render_template('logout.html', lang=locale)
 
 
 @web_bp.route('/privacy')
 def privacy_policy():
     """プライバシーポリシーページを表示します。"""
-    return render_template('privacy_policy.html')
+    locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
+    return render_template('privacy_policy.html', lang=locale)
 
 
 @web_bp.route('/contact', methods=['GET', 'POST'])
 def contact():
     """お問い合わせフォームの表示と処理を行います。"""
+    locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
+    text_data = {
+        'all_fields_required': util.get_text_by_key('contact_page.all_fields_required', locale, 'All fields are required.'),
+        'send_failed_admin': util.get_text_by_key('contact_page.send_failed_admin', locale, 'Failed to send message. Please contact the administrator.'),
+        'send_success': util.get_text_by_key('contact_page.send_success', locale, 'Thank you for your inquiry. Your message has been sent successfully.'),
+        'send_failed_retry': util.get_text_by_key('contact_page.send_failed_retry', locale, 'Failed to send message. Please try again later.'),
+    }
+
     if request.method == 'POST':
         name = request.form.get('name')
         email = request.form.get('email')
@@ -255,14 +272,14 @@ def contact():
         message = request.form.get('message')
 
         if not all([name, email, subject, message]):
-            flash('すべての項目を入力してください。', 'danger')
+            flash(text_data['all_fields_required'], 'danger')
             return redirect(url_for('web.contact'))
 
         # シスオペのユーザーIDを取得
         sysop_user_id = database.get_sysop_user_id()
         if not sysop_user_id:
             logging.error("お問い合わせメールの送信先（シスオペ）が見つかりません。")
-            flash('メッセージの送信に失敗しました。管理者にお問い合わせください。', 'danger')
+            flash(text_data['send_failed_admin'], 'danger')
             return redirect(url_for('web.contact'))
 
         # メールの件名と本文を作成
@@ -272,9 +289,9 @@ def contact():
         # システムメールとして送信
         if database.send_system_mail(sysop_user_id, mail_subject, mail_body):
             # flashの代わりに、テンプレートに直接メッセージを渡す
-            return render_template('contact.html', success_message='お問い合わせいただきありがとうございます。メッセージは正常に送信されました。')
+            return render_template('contact.html', success_message=text_data['send_success'], lang=locale)
         else:
-            flash('メッセージの送信に失敗しました。時間をおいて再度お試しください。', 'danger')
+            flash(text_data['send_failed_retry'], 'danger')
             return redirect(url_for('web.contact'))
 
     user_email = ''
@@ -282,7 +299,7 @@ def contact():
         user_data = database.get_user_by_id(session.get('user_id'))
         if user_data:
             user_email = user_data.get('email', '')
-    return render_template('contact.html', user_email=user_email)
+    return render_template('contact.html', user_email=user_email, lang=locale)
 
 
 @web_bp.route('/passkey/register-options', methods=['POST'])

@@ -46,15 +46,12 @@ RP_ID = "localhost"              # Passkeyで使われるドメイン名 (ポー
 
 # WEBAPP_KEY_PATH removed from here
 WEBAPP_BIND_PORT = 50000
-MAX_CONCURRENT_WEBAPP_CLIENTS = 4 # WebAppの同時接続可能クライアント数(0で無制限)
-WEBAPP_USER = 'user' # WebAppのデフォルトユーザー名 (本番環境では変更を推奨)
-WEBAPP_PASSWORD = 'pass' # WebAppのデフォルトパスワード (本番環境では変更を強く推奨)
+MAX_CONCURRENT_WEBAPP_CLIENTS = 4        # WebAppの同時接続可能クライアント数(0で無制限)
+WEBAPP_USER = 'user'                     # WebAppのデフォルトユーザー名 (本番環境では変更を推奨)
+WEBAPP_PASSWORD = 'pass'                 # WebAppのデフォルトパスワード (本番環境では変更を強く推奨)
 LOGIN_PAGE_TITLE = "GR-BBS Login"
 LOGIN_PAGE_LOGO_PATH = "images/logo.png" # static/からの相対パス
-LOGIN_PAGE_MESSAGE = """Welcome to the Grass-Roots BBS.
-Please enter your ID and PASSWORD.
-guestID = `GUEST/GUEST`
-"""
+
 
 [admin]
 # 管理画面へのIPアドレスアクセス制限
