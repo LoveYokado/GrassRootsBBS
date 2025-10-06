@@ -138,7 +138,7 @@ def login():
     POSTリクエストでは、ユーザー名とパスワードによる認証、またはPasskey認証フローを開始します。
     """
     # ブラウザの言語設定からロケールを取得 (ja or en)
-    locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
+    locale = 'ja' if request.accept_languages.best_match(['ja']) else 'en'
 
     site_info = current_app.config.get('SITE_INFO', {})
     webapp_config = current_app.config.get('WEBAPP', {})
@@ -243,7 +243,7 @@ def logout():
     ユーザーセッションをクリアし、ログアウト完了ページを表示します。
     """
     # ログアウト前にロケールを取得
-    locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
+    locale = 'ja' if request.accept_languages.best_match(['ja']) else 'en'
     session.clear()
     return render_template('logout.html', lang=locale)
 
@@ -252,7 +252,7 @@ def logout():
 def privacy_policy():
     """プライバシーポリシーページを表示します。"""
     site_info = current_app.config.get('SITE_INFO', {})
-    locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
+    locale = 'ja' if request.accept_languages.best_match(['ja']) else 'en'
     return render_template('privacy_policy.html', lang=locale, site_info=site_info)
 
 
@@ -260,7 +260,7 @@ def privacy_policy():
 def contact():
     """お問い合わせフォームの表示と処理を行います。"""
     site_info = current_app.config.get('SITE_INFO', {})
-    locale = request.accept_languages.best_match(['ja', 'en']) or 'ja'
+    locale = 'ja' if request.accept_languages.best_match(['ja']) else 'en'
     text_data = {
         'all_fields_required': util.get_text_by_key('contact_page.all_fields_required', locale, 'All fields are required.'),
         'send_failed_admin': util.get_text_by_key('contact_page.send_failed_admin', locale, 'Failed to send message. Please contact the administrator.'),

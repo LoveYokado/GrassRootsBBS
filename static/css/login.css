@@ -203,7 +203,9 @@ button:active {
 
 .static-container .japanese-section h2,
 .static-container .japanese-section p,
-.static-container .japanese-section li {
+.static-container .japanese-section li,
+.static-container .english-section p,
+.static-container .english-section li {
   color: #99cc99;
 }
 
