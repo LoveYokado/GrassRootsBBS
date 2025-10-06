@@ -15,7 +15,10 @@
             <h1>プライバシーポリシー</h1>
 
             <h2>1. はじめに</h2>
-            <p>ウェブアプリ「GrassRootsBBS」（以下、「当サービス」といいます）を運営する <strong>[【事業者名または運営者名】]</strong>
+            <p>ウェブアプリ「GrassRootsBBS」上で提供される「<strong>{{ site_info.server_name | default('[サーバー名]')
+                    }}</strong>」（以下、「当サービス」といいます）を運営する
+                <strong>{{ site_info.operator_name | default('[事業者名または運営者名]')
+                    }}</strong>
                 （以下、「当運営」といいます）は、ユーザーの皆様（以下、「ユーザー」といいます）からお預かりする個人情報の重要性を認識し、その適切な取扱いと保護を重要な責務と考えます。本プライバシーポリシーは、当サービスにおける個人情報の収集、利用、管理について定めます。
             </p>
 
@@ -77,21 +80,22 @@
 
             <h2>8. お問い合わせ窓口</h2>
             <p id="contact-info">個人情報の開示・訂正・利用停止等のご請求、または本ポリシーに関するご質問は、以下の窓口にご連絡ください。</p>
-            <p><strong>メールアドレス:</strong> [連絡先メールアドレスをここに記載]</p>
-            <p><strong>X (Twitter):</strong> <a href="[ご自身のXアカウントのURL]" target="_blank"
-                    rel="noopener noreferrer">[ご自身のXアカウントID]</a>
+            <p><strong>メールアドレス:</strong> {{ site_info.contact_email | default('[連絡先メールアドレス]') }}</p>
+            <p><strong>X (Twitter):</strong> <a href="{{ site_info.contact_x_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_x_url }}</a>
             </p>
-            <p><strong>Threads:</strong> <a href="[ご自身のThreadsアカウントのURL]" target="_blank"
-                    rel="noopener noreferrer">[ご自身のThreadsアカウントID]</a></p>
-            <p><strong>Bluesky:</strong> <a href="[ご自身のBlueskyアカウントのURL]" target="_blank"
-                    rel="noopener noreferrer">[ご自身のBlueskyアカウントID]</a></p>
+            <p><strong>Threads:</strong> <a href="{{ site_info.contact_threads_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_threads_url }}</a></p>
+            <p><strong>Bluesky:</strong> <a href="{{ site_info.contact_bluesky_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_bluesky_url }}</a></p>
         </div>
         {% else %}
         <div class="english-section">
 
             <h1>Privacy Policy</h1>
             <h2>1. Introduction</h2>
-            <p>This Privacy Policy explains how <strong>[Your Company/Operator Name]</strong> (hereinafter referred to
+            <p>This Privacy Policy explains how <strong>{{ site_info.operator_name | default('[Your Company/Operator
+                    Name]') }}</strong> (hereinafter referred to
                 as "we," "us," or "our") collects, uses, and manages personal information for the web application
                 "GrassRootsBBS" (hereinafter referred to as "the Service"). We recognize the importance of the personal
                 information entrusted to us by our users and consider its proper handling and protection to be a
@@ -160,13 +164,13 @@
             <h2 id="contact-info-en">8. Contact Information</h2>
             <p>For requests regarding the disclosure, correction, or suspension of use of personal information, or for
                 any questions regarding this policy, please contact us at the following:</p>
-            <p><strong>Email:</strong> [Your contact email address here]</p>
-            <p><strong>X (Twitter):</strong> <a href="[Your X Account URL]" target="_blank"
-                    rel="noopener noreferrer">[Your X Account ID]</a></p>
-            <p><strong>Threads:</strong> <a href="[Your Threads Account URL]" target="_blank"
-                    rel="noopener noreferrer">[Your Threads Account ID]</a></p>
-            <p><strong>Bluesky:</strong> <a href="[Your Bluesky Account URL]" target="_blank"
-                    rel="noopener noreferrer">[Your Bluesky Account ID]</a></p>
+            <p><strong>Email:</strong> {{ site_info.contact_email | default('[Your contact email address here]') }}</p>
+            <p><strong>X (Twitter):</strong> <a href="{{ site_info.contact_x_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_x_url }}</a></p>
+            <p><strong>Threads:</strong> <a href="{{ site_info.contact_threads_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_threads_url }}</a></p>
+            <p><strong>Bluesky:</strong> <a href="{{ site_info.contact_bluesky_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_bluesky_url }}</a></p>
         </div>
         {% endif %}
 
