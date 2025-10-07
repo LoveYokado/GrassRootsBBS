@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
+"""コマンド実行コンテキストモジュール。"""
+
 
 class CommandContext:
     """コマンド実行に必要なコンテキスト情報をカプセル化するクラス。
-
-    各コマンドハンドラに渡され、ユーザーセッション情報、サーバー設定、
+    各コマンドハンドラに渡され、ユーザーセッション、サーバー設定、
     クライアントとの通信チャンネルなどへの統一されたアクセスを提供します。
     """
 
@@ -17,35 +18,35 @@ class CommandContext:
 
     @property
     def login_id(self) -> str:
-        """ログインID（ユーザー名）。"""
+        """ログインID (ユーザー名) を返します。"""
         return self._user_session.get('username')
 
     @property
     def display_name(self) -> str:
-        """表示名。"""
+        """表示名を返します。GUESTの場合はIPアドレスから生成された名前になります。"""
         return self._user_session.get('display_name')
 
     @property
     def user_id(self) -> int:
-        """ユーザーID（主キー）。"""
+        """データベース上のユーザーID (主キー) を返します。"""
         return self._user_session.get('user_id')
 
     @property
     def user_level(self) -> int:
-        """ユーザーレベル。"""
+        """ユーザーの権限レベルを返します。"""
         return self._user_session.get('userlevel')
 
     @property
     def menu_mode(self) -> str:
-        """メニューモード ('1', '2', '3', '4')。"""
+        """現在のメニュー表示モード ('1', '2', '3', '4') を返します。"""
         return self._user_session.get('menu_mode', '2')
 
     @menu_mode.setter
     def menu_mode(self, value: str):
-        """メニューモードをセッションに設定します。"""
+        """メニュー表示モードをセッションに設定します。"""
         self._user_session['menu_mode'] = value
 
     @property
     def ip_address(self) -> str:
-        """クライアントのIPアドレス。"""
+        """クライアントのIPアドレスを返します。"""
         return self.chan.ip_address
