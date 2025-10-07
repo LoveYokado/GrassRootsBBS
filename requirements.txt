@@ -16,3 +16,4 @@ APScheduler
 psutil
 opencv-python-headless
 Pillow
+requests

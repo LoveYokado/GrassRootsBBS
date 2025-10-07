@@ -18,7 +18,7 @@ from logging.handlers import RotatingFileHandler
 import redis
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from flask import Flask, Response
+from flask import Flask, Response, session
 from flask import request
 from markupsafe import escape, Markup
 from flask_session import Session
@@ -168,6 +168,26 @@ def create_app():
         # Socket.IO関連のパスは events.py で処理するため、このチェックをスキップ
         if request.path.startswith('/socket.io'):
             return
+
+        # --- Proxy/VPN/Torチェック ---
+        security_config = app.config.get('SECURITY', {})
+        if security_config.get('block_proxies', False):
+            remote_ip_str = util.get_client_ip()
+            if remote_ip_str:
+                is_proxy, reason = util.is_proxy_connection(remote_ip_str)
+                if is_proxy:
+                    logging.warning(
+                        f"Proxy/VPN/Torからのアクセスをブロックしました。IP: {remote_ip_str}, Reason: {reason}")
+                    database.log_access_event(
+                        ip_address=remote_ip_str, event_type='PROXY_BLOCKED',
+                        username=session.get('username'), display_name=session.get('display_name'),
+                        message=f"Blocked proxy/hosting access ({reason})."
+                    )
+                    locale = 'ja' if request.accept_languages.best_match(
+                        ['ja']) else 'en'
+                    error_message = util.get_text_by_key(
+                        'common_messages.proxy_access_denied', locale)
+                    return Response(error_message, status=403, content_type="text/plain; charset=utf-8")
 
         # このチェックを管理画面のIP制限より先に行う
         try:

@@ -29,6 +29,22 @@ def init_events(socketio, app):
     @socketio.on('connect')
     def handle_connect(auth=None):
         """新しいクライアントのWebSocket接続を処理し、セッションを初期化します。"""
+        # --- Proxy/VPN/Torチェック ---
+        security_config = current_app.config.get('SECURITY', {})
+        if security_config.get('block_proxies', False):
+            remote_ip_str = util.get_client_ip()
+            if remote_ip_str:
+                is_proxy, reason = util.is_proxy_connection(remote_ip_str)
+                if is_proxy:
+                    logging.warning(
+                        f"Proxy/VPN/TorからのWebSocket接続をブロックしました。IP: {remote_ip_str}, Reason: {reason}")
+                    database.log_access_event(
+                        ip_address=remote_ip_str, event_type='PROXY_BLOCKED',
+                        username=session.get('username'), display_name=session.get('display_name'),
+                        message=f"Blocked proxy/hosting WebSocket connection ({reason})."
+                    )
+                    return False  # 接続を拒否
+
         # --- IP BANチェック ---
         # HTTPリクエストだけでなく、WebSocket接続時にもBANチェックを行う
         try:
