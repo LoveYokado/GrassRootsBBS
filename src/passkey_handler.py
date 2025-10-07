@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-Passkey (WebAuthn) ハンドラ
- 
+"""Passkey (WebAuthn) ハンドラ。
+
 このモジュールは、Passkey (WebAuthn) 認証のバックエンドロジックを扱います。
-登録および認証オプションの生成と、クライアントの認証器 (例: 指紋スキャナ、 
+登録および認証オプションの生成と、クライアントの認証器（例: 指紋スキャナ、
 セキュリティキー）からのレスポンスの検証を担当します。
 """
 
@@ -32,9 +31,7 @@ from . import database, util
 
 
 def _get_rp_info():
-    """Relying Party (RP) のIDと名前を config.toml から取得するヘルパー関数。
-    RPは、WebAuthn認証を要求するウェブサイトやアプリケーション (このBBS) を指します。
-    """
+    """Relying Party (RP) のIDと名前を config.toml から取得するヘルパー関数。"""
     webapp_config = util.app_config.get('webapp', {})
     rp_id = webapp_config.get('RP_ID', 'localhost')
     rp_name = webapp_config.get('BBS_NAME', 'GR-BBS')
@@ -121,7 +118,7 @@ def verify_registration_for_user(user_id, credential, expected_challenge, expect
 
 
 def generate_authentication_options_for_user(username):
-    """指定されたユーザーのPasskey認証オプションを生成します。ユーザー名が空の場合は、Discoverable Credential (パスワードレス) 用のオプションを生成します。"""
+    """指定されたユーザーのPasskey認証オプションを生成します。"""
     rp_id, _ = _get_rp_info()
     allow_credentials = []
 

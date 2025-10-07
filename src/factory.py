@@ -34,15 +34,14 @@ socketio = SocketIO()
 
 
 def create_app():
-    """
-    Flaskアプリケーションインスタンスを作成し、設定を初期化します。
+    """Flaskアプリケーションインスタンスを作成し、設定を初期化します。
 
     このファクトリ関数は、アプリケーションの全体的な設定（設定ファイルの読み込み、
     ロギング、ディレクトリ作成）、Blueprintの登録、エラーハンドリング、
     拡張機能（レートリミット、セッション管理など）の初期化を担当します。
 
     Returns:
-        (Flask, SocketIO): 設定済みのFlaskアプリケーションとSocketIOインスタンスのタプル。
+        tuple[Flask, SocketIO]: 設定済みのFlaskアプリとSocketIOインスタンス。
     """
     # --- パス設定 ---
     _current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -143,12 +142,12 @@ def create_app():
     # --- テンプレートコンテキストとフィルタ ---
     @app.context_processor
     def inject_util():
-        """テンプレート内で `util` モジュールの関数を使えるようにします。"""
+        """テンプレート内で `util` モジュールの関数を利用可能にします。"""
         return dict(util=util)
 
     @app.template_filter('timestamp_to_datetime')
     def timestamp_to_datetime_filter(ts):
-        """UNIXタイムスタンプを 'YYYY-MM-DD HH:MM:SS' 形式の文字列に変換するJinja2フィルタ。"""
+        """Jinja2フィルタ: UNIXタイムスタンプを日時文字列に変換します。"""
         try:
             return datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
         except (ValueError, OSError):
@@ -156,7 +155,7 @@ def create_app():
 
     @app.template_filter('nl2br')
     def nl2br_filter(s):
-        """文字列内の改行をHTMLの<br>タグに変換するJinja2フィルタ（XSS対策済み）。"""
+        """Jinja2フィルタ: 文字列内の改行をHTMLの<br>タグに変換します（XSS対策済み）。"""
         if not s:
             return ""
         # `<code>` タグなどを安全にエスケープしつつ、改行を <br> に変換する
@@ -165,7 +164,7 @@ def create_app():
     # --- リクエストフック ---
     @app.before_request
     def check_ip_ban():
-        """各リクエストの前に、アクセス元のIPアドレスがBANリストに含まれていないかチェックします。"""
+        """各リクエストの前に、アクセス元のIPがBANリストに含まれていないかチェックします。"""
         # Socket.IO関連のパスは events.py で処理するため、このチェックをスキップ
         if request.path.startswith('/socket.io'):
             return
@@ -190,11 +189,7 @@ def create_app():
 
     @app.before_request
     def restrict_admin_access_by_ip():
-        """
-        管理画面 (`/admin`) へのアクセスをIPアドレスで制限します。
-
-        `config.toml` の `[admin]` セクションで `ip_restriction_enabled` が `True` の場合にのみ有効になります。
-        """
+        """管理画面 (`/admin`) へのアクセスをIPアドレスで制限します。"""
         if request.path.startswith(admin_prefix):
             if not admin_config.get('ip_restriction_enabled', False):
                 return
@@ -214,11 +209,7 @@ def create_app():
 
     @app.after_request
     def add_security_headers(response):
-        """
-        すべてのレスポンスにセキュリティ関連のHTTPヘッダーを追加します。
-
-        Content-Security-Policy (CSP) などを含み、XSSなどの攻撃に対する防御を強化します。
-        """
+        """すべてのレスポンスにセキュリティ関連のHTTPヘッダーを追加します。"""
         csp = (
             "default-src 'self';"
             "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net https://code.jquery.com https://stackpath.bootstrapcdn.com https://fonts.googleapis.com;"
@@ -251,11 +242,7 @@ def create_app():
 
     # --- スケジュールジョブ (バックアップ) ---
     def scheduled_backup_job():
-        """
-        定期的に実行されるバックアップジョブ。
-
-        `apscheduler` によって呼び出され、バックアップ作成後に古いファイルをクリーンアップします。
-        """
+        """定期的に実行されるバックアップジョブ。"""
         with app.app_context():
             logging.info("Starting scheduled backup job...")
             filename = backup_util.create_backup()

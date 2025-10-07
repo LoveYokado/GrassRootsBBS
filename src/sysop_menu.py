@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-シスオペメニューハンドラ
- 
+"""シスオペメニューハンドラ。
+
 このモジュールは、BBSを管理するための管理者機能を含むシスオペメニューの
-ユーザーインターフェースとロジックを提供します。ユーザー管理、掲示板の作成・削除、 
+ユーザーインターフェースとロジックを提供します。ユーザー管理、掲示板の作成・削除、
 システム全体の設定、その他の高度な管理タスクが含まれます。
 """
 
@@ -19,10 +18,7 @@ from . import util, database
 
 
 def _handle_list_bbs_links(chan, _sysop_login_id, menu_mode):
-    """
-    シスオペメニューで承認済みのBBSリンクの一覧を表示します。
-    この関数は承認済みのリンクのみを表示します。
-    """
+    """シスオペメニューで承認済みのBBSリンクの一覧を表示します。"""
     util.send_text_by_key(chan, "sysop_menu.bbs_list.list_header", menu_mode)
     links = database.get_bbs_links()
     if not links:
@@ -37,7 +33,7 @@ def _handle_list_bbs_links(chan, _sysop_login_id, menu_mode):
 
 
 def _handle_add_bbs_link(chan, _sysop_login_id, menu_mode):
-    """シスオペメニューでBBSリンクを対話的に追加します。"""
+    """シスオペメニューでBBSリンクを対話形式で追加します。"""
     util.send_text_by_key(
         chan, "sysop_menu.bbs_list.add_name_prompt", menu_mode, add_newline=False)
     name = chan.process_input()
@@ -65,7 +61,7 @@ def _handle_add_bbs_link(chan, _sysop_login_id, menu_mode):
 
 
 def _handle_modify_bbs_link(chan, sysop_login_id, menu_mode):
-    """シスオペメニューでBBSリンクを対話的に編集します。"""
+    """シスオペメニューでBBSリンクを対話形式で編集します。"""
     _handle_list_bbs_links(chan, sysop_login_id, menu_mode)
     util.send_text_by_key(
         chan, "sysop_menu.bbs_list.modify_id_prompt", menu_mode, add_newline=False)
@@ -95,7 +91,7 @@ def _handle_modify_bbs_link(chan, sysop_login_id, menu_mode):
 
 
 def _handle_delete_bbs_link(chan, sysop_login_id, menu_mode):
-    """シスオペメニューでBBSリンクを対話的に削除します。"""
+    """シスオペメニューでBBSリンクを対話形式で削除します。"""
     _handle_list_bbs_links(chan, sysop_login_id, menu_mode)
     util.send_text_by_key(
         chan, "sysop_menu.bbs_list.delete_id_prompt", menu_mode, add_newline=False)
@@ -120,10 +116,7 @@ def _handle_delete_bbs_link(chan, sysop_login_id, menu_mode):
 
 
 def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
-    """
-    シスオペメニューを表示し、ユーザーの入力に基づいてコマンドをディスパッチします。
-    この関数は、シスオペ専用の対話的なコマンドラインインターフェースを提供します。
-    """
+    """シスオペメニューを表示し、ユーザーの入力に基づいてコマンドをディスパッチします。"""
     # --- Command Dispatch Table / コマンドディスパッチテーブル ---
     command_dispatch = {
         'sswr': read_default_exploration_list,
@@ -174,7 +167,7 @@ def sysop_menu(chan, sysop_login_id, sysop_display_name, current_menu_mode):
 
 
 def read_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
-    """サーバーのデフォルト探索リストを読み込んで表示します。"""
+    """サーバーのデフォルト探索リストを読み込み、表示します。"""
     server_prefs_dict = database.read_server_pref()
     if not server_prefs_dict:
         logging.error("サーバ設定の読み込みに失敗しました。")
@@ -188,7 +181,7 @@ def read_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
 
 
 def write_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
-    """シスオペに新しいデフォルト探索リストの入力を促し、保存します。"""
+    """シスオペに新しいデフォルト探索リストの入力を促し、DBに保存します。"""
     def save_func(exploration_list_str):
         return database.update_record(
             'server_pref',
@@ -200,7 +193,7 @@ def write_default_exploration_list(chan, _sysop_login_id, current_menu_mode):
 
 
 def manage_passkeys_by_sysop(chan, sysop_login_id, current_menu_mode):
-    """シスオペが特定のユーザーのPasskeyを管理するためのメニューです。"""
+    """シスオペが特定のユーザーのPasskeyを管理するためのメニューを表示します。"""
     util.send_text_by_key(
         chan, "sysop_menu.passkey_management.header", current_menu_mode)
 
@@ -293,7 +286,7 @@ def manage_passkeys_by_sysop(chan, sysop_login_id, current_menu_mode):
 
 
 def change_login_message(chan, _sysop_login_id, current_menu_mode):
-    """ユーザーログイン時に表示されるグローバルなメッセージを変更します。"""
+    """ユーザーログイン時に表示されるグローバルメッセージを変更します。"""
     util.send_text_by_key(
         chan, "sysop_menu.change_login_message.header", current_menu_mode)
 
@@ -378,7 +371,7 @@ def toggle_online_signup(chan, _sysop_login_id, current_menu_mode):
 
 
 def user_list(chan, _sysop_login_id, current_menu_mode):
-    """登録されている全ユーザーの一覧を表示します。"""
+    """登録されている全ユーザーの一覧をクライアントに表示します。"""
     try:
         users = database.get_all_users()
         if users:
@@ -493,10 +486,7 @@ def user_register(chan, _sysop_login_id, current_menu_mode):
 
 
 def _get_target_user(chan, prompt_key, current_menu_mode):
-    """
-    ユーザー名の入力を促し、検証済みのユーザーデータを返すヘルパー関数です。
-    ユーザーが見つからない場合や操作がキャンセルされた場合は None を返します。
-    """
+    """ユーザー名の入力を促し、検証済みのユーザーデータを返すヘルパー関数。"""
     util.send_text_by_key(
         chan, prompt_key, current_menu_mode, add_newline=False)
     user_input = chan.process_input()
@@ -552,7 +542,7 @@ def user_delete(chan, sysop_login_id, current_menu_mode):
 
 
 def view_settings(chan, _sysop_login_id, current_menu_mode):
-    """現在のサーバー権限設定を表示します。"""
+    """現在のサーバー権限設定をクライアントに表示します。"""
     server_prefs_dict = database.read_server_pref()
     if server_prefs_dict:
         # server_prefテーブルから読み込んだ辞書を直接使用する
@@ -698,7 +688,7 @@ def change_user_level(chan, sysop_login_id, current_menu_mode):
 
 
 def change_user_password_by_sysop(chan, sysop_login_id, current_menu_mode):
-    """シスオペがユーザーのパスワードを再発行できるようにします。"""
+    """シスオペがユーザーのパスワードを再発行する機能を提供します。"""
     util.send_text_by_key(
         chan, "sysop_menu.change_user_password.header", current_menu_mode)
 
@@ -742,7 +732,7 @@ def change_user_password_by_sysop(chan, sysop_login_id, current_menu_mode):
 
 
 def system_quit(chan, _sysop_login_id, current_menu_mode):
-    """サーバーを強制的にシャットダウンします。"""
+    """サーバーを安全にシャットダウンします。"""
     util.send_text_by_key(
         chan, "sysop_menu.system_quit.header", current_menu_mode)
     util.send_text_by_key(chan, "common_messages.confirm_yn",
@@ -759,7 +749,7 @@ def system_quit(chan, _sysop_login_id, current_menu_mode):
 
 
 def make_board(chan, sysop_login_id, current_menu_mode):
-    """新しいBBS掲示板の対話的な作成処理をハンドリングします。"""
+    """新しいBBS掲示板の対話形式での作成処理をハンドリングします。"""
     util.send_text_by_key(
         chan, "sysop_menu.make_board.header_direct", current_menu_mode)
     shortcut_id = ""
@@ -1012,7 +1002,7 @@ def delete_board(chan, _sysop_login_id, current_menu_mode):
 
 
 def list_boards(chan, _sysop_login_id, current_menu_mode):
-    """データベースに登録されている全掲示板の一覧を表示します。"""
+    """データベースに登録されている全掲示板の一覧をクライアントに表示します。"""
     boards = database.get_all_boards_for_sysop_list()
     if not boards:
         util.send_text_by_key(
@@ -1064,7 +1054,7 @@ def list_boards(chan, _sysop_login_id, current_menu_mode):
 
 
 def change_board_full_settings(chan, sysop_login_id, current_menu_mode):
-    """特定の掲示板の全設定を変更するための対話的なプロンプトを提供します。"""
+    """特定の掲示板の全設定を変更するための対話形式のプロンプトを提供します。"""
     util.send_text_by_key(
         chan, "sysop_menu.change_board_full.header", current_menu_mode)
 

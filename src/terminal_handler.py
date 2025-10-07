@@ -119,8 +119,8 @@ class WebTerminalHandler:
         self.log_buffer = []
         self.mail_notified_this_session = False
         self.main_thread_active = True
-        self.pending_attachment = None
-        self.is_mobile = False
+        self.pending_attachment = None  # 添付ファイル用の一時的な情報
+        self.is_mobile = self.user_session.get('menu_mode') == '4'
 
         # クライアントのUIを制御するためのカスタムエスケープシーケンスのパターン
         # これらのシーケンスはBPS遅延の影響を受けずに一括で送信する必要がある

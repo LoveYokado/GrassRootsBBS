@@ -6,11 +6,13 @@
 
 class CommandContext:
     """コマンド実行に必要なコンテキスト情報をカプセル化するクラス。
+
     各コマンドハンドラに渡され、ユーザーセッション、サーバー設定、
     クライアントとの通信チャンネルなどへの統一されたアクセスを提供します。
     """
 
     def __init__(self, chan, user_session, server_pref, online_members_func):
+        """CommandContextのコンストラクタ。"""
         self.chan = chan
         self._user_session = user_session
         self.server_pref = server_pref

@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-バックアップ・リストアユーティリティ
+"""バックアップ・リストアユーティリティ。
 
 このモジュールは、フルバックアップの作成 (データベース + 指定ディレクトリ)、
-バックアップアーカイブからのデータ復元、全アプリケーションデータの消去、 
-古いバックアップファイルのクリーンアップといったデータ管理機能を提供します。 
+バックアップアーカイブからのデータ復元、全アプリケーションデータの消去、
+古いバックアップファイルのクリーンアップといったデータ管理機能を提供します。
 """
 
 import os
@@ -22,11 +21,10 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 
 def create_backup():
-    """
-    データベース、添付ファイル、設定ファイルを一つのアーカイブにまとめてバックアップします。
+    """データベース、添付ファイル、設定ファイルを一つのアーカイブにまとめてバックアップします。
 
-    :return: 作成されたバックアップファイル名 (例: 'grbbs_backup_20250101_120000.tar.gz')。 
-             失敗した場合はNoneを返します。
+    Returns:
+        str or None: 作成されたバックアップファイル名。失敗した場合はNone。
     """
     # --- 設定ファイルからバックアップ設定を読み込む ---
     backup_config = util.app_config.get('backup', {})
@@ -109,12 +107,15 @@ def create_backup():
 
 
 def restore_from_backup(filename):
-    """
-    指定されたバックアップファイルからデータをリストアします。
+    """指定されたバックアップファイルからデータをリストアします。
+
     この操作は現在のデータを上書きするため、非常に破壊的です。
 
-    :param filename: リストア対象のバックアップファイル名。
-    :return: 成功した場合は True、失敗した場合は False を返します。
+    Args:
+        filename (str): リストア対象のバックアップファイル名。
+
+    Returns:
+        bool: 成功した場合はTrue、失敗した場合はFalse。
     """
     # --- 設定ファイルからバックアップ設定を読み込む ---
     backup_config = util.app_config.get('backup', {})
@@ -204,15 +205,16 @@ def restore_from_backup(filename):
 
 
 def wipe_all_data():
-    """
-    全てのBBSデータを削除し、システムを初期状態に戻します。
+    """全てのBBSデータを削除し、システムを初期状態に戻します。
+
     この操作は元に戻せません。
 
     - 添付ファイルや設定ファイルなど、指定されたディレクトリを削除します。
     - データベースの全テーブルを削除します。
     - データベースを再初期化し、シスオペアカウントを再作成します。
 
-    :return: 成功した場合は True、失敗した場合は False を返します。
+    Returns:
+        bool: 成功した場合はTrue、失敗した場合はFalse。
     """
     try:
         # --- 1. 対象ディレクトリを削除 ---
@@ -275,10 +277,7 @@ def wipe_all_data():
 
 
 def cleanup_old_backups():
-    """
-    古いバックアップファイルをクリーンアップします。
-    `config.toml` の `[scheduler]` セクションにある `max_backups` の設定値に基づいて、保持する数を決定します。
-    """
+    """古いバックアップファイルをクリーンアップします。"""
     scheduler_config = util.app_config.get('scheduler', {})
     max_backups = scheduler_config.get('max_backups', 0)
 

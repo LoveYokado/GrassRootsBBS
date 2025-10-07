@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-カスタムデコレータ
+"""カスタムデコレータ。
 
 このモジュールは、Flaskのルートで使用するカスタムデコレータを定義します。
 デコレータはビュー関数をラップし、ページへのアクセスを許可する前に
@@ -14,10 +13,7 @@ from flask import session, redirect, url_for, flash
 
 
 def sysop_required(f):
-    """
-    ユーザーがSysOp (user_level == 5) であることを確認するデコレータ。
-    未ログインの場合はログインページへ、権限がない場合はターミナル画面へリダイレクトします。
-    """
+    """ユーザーがSysOp (user_level == 5) であることを確認するデコレータ。"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:  # ログインしているかチェック

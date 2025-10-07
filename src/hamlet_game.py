@@ -2,11 +2,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-ハムレットゲーム（四目並べ）
- 
+"""ハムレットゲーム（四目並べ）。
+
 このモジュールは、プロジェクトの元となったBBSソフトウェア「BIG-Model」に
-付属していたゲームへのオマージュとして、「ハムレットゲーム」と名付けられた 
+付属していたゲームへのオマージュとして、「ハムレットゲーム」と名付けられた
 「コネクトフォー」風のゲームを実装します。
 1人プレイ用に、単純なヒューリスティックベースのAIを搭載しています。
 """
@@ -39,10 +38,7 @@ def create_board():
 
 
 def drop_piece(board, col, player):
-    """
-    指定された列にプレイヤーの駒を落とします。
-    成功した場合はTrue、列が満杯の場合はFalseを返します。
-    """
+    """指定された列にプレイヤーの駒を落とします。"""
     for r in range(ROWS - 1, -1, -1):
         if board[r, col] == EMPTY:
             board[r, col] = player
@@ -51,15 +47,12 @@ def drop_piece(board, col, player):
 
 
 def is_valid_location(board, col):
-    """指定された列に駒を置けるか (盤の範囲内で、一番上が空いているか) をチェックします。"""
+    """指定された列に駒を置けるか（盤の範囲内で、一番上が空いているか）をチェックします。"""
     return 0 <= col < COLS and board[0, col] == EMPTY  # 盤の範囲内で、一番上が空いているか
 
 
 def check_win(board, player):
-    """
-    指定されたプレイヤーが `CONNECT_N` 個連続で駒を並べたかどうかをチェックします。
-    縦、横、斜め (両方向) をチェックします。
-    """
+    """指定されたプレイヤーが勝利条件を満たしたか（CONNECT_N個連続）をチェックします。"""
     # 横方向のチェック
     for r in range(ROWS):
         for c in range(COLS - CONNECT_N + 1):
@@ -97,10 +90,7 @@ def get_valid_locations(board):
 
 
 def evaluate_position(board, player):
-    """
-    現在の盤面を指定されたプレイヤーにとってどれだけ有利かを評価します。
-    ここでは、単純にリーチに近い形 (3連+空き1マスなど) の数を数えます。
-    """
+    """現在の盤面を指定されたプレイヤーにとってどれだけ有利かを評価するヒューリスティック関数。"""
     score = 0
     # 横方向の評価
     for r in range(ROWS):
@@ -145,7 +135,7 @@ def evaluate_position(board, player):
 
 
 def ai_choose_column_heuristic(board):
-    """AIがヒューリスティックに基づいて最適な列を選ぶ戦略です。"""
+    """AIがヒューリスティックに基づいて最適な列を選択する戦略。"""
     valid_cols = get_valid_locations(board)
     if not valid_cols:
         return -1
@@ -218,7 +208,7 @@ def get_player_symbol(player_id):
 
 
 def run_game_vs_ai(chan, menu_mode):
-    """人間 対 AI のゲームを実行するメインループです。"""
+    """人間 対 AI のゲームを実行するメインループ。"""
     board = create_board()
     game_over = False
     turn = 0

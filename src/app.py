@@ -1,10 +1,9 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-アプリケーションエントリポイント
+"""アプリケーションエントリポイント。
 
-これは、Gunicornや開発サーバーの直接実行時に使用されるアプリケーションの
+これは、Gunicornや開発サーバーから直接実行される際の、
 アプリケーションのメインエントリポイントです。
 `factory.create_app()` を呼び出して、設定済みのFlaskアプリケーションインスタンスを生成します。
 """
