@@ -18,7 +18,7 @@ from logging.handlers import RotatingFileHandler
 import redis
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-from flask import Flask, Response
+from flask import Flask, Response, session
 from flask import request
 from markupsafe import escape, Markup
 from flask_session import Session
