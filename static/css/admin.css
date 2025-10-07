@@ -121,7 +121,7 @@ h5 {
   background-color: #1a1a1a;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid #444;
-  display: flex; /* 常に表示 */
+  display: none; /* デフォルトでは非表示、モバイルで表示 */
 }
 
 .hamburger-btn {
@@ -142,18 +142,21 @@ h5 {
 
 /* --- レスポンシブ対応 --- */
 @media (max-width: 768px) {
+  .main {
+    margin-left: 0;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
   body.sidebar-open .sidebar {
     transform: translateX(0);
   }
-}
 
-/* --- 既存のスタイル調整 --- */
-.has-sidebar.sidebar-closed .sidebar {
-  transform: translateX(-100%);
-}
-
-.has-sidebar.sidebar-closed .main {
-  margin-left: 0;
+  .navbar {
+    display: flex;
+  }
 }
 
 /* --- テーブル --- */
