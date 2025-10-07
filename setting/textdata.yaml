@@ -2262,6 +2262,13 @@ common_messages:
     mode_1: "権限がありません。\r\n"
     mode_2: "権限がありません。\r\n"
     mode_3: "Permission denied.\r\n"
+  proxy_access_denied:
+    ja: |
+      おっと、そこからは入れない決まりなんだ。
+      (匿名プロキシ経由のアクセスはブロックされました)
+    en: |
+      Oops, you can't enter from there.
+      (Access via anonymous proxy was blocked)
 
 # --- 15. Hamlet Game / ハムレットゲーム関連 ---
 hamlet_game:

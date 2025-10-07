@@ -183,7 +183,11 @@ def create_app():
                         username=session.get('username'), display_name=session.get('display_name'),
                         message=f"Blocked proxy/hosting access ({reason})."
                     )
-                    return Response('Access via proxies is not allowed.', status=403)
+                    locale = 'ja' if request.accept_languages.best_match(
+                        ['ja']) else 'en'
+                    error_message = util.get_text_by_key(
+                        'common_messages.proxy_access_denied', locale)
+                    return Response(error_message, status=403, content_type="text/plain; charset=utf-8")
 
         # このチェックを管理画面のIP制限より先に行う
         try:
