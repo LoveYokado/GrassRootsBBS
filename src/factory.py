@@ -169,6 +169,22 @@ def create_app():
         if request.path.startswith('/socket.io'):
             return
 
+        # --- Proxy/VPN/Torチェック ---
+        security_config = app.config.get('SECURITY', {})
+        if security_config.get('block_proxies', False):
+            remote_ip_str = util.get_client_ip()
+            if remote_ip_str:
+                is_proxy, reason = util.is_proxy_connection(remote_ip_str)
+                if is_proxy:
+                    logging.warning(
+                        f"Proxy/VPN/Torからのアクセスをブロックしました。IP: {remote_ip_str}, Reason: {reason}")
+                    database.log_access_event(
+                        ip_address=remote_ip_str, event_type='PROXY_BLOCKED',
+                        username=session.get('username'), display_name=session.get('display_name'),
+                        message=f"Blocked proxy/hosting access ({reason})."
+                    )
+                    return Response('Access via proxies is not allowed.', status=403)
+
         # このチェックを管理画面のIP制限より先に行う
         try:
             banned_ips = database.get_all_ip_bans()

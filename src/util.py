@@ -22,6 +22,7 @@ import string
 from flask import request
 import json
 import base64
+import requests
 from pywebpush import webpush, WebPushException
 from PIL import Image
 import socket
@@ -965,6 +966,36 @@ def create_thumbnail(original_path, thumbnail_path, size=(100, 100)):
     thumbnail_dir = os.path.dirname(thumbnail_path)
     os.makedirs(thumbnail_dir, exist_ok=True)
 
+
+def is_proxy_connection(ip_address: str) -> (bool, str):
+    """
+    指定されたIPアドレスがプロキシ、VPN、またはTor出口ノードであるかを判定します。
+    ip-api.com のサービスを利用します。
+
+    Args:
+        ip_address (str): チェックするIPアドレス。
+
+    Returns:
+        tuple[bool, str]: (ブロック対象かどうか, 判定理由) のタプル。
+                          例: (True, "proxy"), (False, "residential")
+    """
+    # ローカルホストやプライベートIPはチェック対象外
+    if ip_address in ('127.0.0.1', '::1') or ip_address.startswith('192.168.') or ip_address.startswith('10.') or ip_address.startswith('172.'):
+        return False, "local/private"
+
+    try:
+        # ip-api.comのエンドポイント
+        url = f"http://ip-api.com/json/{ip_address}?fields=status,message,proxy,hosting"
+        response = requests.get(url, timeout=2)  # 2秒のタイムアウト
+        response.raise_for_status()
+        data = response.json()
+
+        if data.get('status') == 'success' and (data.get('proxy') or data.get('hosting')):
+            return True, "proxy/hosting"
+        return False, "residential"
+    except requests.exceptions.RequestException as e:
+        logging.error(f"IP APIへの接続に失敗しました ({ip_address}): {e}")
+        return False, "api_error"  # APIエラー時は安全のためブロックしない
     try:
         with Image.open(original_path) as img:
             # 画像の向きをEXIF情報に基づいて補正

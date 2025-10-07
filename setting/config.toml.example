@@ -63,6 +63,11 @@ PBKDF2_ROUNDS = 100000
 # Salt for generating guest IDs. Change this to a random string.
 GUEST_ID_SALT = "your_unique_random_string_here"
 
+# --- Proxy/VPN/Tor Blocking ---
+# trueに設定すると、ip-api.comを使用してプロキシやホスティング経由の接続をブロックします。
+# この機能は外部APIへの問い合わせを行うため、パフォーマンスに影響を与える可能性があります。
+block_proxies = false
+
 # ログイン試行回数の上限
 # Maximum number of login attempts.
 MAX_PASSWORD_ATTEMPTS = 3
