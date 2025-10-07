@@ -9,15 +9,6 @@ body {
   color: #00ff00 !important;
 }
 
-.main-content {
-  padding: 2em 2em 2em 2em;
-}
-
-/* サイドバーを持つページのメインコンテンツのマージン調整 */
-.has-sidebar .main-content {
-  margin-left: 240px; /* サイドバーの幅と合わせる */
-}
-
 .container,
 .container-fluid {
   max-width: 1200px;
@@ -32,7 +23,7 @@ h5 {
   color: #00ff00;
 }
 
-/* --- サイドバー --- */
+/* --- Layout & Sidebar --- */
 .sidebar {
   position: fixed; /* 画面に固定 */
   top: 0;
@@ -44,28 +35,29 @@ h5 {
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
   z-index: 100;
   overflow-y: auto; /* コンテンツが多い場合にスクロール */
+  transition: transform 0.3s ease-in-out;
 }
 
 .sidebar-header {
-  padding: 1.15rem 1.5rem;
+  padding: 1.1rem 1.5rem;
   border-bottom: 1px solid #444;
 }
 
 .sidebar-brand {
   color: #00ff00;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: bold;
   text-decoration: none;
 }
 
 .sidebar-nav {
-  padding: 1rem 0;
+  padding: 0;
   list-style: none;
 }
 
 .sidebar-header,
 .sidebar-item {
-  padding: 0.75rem 1.5rem;
+  /* padding: 0.75rem 1.5rem; */
 }
 
 .sidebar-header {
@@ -81,13 +73,18 @@ h5 {
   text-align: center;
 }
 
+.sidebar-item.dashboard-link {
+  border-top: 1px solid #444;
+  border-bottom: 1px solid #444;
+}
+
 .sidebar-item {
   padding: 0;
 }
 
 .sidebar-link {
   display: block;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 1.5rem;
   color: #ccc;
   text-decoration: none;
   transition: background-color 0.2s;
@@ -110,21 +107,53 @@ h5 {
   margin-right: 0.75rem;
 }
 
-/* --- メインコンテンツエリア --- */
 .main {
+  margin-left: 240px;
+  transition: margin-left 0.3s ease-in-out;
+}
+
+.content {
   padding: 2rem;
+}
+
+/* --- Navbar for Hamburger --- */
+.navbar {
+  background-color: #1a1a1a;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #444;
+  display: flex; /* 常に表示 */
+}
+
+.hamburger-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background-color: #00ff00;
+  margin: 5px 0;
+  transition: 0.3s;
 }
 
 /* --- レスポンシブ対応 --- */
 @media (max-width: 768px) {
-  .has-sidebar .main-content {
-    margin-left: 0;
+  body.sidebar-open .sidebar {
+    transform: translateX(0);
   }
+}
 
-  .sidebar {
-    /* モバイルでは非表示にするか、トグル式にするなどの対応が必要 */
-    display: none;
-  }
+/* --- 既存のスタイル調整 --- */
+.has-sidebar.sidebar-closed .sidebar {
+  transform: translateX(-100%);
+}
+
+.has-sidebar.sidebar-closed .main {
+  margin-left: 0;
 }
 
 /* --- テーブル --- */
