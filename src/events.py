@@ -440,11 +440,15 @@ def init_events(socketio, app):
         handler = terminal_handler.client_states.get(sid)
         if handler:
             handler.is_mobile = data.get('is_mobile', False)
-            # モバイル判定時に menu_mode を '4' (モバイル専用) に上書き
             if handler.is_mobile:
+                # モバイルの場合は、この接続セッションでのみモード4に上書き
                 handler.user_session['menu_mode'] = '4'
+            else:
+                # デスクトップの場合は、ログイン時に設定された本来のモードに戻す
+                handler.user_session['menu_mode'] = session.get(
+                    'menu_mode', '2')
             logging.info(
-                f"Client mode set for SID {sid}: is_mobile={handler.is_mobile}")
+                f"Client mode set for SID {sid}: is_mobile={handler.is_mobile}, menu_mode={handler.user_session.get('menu_mode')}")
 
     @socketio.on('multiline_input_submit')
     def handle_multiline_input_submit(data):
