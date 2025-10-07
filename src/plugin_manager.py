@@ -3,13 +3,12 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-プラグインマネージャ
- 
+"""プラグインマネージャ。
+
 このモジュールは、プラグインの発見、読み込み、実行を担当します。
 専用の 'plugins' ディレクトリをスキャンし、各プラグインの 'plugin.toml'
 ファイルからメタデータを読み込み、依存関係をチェックし、ホストアプリケーションと
-安全に対話するためのサンドボックス化されたAPIを提供します。 
+安全に対話するためのサンドボックス化されたAPIを提供します。
 """
 
 import os
@@ -33,10 +32,7 @@ _loaded_plugins = {}
 
 
 def load_plugins():
-    """
-    'plugins' ディレクトリをスキャンし、メタデータ、依存関係、DB設定をチェックして、 
-    有効なすべてのプラグインをロードします。
-    """
+    """'plugins' ディレクトリをスキャンし、有効な全てのプラグインをロードします。"""
     global _loaded_plugins
     _loaded_plugins = {}
     logging.info("プラグインの読み込みを開始します...")
@@ -113,11 +109,7 @@ def load_plugins():
 
 
 def get_loaded_plugins():
-    """
-    ロード済みのプラグインのリストを、BBSのプラグインメニュー表示用に整形して返します。 
-
-    :return: プラグイン情報の辞書のリスト。
-    """
+    """ロード済みのプラグインのリストを、メニュー表示用に整形して返します。"""
     plugins_list = []
     for plugin_id, plugin_data in _loaded_plugins.items():
         plugins_list.append({
@@ -130,11 +122,7 @@ def get_loaded_plugins():
 
 
 def run_plugin(plugin_id, context):
-    """
-    指定されたIDのプラグインを実行します。 
-    プラグインには機能が制限された安全なAPIを持つコンテキストが提供され、
-    config.tomlで定義されたタイムアウトの対象となります。
-    """
+    """指定されたIDのプラグインを実行します。"""
     # config.tomlからタイムアウト値を取得
     plugins_config = util.app_config.get('plugins', {})
     timeout_seconds = plugins_config.get('execution_timeout', 60)
@@ -172,10 +160,7 @@ def run_plugin(plugin_id, context):
 
 
 def get_all_available_plugins():
-    """
-    'plugins' ディレクトリをスキャンし、利用可能な全てのプラグインの情報を返します。 
-    データベースから取得した有効/無効の状態も含まれ、主に管理画面で使用されます。
-    """
+    """利用可能な全てのプラグインの情報を、DBの有効/無効状態と合わせて返します。"""
     available_plugins = []
     if not os.path.isdir(PLUGINS_DIR):
         return []

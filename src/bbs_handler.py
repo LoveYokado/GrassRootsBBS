@@ -1,12 +1,11 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-掲示板ハンドラ
- 
+"""掲示板ハンドラ。
+
 このモジュールは、電子掲示板システム (BBS) のナビゲーションと対話に関する
 中核的なロジックを含んでいます。記事一覧の表示、記事の読み書き、返信の管理、
-特定の掲示板コンテキスト内でのユーザーコマンドの処理などを担当します。 
+特定の掲示板コンテキスト内でのユーザーコマンドの処理などを担当します。
 """
 
 import logging
@@ -21,7 +20,8 @@ from . import util, hierarchical_menu, bbs_manager, database, manual_menu_handle
 
 class CommandHandler:
     """
-    特定の掲示板内でのユーザー操作とコマンド処理を管理するクラス。 
+    特定の掲示板内でのユーザー操作とコマンド処理を管理するクラス。
+
     インスタンスは、ユーザーが掲示板に入室するたびに作成されます。
     """
 
@@ -112,10 +112,7 @@ class CommandHandler:
         self._display_kanban()
 
     def command_loop(self):
-        """
-        掲示板のトップレベル（書き込み/読み込み選択）のコマンド処理ループ。 
-        ユーザーが 'w' (書き込み) または 'r' (読み込み) を選択するのを待ち受けます。
-        """
+        """掲示板のトップレベル（書き込み/読み込み選択）のコマンド処理ループ。"""
         if not self.current_board:
             util.send_text_by_key(
                 self.chan, "bbs.no_board_selected", self.menu_mode)
@@ -177,11 +174,7 @@ class CommandHandler:
             self.chan.send(b'\x1b[?2030l')
 
     def show_article_list(self, display_initial_header=True, last_login_timestamp=0):
-        """
-        記事一覧を表示し、ユーザーのナビゲーション入力を処理するメインループ。 
-        カーソル移動、記事の読み込み、削除、検索などの操作を扱います。
-        """
-
+        """記事一覧を表示し、ユーザーのナビゲーション入力を処理するメインループ。"""
         # モバイル用の操作ボタンを表示するエスケープシーケンスを送信
         self.chan.send(b'\x1b[?2024h')  # パネル表示
 
@@ -198,10 +191,7 @@ class CommandHandler:
         article_id_width = 5  # 記事番号桁数
 
         def reload_articles_display(keep_index=True):
-            """
-            データベースから記事リストを再読み込みし、表示を更新します。 
-            既読状態やカーソル位置も再計算します。
-            """
+            """データベースから記事リストを再読み込みし、表示を更新します。"""
             nonlocal articles, current_index, article_id_width, display_initial_header, last_login_timestamp
             current_article_id_on_reload = None
 
@@ -274,9 +264,7 @@ class CommandHandler:
             display_initial_header = True
 
         def display_current_article_header():
-            """
-            現在のカーソル位置に基づいて、記事のヘッダー行またはマーカーを表示します。 
-            """
+            """現在のカーソル位置に基づいて、記事のヘッダー行またはマーカーを表示します。"""
             nonlocal articles, current_index, article_id_width
             if current_index == -1:  # 先頭マーカ
                 marker_num_str = "0" * article_id_width
@@ -1665,10 +1653,13 @@ class CommandHandler:
         return reply_prefix_simple + original_title
 
     def write_article(self, parent_article=None):
-        """
-        記事を新規作成します。スレッドへの返信もこの関数で処理します。 
-        :param parent_article: 返信対象の親記事データ。新規スレッドの場合はNone。
-        :return: 処理結果を示す文字列 ('posted', 'cancelled', 'failed')。
+        """記事を新規作成します。スレッドへの返信もこの関数で処理します。
+
+        Args:
+            parent_article (dict, optional): 返信対象の親記事データ。新規スレッドの場合はNone。
+
+        Returns:
+            str: 処理結果を示す文字列 ('posted', 'cancelled', 'failed')。
         """
         if not self.current_board:
             util.send_text_by_key(
@@ -1905,11 +1896,12 @@ class CommandHandler:
 
 
 def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_address):
-    """
-    BBS機能のエントリーポイントです。 
+    """BBS機能のエントリーポイント。
+
     ショートカットIDが指定されていれば直接その掲示板へ、なければメニューを表示する。
     メニューモードに応じて、手書きメニュー(mode 1)と階層メニュー(mode 2, 3)を切り替える。
     """
+
     handler = CommandHandler(
         chan, login_id, display_name, menu_mode, ip_address)
     if shortcut_id:

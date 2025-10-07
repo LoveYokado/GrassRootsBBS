@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-Webアプリケーションのルート定義。
+"""Webアプリケーションのルート定義。
 
 このモジュールは、ログイン、ログアウト、メインのターミナルページといった、
 アプリケーションの標準的なWebルートを定義します。FlaskのBlueprintを
@@ -27,14 +26,7 @@ web_bp = Blueprint('web', __name__)
 
 
 def base64url_to_bytes(s: str) -> bytes:
-    """Base64URLでエンコードされた文字列をバイト列にデコードします。
-
-    Args:
-        s: Base64URLでエンコードされた文字列。
-
-    Returns:
-        デコードされたバイト列。
-    """
+    """Base64URLでエンコードされた文字列をバイト列にデコードします。"""
     s_bytes = s.encode('utf-8')
     rem = len(s_bytes) % 4
     if rem > 0:
@@ -70,11 +62,7 @@ def service_worker():
 @web_bp.route('/')
 @login_required
 def index():
-    """メインのターミナルページを描画します。
-
-    ログイン済みのユーザーに対して、ターミナルUIを表示します。
-    ファンクションキーの定義、各種設定値、Push通知用のVAPID公開鍵などをテンプレートに渡します。
-    """
+    """メインのターミナルページを描画します。"""
     menu_mode = session.get('menu_mode', '2')
     fkey_definitions = {
         "f1": {"label": "SETTING", "action": "open_popup"},
@@ -132,11 +120,7 @@ def index():
 @web_bp.route('/login', methods=['GET', 'POST'])
 @extensions.limiter.limit("10 per minute")
 def login():
-    """ログインページと認証処理をハンドリングします。
-
-    GETリクエストではログインページを表示します。
-    POSTリクエストでは、ユーザー名とパスワードによる認証、またはPasskey認証フローを開始します。
-    """
+    """ログインページの表示と認証処理をハンドリングします。"""
     # ブラウザの言語設定からロケールを取得 (ja or en)
     locale = 'ja' if request.accept_languages.best_match(['ja']) else 'en'
 
@@ -165,7 +149,7 @@ def login():
         if not is_guest and session.get('lockout_expiration', 0) > time.time():
             remaining_time = session.get('lockout_expiration', 0) - time.time()
             error = util.get_text_by_key("auth.account_locked_temporary", session.get(
-                'menu_mode', locale)).format(remaining_time=remaining_time)
+                'menu_mode', locale), default_value="Account is temporarily locked. Please try again in {remaining_time:.0f} seconds.").format(remaining_time=remaining_time)
             return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
 
         user_auth_info = database.get_user_auth_info(username)
@@ -196,7 +180,13 @@ def login():
             session['user_id'] = user_auth_info['id']
             session['username'] = user_auth_info['name']
             session['userlevel'] = user_auth_info['level']
-            session['menu_mode'] = user_auth_info.get('menu_mode', '2')
+            # User-Agentを見てモバイル判定
+            user_agent = request.user_agent.string.lower()
+            is_mobile = 'mobi' in user_agent or 'android' in user_agent or 'iphone' in user_agent
+            if is_mobile:
+                session['menu_mode'] = '4'
+            else:
+                session['menu_mode'] = user_auth_info.get('menu_mode', '2')
             logging.info(f"WebUI Login Success: {username}")
             database.log_access_event(ip_address=util.get_client_ip(),
                                       event_type='LOGIN_SUCCESS',
@@ -238,10 +228,7 @@ def login():
 
 @web_bp.route('/logout')
 def logout():
-    """ログアウト処理を行います。
-
-    ユーザーセッションをクリアし、ログアウト完了ページを表示します。
-    """
+    """ログアウト処理を行い、ユーザーセッションをクリアします。"""
     # ログアウト前にロケールを取得
     locale = 'ja' if request.accept_languages.best_match(['ja']) else 'en'
     session.clear()
@@ -258,7 +245,7 @@ def privacy_policy():
 
 @web_bp.route('/contact', methods=['GET', 'POST'])
 def contact():
-    """お問い合わせフォームの表示と処理を行います。"""
+    """お問い合わせフォームの表示と、メッセージの送信処理を行います。"""
     site_info = current_app.config.get('SITE_INFO', {})
     locale = 'ja' if request.accept_languages.best_match(['ja']) else 'en'
     text_data = {
@@ -377,7 +364,13 @@ def passkey_verify_login():
         session['user_id'] = user_data['id']
         session['username'] = user_data['name']
         session['userlevel'] = user_data['level']
-        session['menu_mode'] = user_data.get('menu_mode', '2')
+        # User-Agentを見てモバイル判定
+        user_agent = request.user_agent.string.lower()
+        is_mobile = 'mobi' in user_agent or 'android' in user_agent or 'iphone' in user_agent
+        if is_mobile:
+            session['menu_mode'] = '4'
+        else:
+            session['menu_mode'] = user_data.get('menu_mode', '2')
         database.log_access_event(ip_address=util.get_client_ip(),
                                   event_type='LOGIN_SUCCESS',
                                   user_id=user_data['id'], username=user_data['name'], display_name=user_data['name'], message='Passkey authentication successful.')
@@ -391,11 +384,7 @@ def passkey_verify_login():
 @web_bp.route('/attachments/<path:filename>')
 @login_required
 def download_attachment(filename):
-    """添付ファイルまたはサムネイルを配信します。
-
-    Args:
-        filename: 配信するファイル名。サムネイルの場合は 'thumbnails/' プレフィックスが付与されます。
-    """
+    """添付ファイルまたはサムネイルを配信します。"""
     is_thumbnail = filename.startswith('thumbnails/')
     actual_filename = filename.replace(
         'thumbnails/', '') if is_thumbnail else filename
@@ -419,11 +408,7 @@ def download_attachment(filename):
 @web_bp.route('/download_log/<path:filename>')
 @login_required
 def download_log(filename):
-    """保存されたセッションログファイルをダウンロードさせます。
-
-    Args:
-        filename: ダウンロードするログファイル名。
-    """
+    """保存されたセッションログファイルをダウンロードさせます。"""
     session_log_dir = current_app.config.get('SESSION_LOG_DIR')
     return send_from_directory(session_log_dir, filename, as_attachment=True)
 
@@ -431,12 +416,7 @@ def download_log(filename):
 @web_bp.route('/plugins/<plugin_id>/js/<path:filename>')
 @login_required
 def serve_plugin_js(plugin_id, filename):
-    """プラグイン専用のJavaScriptファイルを配信します。
-
-    Args:
-        plugin_id: プラグインのID。
-        filename: 配信するJavaScriptファイル名。
-    """
+    """プラグイン専用のJavaScriptファイルを配信します。"""
     # パストラバーサル攻撃を防ぐための基本的な検証
     if '..' in plugin_id or '/' in plugin_id or '\\' in plugin_id:
         return "Invalid plugin ID", 400
@@ -451,12 +431,7 @@ def serve_plugin_js(plugin_id, filename):
 @web_bp.route('/plugins/<plugin_id>/static/<path:filename>')
 @login_required
 def serve_plugin_static(plugin_id, filename):
-    """プラグイン専用の静的ファイル(CSS, 画像など)を配信します。
-
-    Args:
-        plugin_id: プラグインのID。
-        filename: 配信する静的ファイル名。
-    """
+    """プラグイン専用の静的ファイル(CSS, 画像など)を配信します。"""
     # パストラバーサル攻撃を防ぐための基本的な検証
     if '..' in plugin_id or '/' in plugin_id or '\\' in plugin_id:
         return "Invalid plugin ID", 400

@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-階層メニューエンジン
- 
+"""階層メニューエンジン。
+
 このモジュールは、YAML設定ファイルで定義された、入れ子構造の
-テキストベースメニューを作成・ナビゲートするための汎用エンジンを提供します。 
+テキストベースメニューを作成・ナビゲートするための汎用エンジンを提供します。
 """
 
 import logging
@@ -16,6 +15,7 @@ from . import util, database
 
 class MenuEngine:
     def __init__(self, chan, config_path, menu_mode, menu_type, enrich_boards=False):
+        """MenuEngineのコンストラクタ。"""
         self.chan = chan
         self.config_path = config_path
         self.menu_mode = menu_mode
@@ -36,7 +36,7 @@ class MenuEngine:
             return False
 
     def _enrich_board_items(self, items):
-        """掲示板アイテムのリストに、データベースから名前と説明を補完します。"""
+        """掲示板アイテムに、DBから名前と説明を補完します。"""
         if not items:
             return []
         enriched_items = []
@@ -119,7 +119,7 @@ class MenuEngine:
             return "continue"
 
     def run(self):
-        """階層メニューを処理するメインループです。"""
+        """階層メニューを処理するメインループ。"""
         if not self._load_config() or 'categories' not in self.config:
             util.send_text_by_key(
                 self.chan, "common_messages.error", self.menu_mode)
@@ -162,7 +162,7 @@ class MenuEngine:
 
 
 def handle_hierarchical_menu(chan, config_path: str, menu_mode: str, menu_type: str, enrich_boards: bool = False):
-    """階層メニューを処理するためのエントリーポイントとなるラッパー関数です。"""
+    """階層メニューを処理するためのエントリーポイントとなるラッパー関数。"""
     menu = MenuEngine(chan, config_path, menu_mode,
                       menu_type, enrich_boards)
     return menu.run()

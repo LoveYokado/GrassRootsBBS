@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-カスタムエラーハンドラ
- 
+"""カスタムエラーハンドラ。
+
 このモジュールは、404 (Not Found) や 500 (Internal Server Error) といった
-一般的なHTTPエラーに対するカスタムエラーページを定義します。これにより、 
+一般的なHTTPエラーに対するカスタムエラーページを定義します。これにより、
 デフォルトのエラーページよりもユーザーフレンドリーな体験を提供します。
 """
 

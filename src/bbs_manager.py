@@ -1,14 +1,12 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""
-BBS ビジネスロジックマネージャ
- 
+"""BBS ビジネスロジックマネージャ。
+
 このモジュールは、電子掲示板システム (BBS) のビジネスロジックを
 カプセル化するマネージャクラスを含んでいます。これらのクラスは、
 リクエストハンドラ (例: bbs_handler.py) とデータベースアクセス層
-(database.py) の中間層として機能し、掲示板、記事、権限に関連する
-操作を処理します。
+(database.py) の中間層として機能し、掲示板、記事、権限に関連する操作を処理します。
 """
 
 import logging
@@ -72,7 +70,6 @@ class ArticleManager:
     """記事の作成、読み込み、更新、削除 (CRUD) 操作を管理するクラスです。"""
 
     def __init__(self):
-        # データベース接続はグローバルな database モジュールを介して行われます。
         pass
 
     def get_articles_by_board(self, board_id, include_deleted=False):
@@ -80,7 +77,7 @@ class ArticleManager:
         return database.get_articles_by_board_id(board_id, order_by="created_at ASC, article_number ASC", include_deleted=include_deleted)
 
     def get_new_articles(self, board_id, last_login_timestamp):
-        """指定された掲示板の、指定時刻以降の未削除記事を取得する。"""
+        """指定された掲示板の、指定時刻以降の未削除記事を取得します。"""
         return database.get_new_articles_for_board(board_id, last_login_timestamp)
 
     def get_article_by_number(self, board_id, article_number, include_deleted=False):
@@ -89,11 +86,14 @@ class ArticleManager:
             board_id, article_number, include_deleted=include_deleted)
 
     def create_article(self, board_id_pk, user_identifier, title, body, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None, attachment_size=None):
-        """記事を新規作成します。 
+        """記事を新規作成します。
 
-        :param board_id_pk: 掲示板の主キー (boards.id)
-        :param user_identifier: ユーザーの主キー (users.id) またはゲストの表示名 (文字列)
-        :return: 成功した場合は作成された記事のID、失敗した場合はNoneを返します。
+        Args:
+            board_id_pk (int): 掲示板の主キー (boards.id)。
+            user_identifier (int or str): ユーザーの主キー (users.id) またはゲストの表示名。
+
+        Returns:
+            int or None: 成功した場合は作成された記事のID、失敗した場合はNone。
         """
         conn = None
         cursor = None
@@ -182,19 +182,10 @@ class PermissionManager:
     """掲示板や記事へのアクセス権限を管理・検証するクラスです。"""
 
     def __init__(self):
-        # データベース接続はグローバルな database モジュールを介して行われます。
         pass
 
     def _check_generic_permission(self, board_info, user_id_pk, user_level, level_key):
-        """
-        汎用的な権限チェックロジック（主に閲覧権限で使用）です。
-        権限は以下の順序で評価されます。
-
-        1. SysOp (level >= 5) は常に許可。
-        2. ユーザー固有の `allow`/`deny` 設定が最優先。
-        3. 掲示板の `default_permission` が `close` の場合、原則拒否。
-        4. 上記以外（`open` または `readonly`）の場合、ユーザーレベルと要求レベルを比較。
-        """
+        """汎用的な権限チェックロジック。"""
         if user_level >= 5:
             return True  # SysOpは常に許可
 
