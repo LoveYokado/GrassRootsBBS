@@ -158,8 +158,50 @@ def _process_texts_for_mode(node, menu_mode):
 @admin_bp.before_request
 def load_admin_texts():
     """各リクエストの前に、ユーザーのメニューモードに応じたテキストデータをロードします。"""
+    # --- テキストデータのロード ---
     menu_mode = session.get('menu_mode', '3')
     g.texts = _process_texts_for_mode(util.load_master_text_data(), menu_mode)
+
+    # --- ナビゲーション構造の定義 ---
+    # 各項目のテキストは g.texts から動的に取得
+    nav_texts = g.texts.get('nav', {})
+    g.nav_structure = [
+        {
+            'group_title': nav_texts.get('user_management_group', 'User Management'),
+            'nav_items': [
+                {'title': nav_texts.get('who_online', "Who's Online"),
+                 'endpoint': 'admin.who_online'},
+                {'title': nav_texts.get('user_management', 'User Management'),
+                 'endpoint': 'admin.user_list'},
+            ]
+        },
+        {
+            'group_title': nav_texts.get('content_management_group', 'Content Management'),
+            'nav_items': [
+                {'title': nav_texts.get('board_management', 'BBS Management'),
+                 'endpoint': 'admin.bbs_management'},
+                {'title': nav_texts.get('chat_management', 'Chat Management'),
+                 'endpoint': 'admin.chat_management'},
+                {'title': nav_texts.get('content_management', 'Content Management'),
+                 'endpoint': 'admin.content_management'},
+                {'title': nav_texts.get('bbs_list_management', 'BBS List Management'),
+                 'endpoint': 'admin.bbs_list'},
+            ]
+        },
+        {
+            'group_title': nav_texts.get('system_management_group', 'System Management'),
+            'nav_items': [
+                {'title': nav_texts.get('system_settings', 'System Settings'),
+                 'endpoint': 'admin.system_settings'},
+                {'title': nav_texts.get('plugins', 'Plugin Management'),
+                 'endpoint': 'admin.plugin_management'},
+                {'title': nav_texts.get('access_management', 'Access Management'),
+                 'endpoint': 'admin.access_management'},
+                {'title': nav_texts.get('data_management', 'Data Management'),
+                 'endpoint': 'admin.backup_management'},
+            ]
+        }
+    ]
 
 
 @admin_bp.route('/')
@@ -1117,125 +1159,6 @@ def restart_server():
     return redirect(url_for('admin.dashboard'))
 
 
-@admin_bp.route('/access-log')
-@sysop_required
-def access_log_viewer():
-    """ログビューア。DBのアクセスログとファイルのエラーログを閲覧します。"""
-    page = request.args.get('page', 1, type=int)
-    search_ip = request.args.get('ip', '')
-    search_user = request.args.get('user', '')
-    search_event = request.args.get('event', '')
-    sort_by = request.args.get('sort_by', 'timestamp')
-    order = request.args.get('order', 'desc')
-    per_page = request.args.get('per_page', 15, type=int)
-    if page < 1:
-        page = 1
-
-    # --- Error Log Reading ---
-    error_logs = []
-    try:
-        log_dir = os.path.join(current_app.config['PROJECT_ROOT'], 'logs')
-        error_log_path = os.path.join(log_dir, 'grbbs.error.log')
-        if os.path.exists(error_log_path):
-            with open(error_log_path, 'r', encoding='utf-8') as f:
-                # Read lines and reverse to show newest first
-                error_logs = f.readlines()[::-1]
-    except Exception as e:
-        flash(f"Error reading error log file: {e}", 'danger')
-    # --- End Error Log Reading ---
-
-    try:
-        logs, total_items = database.get_access_logs(
-            page=page,
-            per_page=per_page,
-            ip_address=search_ip,
-            username=search_user,
-            event_type=search_event,
-            sort_by=sort_by,
-            order=order
-        )
-        total_pages = (total_items + per_page - 1) // per_page
-    except Exception as e:
-        flash(f"Error retrieving access logs: {e}", 'danger')
-        logs = []
-        total_items = 0
-        total_pages = 0
-
-    search_params = {
-        'ip': search_ip,
-        'user': search_user,
-        'event': search_event,
-        'sort_by': sort_by,
-        'order': order,
-        'per_page': per_page
-    }
-
-    search_params_for_per_page = search_params.copy()
-    search_params_for_per_page.pop('per_page', None)
-
-    pagination = {
-        'page': page,
-        'per_page': per_page,
-        'total_items': total_items,
-        'total_pages': total_pages,
-        'has_prev': page > 1,
-        'has_next': page < total_pages
-    }
-
-    next_order = 'desc' if order == 'asc' else 'asc'
-
-    return render_template('admin/log_viewer.html', title=g.texts.get('access_log', {}).get('title', 'Access Log Viewer'), logs=logs, error_logs=error_logs, search_params=search_params, search_params_for_per_page=search_params_for_per_page, pagination=pagination,
-                           sort_by=sort_by, order=order, next_order=next_order)
-
-
-@admin_bp.route('/ip_bans', methods=['GET', 'POST'])
-@sysop_required
-def ip_ban_list():
-    """IPアドレスによるアクセス制限（BAN）管理。IP/CIDRブロックからのアクセスを拒否します。"""
-    ip_to_ban = request.args.get('ip_address', '')
-    if request.method == 'POST':
-        action = request.form.get('action')
-
-        if action == 'add':
-            ip_address = request.form.get('ip_address', '').strip()
-            reason = request.form.get('reason', '').strip()
-            if not ip_address:
-                flash('IP Address/CIDR is required.', 'danger')
-            else:
-                try:
-                    # 入力されたIP/CIDRが妥当か検証
-                    ipaddress.ip_network(ip_address, strict=False)
-                    if database.add_ip_ban(ip_address, reason, session.get('user_id')):
-                        flash(f'Successfully banned {ip_address}.', 'success')
-                    else:
-                        flash(
-                            f'Failed to ban {ip_address}. The IP address/CIDR might already exist in the ban list.', 'danger')
-                except ValueError:
-                    flash(
-                        f'Invalid IP Address or CIDR notation: {ip_address}', 'danger')
-
-        elif action == 'delete':
-            ban_id = request.form.get('id')
-            if ban_id:
-                if database.delete_ip_ban(ban_id):
-                    flash('IP ban rule has been removed.', 'success')
-                else:
-                    flash('Failed to remove IP ban rule.', 'danger')
-
-        return redirect(url_for('admin.ip_ban_list'))
-
-    try:
-        bans = database.get_all_ip_bans()
-        user_ids = {ban['added_by'] for ban in bans if ban.get('added_by')}
-        user_map = database.get_user_names_from_user_ids(list(user_ids))
-    except Exception as e:
-        flash(f"Error retrieving IP ban list: {e}", 'danger')
-        bans = []
-        user_map = {}
-
-    return render_template('admin/ip_ban_list.html', title="IP Ban Management", bans=bans, user_map=user_map, ip_to_ban=ip_to_ban)
-
-
 @admin_bp.route('/chatrooms', methods=['GET', 'POST'])
 @sysop_required
 def chat_management():
@@ -1665,7 +1588,7 @@ def access_management():
         next_order = 'desc' if order == 'asc' else 'asc'
 
         return render_template(
-            'admin/access_management.html', title='Access Management', tab='logs',
+            'admin/log_viewer.html', title='Access Management', tab='logs',
             logs=logs, error_logs=error_logs, search_params=search_params,
             search_params_for_per_page=search_params_for_per_page, pagination=pagination,
             sort_by=sort_by, order=order, next_order=next_order,
@@ -1683,7 +1606,7 @@ def access_management():
             bans, user_map = [], {}
 
         return render_template(
-            'admin/access_management.html', title="Access Management", tab='bans',
+            'admin/log_viewer.html', title="Access Management", tab='bans',
             bans=bans, user_map=user_map, ip_to_ban=ip_to_ban,
             # Dummy data for logs tab
             logs=[], error_logs=[], search_params={}, search_params_for_per_page={},

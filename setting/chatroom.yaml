@@ -1,151 +1,138 @@
-# ==============================================================================
-# チャットルームメニュー設定
-#
-# このファイルは、チャット機能で表示されるメニューの階層構造を定義します。
-# システムはこのファイルを読み込み、ユーザーがチャットルームを選択するための
-# メニューを動的に生成します。このファイルはWeb管理画面から編集可能です。
-#
-# 構造:
-#   categories:
-#     - 階層構造を持つカテゴリのリスト。
-#   global:
-#     - カテゴリに属さず、トップレベルに表示されるルームのリスト。
-#
-# 各項目の属性:
-#   - id: カテゴリやルームを一意に識別するためのID。
-#   - number: (任意) 同じ階層内での表示順。
-#   - name: 表示名。
-#   - description: (任意) 短い説明文。
-#   - type: "child" (サブカテゴリ) または "room" (入室可能なチャットルーム)。
-#   - push: (任意, roomのみ) `True`の場合、誰かが入室した際にPush通知を送信します。
-#   - lock: (任意, roomのみ) `True`の場合、ルームのロック機能が利用可能になります。
-#   - items: ("child"の場合のみ必須) サブカテゴリやルームのリスト。
-# ==============================================================================
-
-# --- Categories / カテゴリ階層 ---
-# `categories`キーの下に、トップレベルのカテゴリをリスト形式で定義します。
 categories:
-  - id: "chat_free"
-    number: 1 # 親階層での表示順
-    name: "フリーチャット"
-    description: | # 概要説明（複数行対応）
-      話題に限定はありません。
-      初心者の方からベテランまで、どなたでもお気軽にご参加ください。
-    type: "child"
-    # `items`キーで、このカテゴリ直下のルームやサブカテゴリを定義します。
-    items:
-      - id: "chat_free1"
-        number: 1 # 表示順
-        name: "フリールーム１"
-        description: "どなたでもどうぞ！"
-        type: "room"
-        lock: False
-        push: False # 入室時にPush通知を送信しない
-      - id: "chat_free2"
-        number: 2
-        name: "フリールーム２"
-        description: "まったりお話ししましょう。"
-        type: "room"
-        lock: False
-        push: False
-      - id: "lonely_room"
-        number: 3
-        name: "淋しいやつのための部屋"
-        description: "プッシュ通知を許可してる人に通知が送られます。きっと誰か来てくれる。と思う。"
-        type: "room"
-        lock: True
-        push: True # 入室時にPush通知を送信する
-      - id: "chat_deep_dive"
-        number: 4
-        name: "フリー深堀りトピック"
-        description: |
-          フリーチャットルームの特定の話題を深く掘り下げる場所です。
-          議論が白熱しやすい内容はこちらへどうぞ。
-        type: "child"
-        items:
-          - id: "chat_deep_a"
-            number: 1
-            name: "深掘り部屋A"
-            type: "room"
-            lock: False
-          - id: "chat_expert_discussion"
-            number: 2
-            name: "フリー専門議論"
-            description: |
-              さらに専門的なフリーテーマを議論する場です。
-              特定の分野に精通した方向け。
+- id: chat_free
+  number: 1
+  name: フリーチャット
+  description: '話題に限定はありません。
 
-            items:
-              - id: "expert_room_alpha"
-                number: 1
-                name: "アルファ専門室"
-                lock: False
-                type: "room"
-            type: "child"
-  - id: "chat_specialized"
+    初心者の方からベテランまで、どなたでもお気軽にご参加ください。
+
+    '
+  type: child
+  items:
+  - id: chat_free1
+    number: 1
+    name: フリールーム１
+    description: どなたでもどうぞ！
+    type: room
+    lock: false
+    push: false
+  - id: chat_free2
     number: 2
-    name: "専門チャット"
-    description: |
-      特定のテーマに特化したチャットルームです。
-      専門的な知識や情報交換にご利用ください。
-    type: "child"
-    items:
-      - id: "chat_military"
-        number: 1
-        name: "軍事ルーム"
-        type: "room"
-        lock: False
-      - id: "chat_room_pc_related"
-        number: 2
-        name: "パソコン関連"
-        description: |
-          パソコンに関する様々な話題を扱うカテゴリです。
-          ハードウェアからソフトウェアまで。
-        type: "child"
-        items:
-          - id: "chat_pc_gen"
-            number: 1
-            name: "パソコン全般ルーム"
-            type: "room"
-            lock: False
-          - id: "chat_oldpc"
-            number: 2
-            name: "オールドPCルーム"
-            type: "room"
-            lock: False
-          - id: "chat_gaming"
-            number: 3
-            name: "ゲーミングPCルーム"
-            lock: False
-            type: "room"
-          - id: "chat_os"
-            number: 4
-            name: "OS別ルーム"
-            description: "特定のOSに特化した議論はこちら。"
-            type: "child"
-            items:
-              - id: "chat_linux"
-                number: 1
-                name: "Linuxルーム"
-                lock: False
-                type: "room"
-              - id: "chat_win"
-                number: 2
-                name: "Windowsルーム"
-                lock: False
-                type: "room"
+    name: フリールーム２
+    description: まったりお話ししましょう。
+    type: room
+    lock: false
+    push: false
+  - id: lonely_room
+    number: 3
+    name: 淋しいやつのための部屋
+    description: プッシュ通知を許可してる人に通知が送られます。きっと誰か来てくれる。と思う。
+    type: room
+    lock: true
+    push: true
+  - id: chat_deep_dive
+    number: 4
+    name: フリー深堀りトピック
+    description: 'フリーチャットルームの特定の話題を深く掘り下げる場所です。
 
-# --- Global Rooms / グローバルルーム ---
-# カテゴリに属さず、メニューのトップレベルに表示される独立したルームです。
-# 例: 規約違反の報告先、イベント告知専用など。
+      議論が白熱しやすい内容はこちらへどうぞ。
+
+      '
+    type: child
+    items:
+    - id: chat_deep_a
+      number: 1
+      name: 深掘り部屋A
+      type: room
+      lock: false
+    - id: chat_expert_discussion
+      number: 2
+      name: フリー専門議論
+      description: 'さらに専門的なフリーテーマを議論する場です。
+
+        特定の分野に精通した方向け。
+
+        '
+      items:
+      - id: expert_room_alpha
+        number: 1
+        name: アルファ専門室
+        lock: false
+        type: room
+      type: child
+- id: chat_specialized
+  number: 2
+  name: 専門チャット
+  description: '特定のテーマに特化したチャットルームです。
+
+    専門的な知識や情報交換にご利用ください。
+
+    '
+  type: child
+  items:
+  - id: chat_military
+    number: 1
+    name: 軍事ルーム
+    type: room
+    lock: false
+  - id: chat_room_pc_related
+    number: 2
+    name: パソコン関連
+    description: 'パソコンに関する様々な話題を扱うカテゴリです。
+
+      ハードウェアからソフトウェアまで。
+
+      '
+    type: child
+    items:
+    - id: chat_pc_gen
+      number: 1
+      name: パソコン全般ルーム
+      type: room
+      lock: false
+    - id: chat_oldpc
+      number: 2
+      name: オールドPCルーム
+      type: room
+      lock: false
+    - id: chat_gaming
+      number: 3
+      name: ゲーミングPCルーム
+      lock: false
+      type: room
+    - id: chat_os
+      number: 4
+      name: OS別ルーム
+      description: 特定のOSに特化した議論はこちら。
+      type: child
+      items:
+      - id: chat_linux
+        number: 1
+        name: Linuxルーム
+        lock: false
+        type: room
+      - id: chat_win
+        number: 2
+        name: Windowsルーム
+        lock: false
+        type: room
+- id: testcat
+  name: tcat
+  type: child
+  items: []
+- id: troom
+  name: troom
+  type: room
+  push: false
+  lock: false
 global:
-  - id: "chat_fight"
-    name: "喧嘩用ルーム"
-    description: "議論が白熱した場合の避難所です。ここで好きにやってください。でも後腐れないように。最後は仲直りしましょう"
-    lock: True # このルームではロック機能が利用可能です
-    type: "room"
-  - id: "chat_news"
-    name: "最新ニュースについて語る"
-    description: "最新のニュースに関する情報交換や議論にご利用ください。"
-    lock: False
-    type: "room"
+- id: chat_fight
+  name: 喧嘩用ルーム
+  description: 議論が白熱した場合の避難所です。ここで好きにやってください。でも後腐れないように。最後は仲直りしましょう
+  lock: true
+  type: room
+- id: chat_news
+  name: 最新ニュースについて語る
+  description: 最新のニュースに関する情報交換や議論にご利用ください。
+  lock: false
+  type: room
