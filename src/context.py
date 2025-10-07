@@ -37,7 +37,7 @@ class CommandContext:
 
     @property
     def menu_mode(self) -> str:
-        """メニューモード ('1', '2', '3')。"""
+        """メニューモード ('1', '2', '3', '4')。"""
         return self._user_session.get('menu_mode', '2')
 
     @menu_mode.setter

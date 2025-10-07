@@ -109,6 +109,7 @@ class WebTerminalHandler:
         self.main_thread_active = True
         self.pending_attachment = None
         self.is_mobile = False
+
         # クライアントのUIを制御するためのカスタムエスケープシーケンスのパターン
         # これらのシーケンスはBPS遅延の影響を受けずに一括で送信する必要がある
         self.control_sequence_pattern = re.compile(

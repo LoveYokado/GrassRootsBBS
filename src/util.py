@@ -235,14 +235,22 @@ def get_text_by_key(key_string, mode_or_lang, default_value=""):
 
         if isinstance(current_level_data, dict):
             # まず言語キー (ja, en) を試し、次にモードキー (mode_1, mode_2) を試す
-            if mode_or_lang in current_level_data:
-                text_value = current_level_data[mode_or_lang]
-            else:
-                mode_specific_key = f"mode_{mode_or_lang}"
-                text_value = current_level_data[mode_specific_key]
+            text_value = None
+            try:
+                if mode_or_lang in current_level_data:
+                    text_value = current_level_data[mode_or_lang]
+                else:
+                    mode_specific_key = f"mode_{mode_or_lang}"
+                    text_value = current_level_data[mode_specific_key]
+            except KeyError:
+                # mode_4 が見つからない場合に mode_2 にフォールバック
+                if mode_or_lang == '4':
+                    logging.debug(
+                        f"Key '{key_string}' not found for mode_4, falling back to mode_2.")
+                    text_value = current_level_data.get('mode_2')
 
             if text_value is None:
-                return ""  # YAMLで値が空の場合、Noneが返るので空文字列に変換
+                raise KeyError  # 見つからなかった場合は例外を発生させて、最終的なexceptブロックで処理
 
             if isinstance(text_value, list):
                 return "\r\n".join(text_value)  # 複数行の場合

@@ -440,6 +440,9 @@ def init_events(socketio, app):
         handler = terminal_handler.client_states.get(sid)
         if handler:
             handler.is_mobile = data.get('is_mobile', False)
+            # モバイル判定時に menu_mode を '4' (モバイル専用) に上書き
+            if handler.is_mobile:
+                handler.user_session['menu_mode'] = '4'
             logging.info(
                 f"Client mode set for SID {sid}: is_mobile={handler.is_mobile}")
 
