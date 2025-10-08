@@ -1,0 +1,3 @@
+name = "Text Adventure"
+description = "Create and play simple text-based adventure games."
+entry_point = "plugins.text_adventure.game"
