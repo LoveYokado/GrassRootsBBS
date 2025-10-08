@@ -1053,6 +1053,15 @@ def toggle_plugin_status():
     return redirect(url_for('admin.plugin_management'))
 
 
+@admin_bp.route('/plugins/reload', methods=['POST'])
+@sysop_required
+def reload_plugins():
+    """プラグインを動的に再読み込みします。"""
+    plugin_manager.load_plugins()
+    flash('Plugins have been reloaded.', 'success')
+    return redirect(url_for('admin.plugin_management'))
+
+
 @admin_bp.route('/plugins/data/<plugin_id>')
 @sysop_required
 def plugin_data_view(plugin_id):

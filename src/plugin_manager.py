@@ -16,6 +16,7 @@ import importlib
 import importlib.util
 from gevent import Timeout
 import logging
+import sys
 import toml
 
 from .grbbs_api import GrbbsApi
@@ -85,7 +86,10 @@ def load_plugins():
                         f"プラグイン '{plugin_id}' の 'plugin.toml' に 'entry_point' がありません。")
                     continue
 
-                plugin_module = importlib.import_module(module_name)
+                if module_name in sys.modules:
+                    plugin_module = importlib.reload(sys.modules[module_name])
+                else:
+                    plugin_module = importlib.import_module(module_name)
 
                 if hasattr(plugin_module, 'run') and callable(plugin_module.run):
                     _loaded_plugins[plugin_id] = {

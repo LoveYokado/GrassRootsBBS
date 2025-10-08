@@ -13,7 +13,8 @@ services:
       - ./src:/app/src
       - ./setting:/app/setting
       - ./data:/app/data
-      - ./logs:/app/logs # アプリケーションログを永続化
+      - ./plugins:/app/plugins
+      - ./logs:/app/logs
       - ./private_key.pem:/app/private_key.pem:ro # 秘密鍵を読み取り専用でマウント
     # 依存関係: dbとredisが起動してからこのサービスを起動する
     depends_on:
