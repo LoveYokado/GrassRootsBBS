@@ -13,13 +13,13 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    // ハンバーガーボタンをクリックしてサイドバーを開閉
+    // ハンバーガーボタンがクリックされたら、サイドバーの表示/非表示を切り替える
     hamburgerBtn.addEventListener('click', function (e) {
         e.stopPropagation();
         document.body.classList.toggle('sidebar-open');
     });
 
-    // ドキュメントの他の部分をクリックしてサイドバーを閉じる
+    // サイドバーの外側がクリックされたら、サイドバーを閉じる
     document.addEventListener('click', function (e) {
         if (document.body.classList.contains('sidebar-open')) {
             const isClickInsideSidebar = sidebar.contains(e.target);

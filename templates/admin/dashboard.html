@@ -92,8 +92,45 @@
             Server') }}</button>
     </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
 <script>
-    // Pythonから渡された変数をグローバルJS変数として定義
-    const chartData = JSON.parse({{ chart_data | tojson }});
+    document.addEventListener('DOMContentLoaded', function () {
+        const chartData = {{ chart_data | tojson
+    }};
+    const ctx = document.getElementById('activityChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [
+                {
+                    label: '{{ g.texts.get("dashboard", {}).get("chart_new_users", "New Users") }}',
+                    data: chartData.user_registrations,
+                    borderColor: '#00ff00',
+                    backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: '{{ g.texts.get("dashboard", {}).get("chart_new_articles", "New Articles") }}',
+                    data: chartData.article_posts,
+                    borderColor: '#87cefa',
+                    backgroundColor: 'rgba(135, 206, 250, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            // ここに他のChart.jsオプションを追加できます (例: スケール、ツールチップなど)
+        }
+    });
+    });
 </script>
 {% endblock %}

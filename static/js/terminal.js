@@ -1,5 +1,5 @@
 /*
-SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+SPDX-FileCopyrightText: 2025 mid.yuki (LoveYokado)
 SPDX-License-Identifier: MIT
 */ 
 
@@ -436,6 +436,10 @@ const bbsDetailName = document.getElementById('bbs-detail-name');
 const bbsDetailDescription = document.getElementById('bbs-detail-description');
 const bbsListJumpBtn = document.getElementById('bbs-list-jump-btn');
 let currentBbsLinks = [];
+/**
+ * Base64でエンコードされたUTF-8文字列をデコードします。
+ * @param {string} str - Base64エンコードされた文字列
+ */
 
 const bbsSubmissionOverlay = document.getElementById('bbs-submission-overlay'); 
 const bbsSubmissionWindow = document.getElementById('bbs-submission-window');
@@ -450,6 +454,7 @@ function b64DecodeUnicode(str) {
     }).join(''));
 }
 
+// マルチラインエディタ内のANSIカラーボタンがクリックされたときの処理
 ansiControls.addEventListener('click', (e) => {
     if (e.target.tagName === 'BUTTON' && e.target.dataset.sequence) {
         const sequenceCode = e.target.dataset.sequence;
@@ -465,11 +470,12 @@ ansiControls.addEventListener('click', (e) => {
         let newStart;
         let newEnd;
 
+        // クリアシーケンスの場合
         if (sequenceCode === '[0m') {
             newText = text.substring(0, start) + startSequence + text.substring(end);
             newStart = start + startSequence.length;
             newEnd = newStart;
-        } else if (selectedText) {
+        } else if (selectedText) { // テキストが選択されている場合
             const replacement = startSequence + selectedText + endSequence;
             newText = text.substring(0, start) + replacement + text.substring(end);
             newStart = start;
@@ -487,6 +493,9 @@ ansiControls.addEventListener('click', (e) => {
     }
 });
 
+/**
+ * マルチラインエディタのポップアップを開きます。
+ */
 function openMultilineEditor() {
     multilineEditorInput.value = '';
     multilineEditorOverlay.classList.add('visible');
@@ -494,12 +503,16 @@ function openMultilineEditor() {
     multilineEditorInput.focus();
 }
 
+/**
+ * マルチラインエディタのポップアップを閉じます。
+ */
 function closeMultilineEditor() {
     multilineEditorOverlay.classList.remove('visible');
     multilineEditorWindow.classList.remove('visible');
 }
 
 multilineEditorInsertBtn.addEventListener('click', () => {
+    // 入力されたテキストをサーバーに送信
     const textToInsert = multilineEditorInput.value;
     socket.emit('multiline_input_submit', { // eslint-disable-line no-undef
         content: textToInsert
@@ -507,6 +520,9 @@ multilineEditorInsertBtn.addEventListener('click', () => {
     closeMultilineEditor();
 });
 
+/**
+ * 1行エディタのポップアップを開きます。
+ */
 function openLineEditor() {
     lineEditorInput.value = '';
     historyIndex = lineEditorHistory.length;
@@ -515,12 +531,16 @@ function openLineEditor() {
     lineEditorInput.focus();
 }
 
+/**
+ * 1行エディタのポップアップを閉じます。
+ */
 function closeLineEditor() {
     lineEditorOverlay.classList.remove('visible');
     lineEditorWindow.classList.remove('visible');
 }
 
 lineEditorInsertBtn.addEventListener('click', () => {
+    // 入力されたテキストを履歴に追加し、サーバーに送信
     const textToInsert = lineEditorInput.value;
     if (lineEditorHistory.length === 0 || lineEditorHistory[lineEditorHistory.length - 1] !== textToInsert) {
         lineEditorHistory.push(textToInsert);
@@ -529,6 +549,7 @@ lineEditorInsertBtn.addEventListener('click', () => {
     closeLineEditor();
 });
 
+// 1行エディタでのキーボードイベント（Enter, 上下矢印）を処理
 lineEditorInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
         e.preventDefault();
@@ -551,24 +572,36 @@ lineEditorInput.addEventListener('keydown', (e) => {
     }
 });
 
+/**
+ * 設定ポップアップを開きます。
+ */
 function openPopup() {
     popupOverlay.classList.add('visible');
     popupWindow.classList.add('visible');
 }
 
+/**
+ * 設定ポップアップを閉じます。
+ */
 function closePopup() {
     popupOverlay.classList.remove('visible');
     popupWindow.classList.remove('visible');
 }
 
+/**
+ * ログビューアのポップアップを開きます。
+ */
 function openLogViewer() {
-    logFilesList.innerHTML = ''; // リストをクリア
+    logFilesList.innerHTML = ''; // ファイルリストをクリア
     logContentDisplay.value = ''; // 内容をクリア
     socket.emit('get_log_files');
     logViewerOverlay.classList.add('visible');
     logViewerWindow.classList.add('visible');
 }
 
+/**
+ * ログビューアのポップアップを閉じます。
+ */
 function closeLogViewer() {
     logViewerOverlay.classList.remove('visible');
     logViewerWindow.classList.remove('visible');
@@ -590,7 +623,9 @@ function openBbsListPopup() {
     bbsListWindow.classList.add('visible');
 }
 
-// BBSリストのポップアップを閉じます。 
+/**
+ * BBSリストのポップアップを閉じます。
+ */
 function closeBbsListPopup() {
     bbsListOverlay.classList.remove('visible');
     bbsListWindow.classList.remove('visible');
@@ -606,6 +641,7 @@ bbsListJumpBtn.addEventListener('click', () => {
     }
 });
 
+// サーバーから受信したBBSリストデータを画面に描画
 socket.on('bbs_list_data', (data) => { // eslint-disable-line no-undef
     currentBbsLinks = data.links || [];
     bbsStationsList.innerHTML = ''; // リストをクリア
@@ -634,6 +670,9 @@ document.getElementById('bbs-list-submit-new-btn').addEventListener('click', () 
     bbsSubmissionWindow.classList.add('visible');
 });
 
+/**
+ * BBSリンク申請用のポップアップを閉じます。
+ */
 function closeBbsSubmissionPopup() { 
     bbsSubmissionOverlay.classList.remove('visible');
     bbsSubmissionWindow.classList.remove('visible');
@@ -642,6 +681,7 @@ function closeBbsSubmissionPopup() {
 bbsSubmissionCloseBtn.addEventListener('click', closeBbsSubmissionPopup);
 bbsSubmissionOverlay.addEventListener('click', closeBbsSubmissionPopup);
 
+// BBSリンク申請フォームの「申請」ボタンがクリックされたときの処理
 document.getElementById('bbs-submission-submit-btn').addEventListener('click', () => {
     const name = bbsSubmissionName.value.trim();
     const url = bbsSubmissionUrl.value.trim();
@@ -659,6 +699,7 @@ document.getElementById('bbs-submission-submit-btn').addEventListener('click', (
 const fkeysLeftContainer = document.getElementById('f-keys-left');
 const fkeysRightContainer = document.getElementById('f-keys-right');
 
+// ファンクションキーの定義に基づいて、画面下部のボタンを動的に生成
 for (let i = 1; i <= 8; i++) {
     const key = document.createElement('div');
     key.classList.add('f-key');
@@ -743,6 +784,11 @@ const userSelectorCancelBtn = document.getElementById('user-selector-cancel-btn'
 let selectedUser = null;
 let allUsersForSelector = []; // ユーザーリストを保持する変数
 
+/**
+ * オンラインユーザー選択ポップアップを開きます。
+ * @param {string} prompt - ポップアップに表示するプロンプトメッセージ
+ * @param {Array} userList - 選択肢となるユーザーのリスト
+ */
 function openUserSelector(prompt, userList) {
     userSelectorTitle.textContent = prompt;
     allUsersForSelector = userList; // 全ユーザーリストを保存
@@ -755,11 +801,18 @@ function openUserSelector(prompt, userList) {
     userSelectorSearch.focus();
 }
 
+/**
+ * オンラインユーザー選択ポップアップを閉じます。
+ */
 function closeUserSelector() {
     userSelectorOverlay.classList.remove('visible');
     userSelectorWindow.classList.remove('visible');
 }
 
+/**
+ * ユーザーリストを画面に描画します。
+ * @param {Array} users - 表示するユーザーのリスト
+ */
 function populateUserList(users) {
     userSelectorList.innerHTML = '';
     users.forEach(user => {
@@ -770,7 +823,7 @@ function populateUserList(users) {
     });
 }
 
-// 検索機能 
+// ユーザー選択ポップアップ内の検索機能
 userSelectorSearch.addEventListener('input', () => {
     const searchTerm = userSelectorSearch.value.toLowerCase();
     const filteredUsers = allUsersForSelector.filter(user =>
@@ -782,6 +835,7 @@ userSelectorSearch.addEventListener('input', () => {
     userSelectorOkBtn.disabled = true;
 });
 
+// ユーザーリスト内の項目がクリックされたときの処理
 userSelectorList.addEventListener('click', (e) => {
     if (e.target.tagName === 'LI') {
         document.querySelectorAll('#user-selector-list li').forEach(li => li.classList.remove('selected'));
@@ -791,6 +845,7 @@ userSelectorList.addEventListener('click', (e) => {
     }
 });
 
+// ユーザー選択ポップアップの「OK」ボタンがクリックされたときの処理
 userSelectorOkBtn.addEventListener('click', () => {
     if (selectedUser) {
         socket.emit('client_input', selectedUser + '\r'); // eslint-disable-line no-undef
@@ -798,6 +853,7 @@ userSelectorOkBtn.addEventListener('click', () => {
     }
 });
 
+// ユーザー選択ポップアップの「キャンセル」ボタンがクリックされたときの処理
 userSelectorCancelBtn.addEventListener('click', () => {
     socket.emit('client_input', '\r'); // eslint-disable-line no-undef
     closeUserSelector();
@@ -861,6 +917,7 @@ document.getElementById('effect-selector').addEventListener('click', (e) => {
 let isPasswordInputMode = false;
 
 socket.on('start_password_input', () => {
+    // サーバーからパスワード入力モード開始の指示を受信
     isPasswordInputMode = true;
 });
 
@@ -868,6 +925,7 @@ socket.on('end_password_input', () => {
     isPasswordInputMode = false;
 });
 
+// ターミナルへのキー入力をサーバーに送信する処理
 term.onData(data => {
     if (isPasswordInputMode) {
         if (data === '\r') { // eslint-disable-line no-undef
@@ -1200,7 +1258,8 @@ socket.on('server_output', data => {
     }
 });
 
-socket.on('bbs_link_submission_result', (data) => {
+// BBSリンク申請の結果をユーザーに通知
+socket.on('bbs_link_submission_result', (data) => { // eslint-disable-line no-unused-vars
     if (data.success) {
         alert('Link submitted for approval. Thank you!');
     } else {
@@ -1210,6 +1269,7 @@ socket.on('bbs_link_submission_result', (data) => {
 
 // --- ログビューワー関連のイベント ---
 socket.on('log_files_list', (data) => {
+    // サーバーから受信したログファイルリストを画面に描画
     logFilesList.innerHTML = ''; // 既存のリストをクリア
 
     if (isLogging) {
@@ -1254,6 +1314,7 @@ socket.on('log_files_list', (data) => {
 });
 
 socket.on('log_content', (data) => {
+    // サーバーから受信したログファイルの内容を表示
     logContentDisplay.value = data.content;
 });
 
@@ -1266,6 +1327,7 @@ socket.on('error_message', (data) => {
 let isLogging = false;
 
 socket.on('logging_started', () => {
+    // サーバーからロギング開始の通知を受け、UIを更新
     const f2LogBtn = document.getElementById('f2-log-btn');
     const sidenavLogBtn = document.getElementById('sidenav-log-btn');
     isLogging = true;
@@ -1278,6 +1340,7 @@ socket.on('logging_started', () => {
 });
 
 socket.on('log_saved', (data) => {
+    // サーバーからログ保存完了の通知を受け、UIを更新し、ファイルをダウンロード
     isLogging = false;
     const f2LogBtn = document.getElementById('f2-log-btn');
     const sidenavLogBtn = document.getElementById('sidenav-log-btn');
@@ -1297,6 +1360,7 @@ socket.on('log_saved', (data) => {
 });
 
 socket.on('logging_stopped', (data) => {
+    // サーバーからロギング停止の通知を受け、UIを更新
     isLogging = false;
     const f2LogBtn = document.getElementById('f2-log-btn');
     const sidenavLogBtn = document.getElementById('sidenav-log-btn');
@@ -1309,6 +1373,7 @@ socket.on('logging_stopped', (data) => {
 });
 
 socket.on('force_disconnect', (data) => {
+    // サーバーから強制切断された場合の処理
     const message = (data && data.message) ? data.message : '[Connection closed by server]';
     term.writeln(`\r\n\n${message}`);
     term.writeln('\r\nPress any key or click to return to the login screen...'); // eslint-disable-line no-undef
@@ -1320,6 +1385,10 @@ socket.on('force_disconnect', (data) => {
     document.addEventListener('keydown', redirectToLogout, { once: true });
     document.addEventListener('mousedown', redirectToLogout, { once: true });
 });
+/**
+ * ローカルストレージから各種設定を読み込み、ターミナルUIに適用します。
+ * テーマ、フォント、フォントサイズ、速度、画面効果などが対象です。
+ */
 function loadSettings() {
     // テーマ
     const savedTheme = localStorage.getItem('terminalTheme') || 'default';
@@ -1356,6 +1425,7 @@ function loadSettings() {
     updateDipSwitches('effect');
 }
 
+// DIPスイッチパネルの変更を検知し、対応する設定を適用
 document.querySelector('.dip-switch-panel').addEventListener('change', (e) => {
     if (e.target.type !== 'checkbox') return;
 
@@ -1389,6 +1459,9 @@ document.querySelector('.dip-switch-panel').addEventListener('change', (e) => {
     setTimeout(() => { isDipSwitchUpdating = false; }, 50);
 });
 
+/**
+ * DIPスイッチの現在の状態をローカルストレージに保存します。
+ */
 function saveDipSwitchSettings() {
     const settings = {};
     document.querySelectorAll('.dip-switch-group').forEach(group => {
@@ -1401,6 +1474,9 @@ function saveDipSwitchSettings() {
     localStorage.setItem('dipSwitchSettings', JSON.stringify(settings));
 }
 
+/**
+ * ローカルストレージからDIPスイッチの状態を復元します。
+ */
 function loadDipSwitchSettings() { 
     const savedSettings = localStorage.getItem('dipSwitchSettings');
     if (savedSettings) {
@@ -1416,6 +1492,7 @@ function loadDipSwitchSettings() {
     }
 }
 
+// WebSocket接続が確立したときの初期化処理
 socket.on('connect', () => {
     loadSettings();
 
@@ -1687,7 +1764,9 @@ function debounce(func, wait) {
     };
 }
 
-// 新しいPasskeyの登録フローを開始します。 
+/**
+ * 新しいPasskeyの登録フローを開始します。
+ */
 async function registerNewPasskey(callback) {
     let options;
     try {

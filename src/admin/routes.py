@@ -251,9 +251,9 @@ def dashboard():
     return render_template('admin/dashboard.html',
                            title=g.texts.get('dashboard', {}).get(
                                'title', 'Dashboard'),
-                           stats=stats,
-                           chart_data=json.dumps(chart_data),
-                           system_health=system_health)
+                           stats=stats, chart_data=chart_data,
+                           system_health=system_health
+                           )
 
 
 @admin_bp.route('/who')
