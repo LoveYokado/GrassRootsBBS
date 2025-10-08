@@ -108,8 +108,13 @@ h5 {
 }
 
 .main {
-  margin-left: 240px;
+  margin-left: 0; /* サイドバーが閉じた状態をデフォルトにする */
   transition: margin-left 0.3s ease-in-out;
+}
+
+/* bodyにsidebar-openクラスが付いたらメインコンテンツを押し出す */
+body.sidebar-open .main {
+  margin-left: 240px;
 }
 
 .content {
@@ -121,14 +126,13 @@ h5 {
   background-color: #1a1a1a;
   padding: 0.5rem 1rem;
   border-bottom: 1px solid #444;
-  display: none; /* デフォルトでは非表示、モバイルで表示 */
 }
 
 .hamburger-btn {
-  background: none;
-  border: none;
+  background-color: transparent; /* 背景を透明に */
+  border: none; /* 枠線を削除 */
   cursor: pointer;
-  padding: 10px;
+  padding: 10px; /* クリック領域を確保 */
 }
 
 .hamburger-btn span {
@@ -140,25 +144,41 @@ h5 {
   transition: 0.3s;
 }
 
+/* サイドバーをデフォルトで隠し、bodyにsidebar-openクラスが付いたら表示する */
+.sidebar {
+  transform: translateX(-100%);
+}
+
+body.sidebar-open .sidebar {
+  transform: translateX(0);
+}
+
 /* --- レスポンシブ対応 --- */
 @media (max-width: 768px) {
-  .main {
-    margin-left: 0;
-  }
-
+  /* モバイルではサイドバーを少し狭くする */
   .sidebar {
-    transform: translateX(-100%);
+    width: 220px;
   }
 
-  body.sidebar-open .sidebar {
-    transform: translateX(0);
-  }
-
-  .navbar {
-    display: flex;
+  body.sidebar-open .main {
+    margin-left: 220px;
   }
 }
 
+@media (min-width: 769px) {
+  /* デスクトップではサイドバーを常に表示 */
+  .sidebar {
+    transform: translateX(0);
+  }
+
+  .main {
+    margin-left: 240px; /* サイドバーの幅分、常にマージンを確保 */
+  }
+
+  .main .navbar {
+    display: none; /* デスクトップではメインコンテンツ内のnavbar（ハンバーガーボタン）を非表示 */
+  }
+}
 /* --- テーブル --- */
 .table {
   width: 100%;
