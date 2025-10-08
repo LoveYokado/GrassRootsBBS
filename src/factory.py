@@ -44,7 +44,7 @@ def create_app():
         tuple[Flask, SocketIO]: 設定済みのFlaskアプリとSocketIOインスタンス。
     """
     # --- パス設定 ---
-    _current_dir = os.path.dirname(os.path.abspath(__file__))
+    _current_dir = os.path.dirname(os.path.abspath(__file__))  # srcディレクトリ
     PROJECT_ROOT = os.path.dirname(_current_dir)
     APP_LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
     SESSION_LOG_DIR = os.path.join(APP_LOG_DIR, 'webapp_sessions')
@@ -52,7 +52,7 @@ def create_app():
     app = Flask(__name__, static_folder='../static',
                 template_folder='../templates')
 
-    # --- 設定ファイルの読み込み ---
+    # --- アプリケーション設定の読み込みと適用 ---
     config_path = os.path.join(PROJECT_ROOT, 'setting', 'config.toml')
     util.load_app_config_from_path(config_path)
     uppercase_config = {key.upper(): value for key,
@@ -64,7 +64,7 @@ def create_app():
         app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     app.secret_key = secrets.token_hex(16)
 
-    # --- ディレクトリの作成 ---
+    # --- 必要なディレクトリの存在確認と作成 ---
     ATTACHMENT_DIR = app.config.get('WEBAPP', {}).get(
         'ATTACHMENT_UPLOAD_DIR', 'data/attachments')
     if not os.path.isabs(ATTACHMENT_DIR):
@@ -80,7 +80,7 @@ def create_app():
     app.config['ATTACHMENT_DIR'] = ATTACHMENT_DIR
     app.config['SESSION_LOG_DIR'] = SESSION_LOG_DIR
 
-    # --- ロギング設定 ---
+    # --- ログ設定 ---
     access_logger = logging.getLogger('grbbs.access')
     access_logger.setLevel(logging.INFO)
     access_handler = RotatingFileHandler(
@@ -102,7 +102,7 @@ def create_app():
 
     database.init_app(app)
 
-    # --- 拡張機能の初期化 ---
+    # --- Flask拡張機能の初期化 ---
     app.config.setdefault('RATELIMIT_STORAGE_URI', os.getenv(
         'REDIS_URL', 'redis://localhost:6379/0').replace('/0', '/1'))
     ratelimit_config = app.config.get('RATELIMIT', {})
@@ -111,7 +111,7 @@ def create_app():
     app.config.setdefault('RATELIMIT_DEFAULT', default_limits_str)
     extensions.limiter.init_app(app)
 
-    # --- プラグインの読み込み ---
+    # --- プラグインのロード ---
     plugin_manager.load_plugins()
 
     # --- セッション設定 (Redis) ---
@@ -123,13 +123,13 @@ def create_app():
     app.config['SESSION_KEY_PREFIX'] = 'grbbs_'
     Session(app)
 
-    # --- セキュリティ設定 ---
+    # --- アプリケーション固有のセキュリティ設定 ---
     app.config['MAX_LOGIN_ATTEMPTS'] = app.config.get(
         'SECURITY', {}).get('MAX_PASSWORD_ATTEMPTS', 3)
     app.config['LOCKOUT_TIME_SECONDS'] = app.config.get(
         'SECURITY', {}).get('LOCKOUT_TIME_SECONDS', 300)
 
-    # --- 管理画面のURLプレフィックスを設定 ---
+    # --- 管理画面のURLプレフィックスをconfig.tomlから設定 ---
     admin_config = app.config.get('ADMIN', {})
     admin_prefix = admin_config.get('url_prefix', '/admin')
 
@@ -139,7 +139,7 @@ def create_app():
 
     errors.register_error_handlers(app)
 
-    # --- テンプレートコンテキストとフィルタ ---
+    # --- テンプレートグローバルとフィルタの登録 ---
     @app.context_processor
     def inject_util():
         """テンプレート内で `util` モジュールの関数を利用可能にします。"""
@@ -161,7 +161,7 @@ def create_app():
         # `<code>` タグなどを安全にエスケープしつつ、改行を <br> に変換する
         return escape(s).replace('\n', Markup('<br>\n'))
 
-    # --- リクエストフック ---
+    # --- リクエスト前後のフック処理 ---
     @app.before_request
     def check_ip_ban():
         """各リクエストの前に、アクセス元のIPがBANリストに含まれていないかチェックします。"""
@@ -253,7 +253,7 @@ def create_app():
     allowed_origins = allowed_origins_str.split(
         ',') if allowed_origins_str else []
 
-    # ProxyFixがSocketIOにも適用されるように、engineio_optionsを設定
+    # ProxyFixがSocketIOにも適用されるようにengineio_optionsを設定
     engineio_options = {"async_mode": "gevent", "ws_proxy_fix": True}
     socketio.init_app(
         app, cors_allowed_origins=allowed_origins, **engineio_options)

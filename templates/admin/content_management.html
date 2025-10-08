@@ -250,21 +250,16 @@
     </div>
 </div>
 
+{% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const selectAllCheckbox = document.getElementById('select-all-articles');
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function () {
-                const articleCheckboxes = document.querySelectorAll('.article-checkbox');
-                articleCheckboxes.forEach(checkbox => {
-                    checkbox.checked = this.checked;
-                });
-            });
-        }
+        selectAllCheckbox?.addEventListener('change', function () {
+            document.querySelectorAll('.article-checkbox').forEach(checkbox => checkbox.checked = this.checked);
+        });
     });
 </script>
-{% endblock %}
-
 {% endblock %}

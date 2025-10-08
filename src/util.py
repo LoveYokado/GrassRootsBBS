@@ -534,9 +534,7 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode, is_
 
     recipient_name = recipient_name_input.strip().upper()
 
-    # オンラインチェックを効率化するために、最初に大文字のセットを作成
     online_members_set = {uid.upper() for uid in online_members_ids}
-
     if recipient_name not in online_members_set:
         send_text_by_key(chan, "telegram.recipient_not_online",
                          current_menu_mode, recipient_name=recipient_name)
@@ -544,8 +542,6 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode, is_
 
     # 自分自身には送れないようにする(テスト中は無効)
     # if recipient_name == sender_name:
-    #    util.send_text_by_key(chan, "telegram.cannot_send_to_self", current_menu_mode)
-    #    return
 
     limits_config = app_config.get('limits', {})
     telegram_max_len = limits_config.get('telegram_message_max_length', 100)
@@ -966,36 +962,6 @@ def create_thumbnail(original_path, thumbnail_path, size=(100, 100)):
     thumbnail_dir = os.path.dirname(thumbnail_path)
     os.makedirs(thumbnail_dir, exist_ok=True)
 
-
-def is_proxy_connection(ip_address: str) -> (bool, str):
-    """
-    指定されたIPアドレスがプロキシ、VPN、またはTor出口ノードであるかを判定します。
-    ip-api.com のサービスを利用します。
-
-    Args:
-        ip_address (str): チェックするIPアドレス。
-
-    Returns:
-        tuple[bool, str]: (ブロック対象かどうか, 判定理由) のタプル。
-                          例: (True, "proxy"), (False, "residential")
-    """
-    # ローカルホストやプライベートIPはチェック対象外
-    if ip_address in ('127.0.0.1', '::1') or ip_address.startswith('192.168.') or ip_address.startswith('10.') or ip_address.startswith('172.'):
-        return False, "local/private"
-
-    try:
-        # ip-api.comのエンドポイント
-        url = f"http://ip-api.com/json/{ip_address}?fields=status,message,proxy,hosting"
-        response = requests.get(url, timeout=2)  # 2秒のタイムアウト
-        response.raise_for_status()
-        data = response.json()
-
-        if data.get('status') == 'success' and (data.get('proxy') or data.get('hosting')):
-            return True, "proxy/hosting"
-        return False, "residential"
-    except requests.exceptions.RequestException as e:
-        logging.error(f"IP APIへの接続に失敗しました ({ip_address}): {e}")
-        return False, "api_error"  # APIエラー時は安全のためブロックしない
     try:
         with Image.open(original_path) as img:
             # 画像の向きをEXIF情報に基づいて補正
@@ -1015,3 +981,30 @@ def is_proxy_connection(ip_address: str) -> (bool, str):
     except IOError as e:
         logging.error(f"サムネイルの作成に失敗しました: {e} (Path: {original_path})")
         return False
+
+
+def is_proxy_connection(ip_address: str) -> (bool, str):
+    """指定されたIPアドレスがプロキシ、VPN、またはTor出口ノードであるかを判定します。
+
+    ip-api.com のサービスを利用します。
+
+    Args:
+        ip_address (str): チェックするIPアドレス。
+
+    Returns:
+        tuple[bool, str]: (ブロック対象かどうか, 判定理由) のタプル。
+                          例: (True, "proxy"), (False, "residential")
+    """
+    # ローカルホストやプライベートIPはチェック対象外
+    if ip_address in ('127.0.0.1', '::1') or ip_address.startswith('192.168.') or ip_address.startswith('10.') or ip_address.startswith('172.'):
+        return False, "local/private"
+
+    try:
+        url = f"http://ip-api.com/json/{ip_address}?fields=status,message,proxy,hosting"
+        response = requests.get(url, timeout=2)
+        response.raise_for_status()
+        data = response.json()
+        return data.get('status') == 'success' and (data.get('proxy') or data.get('hosting')), "proxy/hosting" if data.get('proxy') or data.get('hosting') else "residential"
+    except requests.exceptions.RequestException as e:
+        logging.error(f"IP APIへの接続に失敗しました ({ip_address}): {e}")
+        return False, "api_error"  # APIエラー時は安全のためブロックしない

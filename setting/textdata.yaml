@@ -2479,6 +2479,18 @@ auth:
       mode_1: "BBSリスト管理"
       mode_2: "BBSリスト管理"
       mode_3: "BBS List Management"
+    user_management_group:
+      mode_1: "ユーザー管理"
+      mode_2: "ユーザー管理"
+      mode_3: "User Management"
+    content_management_group:
+      mode_1: "コンテンツ管理"
+      mode_2: "コンテンツ管理"
+      mode_3: "Content Management"
+    system_management_group:
+      mode_1: "システム管理"
+      mode_2: "システム管理"
+      mode_3: "System Management"
   dashboard:
     title:
       mode_1: "ダッシュボード"

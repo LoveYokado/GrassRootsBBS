@@ -13,7 +13,6 @@ body {
 .container-fluid {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2em 2em 120px 2em;
 }
 
 h1, /* stylelint-disable-line no-duplicate-selectors */
@@ -24,49 +23,162 @@ h5 {
   color: #00ff00;
 }
 
-/* --- フッターナビゲーション --- */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
+/* --- Layout & Sidebar --- */
+.sidebar {
+  position: fixed; /* 画面に固定 */
+  top: 0;
   left: 0;
-  width: 100%;
-  background-color: #000;
-  padding: 10px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3);
+  bottom: 0;
+  width: 240px; /* サイドバーの幅 */
+  background-color: #1a1a1a; /* 暗い背景色 */
+  border-right: 1px solid #444;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
   z-index: 100;
+  overflow-y: auto; /* コンテンツが多い場合にスクロール */
+  transition: transform 0.3s ease-in-out;
 }
 
-.bottom-nav a {
-  padding: 5px 15px;
-  font-size: 0.9em;
-  font-weight: bold;
-  cursor: pointer;
-  user-select: none;
-  border-radius: 3px;
-  border: 1px solid #00ff00;
-  text-decoration: none;
-  background-color: #003300;
+.sidebar-header {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid #444;
+}
+
+.sidebar-brand {
   color: #00ff00;
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.sidebar-nav {
+  padding: 0;
+  list-style: none;
+}
+
+.sidebar-header,
+.sidebar-item {
+  /* padding: 0.75rem 1.5rem; */
+}
+
+.sidebar-header {
+  font-size: 0.8em;
+  color: #00ff00; /* 文字色を明るいグリーンに */
+  text-transform: uppercase;
+  font-weight: bold;
+  border: 1px solid #008800; /* 枠線を明るく */
+  border-radius: 5px;
+  margin: 1rem 1rem 0.5rem 1rem;
+  padding: 0.5rem;
+  background-color: #003300; /* 背景を明るく */
   text-align: center;
-  box-sizing: border-box;
+}
+
+.sidebar-item.dashboard-link {
+  border-top: 1px solid #444;
+  border-bottom: 1px solid #444;
+}
+
+.sidebar-item {
+  padding: 0;
+}
+
+.sidebar-link {
+  display: block;
+  padding: 0.5rem 1.5rem;
+  color: #ccc;
+  text-decoration: none;
   transition: background-color 0.2s;
 }
 
-.bottom-nav a:hover {
-  background-color: #005500;
+.sidebar-link:hover {
+  background-color: #222;
+  color: #fff;
+  text-decoration: none;
 }
 
-.nav-row {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  /* ボタン間のギャップ */
+.sidebar-item.active .sidebar-link {
+  background-color: #003300;
+  color: #00ff00;
+  font-weight: bold;
 }
 
+.sidebar-link .fa,
+.sidebar-link .fas {
+  margin-right: 0.75rem;
+}
+
+.main {
+  margin-left: 0; /* サイドバーが閉じた状態をデフォルトにする */
+  transition: margin-left 0.3s ease-in-out;
+}
+
+/* bodyにsidebar-openクラスが付いたらメインコンテンツを押し出す */
+body.sidebar-open .main {
+  margin-left: 240px;
+}
+
+.content {
+  padding: 2rem;
+}
+
+/* --- Navbar for Hamburger --- */
+.navbar {
+  background-color: #1a1a1a;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #444;
+}
+
+.hamburger-btn {
+  background-color: transparent; /* 背景を透明に */
+  border: none; /* 枠線を削除 */
+  cursor: pointer;
+  padding: 10px; /* クリック領域を確保 */
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background-color: #00ff00;
+  margin: 5px 0;
+  transition: 0.3s;
+}
+
+/* サイドバーをデフォルトで隠し、bodyにsidebar-openクラスが付いたら表示する */
+.sidebar {
+  transform: translateX(-100%);
+}
+
+body.sidebar-open .sidebar {
+  transform: translateX(0);
+}
+
+/* --- レスポンシブ対応 --- */
+@media (max-width: 768px) {
+  /* モバイルではサイドバーを少し狭くする */
+  .sidebar {
+    width: 220px;
+  }
+
+  body.sidebar-open .main {
+    margin-left: 220px;
+  }
+}
+
+@media (min-width: 769px) {
+  /* デスクトップではサイドバーを常に表示 */
+  .sidebar {
+    transform: translateX(0);
+  }
+
+  .main {
+    margin-left: 240px; /* サイドバーの幅分、常にマージンを確保 */
+  }
+
+  .main .navbar {
+    display: none; /* デスクトップではメインコンテンツ内のnavbar（ハンバーガーボタン）を非表示 */
+  }
+}
 /* --- テーブル --- */
 .table {
   width: 100%;

@@ -14,61 +14,47 @@
     {% block head_extra %}{% endblock %}
 </head>
 
-<body>
+<body class="has-sidebar">
 
-
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <ul class="flash-messages">
-            {% for category, message in messages %}
-            <li class="alert-{{ category }}">{{ message }}</li>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('web.index') }}" class="sidebar-brand">GR-BBS</a>
+        </div>
+        <ul class="sidebar-nav">
+            <li class="sidebar-item {% if request.endpoint == 'admin.dashboard' %}active{% endif %} dashboard-link">
+                <a class="sidebar-link" href="{{ url_for('admin.dashboard') }}">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span class="align-middle">{{ g.texts.get('nav', {}).get('dashboard', 'Dashboard') }}</span>
+                </a>
+            </li>
+            {% for group in g.nav_structure %}
+            <li class="sidebar-header">
+                {{ group.group_title }}
+            </li>
+            {% for item in group.nav_items %}
+            <li class="sidebar-item {% if request.endpoint == item.endpoint %}active{% endif %}">
+                <a class="sidebar-link" href="{{ url_for(item.endpoint) }}">
+                    <span class="align-middle">{{ item.title }}</span>
+                </a>
+            </li>
+            {% endfor %}
             {% endfor %}
         </ul>
-        {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
-    </div>
-    <nav class="bottom-nav">
-        <div class="nav-row">
-            <a href="{{ url_for('admin.dashboard') }}">{{ g.texts.get('nav', {}).get('dashboard', 'Dashboard') }}</a>
-            <a href="{{ url_for('admin.user_list') }}">{{ g.texts.get('nav', {}).get('user_management', 'User
-                Management') }}</a>
-            <a href="{{ url_for('admin.chat_management') }}"
-                class="{{ 'active' if request.endpoint == 'admin.chat_management' else '' }}">Chat Management
-            </a>
-            <a href="{{ url_for('admin.bbs_management') }}"
-                class="{{ 'active' if request.endpoint == 'admin.bbs_management' else '' }}">
-                BBS Management
-            </a>
-
-        </div>
-        <div class="nav-row">
-            <a href="{{ url_for('admin.content_management') }}"
-                class="{{ 'active' if request.endpoint == 'admin.content_management' else '' }}">
-                Content Management
-            </a>
-            <a href="{{ url_for('admin.bbs_list') }}"
-                class="{{ 'active' if request.endpoint == 'admin.bbs_list' else '' }}">
-                {{ g.texts.get('nav', {}).get('bbs_list_management', 'BBS List Management') }}
-            </a>
-            <a href="{{ url_for('admin.plugin_management') }}">{{ g.texts.get('nav', {}).get('plugins', 'Plugin
-                Management') }}</a>
-        </div>
-        <div class="nav-row">
-            <a href="{{ url_for('admin.system_settings') }}">{{ g.texts.get('nav', {}).get('system_settings', 'System
-                Settings') }}</a>
-            <a href="{{ url_for('admin.backup_management') }}">{{ g.texts.get('nav', {}).get('data_management', 'Data
-                Management') }}</a>
-            <a href="{{ url_for('admin.who_online') }}">{{ g.texts.get('nav', {}).get('who_online', 'Who''s Online')
-                }}</a>
-            <a href="{{ url_for('admin.access_log_viewer') }}">{{ g.texts.get('nav', {}).get('access_log', 'Access
-                Log') }}</a>
-            <a href="{{ url_for('admin.ip_ban_list') }}"
-                class="{{ 'active' if request.endpoint == 'admin.ip_ban_list' else '' }}">IP Ban List</a>
-        </div>
     </nav>
+
+    <div class="main">
+        <nav class="navbar">
+            <button class="hamburger-btn" id="sidebar-toggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </nav>
+        <main class="content">
+            {% include 'admin/_flash_messages.html' %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
 
     {% block scripts %}
     <!-- Bootstrap JS とその依存ライブラリは body の末尾で読み込みます -->

@@ -1053,7 +1053,7 @@ class AccessLogManager:
                   username, display_name, event_type, message)
         self._db.execute_query(query, params)
 
-    def get_logs(self, page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
+    def get_logs(self, page=1, per_page=50, ip_address=None, username=None, display_name=None, event_type=None, sort_by='timestamp', order='desc'):
         """管理画面用に、ページネーション、フィルタリング、ソート機能付きでアクセスログを取得します。"""
         where_clauses = []
         params = []
@@ -1065,6 +1065,10 @@ class AccessLogManager:
         if username:
             where_clauses.append("username LIKE %s")
             params.append(f"%{username}%")
+
+        if display_name:
+            where_clauses.append("display_name LIKE %s")
+            params.append(f"%{display_name}%")
 
         if event_type:
             where_clauses.append("event_type = %s")
@@ -2163,8 +2167,8 @@ def log_access_event(ip_address, event_type, user_id=None, username=None, displa
     return access_logs.log_event(ip_address, event_type, user_id, username, display_name, message)
 
 
-def get_access_logs(page=1, per_page=50, ip_address=None, username=None, event_type=None, sort_by='timestamp', order='desc'):
-    return access_logs.get_logs(page, per_page, ip_address, username, event_type, sort_by, order)
+def get_access_logs(page=1, per_page=50, ip_address=None, username=None, display_name=None, event_type=None, sort_by='timestamp', order='desc'):
+    return access_logs.get_logs(page, per_page, ip_address, username, display_name, event_type, sort_by, order)
 
 
 def get_board_permissions(board_id_pk):

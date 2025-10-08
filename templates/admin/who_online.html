@@ -66,6 +66,8 @@
 
 {% include 'admin/_pagination.html' %}
 
+{% endblock %}
+
 {% block scripts %}
 {{ super() }}
 <script>
@@ -80,5 +82,4 @@
         }, 5000); // 5000ミリ秒 = 5秒
     });
 </script>
-{% endblock %}
 {% endblock %}
