@@ -96,6 +96,7 @@ def load_plugins():
                         'module': plugin_module,
                         'name': metadata.get('name', plugin_id),
                         'description': metadata.get('description', ''),
+                        'timeout': metadata.get('timeout'),
                     }
                     logging.info(
                         f"プラグイン '{metadata.get('name', plugin_id)}' ({plugin_id}) を正常にロードしました。")
@@ -127,17 +128,10 @@ def get_loaded_plugins():
 
 def run_plugin(plugin_id, context):
     """指定されたIDのプラグインを実行します。"""
-    # config.tomlからタイムアウト値を取得
-    plugins_config = util.app_config.get('plugins', {})
-    timeout_seconds = plugins_config.get('execution_timeout', 60)
-
     plugin_data = _loaded_plugins.get(plugin_id)
     if not plugin_data:
         logging.error(f"実行しようとしたプラグイン '{plugin_id}' が見つかりません。")
         return False
-
-    logging.info(
-        f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {timeout_seconds}秒)...")
 
     # プラグインに渡すコンテキストを再構築し、安全なAPIのみを公開
     api = GrbbsApi(context.chan, plugin_id, context.online_members_func)
@@ -151,13 +145,35 @@ def run_plugin(plugin_id, context):
         'plugin_id': plugin_id,
     }
 
+    # --- タイムアウト設定の解決 ---
+    plugin_timeout_setting = plugin_data.get('timeout')
+    timeout_seconds = None  # デフォルトはタイムアウトなし
+
+    if plugin_timeout_setting == "none":
+        timeout_seconds = None  # タイムアウトを無効化
+    elif isinstance(plugin_timeout_setting, int):
+        timeout_seconds = plugin_timeout_setting  # プラグイン指定の秒数
+    else:
+        # 未設定の場合はconfig.tomlからグローバル設定を読み込む
+        plugins_config = util.app_config.get('plugins', {})
+        timeout_seconds = plugins_config.get('execution_timeout', 60)
+
+    logging.info(
+        f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {timeout_seconds if timeout_seconds is not None else 'なし'})...")
+
     try:
-        with Timeout(timeout_seconds):
+        if timeout_seconds is None:
+            # タイムアウトなしで実行
             plugin_data['module'].run(safe_context)
+        else:
+            # 指定された秒数でタイムアウトを設定して実行
+            with Timeout(timeout_seconds):
+                plugin_data['module'].run(safe_context)
         logging.info(f"プラグイン '{plugin_data['name']}' の実行が完了しました。")
         return True
     except Timeout:
-        logging.error(f"プラグイン '{plugin_data['name']}' がタイムアウトしました。実行を強制終了します。")
+        logging.error(
+            f"プラグイン '{plugin_data['name']}' がタイムアウト({timeout_seconds}秒)しました。実行を強制終了します。")
         api.send(
             f"\r\nエラー: プログラムが時間内に応答しませんでした。({timeout_seconds}秒)\r\n".encode('utf-8'))
         return False
