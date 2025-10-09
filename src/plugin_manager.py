@@ -126,7 +126,7 @@ def get_loaded_plugins():
     return sorted(plugins_list, key=lambda p: p['name'])
 
 
-def run_plugin(plugin_id, context):
+def run_plugin(app, plugin_id, context):
     """指定されたIDのプラグインを実行します。"""
     plugin_data = _loaded_plugins.get(plugin_id)
     if not plugin_data:
@@ -134,7 +134,7 @@ def run_plugin(plugin_id, context):
         return False
 
     # プラグインに渡すコンテキストを再構築し、安全なAPIのみを公開
-    api = GrbbsApi(context.chan, plugin_id, context.online_members_func)
+    api = GrbbsApi(app, context.chan, plugin_id, context.online_members_func)
     safe_context = {
         'api': api,
         'login_id': context.login_id,

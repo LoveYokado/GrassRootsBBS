@@ -103,12 +103,13 @@ class WebTerminalHandler:
         user_session (dict): ユーザーのセッション情報。
     """
 
-    def __init__(self, sid, user_session, ip_address, socketio):
+    def __init__(self, app, sid, user_session, ip_address, socketio):
         self.sid = sid
         self.user_session = user_session
         self.ip_address = ip_address
         self.socketio = socketio
         self.speed = 'full'
+        self.app = app  # appオブジェクトを保持
         self.bps_delay = 0
         self.output_queue = collections.deque()
         self.input_queue = collections.deque()
@@ -352,10 +353,12 @@ class WebTerminalHandler:
                     util.send_top_menu(self.channel, context.menu_mode)
                     continue
                 command = command.strip().lower()
-                if not command:
+                # 空のコマンドでもショートカット処理を通す（;のみの入力など）
+                if not command and not util.handle_shortcut(context, command):
                     util.send_top_menu(self.channel, context.menu_mode)
                     continue
-                result = command_dispatcher.dispatch_command(command, context)
+                result = command_dispatcher.dispatch_command(
+                    command, context, self.app)
                 if result.get('status') == 'logoff':
                     logoff_message_text = util.get_text_by_key(
                         "logoff.message", context.menu_mode)

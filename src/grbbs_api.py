@@ -1,10 +1,11 @@
+import base64
 # -*- coding: utf-8 -*-
 
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
 """GR-BBS プラグインAPI。
-
+ 
 このモジュールは、プラグインに提供される安全なAPIクラスを定義します。
 これは「ファサード」または「ブリッジ」として機能し、ホストアプリケーションの
 機能を、制限された安全な形でプラグインに公開します。
@@ -13,16 +14,17 @@
 
 class GrbbsApi:
     """
-    プラグインに提供される安全なAPIクラスです。
+    プラグインに提供される安全なAPIクラス。
 
     これは「ファサード」または「ブリッジ」として機能し、ホストアプリケーションの機能を、
     制限された安全な形でプラグインに公開します。
     """
 
-    def __init__(self, channel, plugin_id, online_members_func):
+    def __init__(self, app, channel, plugin_id, online_members_func):
         """GrbbsApiのコンストラクタ。"""
         self._chan = channel
         self._plugin_id = plugin_id
+        self._app = app
         self._online_members_func = online_members_func  # オンラインメンバーリスト取得用の関数
 
     def send(self, message):
@@ -136,3 +138,32 @@ class GrbbsApi:
             }
             safe_online_list.append(safe_data)
         return safe_online_list
+
+    def show_image_popup(self, image_path, title="Image"):
+        """
+        指定されたパスの画像をポップアップウィンドウで表示するようクライアントに指示します。
+
+        この関数はポップアップが閉じられるまでブロックします。
+
+        Args:
+            image_path (str): プラグインの 'static' ディレクトリからの相対パス。
+            title (str, optional): ポップアップウィンドウのタイトル。
+        """
+        from flask import url_for
+
+        # プラグインはリクエストコンテキスト外で実行されるため、
+        # url_for を使うにはアプリケーションコンテキストを明示的に作成する必要がある
+        with self._app.app_context():
+            if image_path.startswith('/'):
+                # パスが / から始まる場合は、アプリケーションルートからの絶対パスとして扱う
+                image_url = image_path
+            else:
+                # それ以外の場合は、プラグインの静的ファイルとして扱う
+                image_url = url_for('web.serve_plugin_static',
+                                    plugin_id=self._plugin_id, filename=image_path)
+
+        title_b64 = base64.b64encode(title.encode('utf-8')).decode('utf-8')
+        url_b64 = base64.b64encode(image_url.encode('utf-8')).decode('utf-8')
+
+        sequence = f"\x1b]GRBBS;SHOW_IMAGE_POPUP;{title_b64};{url_b64}\x07"
+        self.send(sequence)

@@ -1,0 +1,4 @@
+name = "Picture Popup Test Plugin"
+description = "A test plugin to demonstrate the image popup functionality."
+entry_point = "plugins.16bit_picture.picture"
+timeout = "none"

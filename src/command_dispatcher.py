@@ -190,13 +190,13 @@ def handle_hamlet_game(context):
     return {'status': 'continue'}
 
 
-def handle_plugin_menu(context):
+def handle_plugin_menu(context, app):
     """`p` コマンドを処理し、プラグインメニューを表示します。"""
     # トップメニューのボタンを非表示にする
     context.chan.send(b'\x1b[?2031l')
     # 循環インポートを避けるため、ここでインポートする
     from . import plugin_menu_handler
-    plugin_menu_handler.handle_plugin_menu(context)
+    plugin_menu_handler.handle_plugin_menu(context, app)
     # プラグインメニューから戻ってきたら、トップメニューを再表示
     util.send_top_menu(context.chan, context.menu_mode)
     return {'status': 'continue'}
@@ -234,7 +234,7 @@ COMMAND_DISPATCH_TABLE = {
 }
 
 
-def dispatch_command(command, context):
+def dispatch_command(command, context, app):
     """コマンドをディスパッチテーブルに基づいて処理し、権限チェックを実行します。"""
     command_info = COMMAND_DISPATCH_TABLE.get(command)
     if not command_info:
@@ -273,4 +273,7 @@ def dispatch_command(command, context):
 
     # --- ハンドラ実行 ---
     handler = command_info['handler']
+    # プラグインメニューハンドラには app を渡す必要がある
+    if handler == handle_plugin_menu:
+        return handler(context, app)
     return handler(context)

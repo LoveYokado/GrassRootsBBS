@@ -13,7 +13,7 @@
 import textwrap
 
 
-def handle_plugin_menu(context):
+def handle_plugin_menu(context, app):
     """プラグインメニューを表示し、ユーザーの選択に応じてプラグインを実行します。"""
     # 循環インポートを避けるため、関数内でインポートする
     from . import plugin_manager, util
@@ -55,7 +55,9 @@ def handle_plugin_menu(context):
                 if 0 <= choice_index < len(plugins):
                     plugin_to_run = plugins[choice_index]
                     chan.send(b'\r\n')
-                    plugin_manager.run_plugin(plugin_to_run['id'], context)
+                    # run_plugin に app オブジェクトを渡す
+                    plugin_manager.run_plugin(
+                        app, plugin_to_run['id'], context)
                     util.send_text_by_key(
                         chan, "plugin_menu.returning_to_menu", menu_mode)
                 else:

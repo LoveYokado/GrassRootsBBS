@@ -432,6 +432,11 @@ const bbsListOverlay = document.getElementById('bbs-list-overlay');
 const bbsListWindow = document.getElementById('bbs-list-window');
 const bbsListCloseBtn = document.getElementById('bbs-list-close-btn');
 const bbsStationsList = document.getElementById('bbs-stations-list');
+
+const imagePopupOverlay = document.getElementById('image-popup-overlay');
+const imagePopupWindow = document.getElementById('image-popup-window');
+const imagePopupTitle = document.getElementById('image-popup-title');
+const imagePopupImg = document.getElementById('image-popup-img');
 const bbsDetailName = document.getElementById('bbs-detail-name');
 const bbsDetailDescription = document.getElementById('bbs-detail-description');
 const bbsListJumpBtn = document.getElementById('bbs-list-jump-btn');
@@ -452,6 +457,24 @@ function b64DecodeUnicode(str) {
     return decodeURIComponent(atob(str).split('').map(function (c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); // eslint-disable-line no-undef
     }).join(''));
+}
+
+/**
+ * 画像ポップアップを開きます。
+ * @param {string} title - ポップアップのタイトル
+ * @param {string} imageUrl - 表示する画像のURL
+ */
+function openImagePopup(title, imageUrl) {
+    document.getElementById('image-popup-title').textContent = title;
+    document.getElementById('image-popup-img').src = imageUrl;
+    document.getElementById('image-popup-overlay').classList.add('visible');
+    document.getElementById('image-popup-window').classList.add('visible');
+}
+
+/** 画像ポップアップを閉じます。 */
+function closeImagePopup() {
+    document.getElementById('image-popup-overlay').classList.remove('visible');
+    document.getElementById('image-popup-window').classList.remove('visible');
 }
 
 // マルチラインエディタ内のANSIカラーボタンがクリックされたときの処理
@@ -1226,6 +1249,20 @@ socket.on('server_output', data => {
         data = data.replace(userSelectorPattern, '');
     }
 
+    const imagePopupPattern = /\x1b\]GRBBS;SHOW_IMAGE_POPUP;(.*?);(.*?)\x07/;
+    const imagePopupMatch = data.match(imagePopupPattern);
+    if (imagePopupMatch) {
+        const titleB64 = imagePopupMatch[1];
+        const urlB64 = imagePopupMatch[2];
+        try {
+            const title = b64DecodeUnicode(titleB64);
+            const imageUrl = b64DecodeUnicode(urlB64);
+            openImagePopup(title, imageUrl);
+        } catch (e) {
+            console.error("Failed to open image popup:", e);
+        }
+        data = data.replace(imagePopupPattern, '');
+    }
     // --- 自動スクロール & レイアウト補正ロジック --- 
     const buffer = term.buffer.active;
     // 処理前に、ユーザーが既に一番下までスクロールしているか確認
@@ -1549,6 +1586,13 @@ function makePopupDraggable(popup) {
 document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
 makePopupDraggable(logViewerWindow);
 
+// 画像ポップアップの閉じるボタン
+document.getElementById('image-popup-close-btn').addEventListener('click', () => {
+    closeImagePopup();
+});
+imagePopupOverlay.addEventListener('click', () => {
+    closeImagePopup();
+});
 // --- DOM読み込み完了後の初期化処理 --- 
 // --- PWAインストール関連のロジック --- 
 let deferredPrompt;

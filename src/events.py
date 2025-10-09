@@ -103,7 +103,7 @@ def init_events(socketio, app):
             'lastlogin': session.get('lastlogin', 0), 'menu_mode': session.get('menu_mode', '2')
         }
         handler = terminal_handler.WebTerminalHandler(
-            sid, user_session_data, ip_addr, socketio)
+            app, sid, user_session_data, ip_addr, socketio)
         terminal_handler.client_states[sid] = handler
 
     @socketio.on('set_speed')
