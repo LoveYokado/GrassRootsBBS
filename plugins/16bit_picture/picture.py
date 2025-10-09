@@ -4,10 +4,10 @@
 # SPDX-License-Identifier: MIT
 
 """
-16bit Picture Plugin
+画像ポップアップテストプラグイン。
 
-This plugin demonstrates how to display an image in the terminal
-using the Sixel graphics format via the `api.send_sixel` method.
+このプラグインは、`api.show_image_popup`メソッドを使用して、
+画像加工オプション付きでポップアップを表示する機能のデモンストレーションです。
 """
 
 
@@ -16,12 +16,18 @@ def run(context):
     api = context['api']
 
     api.send("\r\n--- 16bit Picture Viewer ---\r\n")
-    api.send("Image popup will be displayed.\r\n\r\n")
+    api.send("加工された画像がポップアップで表示されます。\r\n\r\n")
 
-    # 'static/gr-bbs.png' is relative to this plugin's directory.
-    api.show_image_popup('/static/images/logo.png', title="GR-BBS Logo")
+    # このプラグインの 'static' ディレクトリにある 'gr-bbs.png' を使用します。
+    # 160x100に縮小 -> 640x400にピクセルを保ったまま拡大 -> 16色に減色、という加工を指示します。
+    api.show_image_popup(
+        image_path='gr-bbs.png',
+        title="GR-BBS Logo (レトロ風加工)",
+        resize=(160, 100),
+        enlarge_to=(640, 400),
+        reduce_colors=16)
 
     api.send(
-        "\r\n\r\n(Press Enter after closing the popup to return to the menu...)\r\n")
+        "\r\n\r\n(ポップアップを閉じた後、Enterキーを押すとメニューに戻ります...)\r\n")
     # ポップアップが閉じられるのを待つ
     api.get_input()

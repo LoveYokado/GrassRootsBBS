@@ -3,12 +3,12 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""プラグインマネージャ。
+"""プラグインマネージャーモジュール。
 
 このモジュールは、プラグインの発見、読み込み、実行を担当します。
-専用の 'plugins' ディレクトリをスキャンし、各プラグインの 'plugin.toml'
-ファイルからメタデータを読み込み、依存関係をチェックし、ホストアプリケーションと
-安全に対話するためのサンドボックス化されたAPIを提供します。
+`plugins`ディレクトリをスキャンし、各プラグインの`plugin.toml`メタデータに基づいて
+動的にモジュールをロードします。また、プラグインを安全な環境で実行するための
+タイムアウト処理やAPIの提供も行います。
 """
 
 import os
@@ -22,12 +22,12 @@ import toml
 from .grbbs_api import GrbbsApi
 from . import database, util
 
-# --- Constants and Global State / 定数とグローバル状態 ---
+# --- 定数とグローバル状態 ---
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(_current_dir)
 PLUGINS_DIR = os.path.join(PROJECT_ROOT, 'plugins')
 
-# ロードされたプラグインを格納する辞書。
+# ロード済みのプラグイン情報を格納するグローバル辞書。
 # 形式: { 'plugin_dir_name': {'module': module, 'name': 'Plugin Name', ...} }
 _loaded_plugins = {}
 
@@ -114,7 +114,12 @@ def load_plugins():
 
 
 def get_loaded_plugins():
-    """ロード済みのプラグインのリストを、メニュー表示用に整形して返します。"""
+    """ロード済みのプラグインのリストをメニュー表示用に整形して返します。
+
+    Returns:
+        list[dict]: プラグイン情報の辞書のリスト。
+                    各辞書は 'id', 'name', 'description' を含みます。
+    """
     plugins_list = []
     for plugin_id, plugin_data in _loaded_plugins.items():
         plugins_list.append({
@@ -127,7 +132,16 @@ def get_loaded_plugins():
 
 
 def run_plugin(app, plugin_id, context):
-    """指定されたIDのプラグインを実行します。"""
+    """指定されたIDのプラグインを実行します。
+
+    プラグインに`GrbbsApi`を提供し、タイムアウトを設定した上で、
+    サンドボックス化された環境で`run`関数を呼び出します。
+
+    Args:
+        app (Flask): Flaskアプリケーションインスタンス。
+        plugin_id (str): 実行するプラグインのID（ディレクトリ名）。
+        context (CommandContext): コマンド実行コンテキスト。
+    """
     plugin_data = _loaded_plugins.get(plugin_id)
     if not plugin_data:
         logging.error(f"実行しようとしたプラグイン '{plugin_id}' が見つかりません。")
@@ -180,7 +194,12 @@ def run_plugin(app, plugin_id, context):
 
 
 def get_all_available_plugins():
-    """利用可能な全てのプラグインの情報を、DBの有効/無効状態と合わせて返します。"""
+    """利用可能な全てのプラグインの情報を、DBの有効/無効状態と合わせて返します。
+
+    Returns:
+        list[dict]: 利用可能な全プラグイン情報のリスト。
+                    各辞書は 'id', 'name', 'description', 'is_enabled' を含みます。
+    """
     available_plugins = []
     if not os.path.isdir(PLUGINS_DIR):
         return []
