@@ -1249,6 +1249,26 @@ socket.on('server_output', data => {
         data = data.replace(userSelectorPattern, '');
     }
 
+    const uploadFilePattern = /\x1b\]GRBBS;UPLOAD_FILE\x07/;
+    if (uploadFilePattern.test(data)) {
+        const fileInput = document.getElementById('plugin-file-input');
+        // 以前のリスナーを削除して多重実行を防ぐ
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+
+        newFileInput.addEventListener('change', () => {
+            if (newFileInput.files.length > 0) {
+                const file = newFileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    socket.emit('upload_file_from_plugin', { filename: file.name, data: e.target.result });
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }, { once: true }); // イベントリスナーを一度だけ実行
+        newFileInput.click();
+        data = data.replace(uploadFilePattern, '');
+    }
     const imagePopupPattern = /\x1b\]GRBBS;SHOW_IMAGE_POPUP;(.*?);(.*?)\x07/;
     const imagePopupMatch = data.match(imagePopupPattern);
     if (imagePopupMatch) {

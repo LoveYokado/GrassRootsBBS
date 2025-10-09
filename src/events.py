@@ -414,6 +414,82 @@ def init_events(socketio, app):
             emit('attachment_upload_error',
                  {'message': 'サーバーエラーが発生しました。'})
 
+    @socketio.on('upload_file_from_plugin')
+    def handle_upload_file_from_plugin(data):
+        """プラグインAPI経由でのファイルアップロードを処理します。"""
+        sid = request.sid
+        if sid not in terminal_handler.client_states:
+            return
+
+        handler = terminal_handler.client_states[sid]
+        handler.pending_upload = None  # 古い情報をクリア
+
+        if 'user_id' not in handler.user_session:
+            emit('upload_error_from_plugin', {'message': '認証されていません。'})
+            return
+
+        filename = data.get('filename')
+        file_data = data.get('data')
+
+        if not filename or not file_data:
+            emit('upload_error_from_plugin',
+                 {'message': 'ファイル名またはデータがありません。'})
+            return
+
+        # ハンドラに保存された設定を取得
+        upload_settings = handler.pending_upload_settings or {}
+        max_size_mb = upload_settings.get('max_size_mb', 10)
+        allowed_extensions = upload_settings.get('allowed_extensions')
+
+        # ファイルサイズチェック
+        max_size_bytes = max_size_mb * 1024 * 1024
+        if len(file_data) > max_size_bytes:
+            msg = f'ファイルサイズが大きすぎます ({max_size_mb}MBまで)。'
+            handler.pending_upload = {'error': msg}
+            handler.input_event.set()  # APIの待機を解除
+            return
+
+        # 拡張子チェック
+        safe_original_filename = secure_filename(filename)
+        if allowed_extensions:
+            file_ext = os.path.splitext(safe_original_filename)[
+                1].lstrip('.').lower()
+            if file_ext not in [ext.lower() for ext in allowed_extensions]:
+                msg = f'許可されていないファイル形式です。({", ".join(allowed_extensions)})'
+                handler.pending_upload = {'error': msg}
+                handler.input_event.set()  # APIの待機を解除
+                return
+
+        # ファイルを保存
+        _, ext = os.path.splitext(safe_original_filename)
+        unique_filename = f"{uuid.uuid4()}{ext}"
+
+        # どのプラグインからのアップロードかを取得
+        requesting_plugin_id = upload_settings.get('plugin_id')
+        if not requesting_plugin_id:
+            handler.pending_upload = {'error': 'プラグインIDが特定できませんでした。'}
+            handler.input_event.set()
+            return
+
+        # プラグインごとにディレクトリを分ける
+        # アップロード先を、各プラグインの 'static' ディレクトリに変更
+        plugin_upload_dir = os.path.join(
+            current_app.config['PROJECT_ROOT'], 'plugins', requesting_plugin_id, 'static')
+        os.makedirs(plugin_upload_dir, exist_ok=True)
+        save_path = os.path.join(plugin_upload_dir, unique_filename)
+
+        with open(save_path, 'wb') as f:
+            f.write(file_data)
+
+        # 成功情報をハンドラにセット
+        handler.pending_upload = {
+            'unique_filename': unique_filename,
+            'original_filename': safe_original_filename,
+            'filepath': save_path,
+            'size': len(file_data)
+        }
+        handler.input_event.set()  # APIの待機を解除
+
     @socketio.on('clear_pending_attachment')
     def handle_clear_pending_attachment():
         """セッションで保留中の添付ファイル情報をクリアします。"""

@@ -16,16 +16,27 @@ def run(context):
     api = context['api']
 
     api.send("\r\n--- 16bit Picture Viewer ---\r\n")
-    api.send("加工された画像がポップアップで表示されます。\r\n\r\n")
 
-    # このプラグインの 'static' ディレクトリにある 'gr-bbs.png' を使用します。
-    # 160x100に縮小 -> 640x400にピクセルを保ったまま拡大 -> 16色に減色、という加工を指示します。
-    api.show_image_popup(
-        image_path='gr-bbs.png',
-        title="GR-BBS Logo (レトロ風加工)",
-        resize=(160, 100),
-        enlarge_to=(640, 400),
-        reduce_colors=16)
+    # ファイルアップロードを要求
+    uploaded_file = api.upload_file(
+        prompt="レトロ風に加工したい画像ファイルを選択してください (5MBまで):",
+        allowed_extensions=['png', 'jpg', 'jpeg', 'gif', 'bmp'],
+        max_size_mb=5
+    )
+
+    if uploaded_file:
+        api.send(
+            f"\r\nファイル '{uploaded_file['original_filename']}' をアップロードしました。\r\n")
+        api.send("画像を加工して表示します...\r\n")
+
+        # アップロードされた画像を加工して表示
+        api.show_image_popup(
+            image_path=uploaded_file['filepath'],
+            title=f"{uploaded_file['original_filename']} (レトロ風加工)",
+            resize=(320, 200),
+            reduce_colors=16)
+    else:
+        api.send("\r\nファイルのアップロードがキャンセルされたか、エラーが発生しました。\r\n")
 
     api.send(
         "\r\n\r\n(ポップアップを閉じた後、Enterキーを押すとメニューに戻ります...)\r\n")

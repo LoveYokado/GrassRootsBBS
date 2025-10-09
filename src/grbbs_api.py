@@ -193,11 +193,9 @@ class GrbbsApi:
                                                  plugin_id=self._plugin_id, filename=image_path)
             else:
                 # --- 画像加工処理 ---
-                if image_path.startswith('/'):
-                    full_path = os.path.join(
-                        PROJECT_ROOT, image_path.lstrip('/'))
-                else:
-                    full_path = os.path.join(
+                # image_pathが絶対パス（アップロードされたファイルなど）か、プラグインの相対パスかを判断
+                full_path = image_path if os.path.isabs(
+                    image_path) else os.path.join(
                         PLUGINS_DIR, self._plugin_id, 'static', image_path)
 
                 if not os.path.exists(full_path):
@@ -242,3 +240,56 @@ class GrbbsApi:
 
         sequence = f"\x1b]GRBBS;SHOW_IMAGE_POPUP;{title_b64};{uri_b64}\x07"
         self.send(sequence)
+
+    def upload_file(self, prompt="ファイルを選択してください", allowed_extensions=None, max_size_mb=10):
+        """
+        クライアントにファイルアップロードを要求し、アップロードされたファイル情報を返します。
+
+        この関数は、ユーザーがファイルを選択するかキャンセルするまでブロックします。
+
+        Args:
+            prompt (str, optional): ファイル選択ダイアログの前に表示するメッセージ。
+            allowed_extensions (list[str], optional): 許可する拡張子のリスト。例: ['jpg', 'png']。
+                                                      Noneの場合は制限なし。
+            max_size_mb (int, optional): 最大ファイルサイズ (MB)。
+
+        Returns:
+            dict | None: アップロード成功時にファイルの情報を格納した辞書を返します。
+                         {'unique_filename': str, 'original_filename': str, 'filepath': str, 'size': int}
+                         ユーザーがキャンセルした場合やエラーが発生した場合はNoneを返します。
+        """
+        from . import terminal_handler
+
+        # API呼び出し時に、ハンドラにアップロード設定をセット
+        if hasattr(self._chan, 'handler') and isinstance(self._chan.handler, terminal_handler.WebTerminalHandler):
+            self._chan.handler.pending_upload_settings = {
+                'allowed_extensions': allowed_extensions,
+                'max_size_mb': max_size_mb,
+                'plugin_id': self._plugin_id,  # どのプラグインからの要求か記録
+            }
+
+        # クライアントにアップロードUIの表示を指示
+        self.send(prompt)
+        self.send(b'\x1b]GRBBS;UPLOAD_FILE\x07')
+
+        # クライアントからのファイル選択/キャンセルを待つ
+        try:
+            self._chan.settimeout(300.0)  # 5分間のタイムアウト
+            self._chan.process_input()  # この入力はダミーで、イベント完了の合図
+        except Exception:
+            # タイムアウトなど
+            return None
+        finally:
+            self._chan.settimeout(None)
+
+        # ハンドラにセットされたアップロード結果を取得
+        if hasattr(self._chan, 'handler') and isinstance(self._chan.handler, terminal_handler.WebTerminalHandler):
+            upload_result = self._chan.handler.pending_upload
+            self._chan.handler.pending_upload = None  # 結果を取得したらクリア
+            self._chan.handler.pending_upload_settings = None
+            if upload_result and 'error' not in upload_result:
+                return upload_result
+            elif upload_result and 'error' in upload_result:
+                self.send(f"\r\n[API Error] {upload_result['error']}\r\n")
+
+        return None

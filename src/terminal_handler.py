@@ -120,6 +120,8 @@ class WebTerminalHandler:
         self.log_buffer = []
         self.mail_notified_this_session = False
         self.main_thread_active = True
+        self.pending_upload = None  # プラグインからのアップロード用
+        self.pending_upload_settings = None  # プラグインからのアップロード設定
         self.pending_attachment = None  # 添付ファイル用の一時的な情報
         self.is_mobile = self.user_session.get('menu_mode') == '4'
 
