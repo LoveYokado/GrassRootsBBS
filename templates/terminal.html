@@ -160,6 +160,12 @@
         </div>
     </div>
 
+    <!-- Image Popup: 画像のみを表示するシンプルなポップアップ -->
+    <div id="image-popup-overlay" class="popup-overlay image-only-popup">
+        <img id="image-popup-img" src="" alt="Popup Image">
+    </div>
+
+
     <!-- ハンバーガーメニュー用のサイドナビコンテナ -->
     <div id="sidenav" class="sidenav">
     </div>
@@ -449,6 +455,7 @@
     </div>
 
     <input type="file" id="attachment-input" style="display: none;"> <!-- ファイル添付用の非表示input要素 -->
+    <input type="file" id="plugin-file-input" style="display: none;"> <!-- プラグインAPI用の非表示input要素 -->
 
     <button id="hamburger-btn"><img src="{{ url_for('static', filename='icons/hmbg.svg') }}" alt="Menu"></button>
     <button id="scroll-to-bottom-btn"><img src="{{ url_for('static', filename='icons/arrow.svg') }}"

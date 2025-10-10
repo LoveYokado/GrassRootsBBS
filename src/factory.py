@@ -4,7 +4,8 @@
 """アプリケーションファクトリ。
 
 このモジュールは、Flaskアプリケーションインスタンスの作成と設定を行う、
-`create_app()` ファクトリ関数を提供します。
+`create_app()` ファクトリ関数を提供します。アプリケーションの全体的な設定、
+Blueprintの登録、拡張機能の初期化など、起動に関する中核的な処理を担当します。
 """
 import json
 
@@ -14,6 +15,7 @@ import logging
 import os
 import secrets
 from logging.handlers import RotatingFileHandler
+from urllib.parse import urlparse
 
 import redis
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -59,6 +61,16 @@ def create_app():
                         value in util.app_config.items()}
     app.config.from_mapping(uppercase_config)
     app.config['PROJECT_ROOT'] = PROJECT_ROOT
+
+    # --- url_forがバックグラウンドタスクで動作するための設定 ---
+    # config.tomlの[webapp].ORIGINからサーバー名とスキームを導出
+    webapp_config = app.config.get('WEBAPP', {})
+    origin = webapp_config.get('ORIGIN', 'http://localhost:5000')
+    parsed_origin = urlparse(origin)
+    app.config['SERVER_NAME'] = parsed_origin.hostname
+    if parsed_origin.port:
+        app.config['SERVER_NAME'] += f":{parsed_origin.port}"
+    app.config['PREFERRED_URL_SCHEME'] = parsed_origin.scheme
 
     app.wsgi_app = ProxyFix(
         app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
@@ -254,7 +266,12 @@ def create_app():
         ',') if allowed_origins_str else []
 
     # ProxyFixがSocketIOにも適用されるようにengineio_optionsを設定
-    engineio_options = {"async_mode": "gevent", "ws_proxy_fix": True}
+    # ファイルアップロードの上限を12MBに設定 (デフォルトは1MB)
+    engineio_options = {
+        "async_mode": "gevent",
+        "ws_proxy_fix": True,
+        "max_http_buffer_size": 12 * 1024 * 1024
+    }
     socketio.init_app(
         app, cors_allowed_origins=allowed_origins, **engineio_options)
 

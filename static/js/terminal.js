@@ -432,6 +432,10 @@ const bbsListOverlay = document.getElementById('bbs-list-overlay');
 const bbsListWindow = document.getElementById('bbs-list-window');
 const bbsListCloseBtn = document.getElementById('bbs-list-close-btn');
 const bbsStationsList = document.getElementById('bbs-stations-list');
+
+const imagePopupOverlay = document.getElementById('image-popup-overlay');
+const imagePopupWindow = document.getElementById('image-popup-window');
+const imagePopupImg = document.getElementById('image-popup-img');
 const bbsDetailName = document.getElementById('bbs-detail-name');
 const bbsDetailDescription = document.getElementById('bbs-detail-description');
 const bbsListJumpBtn = document.getElementById('bbs-list-jump-btn');
@@ -452,6 +456,30 @@ function b64DecodeUnicode(str) {
     return decodeURIComponent(atob(str).split('').map(function (c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); // eslint-disable-line no-undef
     }).join(''));
+}
+
+/**
+ * 画像ポップアップを開きます。
+ * @param {string} title - ポップアップのタイトル
+ * @param {string} imageUrl - 表示する画像のURL
+ */
+function openImagePopup(title, imageUrl) {
+    imagePopupImg.src = imageUrl;
+    // ポップアップ表示時にキーボードイベントリスナーを追加
+    document.addEventListener('keydown', handlePopupKeydown);
+    imagePopupOverlay.classList.add('visible');
+}
+
+/** 画像ポップアップを閉じます。 */
+function closeImagePopup() {
+    // ポップアップを閉じる時にキーボードイベントリスナーを削除
+    document.removeEventListener('keydown', handlePopupKeydown);
+    imagePopupOverlay.classList.remove('visible');
+}
+
+/** ポップアップ表示中のキー押下を処理する関数 */
+function handlePopupKeydown(e) { // eslint-disable-line no-unused-vars
+    closeImagePopup();
 }
 
 // マルチラインエディタ内のANSIカラーボタンがクリックされたときの処理
@@ -1226,6 +1254,40 @@ socket.on('server_output', data => {
         data = data.replace(userSelectorPattern, '');
     }
 
+    const uploadFilePattern = /\x1b\]GRBBS;UPLOAD_FILE\x07/;
+    if (uploadFilePattern.test(data)) {
+        const fileInput = document.getElementById('plugin-file-input');
+        // 以前のリスナーを削除して多重実行を防ぐ
+        const newFileInput = fileInput.cloneNode(true);
+        fileInput.parentNode.replaceChild(newFileInput, fileInput);
+
+        newFileInput.addEventListener('change', () => {
+            if (newFileInput.files.length > 0) {
+                const file = newFileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    socket.emit('upload_file_from_plugin', { filename: file.name, data: e.target.result });
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        }, { once: true }); // イベントリスナーを一度だけ実行
+        newFileInput.click();
+        data = data.replace(uploadFilePattern, '');
+    }
+    const imagePopupPattern = /\x1b\]GRBBS;SHOW_IMAGE_POPUP;(.*?);(.*?)\x07/;
+    const imagePopupMatch = data.match(imagePopupPattern);
+    if (imagePopupMatch) {
+        const titleB64 = imagePopupMatch[1];
+        const urlB64 = imagePopupMatch[2];
+        try {
+            const title = b64DecodeUnicode(titleB64);
+            const imageUrl = b64DecodeUnicode(urlB64);
+            openImagePopup(title, imageUrl);
+        } catch (e) {
+            console.error("Failed to open image popup:", e);
+        }
+        data = data.replace(imagePopupPattern, '');
+    }
     // --- 自動スクロール & レイアウト補正ロジック --- 
     const buffer = term.buffer.active;
     // 処理前に、ユーザーが既に一番下までスクロールしているか確認
@@ -1267,6 +1329,12 @@ socket.on('bbs_link_submission_result', (data) => { // eslint-disable-line no-un
     }
 });
 
+socket.on('upload_error_from_plugin', (data) => {
+    const message = data.message || 'An unknown error occurred during file upload.';
+    alert(`Upload Error: ${message}`);
+    // ファイル選択ダイアログをリセット
+    document.getElementById('plugin-file-input').value = '';
+});
 // --- ログビューワー関連のイベント ---
 socket.on('log_files_list', (data) => {
     // サーバーから受信したログファイルリストを画面に描画
@@ -1548,6 +1616,11 @@ function makePopupDraggable(popup) {
 }
 document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
 makePopupDraggable(logViewerWindow);
+
+// 画像ポップアップのクリックイベント（オーバーレイまたは画像自体をクリックで閉じる）
+imagePopupOverlay.addEventListener('click', () => {
+    closeImagePopup();
+});
 
 // --- DOM読み込み完了後の初期化処理 --- 
 // --- PWAインストール関連のロジック --- 

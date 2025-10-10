@@ -3,11 +3,10 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-"""テキストアドベンチャープラグインのメインロジック。
+"""テキストアドベンチャープラグイン。
 
-このプラグインは、ホストアプリケーションの変更を一切行わず、
-提供された `GrbbsApi` の汎用データストレージ機能 (`save_data`, `get_data`) のみを使用して
-ゲームデータの永続化を実現しています。
+このプラグインは、ユーザーがテキストベースのアドベンチャーゲームを作成し、
+プレイできるようにするものです。ゲームデータはすべて、`GrbbsApi`を介してキーバリューストアに保存され、ホストアプリケーションの変更を必要としません。
 """
 
 import uuid
@@ -15,7 +14,15 @@ import json
 
 
 def _deserialize_data(raw_data, default_value=None):
-    """api.get_data()から返されたデータを安全にデシリアライズするヘルパー関数。"""
+    """`api.get_data()`から返されたデータを安全にデシリアライズするヘルパー関数。
+
+    Args:
+        raw_data: APIから取得したデータ。
+        default_value: デシリアライズに失敗した場合に返すデフォルト値。
+
+    Returns:
+        list | dict: デシリアライズされたデータ。
+    """
     if raw_data is None:
         return default_value if default_value is not None else [] if isinstance(default_value, list) else {}
     if isinstance(raw_data, (list, dict)):
@@ -29,7 +36,12 @@ def _deserialize_data(raw_data, default_value=None):
 
 
 def _play_game(api, game_id):
-    """指定されたゲームをプレイする関数。"""
+    """指定されたゲームIDのゲームプレイを開始します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        game_id (str): プレイするゲームのID。
+    """
     game = _deserialize_data(api.get_data(f"game:{game_id}"), default_value={})
     if not game:
         api.send("\r\nゲームが見つかりませんでした。\r\n")
@@ -40,6 +52,23 @@ def _play_game(api, game_id):
         api.send("\r\nこのゲームには開始シーンが設定されていません。\r\n")
         return
 
+    # ゲームに設定された画像加工のデフォルト値を取得
+    game_image_settings = game.get('image_settings', {})
+    resize_setting = tuple(game_image_settings.get(
+        'resize')) if game_image_settings.get('resize') else None
+    enlarge_to_setting = tuple(game_image_settings.get(
+        'enlarge_to')) if game_image_settings.get('enlarge_to') else None
+    reduce_colors_setting = game_image_settings.get('reduce_colors')
+
+    # 画像表示用の共通関数
+    def show_scene_image(scene_data):
+        image_filename = scene_data.get('image_filename')
+        if image_filename:
+            api.show_image_popup(
+                image_path=image_filename, title=f"Scene: {scene_data.get('id')}",
+                resize=resize_setting, enlarge_to=enlarge_to_setting, reduce_colors=reduce_colors_setting
+            )
+
     while current_scene_id:
         scene = _deserialize_data(api.get_data(
             f"scene:{game_id}:{current_scene_id}"), default_value={})
@@ -49,6 +78,9 @@ def _play_game(api, game_id):
 
         api.send(b'\x1b[2J\x1b[H')  # 画面クリア
         api.send("\r\n" + scene['text'].replace('\n', '\r\n') + "\r\n\r\n")
+
+        # シーンに入った時に、設定されていれば画像を一度だけ表示
+        show_scene_image(scene)
 
         choices = _deserialize_data(api.get_data(
             f"choices:{game_id}:{current_scene_id}"), default_value=[])
@@ -62,11 +94,20 @@ def _play_game(api, game_id):
         for i, choice in enumerate(choices):
             api.send(f"[{i + 1}] {choice['text']}\r\n")
 
+        # 画像が設定されている場合、選択肢の最後に「画像を表示」を追加
+        if scene.get('image_filename'):
+            api.send("[P] 画像を表示\r\n")
+
         api.send("\r\nどうしますか？: ")
         user_input = api.get_input()
 
         if user_input is None:  # 接続が切れた場合
             break
+
+        # 'i'が入力されたら画像を再表示
+        if user_input.lower() == 'p' and scene.get('image_filename'):
+            show_scene_image(scene)
+            continue
 
         try:
             choice_index = int(user_input) - 1
@@ -79,7 +120,12 @@ def _play_game(api, game_id):
 
 
 def _handle_play_menu(api, context):
-    """プレイするゲームを選択するメニューを表示します。"""
+    """プレイするゲームを選択するためのメニューを表示・処理します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        context (dict): 実行コンテキスト。
+    """
     while True:
         api.send(b'\x1b[2J\x1b[H')
         api.send("--- テキストアドベンチャー: ゲームを選択 ---\r\n\r\n")
@@ -101,22 +147,30 @@ def _handle_play_menu(api, context):
                 games_details.append(game_detail)
 
         for i, game in enumerate(games_details):
-            api.send(f"[{i + 1}] {game['title']}\r\n")
+            # 自分が作成者でなく、かつ非公開のゲームは表示しない
+            is_author = game.get('author_id') == context['user_id']
+            is_public = game.get('is_public', False)
+            if not is_author and not is_public:
+                continue
+
             author_name = game.get(
                 'author_login_id', game.get('author_id', '不明'))
-            open_marker = " (OPEN)" if game.get('open_edit', False) else ""
-            api.send(
-                f"    作成者: {author_name}{open_marker} | {game.get('description', '')}\r\n\r\n")
+            status_markers = []
+            if not is_public:
+                status_markers.append("非公開")
+            if game.get('open_edit', False):
+                status_markers.append("OPEN")
+            status_str = f" ({', '.join(status_markers)})" if status_markers else ""
 
-        api.send("プレイするゲームの番号を入力してください ([D]削除 [E]戻る): ")
+            api.send(f"[{i + 1}] {game['title']}{status_str}\r\n")
+            api.send(
+                f"    作成者: {author_name} | {game.get('description', '')}\r\n\r\n")
+
+        api.send("プレイするゲームの番号を入力してください ([E]戻る): ")
         choice = api.get_input()
 
         if choice is None or choice.lower() == 'e':
             break
-        elif choice.lower() == 'd':
-            _handle_delete_game(api, context, games_details)
-            # 削除後はメニューを再表示するためにループを継続
-            continue
 
         try:
             game_choice_index = int(choice) - 1
@@ -129,7 +183,12 @@ def _handle_play_menu(api, context):
 
 
 def _create_game(api, context):
-    """新しいゲームを作成する関数。"""
+    """新しいゲームを作成するための対話フローを処理します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        context (dict): 実行コンテキスト。
+    """
     api.send(b'\x1b[2J\x1b[H')
     api.send("--- 新しいゲームの作成 ---\r\n")
     api.send("ゲームのタイトルを入力してください: ")
@@ -145,6 +204,30 @@ def _create_game(api, context):
     open_edit_choice = api.get_input()
     is_open_edit = open_edit_choice and open_edit_choice.lower() == 'y'
 
+    # --- 公開設定 ---
+    api.send("このゲームを他のユーザーに公開しますか？ (y/n): ")
+    public_choice = api.get_input()
+    is_public = public_choice and public_choice.lower() == 'y'
+
+    # --- ゲーム全体で共通の画像設定 ---
+    api.send("\r\n--- 画像のデフォルト設定 ---\r\n")
+    api.send("縮小解像度 (例: 320,200 / 不要なら空): ")
+    resize_input = api.get_input() or ""
+    resize_parts = [p.strip() for p in resize_input.split(',')]
+    resize_setting = [int(p) for p in resize_parts] if len(
+        resize_parts) == 2 and all(p.isdigit() for p in resize_parts) else None
+
+    api.send("拡大解像度 (例: 640,400 / 不要なら空): ")
+    enlarge_input = api.get_input() or ""
+    enlarge_parts = [p.strip() for p in enlarge_input.split(',')]
+    enlarge_setting = [int(p) for p in enlarge_parts] if len(
+        enlarge_parts) == 2 and all(p.isdigit() for p in enlarge_parts) else None
+
+    api.send("減色数 (例: 16 / 不要なら空): ")
+    colors_input = api.get_input()
+    colors_setting = int(
+        colors_input) if colors_input and colors_input.isdigit() else None
+
     game_id = str(uuid.uuid4())
     new_game_data = {
         "id": game_id,
@@ -153,6 +236,12 @@ def _create_game(api, context):
         "author_id": context['user_id'],
         "author_login_id": context['login_id'],
         "open_edit": is_open_edit,
+        "is_public": is_public,
+        "image_settings": {
+            "resize": resize_setting,
+            "enlarge_to": enlarge_setting,
+            "reduce_colors": colors_setting,
+        },
         "start_scene_id": None,
         "scene_ids": []  # このゲームに属するシーンIDのリスト
     }
@@ -183,7 +272,15 @@ def _create_game(api, context):
 
 
 def _create_scene(api, game_id):
-    """新しいシーンを作成する関数。"""
+    """新しいシーンを作成するための対話フローを処理します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        game_id (str): このシーンが属するゲームのID。
+
+    Returns:
+        str | None: 作成されたシーンのID。失敗した場合はNone。
+    """
     api.send("\r\n--- 新しいシーンの作成 ---\r\n")
     api.send("シーンID (例: '玄関', '地下室への階段') を入力してください: ")
     scene_id = api.get_input()
@@ -215,10 +312,14 @@ def _create_scene(api, game_id):
         api.send("シーンテキストは必須です。作成を中止しました。\r\n")
         return None
 
+    # このシーンに紐づける画像があればアップロード
+    image_filename = _handle_scene_image_upload(api, game_id, scene_id)
+
     new_scene_data = {
         "id": scene_id,
         "game_id": game_id,
-        "text": scene_text
+        "text": scene_text,
+        "image_filename": image_filename,
     }
     api.save_data(f"scene:{game_id}:{scene_id}", new_scene_data)
 
@@ -235,7 +336,15 @@ def _create_scene(api, game_id):
 
 
 def _create_choice(api, from_scene_id, game_id):
-    """新しい選択肢を作成する関数。"""
+    """指定されたシーンに新しい選択肢を作成するための対話フローを処理します。
+
+    存在しないシーンIDが指定された場合、その場で新しい空のシーンを作成することもできます。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        from_scene_id (str): 選択肢の分岐元となるシーンのID。
+        game_id (str): この選択肢が属するゲームのID。
+    """
     while True:
         api.send(f"\r\n--- シーン {from_scene_id} の選択肢作成 ---\r\n")
         api.send("選択肢のテキストを入力してください (空入力で終了): ")
@@ -297,8 +406,57 @@ def _create_choice(api, from_scene_id, game_id):
         api.send("選択肢を作成しました。\r\n")
 
 
+def _handle_scene_image_upload(api, game_id, scene_id):
+    """シーンに紐づく画像をアップロードし、ファイル名を返すヘルパー関数。
+
+    アップロードされたファイルは、`upload_file` APIの `preferred_filename` を利用して
+    「ゲーム名_シーン名.拡張子」という形式で保存されます。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        game_id (str): ゲームのID。
+        scene_id (str): シーンのID。
+
+    Returns:
+        str | None: 保存された一意なファイル名。失敗した場合はNone。
+    """
+    api.send("\r\nこのシーンに画像を設定しますか？ (y/n): ")
+    if api.get_input().lower() != 'y':
+        return None
+
+    # ゲーム名とシーン名をファイル名に含める（無害化）
+    game_data = _deserialize_data(
+        api.get_data(f"game:{game_id}"), default_value={})
+    game_title_safe = "".join(
+        c for c in game_data.get('title', 'game') if c.isalnum())
+    scene_id_safe = "".join(c for c in scene_id if c.isalnum())
+    preferred_filename = f"{game_title_safe}_{scene_id_safe}"
+
+    uploaded_file = api.upload_file(
+        prompt="画像ファイルを選択してください:",
+        allowed_extensions=['png', 'jpg', 'jpeg', 'gif', 'bmp'],
+        max_size_mb=5,
+        preferred_filename=preferred_filename
+    )
+
+    if not uploaded_file:
+        api.send("画像のアップロードがキャンセルされました。\r\n")
+        return None
+
+    api.send(
+        f"'{uploaded_file['original_filename']}' をアップロードしました。プレビューを表示します。\r\n")
+    api.send(f"(デバッグ情報: ファイルパス -> {uploaded_file['filepath']})\r\n")
+    api.show_image_popup(uploaded_file['filepath'], title="プレビュー")
+    return uploaded_file['unique_filename']
+
+
 def _edit_scenes_menu(api, game_data):
-    """ゲームに属するシーンを編集するためのメニュー。"""
+    """ゲームに属する全てのシーンを一覧表示し、編集対象を選択するメニュー。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        game_data (dict): 編集対象のゲームデータ。
+    """
     game_id = game_data['id']
     while True:
         api.send(b'\x1b[2J\x1b[H')
@@ -344,7 +502,13 @@ def _edit_scenes_menu(api, game_data):
 
 
 def _edit_single_scene_menu(api, scene_id, game_id):
-    """単一のシーンを編集するためのサブメニュー。"""
+    """単一のシーン（テキスト、選択肢、画像など）を編集するためのサブメニュー。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        scene_id (str): 編集対象のシーンID。
+        game_id (str): 編集対象のゲームID。
+    """
     while True:
         scene_data = _deserialize_data(api.get_data(
             f"scene:{game_id}:{scene_id}"), default_value={})
@@ -359,7 +523,8 @@ def _edit_single_scene_menu(api, scene_id, game_id):
             f"テキスト:\r\n---\r\n{scene_data.get('text', '')}\r\n---\r\n\r\n")
         api.send("[1] シーンのテキストを編集\r\n")
         api.send("[2] このシーンの選択肢を編集\r\n")
-        api.send("[3] このシーンをゲームの開始シーンに設定\r\n")
+        api.send("[3] 画像を変更/追加する\r\n")
+        api.send("[4] このシーンをゲームの開始シーンに設定\r\n")
         api.send("[D] このシーンを削除\r\n")
         api.send("[E] 戻る\r\n")
         api.send("選択してください: ")
@@ -372,6 +537,17 @@ def _edit_single_scene_menu(api, scene_id, game_id):
         elif choice == '2':
             _edit_scene_choices_menu(api, scene_id, game_id)
         elif choice == '3':
+            # 既存の画像を削除
+            if scene_data.get('image_filename'):  # noqa
+                if api.delete_static_file(scene_data['image_filename']):
+                    api.send("既存の画像を削除しました。\r\n")
+
+            # 新しい画像をアップロード
+            new_image_filename = _handle_scene_image_upload(
+                api, game_id, scene_id)
+            scene_data['image_filename'] = new_image_filename
+            api.save_data(f"scene:{game_id}:{scene_id}", scene_data)
+        elif choice == '4':
             game_data = _deserialize_data(
                 api.get_data(f"game:{game_id}"), default_value={})
             if game_data:
@@ -390,7 +566,13 @@ def _edit_single_scene_menu(api, scene_id, game_id):
 
 
 def _edit_scene_text(api, scene_id, game_id):
-    """シーンのテキストを編集する。"""
+    """シーンの本文テキストを編集します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        scene_id (str): 編集対象のシーンID。
+        game_id (str): 編集対象のゲームID。
+    """
     scene_data = _deserialize_data(api.get_data(
         f"scene:{game_id}:{scene_id}"), default_value={})
     if not scene_data:
@@ -416,7 +598,13 @@ def _edit_scene_text(api, scene_id, game_id):
 
 
 def _edit_scene_choices_menu(api, scene_id, game_id):
-    """シーンの選択肢を編集するためのメニュー。"""
+    """シーンに紐づく選択肢を編集するためのメニュー。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        scene_id (str): 編集対象のシーンID。
+        game_id (str): 編集対象のゲームID。
+    """
     while True:
         choices = _deserialize_data(api.get_data(
             f"choices:{game_id}:{scene_id}"), default_value=[])
@@ -468,7 +656,15 @@ def _edit_scene_choices_menu(api, scene_id, game_id):
 
 
 def _edit_single_choice(api, choices, index, scene_id, game_id):
-    """単一の選択肢を編集する。"""
+    """単一の選択肢（テキストと移動先）を編集します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        choices (list): 編集対象を含む選択肢のリスト。
+        index (int): `choices`リスト内の編集対象のインデックス。
+        scene_id (str): この選択肢が属するシーンのID。
+        game_id (str): この選択肢が属するゲームのID。
+    """
     choice_to_edit = choices[index]
 
     api.send(f"\r\n新しい選択肢のテキストを入力してください (現在: {choice_to_edit['text']}): ")
@@ -487,7 +683,15 @@ def _edit_single_choice(api, choices, index, scene_id, game_id):
 
 
 def _delete_scene(api, scene_id, game_id):
-    """シーンと関連データを削除する。"""
+    """シーンとそれに関連するデータ（選択肢など）を削除します。
+
+    注意: このシーンに遷移してくる他のシーンの選択肢は削除されません。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        scene_id (str): 削除対象のシーンID。
+        game_id (str): 削除対象のゲームID。
+    """
     api.send(f"\r\n本当にシーン「{scene_id}」を削除しますか？この操作は元に戻せません。(y/n): ")
     confirm = api.get_input()
     if not confirm or confirm.lower() != 'y':
@@ -515,7 +719,12 @@ def _delete_scene(api, scene_id, game_id):
 
 
 def _handle_edit_menu(api, context):
-    """ゲーム編集メニュー。オープン編集モードまたは作成者のみが編集可能です。"""
+    """ゲーム編集のトップメニュー。編集対象のゲームを選択します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        context (dict): 実行コンテキスト。
+    """
     while True:
         api.send(b'\x1b[2J\x1b[H')
         api.send("--- テキストアドベンチャー: ゲームを編集 ---\r\n\r\n")
@@ -543,11 +752,17 @@ def _handle_edit_menu(api, context):
             open_marker = " (OPEN)" if game.get('open_edit', False) else ""
             api.send(f"    作成者: {author_name}{open_marker}\r\n\r\n")
 
-        api.send("編集するゲームの番号を入力してください ([E]戻る): ")
+        api.send("編集するゲームの番号を入力してください ([D]削除 [E]戻る): ")
         choice_str = api.get_input()
 
         if choice_str is None or choice_str.lower() == 'e':
             break
+        elif choice_str.lower() == 'd':
+            # 削除対象のゲームを選択させる
+            # games_detailsには自分のゲームしか含まれていないので権限チェックは不要
+            _handle_delete_game(api, context, games_details)
+            # 削除後はメニューを再表示するためにループを継続
+            continue
 
         try:
             choice_idx = int(choice_str) - 1
@@ -571,8 +786,9 @@ def _handle_edit_menu(api, context):
             while True:
                 api.send(b'\x1b[2J\x1b[H')
                 api.send(f"--- 「{game_to_edit['title']}」の編集 ---\r\n")
-                api.send("[1] ゲームの基本情報を編集\r\n")
-                api.send("[2] シーンと選択肢を編集\r\n")
+                api.send("[1] ゲームのタイトルと説明を編集\r\n")
+                api.send("[2] ゲームの画像設定を編集\r\n")
+                api.send("[3] シーンと選択肢を編集\r\n")
                 api.send("[E] 編集を終了\r\n")
                 api.send("選択してください: ")
                 edit_choice = api.get_input()
@@ -581,21 +797,64 @@ def _handle_edit_menu(api, context):
                     break
                 elif edit_choice == '1':
                     _edit_game_details(api, game_to_edit)
+                elif edit_choice == '2':
+                    _edit_game_image_settings(api, game_to_edit)
                     # 更新された可能性があるので再読み込み
                     game_to_edit = _deserialize_data(api.get_data(
                         f"game:{game_to_edit['id']}"), default_value={})
-                elif edit_choice == '2':
+                elif edit_choice == '3':
                     _edit_scenes_menu(api, game_to_edit)
                 else:
                     api.send("無効な選択です。\r\n")
-            # 編集サブメニューを抜けたら、ゲーム選択メニューに戻る
+        except ValueError:
+            api.send("数字で入力してください。\r\n")
 
-        except (ValueError, IndexError):
-            api.send("無効な入力です。\r\n")
+
+def _edit_game_image_settings(api, game_data):
+    """ゲーム全体で共通のデフォルト画像設定を編集します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        game_data (dict): 編集対象のゲームデータ。
+    """
+    game_id = game_data['id']
+    current_settings = game_data.get('image_settings', {})
+
+    api.send("\r\n--- 画像のデフォルト設定編集 ---\r\n")
+    api.send(f"現在の縮小解像度: {current_settings.get('resize')}\r\n")
+    api.send("新しい縮小解像度 (例: 320,200 / 変更しないなら空): ")
+    resize_input = api.get_input()
+    if resize_input and ',' in resize_input:
+        resize_parts = [p.strip() for p in resize_input.split(',')]
+        if len(resize_parts) == 2 and all(p.isdigit() for p in resize_parts):
+            current_settings['resize'] = [int(p) for p in resize_parts]
+
+    api.send(f"現在の拡大解像度: {current_settings.get('enlarge_to')}\r\n")
+    api.send("新しい拡大解像度 (例: 640,400 / 変更しないなら空): ")
+    enlarge_input = api.get_input()
+    if enlarge_input and ',' in enlarge_input:
+        enlarge_parts = [p.strip() for p in enlarge_input.split(',')]
+        if len(enlarge_parts) == 2 and all(p.isdigit() for p in enlarge_parts):
+            current_settings['enlarge_to'] = [int(p) for p in enlarge_parts]
+
+    api.send(f"現在の減色数: {current_settings.get('reduce_colors')}\r\n")
+    api.send("新しい減色数 (例: 16 / 変更しないなら空): ")
+    colors_input = api.get_input()
+    if colors_input and colors_input.isdigit():
+        current_settings['reduce_colors'] = int(colors_input)
+
+    game_data['image_settings'] = current_settings
+    api.save_data(f"game:{game_id}", game_data)
+    api.send("画像設定を更新しました。\r\n")
 
 
 def _edit_game_details(api, game_data):
-    """ゲームのタイトルと説明を編集します。"""
+    """ゲームの基本情報（タイトル、説明、公開設定など）を編集します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        game_data (dict): 編集対象のゲームデータ。
+    """
     original_game_id = game_data['id']  # IDを保持
 
     api.send(f"\r\n新しいタイトルを入力してください (現在: {game_data['title']}): ")
@@ -608,6 +867,25 @@ def _edit_game_details(api, game_data):
     game_data['description'] = new_description
     api.save_data(f"game:{original_game_id}", game_data)
 
+    # 公開設定の編集
+    current_public_status = "公開" if game_data.get(
+        'is_public', False) else "非公開"
+    api.send(f"ゲームを公開しますか？ (現在: {current_public_status}) (y/n/空欄=変更しない): ")
+    public_choice = api.get_input()
+    if public_choice.lower() == 'y':
+        game_data['is_public'] = True
+    elif public_choice.lower() == 'n':
+        game_data['is_public'] = False
+
+    # 誰でも編集可能かどうかの設定
+    current_open_status = "はい" if game_data.get('open_edit', False) else "いいえ"
+    api.send(f"誰でも編集可能にしますか？ (現在: {current_open_status}) (y/n/空欄=変更しない): ")
+    open_edit_choice = api.get_input()
+    if open_edit_choice.lower() == 'y':
+        game_data['open_edit'] = True
+    elif open_edit_choice.lower() == 'n':
+        game_data['open_edit'] = False
+
     # game_indexも更新
     game_index = _deserialize_data(
         api.get_data("game_index"), default_value=[])
@@ -619,7 +897,15 @@ def _edit_game_details(api, game_data):
 
 
 def _handle_delete_game(api, context, games_details):
-    """ゲーム削除の対話処理。"""
+    """ゲーム削除の対話処理。
+
+    ユーザーに削除対象のゲーム番号を尋ね、確認の上で削除を実行します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        context (dict): 実行コンテキスト。
+        games_details (list): 削除候補となるゲームのリスト。
+    """
     api.send("\r\n削除するゲームの番号を入力してください: ")
     choice_str = api.get_input()
     if not choice_str:
@@ -658,12 +944,24 @@ def _handle_delete_game(api, context, games_details):
 
 
 def _delete_game_data(api, game_id):
-    """指定されたゲームIDに関連する全てのデータを削除します。"""
+    """指定されたゲームIDに関連する全てのデータ（ゲーム本体、シーン、選択肢、画像ファイル）を削除します。
+
+    Args:
+        api (GrbbsApi): プラグインAPIのインスタンス。
+        game_id (str): 削除対象のゲームID。
+    Returns:
+        bool: 削除に成功した場合はTrue。
+    """
     try:
         game_data = _deserialize_data(api.get_data(
             f"game:{game_id}"), default_value={})
         scene_ids = game_data.get('scene_ids', [])
         for scene_id in scene_ids:
+            # シーンに紐づく画像ファイルも削除
+            scene_data = _deserialize_data(api.get_data(
+                f"scene:{game_id}:{scene_id}"), default_value={})
+            if scene_data.get('image_filename'):
+                api.delete_static_file(scene_data['image_filename'])
             api.delete_data(f"choices:{game_id}:{scene_id}")
             api.delete_data(f"scene:{game_id}:{scene_id}")
         api.delete_data(f"game:{game_id}")
@@ -679,7 +977,11 @@ def _delete_game_data(api, game_id):
 
 
 def run(context):
-    """プラグインのエントリーポイント。"""
+    """プラグインのエントリーポイント。
+
+    Args:
+        context (dict): 実行コンテキスト。
+    """
     api = context['api']
 
     while True:
