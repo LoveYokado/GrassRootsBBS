@@ -1324,6 +1324,12 @@ socket.on('bbs_link_submission_result', (data) => { // eslint-disable-line no-un
     }
 });
 
+socket.on('upload_error_from_plugin', (data) => {
+    const message = data.message || 'An unknown error occurred during file upload.';
+    alert(`Upload Error: ${message}`);
+    // ファイル選択ダイアログをリセット
+    document.getElementById('plugin-file-input').value = '';
+});
 // --- ログビューワー関連のイベント ---
 socket.on('log_files_list', (data) => {
     // サーバーから受信したログファイルリストを画面に描画

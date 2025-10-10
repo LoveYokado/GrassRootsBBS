@@ -4,7 +4,8 @@
 """アプリケーションファクトリ。
 
 このモジュールは、Flaskアプリケーションインスタンスの作成と設定を行う、
-`create_app()` ファクトリ関数を提供します。
+`create_app()` ファクトリ関数を提供します。アプリケーションの全体的な設定、
+Blueprintの登録、拡張機能の初期化など、起動に関する中核的な処理を担当します。
 """
 import json
 
@@ -265,7 +266,12 @@ def create_app():
         ',') if allowed_origins_str else []
 
     # ProxyFixがSocketIOにも適用されるようにengineio_optionsを設定
-    engineio_options = {"async_mode": "gevent", "ws_proxy_fix": True}
+    # ファイルアップロードの上限を12MBに設定 (デフォルトは1MB)
+    engineio_options = {
+        "async_mode": "gevent",
+        "ws_proxy_fix": True,
+        "max_http_buffer_size": 12 * 1024 * 1024
+    }
     socketio.init_app(
         app, cors_allowed_origins=allowed_origins, **engineio_options)
 

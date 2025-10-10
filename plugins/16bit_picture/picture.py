@@ -4,18 +4,19 @@
 # SPDX-License-Identifier: MIT
 
 """
-画像ポップアップテストプラグイン。
+画像アップロード・加工テストプラグイン。
 
-このプラグインは、`api.show_image_popup`メソッドを使用して、
-画像加工オプション付きでポップアップを表示する機能のデモンストレーションです。
+このプラグインは、`api.upload_file`と`api.show_image_popup`メソッドを使用して、
+ユーザーがアップロードした画像をレトロPC風に加工して表示する機能のデモンストレーションです。
 """
 
 
 def run(context):
-    """Plugin entry point."""
+    """プラグインのエントリーポイント。"""
     api = context['api']
 
     api.send("\r\n--- 16bit Picture Viewer ---\r\n")
+    api.send("レトロ風に加工したい画像ファイルをアップロードします。\r\n\r\n")
 
     # ファイルアップロードを要求
     uploaded_file = api.upload_file(
@@ -26,15 +27,17 @@ def run(context):
 
     if uploaded_file:
         api.send(
-            f"\r\nファイル '{uploaded_file['original_filename']}' をアップロードしました。\r\n")
-        api.send("画像を加工して表示します...\r\n")
+            f"\r\n'{uploaded_file['original_filename']}' をアップロードしました。画像を加工して表示します...\r\n")
 
         # アップロードされた画像を加工して表示
+        # 160x100に縮小 -> 640x400にピクセルを保ったまま拡大 -> 16色に減色
         api.show_image_popup(
             image_path=uploaded_file['filepath'],
             title=f"{uploaded_file['original_filename']} (レトロ風加工)",
-            resize=(320, 200),
-            reduce_colors=16)
+            resize=(160, 100),
+            enlarge_to=(640, 400),
+            reduce_colors=16
+        )
     else:
         api.send("\r\nファイルのアップロードがキャンセルされたか、エラーが発生しました。\r\n")
 

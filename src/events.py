@@ -431,9 +431,10 @@ def init_events(socketio, app):
         filename = data.get('filename')
         file_data = data.get('data')
 
-        if not filename or not file_data:
-            emit('upload_error_from_plugin',
-                 {'message': 'ファイル名またはデータがありません。'})
+        if not filename or file_data is None:
+            # ファイル選択がキャンセルされた場合も、APIの待機を解除する
+            handler.pending_upload = {'error': 'ファイルが選択されませんでした。'}
+            handler.input_event.set()
             return
 
         # ハンドラに保存された設定を取得
@@ -446,6 +447,7 @@ def init_events(socketio, app):
         if len(file_data) > max_size_bytes:
             msg = f'ファイルサイズが大きすぎます ({max_size_mb}MBまで)。'
             handler.pending_upload = {'error': msg}
+            emit('upload_error_from_plugin', {'message': msg})
             handler.input_event.set()  # APIの待機を解除
             return
 

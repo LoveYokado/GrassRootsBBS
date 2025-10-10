@@ -11,8 +11,7 @@ from PIL import Image
 
 プラグインがホストアプリケーションの機能と安全に対話するためのAPIを提供します。
 このモジュールは、プラグインに対して公開される`GrbbsApi`クラスを定義しており、
-BBS本体の内部実装を隠蔽し、安定したインターフェースのみを公開する
-ファサードパターンとして機能します。
+BBS本体の内部実装を隠蔽し、安定したインターフェースのみを公開するファサードパターンとして機能します。
 """
 
 
@@ -20,9 +19,9 @@ class GrbbsApi:
     """
     プラグインに提供されるAPIのエントリーポイントとなるクラス。
 
-    プラグインは、このクラスのインスタンスを介して、メッセージの送受信、
-    データの永続化、ユーザー情報の取得など、ホストアプリケーションの
-    提供する機能にアクセスします。
+    プラグインは、このクラスのインスタンスを介して、メッセージの送受信、データの永続化、
+    ユーザー情報の取得、画像ポップアップの表示、ファイルアップロードなど、
+    ホストアプリケーションが提供する機能にアクセスします。
     """
 
     def __init__(self, app, channel, plugin_id, online_members_func):
@@ -168,8 +167,8 @@ class GrbbsApi:
 
         Args:
             image_path (str): 表示する画像のパス。
-                - `/`から始まる場合: アプリケーションルートからの絶対パス (例: '/static/images/logo.png')
-                - それ以外の場合: このプラグインの 'static' ディレクトリからの相対パス (例: 'my_image.jpg')
+                - 絶対パスの場合: アップロードされたファイルのフルパスなど。
+                - 相対パスの場合: このプラグインの 'static' ディレクトリからの相対パス (例: 'my_image.jpg')。
             title (str, optional): ポップアップウィンドウのタイトル。
             resize (tuple, optional): (width, height) のタプルで画像を縮小。例: (320, 200)。
             reduce_colors (int, optional): 指定された色数に減色します。例: 16。256色以下に有効です。
@@ -180,15 +179,39 @@ class GrbbsApi:
         from .plugin_manager import PROJECT_ROOT, PLUGINS_DIR
 
         image_data_uri = None
-        needs_processing = resize is not None or reduce_colors is not None
+        needs_processing = resize is not None or reduce_colors is not None or enlarge_to is not None
 
         try:
             if not needs_processing:
                 # 加工が不要な場合は、URLを生成
-                with self._app.app_context():
-                    if image_path.startswith('/'):
-                        image_data_uri = image_path
+                with self._app.app_context():  # URL生成のためにコンテキストが必要
+                    if os.path.isabs(image_path):
+                        # 絶対パスの場合、それが `plugins` ディレクトリ内かを判定
+                        try:
+                            relative_path = os.path.relpath(
+                                image_path, PLUGINS_DIR)
+                            # パスが `../` などで始まらないことを確認 (セキュリティ)
+                            if not relative_path.startswith('..'):
+                                parts = relative_path.split(os.sep)
+                                if len(parts) >= 2:  # plugin_id/static/filename
+                                    plugin_id = parts[0]
+                                    filename = os.path.join(
+                                        *parts[2:])  # static/ を除いた部分
+                                    image_data_uri = url_for(
+                                        'web.serve_plugin_static', plugin_id=plugin_id, filename=filename)
+                                else:
+                                    image_data_uri = image_path  # フォールバック
+                            else:
+                                image_data_uri = image_path  # フォールバック
+                        except ValueError:
+                            # 異なるドライブレターなど、relpathが失敗した場合
+                            image_data_uri = image_path  # フォールバック
+                        else:
+                            image_data_uri = image_path  # フォールバック
+                    elif image_path.startswith('http'):
+                        image_data_uri = image_path  # 外部リンク
                     else:
+                        # プラグインのstaticディレクトリからの相対パス
                         image_data_uri = url_for('web.serve_plugin_static',
                                                  plugin_id=self._plugin_id, filename=image_path)
             else:
@@ -200,7 +223,7 @@ class GrbbsApi:
 
                 if not os.path.exists(full_path):
                     self.send(
-                        f"\r\n[API Error] Image not found: {image_path}\r\n")
+                        f"\r\n[API Error] Image not found: {full_path}\r\n")
                     return
 
                 with Image.open(full_path) as img:
@@ -274,8 +297,10 @@ class GrbbsApi:
 
         # クライアントからのファイル選択/キャンセルを待つ
         try:
-            self._chan.settimeout(300.0)  # 5分間のタイムアウト
-            self._chan.process_input()  # この入力はダミーで、イベント完了の合図
+            # process_input() はEnterキーを待ってしまうため、
+            # イベントがセットされるのを直接待つように変更
+            if not self._chan.handler.input_event.wait(timeout=300.0):
+                raise TimeoutError("File upload timed out.")
         except Exception:
             # タイムアウトなど
             return None
@@ -283,6 +308,7 @@ class GrbbsApi:
             self._chan.settimeout(None)
 
         # ハンドラにセットされたアップロード結果を取得
+        self._chan.handler.input_event.clear()  # 次の入力のためにイベントをクリア
         if hasattr(self._chan, 'handler') and isinstance(self._chan.handler, terminal_handler.WebTerminalHandler):
             upload_result = self._chan.handler.pending_upload
             self._chan.handler.pending_upload = None  # 結果を取得したらクリア
