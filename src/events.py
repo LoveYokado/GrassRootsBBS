@@ -463,8 +463,15 @@ def init_events(socketio, app):
                 return
 
         # ファイルを保存
-        _, ext = os.path.splitext(safe_original_filename)
-        unique_filename = f"{uuid.uuid4()}{ext}"
+        # プラグイン側で指定されたファイル名を使用する。指定がなければUUIDを生成。
+        preferred_filename = upload_settings.get('preferred_filename')
+        if preferred_filename:
+            # 拡張子を元ファイルから拝借し、ファイル名を無害化
+            _, ext = os.path.splitext(safe_original_filename)
+            unique_filename = secure_filename(f"{preferred_filename}{ext}")
+        else:
+            _, ext = os.path.splitext(safe_original_filename)
+            unique_filename = f"{uuid.uuid4()}{ext}"
 
         # どのプラグインからのアップロードかを取得
         requesting_plugin_id = upload_settings.get('plugin_id')

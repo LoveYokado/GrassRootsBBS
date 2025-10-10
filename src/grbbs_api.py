@@ -181,40 +181,9 @@ class GrbbsApi:
         image_data_uri = None
         needs_processing = resize is not None or reduce_colors is not None or enlarge_to is not None
 
-        try:
-            if not needs_processing:
-                # 加工が不要な場合は、URLを生成
-                with self._app.app_context():  # URL生成のためにコンテキストが必要
-                    if os.path.isabs(image_path):
-                        # 絶対パスの場合、それが `plugins` ディレクトリ内かを判定
-                        try:
-                            relative_path = os.path.relpath(
-                                image_path, PLUGINS_DIR)
-                            # パスが `../` などで始まらないことを確認 (セキュリティ)
-                            if not relative_path.startswith('..'):
-                                parts = relative_path.split(os.sep)
-                                if len(parts) >= 2:  # plugin_id/static/filename
-                                    plugin_id = parts[0]
-                                    filename = os.path.join(
-                                        *parts[2:])  # static/ を除いた部分
-                                    image_data_uri = url_for(
-                                        'web.serve_plugin_static', plugin_id=plugin_id, filename=filename)
-                                else:
-                                    image_data_uri = image_path  # フォールバック
-                            else:
-                                image_data_uri = image_path  # フォールバック
-                        except ValueError:
-                            # 異なるドライブレターなど、relpathが失敗した場合
-                            image_data_uri = image_path  # フォールバック
-                        else:
-                            image_data_uri = image_path  # フォールバック
-                    elif image_path.startswith('http'):
-                        image_data_uri = image_path  # 外部リンク
-                    else:
-                        # プラグインのstaticディレクトリからの相対パス
-                        image_data_uri = url_for('web.serve_plugin_static',
-                                                 plugin_id=self._plugin_id, filename=image_path)
-            else:
+        # プレビュー（絶対パス）または画像加工が要求された場合は、ファイルを読み込みData URIを生成する
+        if os.path.isabs(image_path) or needs_processing:
+            try:
                 # --- 画像加工処理 ---
                 # image_pathが絶対パス（アップロードされたファイルなど）か、プラグインの相対パスかを判断
                 full_path = image_path if os.path.isabs(
@@ -249,9 +218,22 @@ class GrbbsApi:
                         buffer.getvalue()).decode("utf-8")
                     image_data_uri = f"data:image/png;base64,{encoded_string}"
 
-        except Exception as e:
-            self.send(f"\r\n[API Error] Image processing failed: {e}\r\n")
-            return
+            except Exception as e:
+                self.send(f"\r\n[API Error] Image processing failed: {e}\r\n")
+                return
+        else:
+            # 加工が不要で、かつ相対パスまたは外部リンクの場合
+            try:
+                with self._app.app_context():  # URL生成にはアプリケーションコンテキストが必要
+                    if image_path.startswith('http'):
+                        image_data_uri = image_path  # 外部リンク
+                    else:
+                        # プラグインのstaticディレクトリからの相対パス
+                        image_data_uri = url_for('web.serve_plugin_static',
+                                                 plugin_id=self._plugin_id, filename=image_path)
+            except Exception as e:
+                self.send(f"\r\n[API Error] URL generation failed: {e}\r\n")
+                return
 
         if image_data_uri is None:
             self.send(f"\r\n[API Error] Could not generate image URI.\r\n")
@@ -264,7 +246,7 @@ class GrbbsApi:
         sequence = f"\x1b]GRBBS;SHOW_IMAGE_POPUP;{title_b64};{uri_b64}\x07"
         self.send(sequence)
 
-    def upload_file(self, prompt="ファイルを選択してください", allowed_extensions=None, max_size_mb=10):
+    def upload_file(self, prompt="ファイルを選択してください", allowed_extensions=None, max_size_mb=10, preferred_filename=None):
         """
         クライアントにファイルアップロードを要求し、アップロードされたファイル情報を返します。
 
@@ -275,6 +257,7 @@ class GrbbsApi:
             allowed_extensions (list[str], optional): 許可する拡張子のリスト。例: ['jpg', 'png']。
                                                       Noneの場合は制限なし。
             max_size_mb (int, optional): 最大ファイルサイズ (MB)。
+            preferred_filename (str, optional): 保存時の推奨ファイル名（拡張子なし）。指定されなければUUIDが使われます。
 
         Returns:
             dict | None: アップロード成功時にファイルの情報を格納した辞書を返します。
@@ -289,6 +272,7 @@ class GrbbsApi:
                 'allowed_extensions': allowed_extensions,
                 'max_size_mb': max_size_mb,
                 'plugin_id': self._plugin_id,  # どのプラグインからの要求か記録
+                'preferred_filename': preferred_filename,
             }
 
         # クライアントにアップロードUIの表示を指示
@@ -319,3 +303,29 @@ class GrbbsApi:
                 self.send(f"\r\n[API Error] {upload_result['error']}\r\n")
 
         return None
+
+    def delete_static_file(self, filename):
+        """
+        このプラグインの 'static' ディレクトリから指定されたファイルを削除します。
+
+        ディレクトリトラバーサルを防ぐため、ファイル名に '..' や '/' が含まれている場合は
+        処理を中断します。
+
+        Args:
+            filename (str): 削除するファイル名。
+
+        Returns:
+            bool: 削除に成功した場合はTrue、失敗した場合はFalse。
+        """
+        from .plugin_manager import PLUGINS_DIR
+        if '..' in filename or '/' in filename or '\\' in filename:
+            self.send(
+                f"\r\n[API Error] Invalid characters in filename: {filename}\r\n")
+            return False
+
+        file_path = os.path.join(
+            PLUGINS_DIR, self._plugin_id, 'static', filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return True
+        return False

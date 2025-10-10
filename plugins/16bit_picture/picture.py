@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 """
+
 画像アップロード・加工テストプラグイン。
 
 このプラグインは、`api.upload_file`と`api.show_image_popup`メソッドを使用して、
