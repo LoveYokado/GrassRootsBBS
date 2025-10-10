@@ -465,16 +465,25 @@ function b64DecodeUnicode(str) {
  * @param {string} imageUrl - 表示する画像のURL
  */
 function openImagePopup(title, imageUrl) {
-    document.getElementById('image-popup-title').textContent = title;
-    document.getElementById('image-popup-img').src = imageUrl;
-    document.getElementById('image-popup-overlay').classList.add('visible');
-    document.getElementById('image-popup-window').classList.add('visible');
+    imagePopupTitle.textContent = title;
+    imagePopupImg.src = imageUrl;
+    // ポップアップ表示時にキーボードイベントリスナーを追加
+    document.addEventListener('keydown', handlePopupKeydown);
+    imagePopupOverlay.classList.add('visible');
+    imagePopupWindow.classList.add('visible');
 }
 
 /** 画像ポップアップを閉じます。 */
 function closeImagePopup() {
-    document.getElementById('image-popup-overlay').classList.remove('visible');
-    document.getElementById('image-popup-window').classList.remove('visible');
+    // ポップアップを閉じる時にキーボードイベントリスナーを削除
+    document.removeEventListener('keydown', handlePopupKeydown);
+    imagePopupOverlay.classList.remove('visible');
+    imagePopupWindow.classList.remove('visible');
+}
+
+/** ポップアップ表示中のキー押下を処理する関数 */
+function handlePopupKeydown(e) {
+    closeImagePopup();
 }
 
 // マルチラインエディタ内のANSIカラーボタンがクリックされたときの処理
