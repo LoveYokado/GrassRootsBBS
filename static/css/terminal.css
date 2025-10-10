@@ -1228,3 +1228,24 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   background-color: #555;
   font-weight: bold;
 }
+
+/* --- 画像のみのポップアップ --- */
+.popup-overlay.image-only-popup.visible {
+  /* visibleクラスが付いた時だけflexで中央揃えにする */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  /* 背景を少し濃くする */
+  cursor: pointer;
+  /* クリック可能であることを示す */
+}
+
+.popup-overlay.image-only-popup img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  /* アスペクト比を維持 */
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+  /* 画像に影を付けて浮かび上がらせる */
+}

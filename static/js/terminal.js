@@ -435,7 +435,6 @@ const bbsStationsList = document.getElementById('bbs-stations-list');
 
 const imagePopupOverlay = document.getElementById('image-popup-overlay');
 const imagePopupWindow = document.getElementById('image-popup-window');
-const imagePopupTitle = document.getElementById('image-popup-title');
 const imagePopupImg = document.getElementById('image-popup-img');
 const bbsDetailName = document.getElementById('bbs-detail-name');
 const bbsDetailDescription = document.getElementById('bbs-detail-description');
@@ -465,12 +464,10 @@ function b64DecodeUnicode(str) {
  * @param {string} imageUrl - 表示する画像のURL
  */
 function openImagePopup(title, imageUrl) {
-    imagePopupTitle.textContent = title;
     imagePopupImg.src = imageUrl;
     // ポップアップ表示時にキーボードイベントリスナーを追加
     document.addEventListener('keydown', handlePopupKeydown);
     imagePopupOverlay.classList.add('visible');
-    imagePopupWindow.classList.add('visible');
 }
 
 /** 画像ポップアップを閉じます。 */
@@ -478,11 +475,10 @@ function closeImagePopup() {
     // ポップアップを閉じる時にキーボードイベントリスナーを削除
     document.removeEventListener('keydown', handlePopupKeydown);
     imagePopupOverlay.classList.remove('visible');
-    imagePopupWindow.classList.remove('visible');
 }
 
 /** ポップアップ表示中のキー押下を処理する関数 */
-function handlePopupKeydown(e) {
+function handlePopupKeydown(e) { // eslint-disable-line no-unused-vars
     closeImagePopup();
 }
 
@@ -1621,13 +1617,11 @@ function makePopupDraggable(popup) {
 document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
 makePopupDraggable(logViewerWindow);
 
-// 画像ポップアップの閉じるボタン
-document.getElementById('image-popup-close-btn').addEventListener('click', () => {
-    closeImagePopup();
-});
+// 画像ポップアップのクリックイベント（オーバーレイまたは画像自体をクリックで閉じる）
 imagePopupOverlay.addEventListener('click', () => {
     closeImagePopup();
 });
+
 // --- DOM読み込み完了後の初期化処理 --- 
 // --- PWAインストール関連のロジック --- 
 let deferredPrompt;
