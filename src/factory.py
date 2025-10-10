@@ -109,8 +109,6 @@ def create_app():
     )
     error_handler.setFormatter(logging.Formatter(
         '[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
-    logging.getLogger().addHandler(error_handler)
-    logging.getLogger().setLevel(logging.INFO)
 
     database.init_app(app)
 
