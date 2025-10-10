@@ -144,6 +144,85 @@
                     href="https://github.com/your-username/GrassRootsBBS/blob/main/README.md"
                     target="_blank">README.md</a> を参照してください。</li>
         </ul>
+
+        <hr style="border-color: #005533; margin: 2em 0;">
+
+        <h2>3. For Plugin Developers / プラグイン開発者向けマニュアル</h2>
+        <p>このセクションでは、GrassRootsBBS の機能を拡張するためのプラグイン開発について説明します。</p>
+
+        <h3>3.1. プラグインの基本構造</h3>
+        <p>プラグインは、<code>plugins</code> ディレクトリ内に配置された個別のディレクトリです。各プラグインは、最低限以下のファイルを持つ必要があります。</p>
+        <ul>
+            <li><strong><code>plugin.toml</code></strong>: プラグインの名前、説明、エントリーポイントなどを定義するメタデータファイル。</li>
+            <li><strong><code>your_entry_point.py</code></strong>: <code>plugin.toml</code>
+                で指定された、<code>run(context)</code>
+                関数を持つ Python ファイル。</li>
+        </ul>
+
+        <h3>3.2. <code>GrbbsApi</code> の概要</h3>
+        <p>プラグインは、<code>run(context)</code> 関数の引数として渡される <code>context</code> ディクショナリを通じて、<code>GrbbsApi</code>
+            のインスタンスにアクセスします (<code>api = context['api']</code>)。この API を通じて、BBS の機能を安全に利用できます。</p>
+
+        <h3>3.3. API リファレンス</h3>
+
+        <h4>メッセージング</h4>
+        <ul>
+            <li><strong><code>send(message)</code></strong>: クライアントにメッセージを送信します。
+                <ul>
+                    <li><code>message</code> (str | bytes): 送信する文字列またはバイトデータ。</li>
+                </ul>
+            </li>
+            <li><strong><code>get_input(echo=True)</code></strong>: クライアントからの入力を一行受け取ります。
+                <ul>
+                    <li><code>echo</code> (bool): <code>False</code> にすると、入力内容が画面に表示されません（パスワード入力用）。</li>
+                    <li><strong>戻り値</strong>: (str | None) ユーザーが入力した文字列。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h4>データ永続化</h4>
+        <ul>
+            <li><strong><code>save_data(key, value)</code></strong>: プラグイン専用のデータをキーバリュー形式で保存します。</li>
+            <li><strong><code>get_data(key)</code></strong>: キーを指定して、保存したデータを取得します。</li>
+            <li><strong><code>delete_data(key)</code></strong>: キーを指定して、保存したデータを削除します。</li>
+            <li><strong><code>get_all_data()</code></strong>: このプラグインが保存した全てのデータを辞書として取得します。</li>
+        </ul>
+
+        <h4>ユーザー情報</h4>
+        <ul>
+            <li><strong><code>get_user_info(username)</code></strong>: 指定されたユーザーの公開情報を取得します。</li>
+            <li><strong><code>get_online_users()</code></strong>: 現在オンラインのユーザーリストを取得します。</li>
+        </ul>
+
+        <h4>ファイル操作</h4>
+        <ul>
+            <li><strong><code>upload_file(prompt, allowed_extensions, max_size_mb, preferred_filename)</code></strong>:
+                クライアントにファイルアップロードを要求します。
+                <ul>
+                    <li><code>prompt</code> (str): ファイル選択ダイアログの前に表示するメッセージ。</li>
+                    <li><code>allowed_extensions</code> (list[str]): 許可する拡張子のリスト (例: <code>['jpg', 'png']</code>)。</li>
+                    <li><code>max_size_mb</code> (int): 最大ファイルサイズ (MB)。</li>
+                    <li><code>preferred_filename</code> (str): 保存時の推奨ファイル名（拡張子なし）。</li>
+                    <li><strong>戻り値</strong>: (dict | None) アップロード成功時にファイルの情報を格納した辞書。</li>
+                </ul>
+            </li>
+            <li><strong><code>delete_static_file(filename)</code></strong>: このプラグインの <code>static</code>
+                ディレクトリからファイルを削除します。</li>
+        </ul>
+
+        <h4>UI</h4>
+        <ul>
+            <li><strong><code>show_image_popup(image_path, title, resize, reduce_colors, enlarge_to, enlarge_filter)</code></strong>:
+                画像ポップアップを表示します。
+                <ul>
+                    <li><code>image_path</code> (str): 表示する画像のパス。プラグインの <code>static</code>
+                        からの相対パス、またはアップロードされたファイルの絶対パス。</li>
+                    <li><code>resize</code> (tuple): <code>(width, height)</code> で画像を縮小。</li>
+                    <li><code>reduce_colors</code> (int): 指定色数に減色。</li>
+                    <li><code>enlarge_to</code> (tuple): <code>resize</code> 後に再度拡大する解像度。ジャギー効果用。</li>
+                </ul>
+            </li>
+        </ul>
     </div>
 </body>
 

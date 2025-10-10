@@ -53,3 +53,64 @@ BBS のほとんどの設定は、Web 管理画面から直感的に行うこと
 - **ログインメッセージの変更**: 管理画面の「System Settings」から変更できます。
 - **バックアップ**: 管理画面の「Data Management」から手動・自動バックアップの設定が可能です。
 - **Push 通知**: Push 通知機能を使用するには、VAPID キーペアの生成と設定が必要です。詳細は `README.md` を参照してください。
+
+---
+
+## 3. For Plugin Developers / プラグイン開発者向けマニュアル
+
+このセクションでは、GrassRootsBBS の機能を拡張するためのプラグイン開発について説明します。
+
+### 3.1. プラグインの基本構造
+
+プラグインは、`plugins` ディレクトリ内に配置された個別のディレクトリです。各プラグインは、最低限以下のファイルを持つ必要があります。
+
+- **`plugin.toml`**: プラグインの名前、説明、エントリーポイントなどを定義するメタデータファイル。
+- **`your_entry_point.py`**: `plugin.toml` で指定された、`run(context)` 関数を持つ Python ファイル。
+
+### 3.2. `GrbbsApi` の概要
+
+プラグインは、`run(context)` 関数の引数として渡される `context` ディクショナリを通じて、`GrbbsApi` のインスタンスにアクセスします (`api = context['api']`)。この API を通じて、BBS の機能を安全に利用できます。
+
+### 3.3. API リファレンス
+
+#### メッセージング
+
+- **`send(message)`**: クライアントにメッセージを送信します。
+  - `message` (str | bytes): 送信する文字列またはバイトデータ。
+- **`get_input(echo=True)`**: クライアントからの入力を一行受け取ります。
+  - `echo` (bool): `False` にすると、入力内容が画面に表示されません（パスワード入力用）。
+  - **戻り値**: (str | None) ユーザーが入力した文字列。
+
+#### データ永続化
+
+- **`save_data(key, value)`**: プラグイン専用のデータをキーバリュー形式で保存します。
+- **`get_data(key)`**: キーを指定して、保存したデータを取得します。
+- **`delete_data(key)`**: キーを指定して、保存したデータを削除します。
+- **`get_all_data()`**: このプラグインが保存した全てのデータを辞書として取得します。
+
+#### ユーザー情報
+
+- **`get_user_info(username)`**: 指定されたユーザーの公開情報を取得します。
+- **`get_online_users()`**: 現在オンラインのユーザーリストを取得します。
+
+#### ファイル操作
+
+- **`upload_file(prompt, allowed_extensions, max_size_mb, preferred_filename)`**: クライアントにファイルアップロードを要求します。
+  - `prompt` (str): ファイル選択ダイアログの前に表示するメッセージ。
+  - `allowed_extensions` (list[str]): 許可する拡張子のリスト (例: `['jpg', 'png']`)。
+  - `max_size_mb` (int): 最大ファイルサイズ (MB)。
+  - `preferred_filename` (str): 保存時の推奨ファイル名（拡張子なし）。
+  - **戻り値**: (dict | None) アップロード成功時にファイルの情報を格納した辞書。
+- **`delete_static_file(filename)`**: このプラグインの `static` ディレクトリからファイルを削除します。
+  - `filename` (str): 削除するファイル名。
+  - **戻り値**: (bool) 成功した場合は `True`。
+
+#### UI
+
+- **`show_image_popup(image_path, title, resize, reduce_colors, enlarge_to, enlarge_filter)`**: 画像ポップアップを表示します。
+  - `image_path` (str): 表示する画像のパス。プラグインの `static` からの相対パス、またはアップロードされたファイルの絶対パス。
+  - `title` (str): ポップアップのタイトル。
+  - `resize` (tuple): `(width, height)` で画像を縮小。
+  - `reduce_colors` (int): 指定色数に減色。
+  - `enlarge_to` (tuple): `resize` 後に再度拡大する解像度。ジャギー効果用。
+  - `enlarge_filter` (str): 拡大時の補間フィルタ (`'nearest'` でピクセル調に)。
