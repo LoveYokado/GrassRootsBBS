@@ -6,8 +6,7 @@
 """テキストアドベンチャープラグイン。
 
 このプラグインは、ユーザーがテキストベースのアドベンチャーゲームを作成し、
-プレイできるようにするものです。ゲームデータはすべて、`GrbbsApi`を介して
-キーバリューストアに保存され、ホストアプリケーションの変更を必要としません。
+プレイできるようにするものです。ゲームデータはすべて、`GrbbsApi`を介してキーバリューストアに保存され、ホストアプリケーションの変更を必要としません。
 """
 
 import uuid
@@ -148,22 +147,30 @@ def _handle_play_menu(api, context):
                 games_details.append(game_detail)
 
         for i, game in enumerate(games_details):
-            api.send(f"[{i + 1}] {game['title']}\r\n")
+            # 自分が作成者でなく、かつ非公開のゲームは表示しない
+            is_author = game.get('author_id') == context['user_id']
+            is_public = game.get('is_public', False)
+            if not is_author and not is_public:
+                continue
+
             author_name = game.get(
                 'author_login_id', game.get('author_id', '不明'))
-            open_marker = " (OPEN)" if game.get('open_edit', False) else ""
-            api.send(
-                f"    作成者: {author_name}{open_marker} | {game.get('description', '')}\r\n\r\n")
+            status_markers = []
+            if not is_public:
+                status_markers.append("非公開")
+            if game.get('open_edit', False):
+                status_markers.append("OPEN")
+            status_str = f" ({', '.join(status_markers)})" if status_markers else ""
 
-        api.send("プレイするゲームの番号を入力してください ([D]削除 [E]戻る): ")
+            api.send(f"[{i + 1}] {game['title']}{status_str}\r\n")
+            api.send(
+                f"    作成者: {author_name} | {game.get('description', '')}\r\n\r\n")
+
+        api.send("プレイするゲームの番号を入力してください ([E]戻る): ")
         choice = api.get_input()
 
         if choice is None or choice.lower() == 'e':
             break
-        elif choice.lower() == 'd':
-            _handle_delete_game(api, context, games_details)
-            # 削除後はメニューを再表示するためにループを継続
-            continue
 
         try:
             game_choice_index = int(choice) - 1
@@ -197,6 +204,11 @@ def _create_game(api, context):
     open_edit_choice = api.get_input()
     is_open_edit = open_edit_choice and open_edit_choice.lower() == 'y'
 
+    # --- 公開設定 ---
+    api.send("このゲームを他のユーザーに公開しますか？ (y/n): ")
+    public_choice = api.get_input()
+    is_public = public_choice and public_choice.lower() == 'y'
+
     # --- ゲーム全体で共通の画像設定 ---
     api.send("\r\n--- 画像のデフォルト設定 ---\r\n")
     api.send("縮小解像度 (例: 320,200 / 不要なら空): ")
@@ -224,6 +236,7 @@ def _create_game(api, context):
         "author_id": context['user_id'],
         "author_login_id": context['login_id'],
         "open_edit": is_open_edit,
+        "is_public": is_public,
         "image_settings": {
             "resize": resize_setting,
             "enlarge_to": enlarge_setting,
@@ -739,11 +752,17 @@ def _handle_edit_menu(api, context):
             open_marker = " (OPEN)" if game.get('open_edit', False) else ""
             api.send(f"    作成者: {author_name}{open_marker}\r\n\r\n")
 
-        api.send("編集するゲームの番号を入力してください ([E]戻る): ")
+        api.send("編集するゲームの番号を入力してください ([D]削除 [E]戻る): ")
         choice_str = api.get_input()
 
         if choice_str is None or choice_str.lower() == 'e':
             break
+        elif choice_str.lower() == 'd':
+            # 削除対象のゲームを選択させる
+            # games_detailsには自分のゲームしか含まれていないので権限チェックは不要
+            _handle_delete_game(api, context, games_details)
+            # 削除後はメニューを再表示するためにループを継続
+            continue
 
         try:
             choice_idx = int(choice_str) - 1
@@ -830,7 +849,7 @@ def _edit_game_image_settings(api, game_data):
 
 
 def _edit_game_details(api, game_data):
-    """ゲームの基本情報（タイトルと説明）を編集します。
+    """ゲームの基本情報（タイトル、説明、公開設定など）を編集します。
 
     Args:
         api (GrbbsApi): プラグインAPIのインスタンス。
@@ -847,6 +866,25 @@ def _edit_game_details(api, game_data):
     game_data['title'] = new_title
     game_data['description'] = new_description
     api.save_data(f"game:{original_game_id}", game_data)
+
+    # 公開設定の編集
+    current_public_status = "公開" if game_data.get(
+        'is_public', False) else "非公開"
+    api.send(f"ゲームを公開しますか？ (現在: {current_public_status}) (y/n/空欄=変更しない): ")
+    public_choice = api.get_input()
+    if public_choice.lower() == 'y':
+        game_data['is_public'] = True
+    elif public_choice.lower() == 'n':
+        game_data['is_public'] = False
+
+    # 誰でも編集可能かどうかの設定
+    current_open_status = "はい" if game_data.get('open_edit', False) else "いいえ"
+    api.send(f"誰でも編集可能にしますか？ (現在: {current_open_status}) (y/n/空欄=変更しない): ")
+    open_edit_choice = api.get_input()
+    if open_edit_choice.lower() == 'y':
+        game_data['open_edit'] = True
+    elif open_edit_choice.lower() == 'n':
+        game_data['open_edit'] = False
 
     # game_indexも更新
     game_index = _deserialize_data(
@@ -906,13 +944,13 @@ def _handle_delete_game(api, context, games_details):
 
 
 def _delete_game_data(api, game_id):
-    """指定されたゲームIDに関連する全てのデータ（ゲーム本体、シーン、選択肢）を削除します。
-
-    注意: アップロードされた画像ファイルは削除されません。
+    """指定されたゲームIDに関連する全てのデータ（ゲーム本体、シーン、選択肢、画像ファイル）を削除します。
 
     Args:
         api (GrbbsApi): プラグインAPIのインスタンス。
         game_id (str): 削除対象のゲームID。
+    Returns:
+        bool: 削除に成功した場合はTrue。
     """
     try:
         game_data = _deserialize_data(api.get_data(
