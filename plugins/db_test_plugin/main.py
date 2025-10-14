@@ -41,6 +41,8 @@ def run(context):
                 continue
             api.send("Enter value (will be stored as a string): ")
             value = api.get_input().strip()
+            # この save_data は、このプラグイン専用の領域にデータを保存します。
+            # 他のプラグインやBBS本体のデータには影響を与えません。
             if api.save_data(key, value):
                 api.send(f"Successfully saved data for key '{key}'.\r\n")
             else:
@@ -53,6 +55,7 @@ def run(context):
             if not key:
                 api.send("Key cannot be empty.\r\n")
                 continue
+            # この get_data は、このプラグイン専用の領域からデータを取得します。
             value = api.get_data(key)
             if value is not None:
                 # データはJSONからデシリアライズされたPythonオブジェクトとして返される
@@ -62,6 +65,7 @@ def run(context):
 
         elif choice == '3':
             # このプラグインの全データを取得
+            # get_all_data も、もちろんこのプラグイン専用のデータのみを返します。
             all_data = api.get_all_data()
             if not all_data:
                 api.send("No data stored for this plugin.\r\n")
@@ -77,6 +81,7 @@ def run(context):
             if not key:
                 api.send("Key cannot be empty.\r\n")
                 continue
+            # delete_data も、このプラグイン専用のデータのみを削除対象とします。
             if api.delete_data(key):
                 api.send(f"Successfully deleted data for key '{key}'.\r\n")
             else:
@@ -90,6 +95,8 @@ def run(context):
             if not username:
                 api.send("Username cannot be empty.\r\n")
                 continue
+            # このAPIは読み取り専用で、パスワードなどの機密情報は返しません。
+            # ユーザー情報を変更するAPIはプラグインに公開されていません。
             user_info = api.get_user_info(username)
             if user_info:
                 api.send(f"--- Info for user '{username}' ---\r\n")

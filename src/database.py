@@ -1870,7 +1870,10 @@ class PluginDataManager:
         query = "SELECT `value` FROM plugin_data WHERE plugin_id = %s AND `key` = %s"
         result = self._db.execute_query(query, (plugin_id, key), fetch='one')
         if result and 'value' in result:
-            return result['value']
+            # MySQLのJSON型は文字列として返されることがあるため、明示的にデコードする
+            if isinstance(result['value'], str):
+                return json.loads(result['value'])
+            return result['value']  # 既にオブジェクトならそのまま返す
         return None
 
     def delete(self, plugin_id, key):
