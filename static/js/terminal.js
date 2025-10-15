@@ -464,43 +464,16 @@ function b64DecodeUnicode(str) {
  * @param {string} imageUrl - 表示する画像のURL
  */
 function openImagePopup(title, imageUrl) {
+    imagePopupImg.src = imageUrl;
     // ポップアップ表示時にキーボードイベントリスナーを追加
-    // これにより、ポップアップ上でEscキーを押しても閉じられるようになります
     document.addEventListener('keydown', handlePopupKeydown);
-
-    // SVGの場合、imgタグではなくiframeを使うことでスクリプトを実行させる
-    // MIDIプレーヤーはこの仕組みを利用します
-    if (imageUrl.startsWith('data:image/svg+xml')) {
-        const iframe = document.createElement('iframe');
-        iframe.src = imageUrl;
-        iframe.style.width = '100%';
-        iframe.style.height = '100%';
-        iframe.style.border = 'none';
-        imagePopupWindow.innerHTML = ''; // 中身をクリア
-        imagePopupWindow.appendChild(iframe);
-        // SVGのサイズに合わせてポップアップのサイズを調整
-        imagePopupWindow.style.width = 'auto';
-        imagePopupWindow.style.height = 'auto';
-    } else {
-        imagePopupWindow.innerHTML = '<img id="image-popup-img" src="" alt="Popup Image">';
-        const imgTag = imagePopupWindow.querySelector('img');
-        imgTag.src = imageUrl;
-        imagePopupWindow.style.width = 'auto';
-        imagePopupWindow.style.height = 'auto';
-    }
-
     imagePopupOverlay.classList.add('visible');
 }
 
 /** 画像ポップアップを閉じます。 */
 function closeImagePopup() {
-    // もしMIDIプレーヤーが再生中なら停止させる
-    if (window.currentMidiPlayer) {
-        window.currentMidiPlayer.stop();
-        window.currentMidiPlayer = null;
-    }
+    // ポップアップを閉じる時にキーボードイベントリスナーを削除
     document.removeEventListener('keydown', handlePopupKeydown);
-    imagePopupWindow.innerHTML = '<img id="image-popup-img" src="" alt="Popup Image">'; // 中身をリセット
     imagePopupOverlay.classList.remove('visible');
 }
 
