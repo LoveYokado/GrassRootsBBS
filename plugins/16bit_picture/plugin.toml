@@ -1,4 +1,4 @@
-name = "Picture Popup Test Plugin"
-description = "A test plugin to demonstrate the image popup functionality."
+name = "画像ポップアップテストプラグイン"
+description = "ファイルをアップロードして画像をレトロPC風に加工して表示する機能のデモンストレーションです。"
 entry_point = "plugins.16bit_picture.picture"
 timeout = "none"
