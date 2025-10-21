@@ -373,7 +373,9 @@ def toggle_online_signup(chan, _sysop_login_id, current_menu_mode):
 def user_list(chan, _sysop_login_id, current_menu_mode):
     """登録されている全ユーザーの一覧をクライアントに表示します。"""
     try:
-        users = database.get_all_users()
+        # get_all_users は (users, total_items) のタプルを返すので、
+        # ページネーションなしで全件取得するために per_page を大きく設定する
+        users, _ = database.get_all_users(per_page=9999)
         if users:
             util.send_text_by_key(
                 chan, "sysop_menu.user_list.header", current_menu_mode)
@@ -1003,7 +1005,8 @@ def delete_board(chan, _sysop_login_id, current_menu_mode):
 
 def list_boards(chan, _sysop_login_id, current_menu_mode):
     """データベースに登録されている全掲示板の一覧をクライアントに表示します。"""
-    boards = database.get_all_boards_for_sysop_list()
+    # get_all_boards_for_sysop_list は (boards, total_items) のタプルを返す
+    boards, _ = database.get_all_boards_for_sysop_list()
     if not boards:
         util.send_text_by_key(
             chan, "sysop_menu.list_boards.no_boards", current_menu_mode)

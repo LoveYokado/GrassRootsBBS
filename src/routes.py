@@ -59,6 +59,73 @@ def service_worker():
     return response
 
 
+@web_bp.route('/vapid-public-key', methods=['GET'])
+@login_required
+def vapid_public_key():
+    """VAPID公開鍵をクライアントに提供します。"""
+    public_key_path = '/app/public_key.pem'
+    if os.path.exists(public_key_path):
+        try:
+            with open(public_key_path, "rb") as key_file:
+                public_key = serialization.load_pem_public_key(key_file.read())
+            uncompressed_bytes = public_key.public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.UncompressedPoint
+            )
+            vapid_public_key_for_js = base64.urlsafe_b64encode(
+                uncompressed_bytes).rstrip(b'=').decode('utf-8')
+            return jsonify({'public_key': vapid_public_key_for_js})
+        except Exception as e:
+            logging.error(
+                f"VAPID public key processing failed: {e}", exc_info=True)
+            return jsonify({'error': 'Failed to process VAPID public key'}), 500
+    return jsonify({'error': 'VAPID public key not found'}), 404
+
+
+@web_bp.route('/subscribe', methods=['POST'])
+@login_required
+def subscribe():
+    """プッシュ通知の購読情報を保存します。"""
+    subscription_info = request.get_json()
+    if not subscription_info:
+        return jsonify({'error': 'Subscription information is missing'}), 400
+
+    user_id = session.get('user_id')
+    subscription_json = json.dumps(subscription_info)
+
+    database.save_push_subscription(user_id, subscription_json)
+    logging.info(f"User {user_id} subscribed to push notifications.")
+
+    # 購読成功時にテスト通知を送信
+    try:
+        title = util.get_text_by_key(
+            'push_notifications.test_subscribe.title', session.get('menu_mode', '2'), 'GR-BBS')
+        body = util.get_text_by_key(
+            'push_notifications.test_subscribe.body', session.get('menu_mode', '2'), 'Push notifications enabled!')
+        test_payload = json.dumps({"title": title, "body": body})
+        util.send_push_notification(subscription_json, test_payload)
+    except Exception as e:
+        logging.error(f"テストプッシュ通知の送信に失敗しました: {e}", exc_info=True)
+
+    return jsonify({'success': True}), 201
+
+
+@web_bp.route('/unsubscribe', methods=['POST'])
+@login_required
+def unsubscribe():
+    """プッシュ通知の購読情報を削除します。"""
+    data = request.get_json()
+    endpoint = data.get('endpoint')
+    if not endpoint:
+        return jsonify({'error': 'Endpoint is missing'}), 400
+
+    user_id = session.get('user_id')
+    database.delete_push_subscription(user_id, endpoint)
+    logging.info(
+        f"User {user_id} unsubscribed from push notifications.")
+    return jsonify({'success': True}), 200
+
+
 @web_bp.route('/')
 @login_required
 def index():

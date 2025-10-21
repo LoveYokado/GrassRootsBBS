@@ -3008,6 +3008,10 @@ terminal_ui:
       mode_1: "走査線"
       mode_2: "走査線"
       mode_3: "Scanline"
+    general_settings_tab:
+      mode_1: "一般設定"
+      mode_2: "一般設定"
+      mode_3: "General"
     push_header:
       mode_1: "プッシュ通知"
       mode_2: "プッシュ通知"
@@ -3032,6 +3036,26 @@ terminal_ui:
       mode_1: "DIPスイッチ"
       mode_2: "DIPスイッチ"
       mode_3: "DIP Switches"
+    dip_switch_push_label:
+      mode_1: "PUSH"
+      mode_2: "PUSH"
+      mode_3: "PUSH"
+    pwa_install_header:
+      mode_1: "PWAインストール"
+      mode_2: "PWAインストール"
+      mode_3: "PWA Installation"
+    pwa_install_button:
+      mode_1: "アプリをインストール"
+      mode_2: "アプリをインストール"
+      mode_3: "Install App"
+    pwa_install_description:
+      mode_1: "このBBSをアプリのようにインストールして、デスクトップやホーム画面から直接アクセスできます。"
+      mode_2: "このBBSをアプリのようにインストールして、デスクトップやホーム画面から直接アクセスできます。"
+      mode_3: "Install this BBS like an app for direct access from your desktop or home screen."
+    pwa_installed_description:
+      mode_1: "アプリは既にインストールされています。"
+      mode_2: "アプリは既にインストールされています。"
+      mode_3: "The app is already installed."
   line_editor_popup:
     title:
       mode_1: "一行エディタ"
@@ -4503,8 +4527,32 @@ terminal_ui:
       mode_1: "保存されているログファイルはありません。"
       mode_2: "保存されているログファイルはありません。"
       mode_3: "No saved log files."
-# setting/textdata.yaml に追記
-
+# --- 22. Call Sysop Plugin / シスオペ呼び出しプラグイン関連 ---
+call_sysop_plugin:
+  title:
+    mode_1: "--- シスオペ呼び出し ---"
+    mode_2: "--- シスオペ呼び出し ---"
+    mode_3: "--- Call Sysop ---"
+  prompt:
+    mode_1: "シスオペに送信するメッセージを入力してください (Enterのみでキャンセル):\r\n> "
+    mode_2: "シスオペに送信するメッセージを入力してください (Enterのみでキャンセル):\r\n> "
+    mode_3: "Enter a message to send to the sysop (press Enter to cancel):\r\n> "
+  cancelled:
+    mode_1: "\r\nキャンセルしました。\r\n"
+    mode_2: "\r\nキャンセルしました。\r\n"
+    mode_3: "\r\nCancelled.\r\n"
+  success:
+    mode_1: "\r\nシスオペを呼び出しました。\r\n"
+    mode_2: "\r\nシスオペを呼び出しました。\r\n"
+    mode_3: "\r\nSysop has been called.\r\n"
+  error_not_found:
+    mode_1: "\r\nエラー: シスオペが見つかりませんでした。\r\n"
+    mode_2: "\r\nエラー: シスオペが見つかりませんでした。\r\n"
+    mode_3: "\r\nError: Sysop not found.\r\n"
+  error_failed:
+    mode_1: "\r\nエラー: シスオペへの通知に失敗しました。(プッシュ通知が未登録の可能性があります)\r\n"
+    mode_2: "\r\nエラー: シスオペへの通知に失敗しました。(プッシュ通知が未登録の可能性があります)\r\n"
+    mode_3: "\r\nError: Failed to notify sysop. (Push notifications may not be registered)\r\n"
 login_page:
   message:
     ja: |
@@ -4594,6 +4642,18 @@ contact_page:
   send_failed_retry:
     ja: メッセージの送信に失敗しました。時間をおいて再度お試しください。
     en: Failed to send message. Please try again later.
+
+# --- Push Notifications / プッシュ通知関連 ---
+push_notifications:
+  test_subscribe:
+    title:
+      mode_1: "GR-BBS"
+      mode_2: "GR-BBS"
+      mode_3: "GR-BBS"
+    body:
+      mode_1: "プッシュ通知を有効にしました！"
+      mode_2: "プッシュ通知を有効にしました！"
+      mode_3: "Push notifications have been enabled!"
   mail_body_template:
     ja: |
       お名前: {name}

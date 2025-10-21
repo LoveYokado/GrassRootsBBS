@@ -7,6 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('web.manifest') }}">
+    <!-- PWA Theme Color -->
+    <meta name="theme-color" content="#000000">
 
 
 
@@ -278,11 +282,33 @@
         </div>
         <div class="popup-content">
             <div class="tab-buttons">
-                <button class="tab-button active" data-tab="font-settings">フォント設定</button>
+                <button class="tab-button active" data-tab="general-settings">{{
+                    util.get_text_by_key('terminal_ui.settings_popup.general_settings_tab', menu_mode) }}</button>
+                <button class="tab-button" data-tab="font-settings">フォント設定</button>
                 <button class="tab-button" data-tab="effect-settings">効果設定</button>
             </div>
 
-            <div id="font-settings" class="tab-content active">
+            <div id="general-settings" class="tab-content active">
+                <div id="pwa-install-section">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.pwa_install_header', menu_mode) }}</h3>
+                    <button id="pwa-install-btn" disabled>{{
+                        util.get_text_by_key('terminal_ui.settings_popup.pwa_install_button', menu_mode) }}</button>
+                    <p id="pwa-install-description">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.pwa_install_description', menu_mode) }}</p>
+                </div>
+                <hr>
+                <div id="push-notification-section">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.push_header', menu_mode) }}</h3>
+                    <button id="push-enable-btn">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.push_enable_button', menu_mode) }}</button>
+                    <button id="push-disable-btn">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.push_disable_button', menu_mode) }}</button>
+                    <p id="push-status"></p>
+                </div>
+
+            </div>
+            <div id="font-settings" class="tab-content">
+
                 <div id="font-selector">
                     <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.font_header', menu_mode) }}</h3>
                     <button data-font="M PLUS 1m">M PLUS 1m</button>
@@ -448,6 +474,15 @@
                                 <span class="dip-switch-number">4</span>
                             </div>
                         </div>
+                        <!-- PUSH -->
+                        <div class="dip-switch-group" data-group="push">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-push-0" data-bit="0"><label
+                                        for="dip-push-0"></label>
+                                </div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -472,9 +507,14 @@
             logout: "{{ url_for('web.logout') }}",
             passkeyRegisterOptions: "{{ url_for('web.passkey_register_options') }}",
             passkeyVerifyRegistration: "{{ url_for('web.passkey_verify_registration') }}",
-            serviceWorker: "{{ url_for('web.service_worker') }}"
+            serviceWorker: "{{ url_for('web.service_worker') }}",
+            vapidPublicKey: "{{ url_for('web.vapid_public_key') }}",
+            subscribe: "{{ url_for('web.subscribe') }}",
+            unsubscribe: "{{ url_for('web.unsubscribe') }}"
         };
+        const PWA_URLS = URLS; // pwa.jsとの互換性のため
     </script>
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
     <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
 
 </body>
