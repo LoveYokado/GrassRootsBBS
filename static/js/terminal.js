@@ -114,6 +114,7 @@ const themeMap = { default: 0, green: 1, amber: 2 };
 const fontMap = { 'M PLUS 1m': 0, 'M PLUS 1 Code': 1, 'IBM Plex Mono': 2, DotGothic16: 3 };
 const speedMap = { full: 0, 9600: 1, 4800: 2, 2400: 3, 300: 4 };
 const effectMap = { bezel: 0, blur: 1, scanline: 2 };
+const pushMap = { on: 1, off: 0 };
 const fontsizeMap = { 12: 0, 16: 1, 20: 2, 24: 3 };
 
 // 逆引きマップ
@@ -121,6 +122,7 @@ const themeMapReverse = Object.fromEntries(Object.entries(themeMap).map(([k, v])
 const fontMapReverse = Object.fromEntries(Object.entries(fontMap).map(([k, v]) => [v, k]));
 const speedMapReverse = Object.fromEntries(Object.entries(speedMap).map(([k, v]) => [v, k]));
 const fontsizeMapReverse = Object.fromEntries(Object.entries(fontsizeMap).map(([k, v]) => [v, k]));
+const pushMapReverse = Object.fromEntries(Object.entries(pushMap).map(([k, v]) => [v, k]));
 
 let isDipSwitchUpdating = false; // DIPスイッチ操作による再帰呼び出しを防ぐフラグ
 
@@ -293,6 +295,14 @@ function updateDipSwitches(groupName, value) {
     } else if (groupName === 'fontsize') {
         numericValue = fontsizeMap[value]; // eslint-disable-line no-undef
     } else if (groupName === 'effect') {
+        // エフェクトはビットごとのON/OFFなので特別に扱います
+        const switches = document.querySelectorAll(`.dip-switch-group[data-group="effect"] input[type="checkbox"]`);
+        switches.forEach(sw => {
+            const effectName = Object.keys(effectMap).find(key => effectMap[key] === parseInt(sw.dataset.bit));
+            sw.checked = effectStates[effectName];
+        });
+        return;
+    } else if (groupName === 'push') {
         // エフェクトはビットごとのON/OFFなので特別に扱います
         const switches = document.querySelectorAll(`.dip-switch-group[data-group="effect"] input[type="checkbox"]`);
         switches.forEach(sw => {
@@ -1491,6 +1501,7 @@ function loadSettings() {
     updateDipSwitches('speed', savedSpeed);
     updateDipSwitches('fontsize', savedFontSize);
     updateDipSwitches('effect');
+    updatePushStatus(); // これがDIPスイッチの状態も更新する
 }
 
 // DIPスイッチパネルの変更を検知し、対応する設定を適用
@@ -1508,6 +1519,13 @@ document.querySelector('.dip-switch-panel').addEventListener('change', (e) => {
         if (effectName) {
             toggleEffect(effectName);
         }
+    } else if (groupName === 'push') {
+        const isEnabled = e.target.checked;
+        if (isEnabled) {
+            enablePushNotifications();
+        } else {
+            disablePushNotifications();
+        }
     } else {
         // 他のグループは数値として計算
         const switches = groupElement.querySelectorAll('input[type="checkbox"]');
@@ -1522,6 +1540,7 @@ document.querySelector('.dip-switch-panel').addEventListener('change', (e) => {
         else if (groupName === 'font') { const fontName = fontMapReverse[numericValue]; if (fontName) applyFont(fontName); }
         else if (groupName === 'speed') { const speedName = speedMapReverse[numericValue]; if (speedName) applySpeed(speedName); }
         else if (groupName === 'fontsize') { const size = fontsizeMapReverse[numericValue]; if (size) applyFontSize(size); }
+        // pushは個別処理なのでここでは何もしない
     }
 
     setTimeout(() => { isDipSwitchUpdating = false; }, 50);
@@ -1702,10 +1721,18 @@ async function updatePushStatus() {
     } else if (subscription) {
         pushEnableBtn.style.display = 'none';
         pushDisableBtn.style.display = 'inline-block';
+        if (!isDipSwitchUpdating) {
+            const pushSwitch = document.getElementById('dip-push-0');
+            if (pushSwitch) pushSwitch.checked = true;
+        }
         pushStatus.textContent = '';
     } else {
         pushEnableBtn.style.display = 'inline-block';
         pushDisableBtn.style.display = 'none';
+        if (!isDipSwitchUpdating) {
+            const pushSwitch = document.getElementById('dip-push-0');
+            if (pushSwitch) pushSwitch.checked = false;
+        }
         pushStatus.textContent = '';
     }
 }

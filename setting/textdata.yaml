@@ -3036,6 +3036,10 @@ terminal_ui:
       mode_1: "DIPスイッチ"
       mode_2: "DIPスイッチ"
       mode_3: "DIP Switches"
+    dip_switch_push_label:
+      mode_1: "PUSH"
+      mode_2: "PUSH"
+      mode_3: "PUSH"
     pwa_install_header:
       mode_1: "PWAインストール"
       mode_2: "PWAインストール"
