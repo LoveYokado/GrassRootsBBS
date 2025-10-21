@@ -95,6 +95,18 @@ def subscribe():
 
     database.save_push_subscription(user_id, subscription_json)
     logging.info(f"User {user_id} subscribed to push notifications.")
+
+    # 購読成功時にテスト通知を送信
+    try:
+        title = util.get_text_by_key(
+            'push_notifications.test_subscribe.title', session.get('menu_mode', '2'), 'GR-BBS')
+        body = util.get_text_by_key(
+            'push_notifications.test_subscribe.body', session.get('menu_mode', '2'), 'Push notifications enabled!')
+        test_payload = json.dumps({"title": title, "body": body})
+        util.send_push_notification(subscription_json, test_payload)
+    except Exception as e:
+        logging.error(f"テストプッシュ通知の送信に失敗しました: {e}", exc_info=True)
+
     return jsonify({'success': True}), 201
 
 

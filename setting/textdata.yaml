@@ -4638,6 +4638,18 @@ contact_page:
   send_failed_retry:
     ja: メッセージの送信に失敗しました。時間をおいて再度お試しください。
     en: Failed to send message. Please try again later.
+
+# --- Push Notifications / プッシュ通知関連 ---
+push_notifications:
+  test_subscribe:
+    title:
+      mode_1: "GR-BBS"
+      mode_2: "GR-BBS"
+      mode_3: "GR-BBS"
+    body:
+      mode_1: "プッシュ通知を有効にしました！"
+      mode_2: "プッシュ通知を有効にしました！"
+      mode_3: "Push notifications have been enabled!"
   mail_body_template:
     ja: |
       お名前: {name}
