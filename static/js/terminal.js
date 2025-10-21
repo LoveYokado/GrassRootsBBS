@@ -1716,9 +1716,9 @@ async function updatePushStatus() {
 async function enablePushNotifications() {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
-        await subscribeUser(); // pwa.jsの関数を呼び出す
+        await subscribeUser(); // pwa.jsの関数を呼び出し、完了を待つ
+        await updatePushStatus(); // 購読状態が変更された後にUIを更新
     }
-    updatePushStatus();
 }
 
 /**
@@ -1807,17 +1807,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         sidenav.appendChild(link);
     }
-    // --- Service Workerの登録 ---
-    if ('serviceWorker' in navigator) { 
-        navigator.serviceWorker.register(URLS.serviceWorker)
-            .then(() => {
-                updatePushStatus(); // Service Workerが準備できたらUIを更新
-            })
-            .then(registration => {
-                console.log('Service Worker registered with scope:', registration.scope);
-            })
-            .catch(error => console.log('Service Worker registration failed:', error));
-    }
 
     // --- 設定ポップアップ内のタブ切り替え機能 --- 
     document.querySelector('.tab-buttons').addEventListener('click', (e) => {
@@ -1833,6 +1822,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 設定ポップアップのPWAインストールボタンにイベントリスナーを追加
     if (settingsInstallButton) settingsInstallButton.addEventListener('click', handleInstallPrompt);
+
+    // --- Service Workerの登録と関連UIの更新 ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register(URLS.serviceWorker)
+            .then(() => {
+                console.log('Service Worker registered successfully.');
+                // Service Workerが準備できたらプッシュ通知UIを更新
+                updatePushStatus();
+            })
+            .catch(error => console.log('Service Worker registration failed:', error));
+    }
 
     // --- モバイル用操作パネルのボタンイベント設定 --- 
     const keyMaps = {

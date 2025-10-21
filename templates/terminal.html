@@ -498,7 +498,10 @@
             logout: "{{ url_for('web.logout') }}",
             passkeyRegisterOptions: "{{ url_for('web.passkey_register_options') }}",
             passkeyVerifyRegistration: "{{ url_for('web.passkey_verify_registration') }}",
-            serviceWorker: "{{ url_for('web.service_worker') }}"
+            serviceWorker: "{{ url_for('web.service_worker') }}",
+            vapidPublicKey: "{{ url_for('web.vapid_public_key') }}",
+            subscribe: "{{ url_for('web.subscribe') }}",
+            unsubscribe: "{{ url_for('web.unsubscribe') }}"
         };
         const PWA_URLS = URLS; // pwa.jsとの互換性のため
     </script>
