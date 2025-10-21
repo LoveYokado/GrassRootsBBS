@@ -1627,6 +1627,10 @@ imagePopupOverlay.addEventListener('click', () => {
 let deferredPrompt;
 let settingsInstallButton;
 let pwaInstallDescription;
+let pushEnableBtn;
+let pushDisableBtn;
+let pushStatus;
+
 
 const sidenavInstallContainer = document.createElement('div');
 sidenavInstallContainer.id = 'pwa-install-container-sidenav';
@@ -1677,6 +1681,54 @@ async function handleInstallPrompt() {
 }
 sidenavInstallButton.addEventListener('click', handleInstallPrompt);
 
+/**
+ * プッシュ通知の現在の状態をチェックし、UIを更新します。
+ */
+async function updatePushStatus() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        pushEnableBtn.style.display = 'none';
+        pushDisableBtn.style.display = 'none';
+        pushStatus.textContent = 'Push Notifications not supported.';
+        return;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+
+    if (Notification.permission === 'denied') {
+        pushEnableBtn.style.display = 'none';
+        pushDisableBtn.style.display = 'none';
+        pushStatus.textContent = textData?.terminal_ui?.settings_popup?.push_denied_message || 'Browser notifications are blocked.';
+    } else if (subscription) {
+        pushEnableBtn.style.display = 'none';
+        pushDisableBtn.style.display = 'inline-block';
+        pushStatus.textContent = '';
+    } else {
+        pushEnableBtn.style.display = 'inline-block';
+        pushDisableBtn.style.display = 'none';
+        pushStatus.textContent = '';
+    }
+}
+
+/**
+ * プッシュ通知を有効化する処理
+ */
+async function enablePushNotifications() {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+        await subscribeUser(); // pwa.jsの関数を呼び出す
+    }
+    updatePushStatus();
+}
+
+/**
+ * プッシュ通知を無効化する処理
+ */
+async function disablePushNotifications() {
+    await unsubscribeUser(); // pwa.jsの関数を呼び出す
+    updatePushStatus();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
     loadDipSwitchSettings(); // ページ読み込み時にDIPスイッチ設定を復元
@@ -1685,6 +1737,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // PWAインストール関連の要素を取得
     settingsInstallButton = document.getElementById('pwa-install-btn');
     pwaInstallDescription = document.getElementById('pwa-install-description');
+
+    // プッシュ通知関連の要素を取得
+    pushEnableBtn = document.getElementById('push-enable-btn');
+    pushDisableBtn = document.getElementById('push-disable-btn');
+    pushStatus = document.getElementById('push-status');
+
+    pushEnableBtn.addEventListener('click', enablePushNotifications);
+    pushDisableBtn.addEventListener('click', disablePushNotifications);
 
     if (term.textarea) {
         term.textarea.addEventListener('compositionend', () => {
@@ -1750,6 +1810,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Service Workerの登録 ---
     if ('serviceWorker' in navigator) { 
         navigator.serviceWorker.register(URLS.serviceWorker)
+            .then(() => {
+                updatePushStatus(); // Service Workerが準備できたらUIを更新
+            })
             .then(registration => {
                 console.log('Service Worker registered with scope:', registration.scope);
             })
