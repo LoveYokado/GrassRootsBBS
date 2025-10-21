@@ -278,11 +278,17 @@
         </div>
         <div class="popup-content">
             <div class="tab-buttons">
-                <button class="tab-button active" data-tab="font-settings">フォント設定</button>
+                <button class="tab-button active" data-tab="general-settings">{{
+                    util.get_text_by_key('terminal_ui.settings_popup.general_settings_tab', menu_mode) }}</button>
+                <button class="tab-button" data-tab="font-settings">フォント設定</button>
                 <button class="tab-button" data-tab="effect-settings">効果設定</button>
             </div>
 
-            <div id="font-settings" class="tab-content active">
+            <div id="general-settings" class="tab-content active">
+                <!-- ここに一般設定の内容が追加されます -->
+            </div>
+            <div id="font-settings" class="tab-content">
+
                 <div id="font-selector">
                     <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.font_header', menu_mode) }}</h3>
                     <button data-font="M PLUS 1m">M PLUS 1m</button>

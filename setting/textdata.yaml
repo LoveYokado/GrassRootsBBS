@@ -3008,6 +3008,10 @@ terminal_ui:
       mode_1: "走査線"
       mode_2: "走査線"
       mode_3: "Scanline"
+    general_settings_tab:
+      mode_1: "一般設定"
+      mode_2: "一般設定"
+      mode_3: "General"
     push_header:
       mode_1: "プッシュ通知"
       mode_2: "プッシュ通知"
@@ -4503,8 +4507,32 @@ terminal_ui:
       mode_1: "保存されているログファイルはありません。"
       mode_2: "保存されているログファイルはありません。"
       mode_3: "No saved log files."
-# setting/textdata.yaml に追記
-
+# --- 22. Call Sysop Plugin / シスオペ呼び出しプラグイン関連 ---
+call_sysop_plugin:
+  title:
+    mode_1: "--- シスオペ呼び出し ---"
+    mode_2: "--- シスオペ呼び出し ---"
+    mode_3: "--- Call Sysop ---"
+  prompt:
+    mode_1: "シスオペに送信するメッセージを入力してください (Enterのみでキャンセル):\r\n> "
+    mode_2: "シスオペに送信するメッセージを入力してください (Enterのみでキャンセル):\r\n> "
+    mode_3: "Enter a message to send to the sysop (press Enter to cancel):\r\n> "
+  cancelled:
+    mode_1: "\r\nキャンセルしました。\r\n"
+    mode_2: "\r\nキャンセルしました。\r\n"
+    mode_3: "\r\nCancelled.\r\n"
+  success:
+    mode_1: "\r\nシスオペを呼び出しました。\r\n"
+    mode_2: "\r\nシスオペを呼び出しました。\r\n"
+    mode_3: "\r\nSysop has been called.\r\n"
+  error_not_found:
+    mode_1: "\r\nエラー: シスオペが見つかりませんでした。\r\n"
+    mode_2: "\r\nエラー: シスオペが見つかりませんでした。\r\n"
+    mode_3: "\r\nError: Sysop not found.\r\n"
+  error_failed:
+    mode_1: "\r\nエラー: シスオペへの通知に失敗しました。(プッシュ通知が未登録の可能性があります)\r\n"
+    mode_2: "\r\nエラー: シスオペへの通知に失敗しました。(プッシュ通知が未登録の可能性があります)\r\n"
+    mode_3: "\r\nError: Failed to notify sysop. (Push notifications may not be registered)\r\n"
 login_page:
   message:
     ja: |
