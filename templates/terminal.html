@@ -7,6 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
     <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('web.manifest') }}">
+    <!-- PWA Theme Color -->
+    <meta name="theme-color" content="#000000">
 
 
 
@@ -285,7 +289,13 @@
             </div>
 
             <div id="general-settings" class="tab-content active">
-                <!-- ここに一般設定の内容が追加されます -->
+                <div id="pwa-install-section">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.pwa_install_header', menu_mode) }}</h3>
+                    <button id="pwa-install-btn" disabled>{{
+                        util.get_text_by_key('terminal_ui.settings_popup.pwa_install_button', menu_mode) }}</button>
+                    <p id="pwa-install-description">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.pwa_install_description', menu_mode) }}</p>
+                </div>
             </div>
             <div id="font-settings" class="tab-content">
 
@@ -480,7 +490,9 @@
             passkeyVerifyRegistration: "{{ url_for('web.passkey_verify_registration') }}",
             serviceWorker: "{{ url_for('web.service_worker') }}"
         };
+        const PWA_URLS = URLS; // pwa.jsとの互換性のため
     </script>
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
     <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
 
 </body>

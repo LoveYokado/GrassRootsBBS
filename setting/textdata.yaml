@@ -3036,6 +3036,22 @@ terminal_ui:
       mode_1: "DIPスイッチ"
       mode_2: "DIPスイッチ"
       mode_3: "DIP Switches"
+    pwa_install_header:
+      mode_1: "PWAインストール"
+      mode_2: "PWAインストール"
+      mode_3: "PWA Installation"
+    pwa_install_button:
+      mode_1: "アプリをインストール"
+      mode_2: "アプリをインストール"
+      mode_3: "Install App"
+    pwa_install_description:
+      mode_1: "このBBSをアプリのようにインストールして、デスクトップやホーム画面から直接アクセスできます。"
+      mode_2: "このBBSをアプリのようにインストールして、デスクトップやホーム画面から直接アクセスできます。"
+      mode_3: "Install this BBS like an app for direct access from your desktop or home screen."
+    pwa_installed_description:
+      mode_1: "アプリは既にインストールされています。"
+      mode_2: "アプリは既にインストールされています。"
+      mode_3: "The app is already installed."
   line_editor_popup:
     title:
       mode_1: "一行エディタ"

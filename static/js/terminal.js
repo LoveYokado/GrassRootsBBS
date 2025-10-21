@@ -1625,43 +1625,66 @@ imagePopupOverlay.addEventListener('click', () => {
 // --- DOM読み込み完了後の初期化処理 --- 
 // --- PWAインストール関連のロジック --- 
 let deferredPrompt;
-const installButtonContainer = document.createElement('div');
-installButtonContainer.id = 'pwa-install-container';
-installButtonContainer.style.display = 'none'; // 最初は非表示
-installButtonContainer.style.padding = '8px 15px';
+let settingsInstallButton;
+let pwaInstallDescription;
 
-const installButton = document.createElement('a');
-installButton.href = 'javascript:void(0)';
-installButton.textContent = 'アプリをインストール';
-installButtonContainer.appendChild(installButton);
+const sidenavInstallContainer = document.createElement('div');
+sidenavInstallContainer.id = 'pwa-install-container-sidenav';
+sidenavInstallContainer.style.display = 'none'; // 最初は非表示
+sidenavInstallContainer.style.padding = '8px 15px';
+
+const sidenavInstallButton = document.createElement('a');
+sidenavInstallButton.href = 'javascript:void(0)';
+// テキストはDOMContentLoadedで設定
+sidenavInstallContainer.appendChild(sidenavInstallButton);
 
 window.addEventListener('beforeinstallprompt', (e) => {
     // デフォルトのインストールプロンプトを抑制
     e.preventDefault();
     // イベントを後で使うために保持
     deferredPrompt = e;
-    // インストールボタンを表示
-    installButtonContainer.style.display = 'block';
+    // サイドナビのインストールボタンを表示
+    sidenavInstallContainer.style.display = 'block';
+    // 設定ポップアップのインストールボタンを有効化
+    if (settingsInstallButton) {
+        settingsInstallButton.disabled = false;
+    }
 });
 
-installButton.addEventListener('click', async () => {
+async function handleInstallPrompt() {
     if (deferredPrompt) {
         // インストールプロンプトを表示
         deferredPrompt.prompt();
         // ユーザーの選択結果を待つ
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to the install prompt: ${outcome}`);
-        // プロンプトは一度しか使えないのでクリア
-        deferredPrompt = null;
-        // ボタンを非表示に
-        installButtonContainer.style.display = 'none';
+        const choiceResult = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${choiceResult.outcome}`);
+
+        // ユーザーがインストールを選択した場合のみ、UIを更新
+        if (choiceResult.outcome === 'accepted') {
+            // プロンプトは一度しか使えないのでクリア
+            deferredPrompt = null;
+            // ボタンを非表示に
+            sidenavInstallContainer.style.display = 'none';
+            // 設定ポップアップのボタンを無効化し、テキストを変更
+            if (settingsInstallButton) {
+                settingsInstallButton.disabled = true;
+            }
+            if (pwaInstallDescription) {
+                pwaInstallDescription.textContent = textData?.terminal_ui?.settings_popup?.pwa_installed_description || 'The app is already installed.';
+            }
+        }
     }
-});
+}
+sidenavInstallButton.addEventListener('click', handleInstallPrompt);
 
 document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
     loadDipSwitchSettings(); // ページ読み込み時にDIPスイッチ設定を復元
     updateTerminalLayout();
+
+    // PWAインストール関連の要素を取得
+    settingsInstallButton = document.getElementById('pwa-install-btn');
+    pwaInstallDescription = document.getElementById('pwa-install-description');
 
     if (term.textarea) {
         term.textarea.addEventListener('compositionend', () => {
@@ -1690,8 +1713,12 @@ document.addEventListener('DOMContentLoaded', () => {
     closeBtn.onclick = closeNav;
     sidenav.appendChild(closeBtn);
 
+    // サイドナビのPWAインストールボタンのテキストを設定
+    const installButtonText = textData?.terminal_ui?.settings_popup?.pwa_install_button || 'Install App';
+    sidenavInstallButton.textContent = installButtonText;
+
     // PWAインストールボタン用のコンテナをサイドナビに追加
-    sidenav.appendChild(installButtonContainer);
+    sidenav.appendChild(sidenavInstallContainer);
 
     // ファンクションキーの定義からサイドナビの項目を動的に生成
     for (const fkeyId in fkeyDefinitions) {
@@ -1740,6 +1767,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeContent) activeContent.classList.add('active');
         }
     });
+
+    // 設定ポップアップのPWAインストールボタンにイベントリスナーを追加
+    if (settingsInstallButton) settingsInstallButton.addEventListener('click', handleInstallPrompt);
 
     // --- モバイル用操作パネルのボタンイベント設定 --- 
     const keyMaps = {
