@@ -913,10 +913,39 @@ def send_push_notification(subscription_info_json, payload_json):
         )
         return True
     except WebPushException as ex:
-        logging.warning(f"Web push failed: {ex}")
-        if ex.response:
-            logging.warning(
-                f"Response: {ex.response.status_code} {ex.response.text}")
+
+        try:
+            endpoint = json.loads(subscription_info_json).get('endpoint')
+        except (json.JSONDecodeError, AttributeError):
+            endpoint = None
+        status_code = None
+        # ex.response が存在する場合、そこからステータスコードを取得
+        if hasattr(ex, 'response') and ex.response:
+            status_code = ex.response.status_code
+        else:
+            # ex.response がない場合、例外メッセージからステータスコードを抽出する試み
+            # 例: "Push failed: 410 Gone"
+            match = re.search(r'Push failed: (\d+)', str(ex))
+            if match:
+                try:
+                    status_code = int(match.group(1))
+                except ValueError:
+                    pass
+
+        logging.warning(
+            f"Web push failed for endpoint: {endpoint or 'N/A'}. Status: {status_code or 'N/A'}. Exception: {ex}")
+
+        # 購読が無効になっている場合 (404 Not Found, 410 Gone) はDBから削除
+        if status_code in [404, 410] and endpoint:
+            logging.info(
+                f"Push subscription has expired (status: {status_code}). Deleting from DB.")
+            try:
+                from . import database
+                database.delete_push_subscription_by_endpoint(endpoint)
+            except Exception as db_err:
+                logging.error(
+                    f"Failed to delete expired push subscription for endpoint {endpoint}: {db_err}", exc_info=True)
+
         return False
     except Exception as e:
         logging.error(f"プッシュ通知送信中に予期せぬエラー: {e}", exc_info=True)

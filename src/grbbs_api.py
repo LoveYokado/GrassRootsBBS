@@ -159,6 +159,16 @@ class GrbbsApi:
             safe_online_list.append(safe_data)
         return safe_online_list
 
+    def get_sysop_user_id(self):
+        """
+        システムオペレーター（SysOp）のユーザーIDを取得します。
+
+        Returns:
+            int | None: シスオペのユーザーID。見つからない場合はNone。
+        """
+        from . import database
+        return database.get_sysop_user_id()
+
     def send_push_notification(self, user_id, title, body, url=None):
         """
         指定されたユーザーにプッシュ通知を送信します。
