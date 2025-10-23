@@ -1,6 +1,7 @@
 import base64
 # -*- coding: utf-8 -*-
 import io
+import json
 import os
 from PIL import Image
 
@@ -157,6 +158,39 @@ class GrbbsApi:
             }
             safe_online_list.append(safe_data)
         return safe_online_list
+
+    def send_push_notification(self, user_id, title, body, url=None):
+        """
+        指定されたユーザーにプッシュ通知を送信します。
+
+        Args:
+            user_id (int): 通知を送信するユーザーのID。
+            title (str): 通知のタイトル。
+            body (str): 通知の本文。
+            url (str, optional): 通知クリック時に開くURL。
+
+        Returns:
+            bool: 少なくとも1つの通知が正常に送信された場合はTrue、
+                  購読情報がない、または全ての送信に失敗した場合はFalse。
+        """
+        from . import database, util
+
+        subscriptions = database.get_push_subscriptions_by_user_id(user_id)
+        if not subscriptions:
+            return False
+
+        payload_data = {"title": title, "body": body}
+        if url:
+            payload_data["data"] = {"url": url}
+
+        payload_json = json.dumps(payload_data)
+
+        success_count = 0
+        for sub in subscriptions:
+            if util.send_push_notification(sub['subscription_info'], payload_json):
+                success_count += 1
+
+        return success_count > 0
 
     def show_image_popup(self, image_path, title="Image", resize=None, reduce_colors=None, enlarge_to=None, enlarge_filter="nearest"):
         """

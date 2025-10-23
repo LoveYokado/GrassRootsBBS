@@ -1152,6 +1152,11 @@ class PushSubscriptionManager:
             params = (exclude_user_id,)
         return self._db.execute_query(query, params, fetch='all')
 
+    def get_by_user_id(self, user_id):
+        """指定されたユーザーIDの全てのPush通知購読情報を取得します。"""
+        query = "SELECT subscription_info FROM push_subscriptions WHERE user_id = %s"
+        return self._db.execute_query(query, (user_id,), fetch='all')
+
     def save(self, user_id, subscription_info_json):
         """ユーザーのPush通知購読情報（ブラウザから受け取ったJSON）を保存します。"""
         try:
@@ -2192,6 +2197,10 @@ def get_user_permission_for_board(board_id_pk, user_id_pk_str):
 
 def get_all_subscriptions(exclude_user_id=None):
     return push_subscriptions.get_all(exclude_user_id)
+
+
+def get_push_subscriptions_by_user_id(user_id):
+    return push_subscriptions.get_by_user_id(user_id)
 
 
 def save_push_subscription(user_id, subscription_info_json):
