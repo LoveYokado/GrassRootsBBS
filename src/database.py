@@ -1152,6 +1152,37 @@ class PushSubscriptionManager:
             params = (exclude_user_id,)
         return self._db.execute_query(query, params, fetch='all')
 
+    def delete_by_endpoint(self, endpoint):
+        """指定されたエンドポイントに一致する購読情報を削除します。"""
+        query = "DELETE FROM push_subscriptions WHERE JSON_UNQUOTE(JSON_EXTRACT(subscription_info, '$.endpoint')) = %s"
+        conn = None
+        cursor = None
+        try:
+            conn = self._db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute(query, (endpoint,))
+            conn.commit()
+            deleted_count = cursor.rowcount
+            logging.info(
+                f"Deleted {deleted_count} expired subscription(s) for endpoint: {endpoint}")
+            return deleted_count > 0
+        except mysql.connector.Error as e:
+            logging.error(
+                f"Failed to delete subscription by endpoint {endpoint}: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+
+    def get_by_user_id(self, user_id):
+        """指定されたユーザーIDの全てのPush通知購読情報を取得します。"""
+        query = "SELECT subscription_info FROM push_subscriptions WHERE user_id = %s"
+        return self._db.execute_query(query, (user_id,), fetch='all')
+
     def save(self, user_id, subscription_info_json):
         """ユーザーのPush通知購読情報（ブラウザから受け取ったJSON）を保存します。"""
         try:
@@ -2192,6 +2223,14 @@ def get_user_permission_for_board(board_id_pk, user_id_pk_str):
 
 def get_all_subscriptions(exclude_user_id=None):
     return push_subscriptions.get_all(exclude_user_id)
+
+
+def delete_push_subscription_by_endpoint(endpoint):
+    return push_subscriptions.delete_by_endpoint(endpoint)
+
+
+def get_push_subscriptions_by_user_id(user_id):
+    return push_subscriptions.get_by_user_id(user_id)
 
 
 def save_push_subscription(user_id, subscription_info_json):

@@ -1,0 +1,4 @@
+name = "シスオペ呼び出し"
+description = "シスオペに緊急のメッセージをプッシュ通知で送信します。"
+entry_point = "plugins.call_sysop"
+requirements = []
