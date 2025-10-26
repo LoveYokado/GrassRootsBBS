@@ -70,28 +70,57 @@ BBS のほとんどの設定は、Web 管理画面から直感的に行うこと
 ### 3.2. `GrbbsApi` の概要
 
 プラグインは、`run(context)` 関数の引数として渡される `context` ディクショナリを通じて、`GrbbsApi` のインスタンスにアクセスします (`api = context['api']`)。この API を通じて、BBS の機能を安全に利用できます。
+`context` には `api` の他に、実行ユーザーの情報 (`user_id`, `login_id` など) も含まれます。
 
 ### 3.3. API リファレンス
 
 #### メッセージング
 
 - **`send(message)`**: クライアントにメッセージを送信します。
-  - `message` (str | bytes): 送信する文字列またはバイトデータ。
+  - `message` (str | bytes): 送信する文字列またはバイトデータ。文字列の場合は UTF-8 にエンコードされます。
 - **`get_input(echo=True)`**: クライアントからの入力を一行受け取ります。
   - `echo` (bool): `False` にすると、入力内容が画面に表示されません（パスワード入力用）。
+  - **戻り値**: (str | None) ユーザーが入力した文字列。接続が切れた場合は `None` を返します。
+- **`hide_input()`**: `get_input(echo=False)` と同じです。エコーバックなしでクライアントからの入力を一行受け取ります。
   - **戻り値**: (str | None) ユーザーが入力した文字列。
 
 #### データ永続化
 
+プラグインごとに独立したデータストアにアクセスします。他のプラグインのデータには干渉できません。
+
 - **`save_data(key, value)`**: プラグイン専用のデータをキーバリュー形式で保存します。
+  - `key` (str): データのキー。
+  - `value`: 保存する値。JSON にシリアライズ可能なオブジェクト（辞書、リスト、文字列など）。
+  - **戻り値**: (bool) 成功した場合は `True`。
 - **`get_data(key)`**: キーを指定して、保存したデータを取得します。
+  - `key` (str): 取得するデータのキー。
+  - **戻り値**: (any | None) 対応するデータ。存在しない場合は `None`。
 - **`delete_data(key)`**: キーを指定して、保存したデータを削除します。
+  - `key` (str): 削除するデータのキー。
+  - **戻り値**: (bool) 成功した場合は `True`。
 - **`get_all_data()`**: このプラグインが保存した全てのデータを辞書として取得します。
+  - **戻り値**: (dict) キーと値のペアが格納された辞書。
 
 #### ユーザー情報
 
 - **`get_user_info(username)`**: 指定されたユーザーの公開情報を取得します。
+  - `username` (str): 情報を取得したいユーザーのログイン ID。
+  - **戻り値**: (dict | None) ユーザー情報の辞書。ユーザーが存在しない場合は `None`。パスワードなどの機密情報は含まれません。
 - **`get_online_users()`**: 現在オンラインのユーザーリストを取得します。
+  - **戻り値**: (list[dict]) オンラインユーザー情報のリスト。各辞書には `user_id`, `username`, `display_name` などが含まれます。
+
+#### 通知
+
+- **`get_sysop_user_id()`**: システムオペレーター（SysOp）のユーザー ID を取得します。
+  - **戻り値**: (int | None) シスオペのユーザー ID。見つからない場合は `None`。
+- **`send_push_notification(user_id, title, body, url=None)`**: 指定されたユーザーにプッシュ通知を送信します。
+  - `user_id` (int): 通知を送信するユーザーの ID。
+  - `title` (str): 通知のタイトル。
+  - `body` (str): 通知の本文。
+  - `url` (str, optional): 通知クリック時に開く URL。BBS 内の相対パス（例: `/admin/users`）を指定できます。
+  - **戻り値**: (bool) 少なくとも 1 つのデバイスへの通知送信に成功した場合は `True`。対象ユーザーが通知を購読していない、または全ての送信に失敗した場合は `False`。
+
+> **Note:** この API は、相手のユーザーが事前に Web ブラウザで通知を許可している場合にのみ機能します。
 
 #### ファイル操作
 
@@ -99,18 +128,29 @@ BBS のほとんどの設定は、Web 管理画面から直感的に行うこと
   - `prompt` (str): ファイル選択ダイアログの前に表示するメッセージ。
   - `allowed_extensions` (list[str]): 許可する拡張子のリスト (例: `['jpg', 'png']`)。
   - `max_size_mb` (int): 最大ファイルサイズ (MB)。
-  - `preferred_filename` (str): 保存時の推奨ファイル名（拡張子なし）。
-  - **戻り値**: (dict | None) アップロード成功時にファイルの情報を格納した辞書。
+  - `preferred_filename` (str, optional): 保存時の推奨ファイル名（拡張子なし）。
+  - **戻り値**: (dict | None) アップロード成功時にファイルの情報を格納した辞書。辞書には `unique_filename`, `original_filename`, `filepath` などが含まれます。
 - **`delete_static_file(filename)`**: このプラグインの `static` ディレクトリからファイルを削除します。
-  - `filename` (str): 削除するファイル名。
+  - `filename` (str): 削除するファイル名 (`unique_filename`)。
   - **戻り値**: (bool) 成功した場合は `True`。
 
 #### UI
 
 - **`show_image_popup(image_path, title, resize, reduce_colors, enlarge_to, enlarge_filter)`**: 画像ポップアップを表示します。
-  - `image_path` (str): 表示する画像のパス。プラグインの `static` からの相対パス、またはアップロードされたファイルの絶対パス。
-  - `title` (str): ポップアップのタイトル。
-  - `resize` (tuple): `(width, height)` で画像を縮小。
-  - `reduce_colors` (int): 指定色数に減色。
-  - `enlarge_to` (tuple): `resize` 後に再度拡大する解像度。ジャギー効果用。
-  - `enlarge_filter` (str): 拡大時の補間フィルタ (`'nearest'` でピクセル調に)。
+  - `image_path` (str): 表示する画像のパス。プラグインの `static` ディレクトリからの相対パス、または `upload_file` で得られた絶対パス。
+  - `title` (str, optional): ポップアップのタイトル。
+  - `resize` (tuple, optional): `(width, height)` で画像を縮小。
+  - `reduce_colors` (int, optional): 指定色数に減色。
+  - `enlarge_to` (tuple, optional): `resize` 後に再度拡大する解像度。ジャギー効果用。
+  - `enlarge_filter` (str, optional): 拡大時の補間フィルタ (`'nearest'` でピクセル調に)。
+
+#### ターミナル制御
+
+- **`clear_screen()`**: クライアントのターミナル画面をクリア（全消去）します。
+  - **戻り値**: なし。
+- **`set_cursor(x, y)`**: カーソルを指定した位置 `(x, y)` に移動します。
+  - `x` (int):桁（列番号）。1 から始まります。
+  - `y` (int):行番号。1 から始まります。
+  - **戻り値**: なし。
+- **`get_terminal_size()`**: クライアントのターミナルのサイズを取得します。
+  - **戻り値**: (tuple[int, int] | None) `(幅, 高さ)` のタプル。取得できない場合は `None`。
