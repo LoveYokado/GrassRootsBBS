@@ -66,7 +66,7 @@ def _view_profile(api, context):
     profile_key = f"profile:{target_user_id}"
     profile_data = api.get_data(profile_key)
 
-    api.send(b'\x1b[2J\x1b[H')  # 画面クリア
+    api.send(b'\x1b[2J\x1b[H')
     api.send(f"--- {user_info.get('name', username)}さんのプロフィール ---\r\n\r\n")
 
     if not isinstance(profile_data, dict) or not any(profile_data.values()):
@@ -88,7 +88,7 @@ def run(context):
     api = context['api']
 
     while True:
-        api.send(b'\x1b[2J\x1b[H')  # 画面クリア
+        api.send(b'\x1b[2J\x1b[H')
         api.send("\r\n--- プロフィール帳 ---\r\n\r\n")
         api.send("[1] プロフィールを閲覧する\r\n")
         api.send("[2] 自分のプロフィールを編集する\r\n")
