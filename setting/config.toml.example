@@ -19,6 +19,12 @@ contact_mastodon_url = ""
 # The URL to access your BBS. Required for Passkey and Push notifications.
 ORIGIN = "http://localhost:5000"
 
+# Passkey (WebAuthn) の Relying Party Name として使用されるBBS名
+# BBS name used as the Relying Party Name for Passkey (WebAuthn).
+BBS_NAME = "GR-BBS"
+
+# 管理画面のパス
+ADMIN_PATH = "admin"
 # ログインページのロゴ画像のパス (static/からの相対パス)
 # Path to the logo image on the login page (relative to static/).
 LOGIN_PAGE_LOGO_PATH = "images/logo.png"
@@ -80,6 +86,10 @@ LOCKOUT_TIME_SECONDS = 300
 # Minimum/Maximum length for user IDs.
 ID_MIN_LENGTH = 3
 ID_MAX_LENGTH = 20
+
+# セッションクッキー名
+# Session cookie name.
+SESSION_COOKIE_NAME = "grbbs_session"
 
 # パスワードの最小/最大文字数
 # Minimum/Maximum length for passwords.
