@@ -181,7 +181,7 @@ def index():
         "passkey_management": _process_texts_for_mode(all_text_data.get("user_pref_menu", {}).get("passkey_management", {}), menu_mode)
     }
 
-    return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits, vapid_public_key=vapid_public_key_for_js, mobile_button_layouts=mobile_button_layouts, menu_mode=menu_mode, textData=textData_for_js)
+    return render_template('terminal.html', fkey_definitions=fkey_definitions, attachment_limits=attachment_limits, vapid_public_key=vapid_public_key_for_js, mobile_button_layouts=mobile_button_layouts, menu_mode=menu_mode, textData=textData_for_js, user_level=session.get('userlevel', 0))
 
 
 @web_bp.route('/login', methods=['GET', 'POST'])

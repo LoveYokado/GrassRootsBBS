@@ -286,6 +286,9 @@
                     util.get_text_by_key('terminal_ui.settings_popup.general_settings_tab', menu_mode) }}</button>
                 <button class="tab-button" data-tab="font-settings">フォント設定</button>
                 <button class="tab-button" data-tab="effect-settings">効果設定</button>
+                {% if user_level >= 5 %}
+                <button class="tab-button" data-tab="admin-settings">管理</button>
+                {% endif %}
             </div>
 
             <div id="general-settings" class="tab-content active">
@@ -354,6 +357,15 @@
                         util.get_text_by_key('terminal_ui.settings_popup.effect_scanline', menu_mode) }}</button>
                 </div>
             </div>
+
+            {% if user_level >= 5 %}
+            <div id="admin-settings" class="tab-content">
+                <h3>管理画面</h3>
+                <p>BBSの管理画面を開きます。</p>
+                <button id="admin-link-btn" class="popup-content-button">管理画面を開く</button>
+            </div>
+            {% endif %}
+
 
             <div id="dip-switch-container">
                 <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.dip_switch_header', menu_mode) }}</h3>
@@ -503,18 +515,28 @@
         // Pythonから渡された変数をグローバルJS変数として定義
         const textData = {{ textData | tojson }};
         const fkeyDefinitions = {{ fkey_definitions | tojson }};
+        const userLevel = {{ user_level | tojson }};
         const URLS = {
             logout: "{{ url_for('web.logout') }}",
             passkeyRegisterOptions: "{{ url_for('web.passkey_register_options') }}",
             passkeyVerifyRegistration: "{{ url_for('web.passkey_verify_registration') }}",
             serviceWorker: "{{ url_for('web.service_worker') }}",
             vapidPublicKey: "{{ url_for('web.vapid_public_key') }}",
+            admin: "{{ url_for('admin.dashboard') }}",
             subscribe: "{{ url_for('web.subscribe') }}",
             unsubscribe: "{{ url_for('web.unsubscribe') }}"
         };
         const PWA_URLS = URLS; // pwa.jsとの互換性のため
     </script>
     <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const adminLinkBtn = document.getElementById('admin-link-btn');
+            if (adminLinkBtn) {
+                adminLinkBtn.addEventListener('click', () => window.open(URLS.admin, '_blank'));
+            }
+        });
+    </script>
     <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
 
 </body>
