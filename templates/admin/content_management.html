@@ -57,52 +57,56 @@
 
             {% include 'admin/_pagination.html' %}
 
-            <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" id="select-all-articles"></th>
-                        <th>Board</th>
-                        <th>No.</th>
-                        <th>Author</th>
-                        <th>Title</th>
-                        <th>Body (Snippet)</th>
-                        <th>Posted At</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for article in articles %}
-                    <tr {% if article.is_deleted %}style="text-decoration: line-through; color: #aaa;" {% endif %}>
-                        <td><input type="checkbox" name="selected_articles" value="{{ article.id }}"
-                                class="article-checkbox"></td>
-                        <td><a href="{{ url_for('web.index', shortcut=article.board_shortcut_id) }}" target="_blank">{{
-                                article.board_name }}</a></td>
-                        <td>{{ article.article_number }}</td>
-                        <td><a
-                                href="{{ url_for('admin.content_management', tab='articles', author=article.author_display_name) }}">{{
-                                article.author_display_name }}</a></td>
-                        <td>{{ article.title or '(No Title)' }}</td>
-                        <td style="word-break: break-all;">{{ (article.body or '') | truncate(80) }}</td>
-                        <td>{{ article.created_at|int|timestamp_to_datetime }}</td>
-                        <td>
-                            <form method="post" action="{{ url_for('admin.delete_article', article_id=article.id) }}"
-                                style="display: inline;"
-                                onsubmit="return confirm('Are you sure you want to {{ 'restore' if article.is_deleted else 'delete' }} this article?');">
-                                {% if article.is_deleted %}
-                                <button type="submit" class="action-link-restore">Undelete</button>
-                                {% else %}
-                                <button type="submit" class="action-link-delete">Delete</button>
-                                {% endif %}
-                            </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="8">No articles found for your search criteria.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all-articles"></th>
+                            <th>Board</th>
+                            <th>No.</th>
+                            <th>Author</th>
+                            <th>Title</th>
+                            <th>Body (Snippet)</th>
+                            <th>Posted At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for article in articles %}
+                        <tr {% if article.is_deleted %}style="text-decoration: line-through; color: #aaa;" {% endif %}>
+                            <td><input type="checkbox" name="selected_articles" value="{{ article.id }}"
+                                    class="article-checkbox"></td>
+                            <td><a href="{{ url_for('web.index', shortcut=article.board_shortcut_id) }}"
+                                    target="_blank">{{
+                                    article.board_name }}</a></td>
+                            <td>{{ article.article_number }}</td>
+                            <td><a
+                                    href="{{ url_for('admin.content_management', tab='articles', author=article.author_display_name) }}">{{
+                                    article.author_display_name }}</a></td>
+                            <td>{{ article.title or '(No Title)' }}</td>
+                            <td style="word-break: break-all;">{{ (article.body or '') | truncate(80) }}</td>
+                            <td>{{ article.created_at|int|timestamp_to_datetime }}</td>
+                            <td>
+                                <form method="post"
+                                    action="{{ url_for('admin.delete_article', article_id=article.id) }}"
+                                    style="display: inline;"
+                                    onsubmit="return confirm('Are you sure you want to {{ 'restore' if article.is_deleted else 'delete' }} this article?');">
+                                    {% if article.is_deleted %}
+                                    <button type="submit" class="action-link-restore">Undelete</button>
+                                    {% else %}
+                                    <button type="submit" class="action-link-delete">Delete</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8">No articles found for your search criteria.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% include 'admin/_pagination.html' %}
         </form>
         {% endif %}
