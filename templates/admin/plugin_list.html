@@ -25,52 +25,54 @@
     </div>
     <div class="card-body">
         {% include 'admin/_pagination.html' %}
-        <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Status</th>
-                    <th>ID</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for plugin in plugins %}
-                <tr>
-                    <td>{{ plugin.name }}</td>
-                    <td>{{ plugin.description }}</td>
-                    <td>
-                        {% if plugin.is_enabled %}
-                        <span style="color: #28a745; font-weight: bold;">Enabled</span>
-                        {% else %}
-                        <span style="color: #dc3545;">Disabled</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ plugin.id }}</td>
-                    <td>
-                        <form method="post" action="{{ url_for('admin.toggle_plugin_status') }}"
-                            style="display: inline;">
-                            <input type="hidden" name="plugin_id" value="{{ plugin.id }}">
+        <div class="table-responsive">
+            <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>ID</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plugin in plugins %}
+                    <tr>
+                        <td>{{ plugin.name }}</td>
+                        <td>{{ plugin.description }}</td>
+                        <td>
                             {% if plugin.is_enabled %}
-                            <button type="submit" name="action" value="disable"
-                                class="action-link-delete">Disable</button>
+                            <span style="color: #28a745; font-weight: bold;">Enabled</span>
                             {% else %}
-                            <button type="submit" name="action" value="enable"
-                                class="action-link-restore">Enable</button>
+                            <span style="color: #dc3545;">Disabled</span>
                             {% endif %}
-                        </form>
-                        <a href="{{ url_for('admin.plugin_data_view', plugin_id=plugin.id) }}" class="action-link-edit"
-                            style="margin-left: 10px;">View Data</a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5">No plugins are currently available.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                        </td>
+                        <td>{{ plugin.id }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('admin.toggle_plugin_status') }}"
+                                style="display: inline;">
+                                <input type="hidden" name="plugin_id" value="{{ plugin.id }}">
+                                {% if plugin.is_enabled %}
+                                <button type="submit" name="action" value="disable"
+                                    class="action-link-delete">Disable</button>
+                                {% else %}
+                                <button type="submit" name="action" value="enable"
+                                    class="action-link-restore">Enable</button>
+                                {% endif %}
+                            </form>
+                            <a href="{{ url_for('admin.plugin_data_view', plugin_id=plugin.id) }}"
+                                class="action-link-edit" style="margin-left: 10px;">View Data</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5">No plugins are currently available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% include 'admin/_pagination.html' %}
     </div>
 </div>
