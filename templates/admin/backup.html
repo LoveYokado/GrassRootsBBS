@@ -56,43 +56,45 @@
     <div class="card-body">
         {% include 'admin/_pagination.html' %}
 
-        <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
-            <thead>
-                <tr>
-                    <th>Filename</th>
-                    <th>Created At</th>
-                    <th>Size</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for backup in backups %}
-                <tr>
-                    <td>{{ backup.filename }}</td>
-                    <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td>{{ backup.size }}</td>
-                    <td>
-                        <a href="{{ url_for('admin.download_backup', filename=backup.filename) }}">Download</a> |
-                        <form method="post" action="{{ url_for('admin.delete_backup', filename=backup.filename) }}"
-                            style="display: inline;"
-                            onsubmit="return confirm('Are you sure you want to delete the backup file \'{{ backup.filename }}\'? This action cannot be undone.');">
-                            <button type="submit" class="action-link-delete">Delete</button>
-                        </form> |
-                        <form method="post"
-                            action="{{ url_for('admin.restore_from_backup', filename=backup.filename) }}"
-                            style="display: inline;"
-                            onsubmit="return confirm('Are you sure you want to restore from backup \'{{ backup.filename }}\'?\n\nAll current data (users, boards, attachments) will be overwritten and lost.\n\nThis action cannot be undone.') && confirm('Final confirmation. Are you sure you want to proceed? The server will restart automatically after the restore.');">
-                            <button type="submit" class="action-link-restore">Restore</button>
-                        </form>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="4">No backups available.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Created At</th>
+                        <th>Size</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                    <tr>
+                        <td>{{ backup.filename }}</td>
+                        <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>{{ backup.size }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.download_backup', filename=backup.filename) }}">Download</a> |
+                            <form method="post" action="{{ url_for('admin.delete_backup', filename=backup.filename) }}"
+                                style="display: inline;"
+                                onsubmit="return confirm('Are you sure you want to delete the backup file \'{{ backup.filename }}\'? This action cannot be undone.');">
+                                <button type="submit" class="action-link-delete">Delete</button>
+                            </form> |
+                            <form method="post"
+                                action="{{ url_for('admin.restore_from_backup', filename=backup.filename) }}"
+                                style="display: inline;"
+                                onsubmit="return confirm('Are you sure you want to restore from backup \'{{ backup.filename }}\'?\n\nAll current data (users, boards, attachments) will be overwritten and lost.\n\nThis action cannot be undone.') && confirm('Final confirmation. Are you sure you want to proceed? The server will restart automatically after the restore.');">
+                                <button type="submit" class="action-link-restore">Restore</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4">No backups available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
         {% include 'admin/_pagination.html' %}
     </div>
