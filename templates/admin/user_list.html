@@ -11,75 +11,80 @@
     <h1>{{ title }}</h1>
     <p>Displays a list of all registered users. You can search for users by name or email.</p>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1em;">
-        <form method="get" action="{{ url_for('admin.user_list') }}" style="display: flex; gap: 1em;">
-            <input type="text" name="q" value="{{ search_term or '' }}" placeholder="Search by name or email...">
-            <div class="form-actions">
-                <button type="submit">Search</button>
-                <a href="{{ url_for('admin.user_list') }}">Clear</a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <form method="get" action="{{ url_for('admin.user_list') }}" class="d-flex flex-wrap gap-2">
+            <div>
+                <input type="text" name="q" value="{{ search_term or '' }}" placeholder="Search by name or email..."
+                    class="form-control">
+            </div>
+            <div class="form-actions d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Search</button>
+                <a href="{{ url_for('admin.user_list') }}" class="btn btn-secondary">Clear</a>
             </div>
         </form>
-        <a href="{{ url_for('admin.new_user') }}" class="form-actions" style="padding: 10px 15px;">Add New User</a>
+        <a href="{{ url_for('admin.new_user') }}" class="btn btn-success">Add New User</a>
     </div>
 
     {% include 'admin/_pagination.html' %}
-
-    <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
-        <thead>
-            <tr>
-                <th><a
-                        href="{{ url_for('admin.user_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">ID
-                        {% if sort_by == 'id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th><a
-                        href="{{ url_for('admin.user_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Name
-                        {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th><a
-                        href="{{ url_for('admin.user_list', sort_by='level', order=next_order if sort_by == 'level' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Level
-                        {% if sort_by == 'level' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th><a
-                        href="{{ url_for('admin.user_list', sort_by='email', order=next_order if sort_by == 'email' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Email
-                        {% if sort_by == 'email' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th>Comment</th>
-                <th><a
-                        href="{{ url_for('admin.user_list', sort_by='registdate', order=next_order if sort_by == 'registdate' else 'desc', q=search_params.q, per_page=search_params.per_page) }}">Registered
-                        {% if sort_by == 'registdate' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th><a
-                        href="{{ url_for('admin.user_list', sort_by='lastlogin', order=next_order if sort_by == 'lastlogin' else 'desc', q=search_params.q, per_page=search_params.per_page) }}">Last
-                        Login {% if sort_by == 'lastlogin' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.name }}</td>
-                <td>{{ user.level }}</td>
-                <td>{{ user.email }}</td>
-                <td>{{ user.comment }}</td>
-                <td>{{ user.registdate|int|timestamp_to_datetime if user.registdate else 'N/A' }}</td>
-                <td>
-                    {% if user.lastlogin and user.lastlogin > 0 %}
-                    {{ user.lastlogin|int|timestamp_to_datetime }}
-                    {% else %}
-                    Never
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{{ url_for('admin.edit_user', user_id=user.id) }}">Edit</a>
-                    {% if user.name.upper() != session.get('username').upper() and user.name.upper() != 'GUEST' %}
-                    |
-                    <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}"
-                        style="display: inline;"
-                        onsubmit="return confirm('Are you sure you want to delete user \'{{ user.name }}\'? This action cannot be undone.');">
-                        <button type="submit" class="action-link-delete">Delete</button>
-                    </form>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+            <thead>
+                <tr>
+                    <th><a
+                            href="{{ url_for('admin.user_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">ID
+                            {% if sort_by == 'id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.user_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Name
+                            {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.user_list', sort_by='level', order=next_order if sort_by == 'level' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Level
+                            {% if sort_by == 'level' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.user_list', sort_by='email', order=next_order if sort_by == 'email' else 'asc', q=search_params.q, per_page=search_params.per_page) }}">Email
+                            {% if sort_by == 'email' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th>Comment</th>
+                    <th><a
+                            href="{{ url_for('admin.user_list', sort_by='registdate', order=next_order if sort_by == 'registdate' else 'desc', q=search_params.q, per_page=search_params.per_page) }}">Registered
+                            {% if sort_by == 'registdate' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                    <th><a
+                            href="{{ url_for('admin.user_list', sort_by='lastlogin', order=next_order if sort_by == 'lastlogin' else 'desc', q=search_params.q, per_page=search_params.per_page) }}">Last
+                            Login {% if sort_by == 'lastlogin' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a>
+                    </th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.level }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.comment }}</td>
+                    <td>{{ user.registdate|int|timestamp_to_datetime if user.registdate else 'N/A' }}</td>
+                    <td>
+                        {% if user.lastlogin and user.lastlogin > 0 %}
+                        {{ user.lastlogin|int|timestamp_to_datetime }}
+                        {% else %}
+                        Never
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}">Edit</a>
+                        {% if user.name.upper() != session.get('username').upper() and user.name.upper() != 'GUEST' %}
+                        |
+                        <form method="post" action="{{ url_for('admin.delete_user', user_id=user.id) }}"
+                            style="display: inline;"
+                            onsubmit="return confirm('Are you sure you want to delete user \'{{ user.name }}\'? This action cannot be undone.');">
+                            <button type="submit" class="action-link-delete">Delete</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
     {% include 'admin/_pagination.html' %}
 </div>
