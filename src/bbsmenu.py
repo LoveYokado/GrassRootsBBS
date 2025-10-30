@@ -247,7 +247,7 @@ def _perform_exploration(chan, login_id, display_name, user_id_pk, user_level, m
         chan, "explore_new_articles.complete_message", menu_mode)
 
 
-def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str):  # noqa
+def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str):
     """新アーティクル探索 ('n' コマンド) のハンドラ。ユーザーの探索リストを使用します。"""
     # ユーザー個人の探索リストを取得
     exploration_list_str = database.get_user_exploration_list(user_id_pk)
@@ -260,7 +260,7 @@ def _handle_explore_new_articles(chan, login_id: str, display_name: str, user_id
                          user_level, menu_mode, ip_address, exploration_list_str)
 
 
-def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str, default_exploration_list_str: str):  # noqa
+def _handle_full_sig_exploration(chan, login_id: str, display_name: str, user_id_pk: int, user_level: int, menu_mode: str, ip_address: str, default_exploration_list_str: str):
     """全シグ探索 ('x' コマンド) のハンドラ。サーバーのデフォルト探索リストを使用します。"""
     # 引数で渡された共通探索リストを使用
     exploration_list_str = default_exploration_list_str
@@ -283,7 +283,7 @@ def _get_exploration_list_for_user(user_id_pk):
     return exploration_list_str
 
 
-def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):  # noqa
+def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
     """新アーティクル見出し表示 ('o' コマンド) のハンドラ。未読記事のタイトルを一覧表示します。"""
     util.send_text_by_key(
         chan, "new_article_headlines.start_message", menu_mode)
@@ -381,7 +381,7 @@ def handle_new_article_headlines(chan, login_id: str, user_id_pk: int, user_leve
         chan, "new_article_headlines.end_message", menu_mode)
 
 
-def handle_auto_download(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):  # noqa
+def handle_auto_download(chan, login_id: str, user_id_pk: int, user_level: int, menu_mode: str):
     """自動ダウンロード ('a' コマンド) のハンドラ。未読記事を連続で表示します。"""
     util.send_text_by_key(
         chan, "auto_download.start_message", menu_mode)

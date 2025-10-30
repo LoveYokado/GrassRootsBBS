@@ -13,11 +13,8 @@ from . import bbsmenu
 from . import user_pref_menu
 from . import sysop_menu
 from . import mail_handler
-from . import hierarchical_menu
 from . import chat_handler
 from . import bbs_handler
-from . import manual_menu_handler
-from . import plugin_manager
 from . import hamlet_game
 
 # --- Command Handlers / 各コマンドに対応するハンドラ関数 ---

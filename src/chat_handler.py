@@ -134,12 +134,10 @@ def broadcast_to_room(room_id: str, display_name: str,
                         except KeyError as e:
                             logging.error(
                                 f"Formatting error for key 'chat.broadcast_user_message_format' (mode: {target_menu_mode}): {e}. Raw: '{base_format_string}'")
-                            # Fallback - sender_name is not defined here, should be display_name
                             formatted_message = f"{display_name}: {message_body}"
                     else:
                         logging.warning(
                             f"Text key 'chat.broadcast_user_message_format' for mode '{target_menu_mode}' not found. Using default.")
-                        # Fallback
                         formatted_message = f"{display_name}: {message_body}"
                 message_payload = formatted_message.replace(
                     '\n', '\r\n') + '\r\n'
@@ -237,13 +235,11 @@ def user_leaves_room(room_id: str, login_id: str, display_name: str, room_name: 
     オーナーが退室した場合はルームをアンロックします。
     """
     chan_left = None
-    user_was_in_room = False
     with chat_rooms_lock:
         if room_id in active_chat_rooms and login_id in active_chat_rooms[room_id]["users"]:
             user_data_left = active_chat_rooms[room_id]["users"].pop(
                 login_id, None)
             chan_left = user_data_left["chan"] if user_data_left else None
-            user_was_in_room = True
             if not active_chat_rooms[room_id]["users"]:
                 del active_chat_rooms[room_id]
                 if room_id in chat_room_histories:
@@ -424,18 +420,18 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
                         if not current_owner:
                             util.send_text_by_key(
                                 chan, "chat.room_not_locked", menu_mode, room_name=room_name)
-                        elif current_owner == login_id:  # Owner unlocks
+                        elif current_owner == login_id:
                             room_info["locked_by"] = None
                             # 履歴には残さず、サーバーログには手動で記録することも可能
                             logging.info(
                                 f"ChatEvent[{room_id}]: Room '{room_name}' unlocked by {login_id}.")
                             unlock_successful = True
-                        elif current_owner != login_id:  # Someone else tries to unlock a room locked by 'current_owner'
+                        elif current_owner != login_id:
                             util.send_text_by_key(
                                 chan, "chat.room_unlock_not_owner", menu_mode, owner=current_owner, room_name=room_name)
                     else:
                         util.send_text_by_key(
-                            chan, "chat.room_not_found_error", menu_mode, room_id=room_id)  # More specific error
+                            chan, "chat.room_not_found_error", menu_mode, room_id=room_id)
 
                 if unlock_successful:
                     broadcast_to_room(

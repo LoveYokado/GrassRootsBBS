@@ -35,7 +35,7 @@ class CommandHandler:
         self.article_manager = bbs_manager.ArticleManager()
         self.permission_manager = bbs_manager.PermissionManager()
         self.current_board = None  # 現在の掲示板
-        self.just_displayed_header_from_tail_h = False  # 読み戻り時の状態フラグ
+        self.just_displayed_header_from_tail_h = False
 
         # ユーザー情報をDBから一括で取得
         user_data = database.get_user_auth_info(login_id)
@@ -43,12 +43,10 @@ class CommandHandler:
             # ユーザーが見つからない場合は、処理を続行できないためエラーログを出して初期化を中断
             logging.error(
                 f"CommandHandler初期化失敗: ユーザー '{login_id}' が見つかりません。")
-            # 属性をNoneやデフォルト値で初期化してクラッシュを防ぐ
             self.user_id_pk = None
             self.userlevel = 0
             self.last_login_timestamp = 0
             self.user_read_progress_map = {}
-            # この後、呼び出し元でNoneチェックなどが必要になるかもしれないが、まずはここまで
             return
 
         self.user_id_pk = user_data.get('id')
@@ -73,7 +71,7 @@ class CommandHandler:
         ) else ''
 
         if not kanban_body:
-            return  # 看板がなければ表示しない
+            return
 
         if kanban_body:
             processed_body = kanban_body.replace(
@@ -89,7 +87,6 @@ class CommandHandler:
         ユーザーの閲覧進捗を更新します。 
         指定された掲示板で指定された記事番号まで読んだことを記録
         """
-        # board_id_pk は int なので、辞書のキーとして使うために文字列に変換
         current_read_article_number = self.user_read_progress_map.get(
             str(board_id_pk), 0)
         if article_number > current_read_article_number:
@@ -170,7 +167,7 @@ class CommandHandler:
                     util.send_text_by_key(
                         self.chan, "common_messages.invalid_command", self.menu_mode)
         finally:
-            # このループを抜けるとき（掲示板から抜けるとき）にボタンを非表示にします。
+            # このループを抜けるとき（掲示板から抜けるとき）にボタンを非表示に
             self.chan.send(b'\x1b[?2030l')
 
     def show_article_list(self, display_initial_header=True, last_login_timestamp=0):
@@ -185,7 +182,7 @@ class CommandHandler:
             return
 
         board_id_pk = self.current_board['id']
-        articles = []  # この行で articles を初期化
+        articles = []
         board_type = self.current_board.get('board_type', 'simple')
         current_index = 0
         article_id_width = 5  # 記事番号桁数
@@ -198,12 +195,11 @@ class CommandHandler:
             if board_type == 'thread':
                 fetched_articles = self.article_manager.get_threads(
                     board_id_pk, include_deleted=True)
-            else:  # simple
+            else:
                 fetched_articles = self.article_manager.get_articles_by_board(
-                    board_id_pk, include_deleted=True)  # 常に削除済み記事も取得
+                    board_id_pk, include_deleted=True)
             articles = fetched_articles if fetched_articles else []
 
-            # last_login_timestamp 以降の記事にジャンプする
             initial_jump_index = 0
             found_new_articles = False
             if articles and last_login_timestamp > 0:
@@ -232,7 +228,7 @@ class CommandHandler:
                             break
                     if not found:
                         new_idx = 0  # 該当記事がなければ先頭へ
-                else:  # keep_index が False の場合
+                else:
                     if found_new_articles:
                         new_idx = initial_jump_index  # 未読記事がある場合はその先頭へ
                     else:
@@ -309,7 +305,6 @@ class CommandHandler:
                     r_date_str = "--/--/--"
                     r_time_str = "--:--"
 
-                # タイトル表示の調整
                 if article['is_deleted'] == 1:
                     # 権限チェックを PermissionManager に移譲
                     if self.permission_manager.can_view_deleted_article_content(article, self.user_id_pk, self.userlevel):
@@ -326,7 +321,7 @@ class CommandHandler:
                         title_part = util.shorten_text_by_slicing(
                             title, width=24 - len(to_marker))
                         title_short = f"{title_part}{to_marker}"
-                    else:  # simple
+                    else:
                         title_part = util.shorten_text_by_slicing(
                             title, width=32 - len(to_marker))
                         title_short = f"{title_part}{to_marker}"
@@ -359,8 +354,8 @@ class CommandHandler:
                         f"掲示板記事一覧中にクライアントが切断されました。 (ユーザー: {self.login_id})")
                     return  # 切断
 
-                if data == b'\x1b':  # esc - 矢印の可能性
-                    self.chan.settimeout(0.05)  # 短いタイムアウトを設定
+                if data == b'\x1b':
+                    self.chan.settimeout(0.05)
                     try:
                         next_byte1 = self.chan.recv(1)
                         if next_byte1 == b'[':
@@ -401,7 +396,7 @@ class CommandHandler:
                     try:
                         key_input = data.decode('ascii').strip().lower()
                     except UnicodeDecodeError:
-                        self.chan.send(b'\a')  # デコードできないときはビープ音
+                        self.chan.send(b'\a')
                         continue  # 次のループへ
             except socket.timeout:
                 # ユーザーからの入力がなくてもタイムアウトでループが継続する
@@ -560,7 +555,7 @@ class CommandHandler:
 
                 if not search_term:
                     util.send_text_by_key(
-                        self.chan, "bbs.article_list_header", self.menu_mode)  # noqa
+                        self.chan, "bbs.article_list_header", self.menu_mode)
                     display_current_article_header()
                     self.just_displayed_header_from_tail_h = False
                     continue
@@ -767,14 +762,14 @@ class CommandHandler:
                         display_current_article_header()  # 失敗したら現在の行を再表示
                 else:
                     # 権限なし
-                    self.chan.send(b'\a')  # 権限なし
+                    self.chan.send(b'\a')
                     util.send_text_by_key(
                         self.chan, "bbs.permission_denied_delete", self.menu_mode)
                     display_current_article_header()  # 権限なしメッセージの後、現在の行を再表示
                 self.just_displayed_header_from_tail_h = False
 
             # --- リスト更新 ---
-            elif key_input == "u":  # Update/Refresh
+            elif key_input == "u":
                 reload_articles_display(keep_index=True)
                 self.just_displayed_header_from_tail_h = False
 
@@ -809,7 +804,7 @@ class CommandHandler:
             elif key_input == "e" or key_input == '\x1b':  # ESCでも終了
                 # モバイル用の操作ボタンを非表示にするエスケープシーケンスを送信
                 self.chan.send(b'\x1b[?2024l')
-                return  # command_loop に戻る
+                return
 
             # --- ヘルプ表示 ---
             elif key_input == "?":
@@ -876,7 +871,6 @@ class CommandHandler:
                 for i in range(start_idx, len(articles)):
                     article = articles[i]
                     # 左寄せ、指定幅
-                    # sqlite3.Row object
                     article_no_str = f"{article['article_number']:0{article_id_width}d}"
                     title = article['title'] if article['title'] else "(No Title)"
 
@@ -962,7 +956,7 @@ class CommandHandler:
                 continue
 
             # --- 連続読み ---
-            elif key_input == "r":  # 連続読み
+            elif key_input == "r":
                 if not articles:
                     self.chan.send(b'\a')
                     continue
@@ -980,7 +974,7 @@ class CommandHandler:
                         articles[i]['article_number'], show_back_prompt=False)
                     self.chan.send(b'\r\n')  # 記事間に空行
                 # 連続読み終了後、末尾マーカーへ移動
-                current_index = len(articles)  # 末尾マーカーへ
+                current_index = len(articles)
                 display_current_article_header()
                 self.just_displayed_header_from_tail_h = False
 
@@ -1666,7 +1660,7 @@ class CommandHandler:
                 self.chan, "bbs.no_board_selected", self.menu_mode)
             return
 
-        board_id_pk = self.current_board['id']  # sqlite3のオブジェクトを取得
+        board_id_pk = self.current_board['id']
 
         if not self.permission_manager.can_write_to_board(self.current_board, self.user_id_pk, self.userlevel):
             util.send_text_by_key(

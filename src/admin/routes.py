@@ -150,7 +150,6 @@ def _process_texts_for_mode(node, menu_mode):
         if mode_key in node:
             return node[mode_key]
         else:
-            # 'mode_x'キーを持たない中間辞書の場合は再帰的に処理
             return {key: _process_texts_for_mode(value, menu_mode) for key, value in node.items()}
     return node
 
@@ -272,7 +271,6 @@ def who_online():
         connect_time = member_data.get('connect_time', current_time)
         duration_seconds = current_time - connect_time
         member_data['duration_seconds'] = duration_seconds
-        # 人間が読みやすい形式に変換
         minutes, seconds = divmod(duration_seconds, 60)
         hours, minutes = divmod(minutes, 60)
         member_data['duration_str'] = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
@@ -886,7 +884,7 @@ def backup_management():
     search_params = {
         'per_page': per_page
     }
-    search_params_for_per_page = {}  # No other params to pass
+    search_params_for_per_page = {}
 
     pagination = {
         'page': page,
@@ -1017,7 +1015,7 @@ def plugin_management():
     search_params = {
         'per_page': per_page
     }
-    search_params_for_per_page = {}  # No other params to pass
+    search_params_for_per_page = {}
 
     pagination = {
         'page': page,
@@ -1160,7 +1158,7 @@ def restart_server():
     def do_restart():
         time.sleep(2)  # 2秒待機
         logging.info("SysOp triggered server restart.")
-        os._exit(0)  # Gunicornワーカーを終了させる。Dockerがコンテナを再起動する。
+        os._exit(0)
 
     import threading
     threading.Thread(target=do_restart).start()
@@ -1351,7 +1349,7 @@ def bbs_management():
 
     tab = request.args.get('tab', 'list')
 
-    if request.method == 'POST':  # This POST is for menu management
+    if request.method == 'POST':
         bbs_config = util.load_bbs_config()
         action = request.form.get('action')
 
@@ -1385,7 +1383,6 @@ def bbs_management():
                     bbs_config.get('categories', []), item_id)
 
                 if item:
-                    # name と description はオプショナルなので、空の場合はキーごと削除
                     name = request.form.get('name', '').strip()
                     description = request.form.get('description', '').strip()
                     if name:
@@ -1478,7 +1475,7 @@ def bbs_management():
             boards=enriched_boards, pagination=pagination,
             sort_by=sort_by, order=order, next_order=next_order,
             search_params=search_params, search_params_for_per_page=search_params_for_per_page,
-            bbs_config={}  # Add empty bbs_config for the list tab
+            bbs_config={}
         )
 
     elif tab == 'menu':
@@ -1502,13 +1499,10 @@ def bbs_management():
         return render_template(
             'admin/bbs_management.html', title="BBS Management", tab='menu',
             bbs_config=bbs_config,
-            search_params={},  # Add empty search_params for the menu tab
-            # Add empty search_params_for_per_page for the menu tab
+            search_params={},
             search_params_for_per_page={},
-            # Add pagination object with total_pages
             pagination={'total_pages': 0},
-            boards=[],  # Add empty boards for the menu tab
-            # Add other variables expected by the list tab template
+            boards=[],
             next_order='asc',
             sort_by='',
             order=''

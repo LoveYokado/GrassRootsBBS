@@ -16,7 +16,6 @@ import shutil
 import logging
 from . import util
 
-# --- Constants / 定数 ---
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 
@@ -61,7 +60,6 @@ def create_backup():
         dump_filename = db_dump_filename_format.format(db_name=db_name)
         dump_filepath = os.path.join(temp_backup_dir, dump_filename)
 
-        # mysqldumpコマンドの実行
         command = [
             'mysqldump',
             f'--host={db_host}',

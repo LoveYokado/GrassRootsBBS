@@ -250,7 +250,7 @@ class PermissionManager:
             return False
 
         # シスオペ (レベル5以上) は常に権限あり
-        if user_level >= 5:  # noqa
+        if user_level >= 5:
             return True
 
         try:
