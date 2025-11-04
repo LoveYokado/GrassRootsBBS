@@ -7,7 +7,6 @@
 `create_app()` ファクトリ関数を提供します。アプリケーションの全体的な設定、
 Blueprintの登録、拡張機能の初期化など、起動に関する中核的な処理を担当します。
 """
-import json
 
 import datetime
 import ipaddress

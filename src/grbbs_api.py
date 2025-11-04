@@ -150,7 +150,7 @@ class GrbbsApi:
 
         online_members_raw = self._online_members_func()
         safe_online_list = []
-        for sid, member_data in online_members_raw.items():
+        for _, member_data in online_members_raw.items():
             safe_data = {
                 'user_id': member_data.get('user_id'),
                 'username': member_data.get('username'),
@@ -219,8 +219,8 @@ class GrbbsApi:
             enlarge_to (tuple, optional): `resize`後に再度拡大する際の解像度。ジャギーな効果を出すのに使用。例: (640, 480)。
             enlarge_filter (str, optional): 拡大時の補間フィルタ。'nearest'でピクセル調になります。デフォルトは 'nearest'。
         """
-        from flask import url_for, current_app
-        from .plugin_manager import PROJECT_ROOT, PLUGINS_DIR
+        from flask import url_for
+        from .plugin_manager import PLUGINS_DIR
 
         image_data_uri = None
         needs_processing = resize is not None or reduce_colors is not None or enlarge_to is not None
