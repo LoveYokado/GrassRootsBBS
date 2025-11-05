@@ -66,12 +66,13 @@
 
     <div class="form-group" id="max_replies_group" style="display: none;">
         <label for="max_replies">Max Replies (1-999)</label>
-        <input type="number" id="max_replies" name="max_replies" value="999" min="1" max="999">
+        <input type="number" id="max_replies" name="max_replies" value="999" min="1" max="999" disabled>
     </div>
 
     <div class="form-actions">
         <button type="submit" style="background-color: #28a745; color: white;">Create Board</button>
-        <a href="{{ url_for('admin.bbs_list') }}" style="background-color: #6c757d; color: white;">Cancel</a>
+        <a href="{{ url_for('admin.bbs_management', tab='list') }}"
+            style="background-color: #6c757d; color: white;">Cancel</a>
     </div>
 </form>
 {% endblock %}
@@ -80,13 +81,16 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const boardTypeSelect = document.getElementById('board_type');
+        const maxRepliesInput = document.getElementById('max_replies');
         const maxRepliesGroup = document.getElementById('max_replies_group');
 
         function toggleMaxReplies() {
             if (boardTypeSelect.value === 'thread') {
                 maxRepliesGroup.style.display = 'block';
+                maxRepliesInput.disabled = false;
             } else {
                 maxRepliesGroup.style.display = 'none';
+                maxRepliesInput.disabled = true;
             }
         }
         boardTypeSelect.addEventListener('change', toggleMaxReplies);

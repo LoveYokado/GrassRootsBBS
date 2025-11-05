@@ -663,10 +663,10 @@ def edit_board(board_id):
                     database.add_board_permission(
                         board_id, str(user_id_to_add), access_level_to_set)
             flash(f"Board '{name}' has been updated successfully.", 'success')
+            return redirect(url_for('admin.bbs_management', tab='list'))
         else:
             flash(f"Failed to update board '{name}'.", 'danger')
-
-        return redirect(url_for('admin.bbs_management', tab='list'))
+            return redirect(url_for('admin.edit_board', board_id=board_id))
 
     current_operator_ids_json = board.get('operators', '[]')
     try:
