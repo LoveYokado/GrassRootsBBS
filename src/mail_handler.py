@@ -35,9 +35,9 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
     if not mail_data:
         return ""
 
-    # --- Define column widths ---
-    # SENDER/RCPT: 21 chars, SUBJECT: 31 chars
-    # This aligns with the headers in textdata.yaml
+    # --- カラム幅の定義 ---
+    # 送信者/受信者: 21文字, 件名: 31文字
+    # textdata.yaml のヘッダ定義と一致します。
     SENDER_RCPT_WIDTH = 21
     SUBJECT_WIDTH = 31
 
@@ -48,7 +48,7 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
     subject = mail_data['subject'] if mail_data['subject'] else "(無題)"
     mail_id_str = f"{mail_id:0{mail_id_width}d}"
 
-    # --- Determine status mark and final subject ---
+    # --- 状態マークと最終的な件名を決定 ---
     status_mark_char = " "
     display_subject_final = ""
     is_mail_deleted_flag = False
@@ -61,7 +61,7 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
 
         if is_mail_deleted_flag:
             status_mark_char = "*"
-            display_subject_final = ""  # Deleted mails have no subject
+            display_subject_final = ""  # 削除済みメールには件名を表示しない
         else:
             if view_mode == 'inbox' and mail_data['is_read'] == 0:
                 status_mark_char = "#"
@@ -72,7 +72,7 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
         display_subject_final = util.shorten_text_by_slicing(
             subject, width=SUBJECT_WIDTH)
 
-    # --- Determine sender/recipient name ---
+    # --- 送信者名/受信者名を決定 ---
     display_name = ""
     if view_mode == 'inbox':
         sender_name_raw = mail_data.get('sender_name')
@@ -81,15 +81,15 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
                 'GUEST', mail_data['sender_ip_address'])
         else:
             display_name = sender_name_raw if sender_name_raw else "(不明)"
-    else:  # outbox
+    else:  # 送信箱の場合
         recipient_name = mail_data.get('recipient_name')
         display_name = recipient_name if recipient_name else "(不明)"
 
-    # Shorten the name to fit the column width
+    # カラム幅に合わせて名前を短縮
     display_name_final = util.shorten_text_by_slicing(
         display_name, width=SENDER_RCPT_WIDTH)
 
-    # The gap between name and status mark is one space
+    # 名前と状態マークの間はスペース1つ
     return f"{mail_id_str}  {date_str}  {display_name_final:<{SENDER_RCPT_WIDTH}} {status_mark_char}{display_subject_final}"
 
 
@@ -107,13 +107,13 @@ class MailViewer:
         self.menu_mode = menu_mode
         self.user_id = user_id
 
-        # --- Instance State / インスタンスの状態管理 ---
-        self.view_mode = 'inbox'  # 'inbox' または 'outbox'
+        # --- インスタンスの状態管理 ---
+        self.view_mode = 'inbox'  # 'inbox' (受信箱) または 'outbox' (送信箱)
         self.mails = []
         self.current_index = 0
         self.mail_count_digits = 5
 
-        # --- Key Dispatch Table / キー入力とメソッドのディスパッチテーブル ---
+        # --- キー入力とメソッドのディスパッチテーブル ---
         self.key_dispatch = {
             '\x05': self._move_cursor_up, 'k': self._move_cursor_up, 'K': self._move_cursor_up, "KEY_UP": self._move_cursor_up,
             '\x18': self._move_cursor_down, 'j': self._move_cursor_down, 'J': self._move_cursor_down, ' ': self._move_cursor_down, "KEY_DOWN": self._move_cursor_down,
@@ -203,7 +203,7 @@ class MailViewer:
         try:
             data = self.chan.recv(1)
             if not data:
-                logging.info(
+                logging.info(  # ログ
                     f"メールメニュー中にクライアントが切断されました。 (ユーザーID: {self.user_id})")
                 return None
 
@@ -222,7 +222,7 @@ class MailViewer:
                         if nextbyte2 == b'D':
                             return "KEY_LEFT"
                     return data.decode('ascii')  # ESC単体
-                except socket.timeout:
+                except socket.timeout:  # タイムアウト
                     return data.decode('ascii')  # ESC単体
                 finally:
                     self.chan.settimeout(None)
@@ -237,7 +237,7 @@ class MailViewer:
         # モバイル用の操作ボタンを表示
         self.chan.send(b'\x1b[?2024h')
 
-        total_mail_count = database.get_total_mail_count(self.user_id)
+        total_mail_count = database.get_total_mail_count(self.user_id)  # noqa
         unread_mail_count = database.get_total_unread_mail_count(self.user_id)
         util.send_text_by_key(
             self.chan, "mail_handler.article_list_count", self.menu_mode,
@@ -246,7 +246,7 @@ class MailViewer:
 
         if not self._reload_mails(keep_index=False):
             self.chan.send(b'\x1b[?2024l')  # エラー時も非表示にする
-            return "back_to_top"
+            return "back_to_top"  # トップメニューに戻る
 
         # ヘッダ表示
         if self.view_mode == 'inbox':
@@ -262,7 +262,7 @@ class MailViewer:
                 key_input = self._get_key_input()
                 if key_input is None:
                     return None  # 切断
-
+                # Ctrl+C, ESC, e, E
                 if key_input in ('e', 'E', '\x03', '\x1b'):  # Ctrl+C, ESC, e, E
                     break
 
@@ -726,7 +726,7 @@ def _get_recipients(chan, menu_mode):
             if add_more_ans is None:
                 return None
 
-            if add_more_ans.lower().strip() == 'y':
+            if add_more_ans.lower().strip() == 'y':  # yが入力された場合
                 continue
             else:
                 return recipient_info_list
@@ -751,7 +751,7 @@ def _get_subject(chan, menu_mode):
         prompt_b64 = base64.b64encode(
             prompt_text.encode('utf-8')).decode('utf-8')
         initial_value_b64 = base64.b64encode(
-            b'').decode('utf-8')  # 初期値は空
+            b'').decode('utf-8')  # 初期値は空にする
         chan.send(
             f'\x1b]GRBBS;LINE_EDIT;{prompt_b64};{initial_value_b64}\x07'.encode('utf-8'))
         subject_raw = chan.process_input()
@@ -795,7 +795,7 @@ def _get_body(chan, menu_mode):
         # モバイルWebクライアントの場合はマルチラインエディタを呼び出す
         body = chan.process_multiline_input()
         if body is None:
-            return None  # タイムアウトまたはエラー
+            return None  # タイムアウトまたはエラーの場合
         # 入力された内容をターミナルにエコーバック
         chan.send(body.replace('\n', '\r\n').encode('utf-8') + b'\r\n')
         message = body
@@ -805,7 +805,7 @@ def _get_body(chan, menu_mode):
         while True:
             line = chan.process_input()
             if line is None:
-                return None
+                return None  # 切断
             if line == '^':
                 break
             message_lines.append(line)
@@ -847,7 +847,7 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
     # 宛先表示
     for name, comment in recipient_info_list:
         util.send_text_by_key(chan, "mail_handler.recipient", menu_mode,
-                              current_recipient_name=name, current_recipient_comment=comment)
+                              current_recipient_name=name, current_recipient_comment=comment)  # noqa
 
     util.send_text_by_key(chan, "mail_handler.subject",
                           menu_mode, subject=subject)
@@ -863,17 +863,17 @@ def _confirm_and_send(chan, login_id, menu_mode, recipient_info_list, subject, b
 
     confirm_input_raw = None
     if is_mobile_web_client:
-        # Get localized button labels
+        # ローカライズされたボタンラベルを取得
         yes_label = util.get_text_by_key(
             "common_messages.yes_button", menu_mode, default_value="Yes")
         no_label = util.get_text_by_key(
             "common_messages.no_button", menu_mode, default_value="No")
-        # Base64 encode them
+        # Base64エンコード
         yes_label_b64 = base64.b64encode(
             yes_label.encode('utf-8')).decode('utf-8')
         no_label_b64 = base64.b64encode(
             no_label.encode('utf-8')).decode('utf-8')
-        # Send command to set labels and show buttons
+        # ラベルを設定してボタンを表示するコマンドを送信
         chan.send(
             f'\x1b]GRBBS;CONFIRM_BUTTONS;{yes_label_b64};{no_label_b64}\x07'.encode('utf-8'))
         chan.send(b'\x1b[?2035h')

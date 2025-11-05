@@ -250,8 +250,8 @@ def list_passkeys(chan, login_id, current_menu_mode, user_data):
             util.send_text_by_key(
                 chan, "user_pref_menu.passkey_management.list_item_format", current_menu_mode,
                 nickname=nickname, created_at=created_at_str, last_used_at=last_used_at_str)
-    chan.send(b'\r\n')  # Add a blank line after the list
-    return None  # Stay in the menu
+    chan.send(b'\r\n')
+    return None
 
 
 def delete_passkey(chan, login_id, current_menu_mode, user_data):
@@ -325,7 +325,6 @@ def manage_passkeys(chan, login_id, current_menu_mode, user_data):
         choice = choice.strip().lower()
 
         if choice == '1':
-            # Instruct the frontend to start the Passkey registration flow
             chan.send(b'\x1b[?2027h')
             util.send_text_by_key(
                 chan, "user_pref_menu.passkey_management.start_registration_prompt", current_menu_mode)
@@ -339,7 +338,7 @@ def manage_passkeys(chan, login_id, current_menu_mode, user_data):
             list_passkeys(chan, login_id, current_menu_mode, user_data)
             continue  # メニューを再表示
         elif choice == 'e' or choice == '':
-            return None  # back to user_pref_menu
+            return None
         else:
             util.send_text_by_key(
                 chan, "common_messages.invalid_command", current_menu_mode)

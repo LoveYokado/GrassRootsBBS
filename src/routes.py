@@ -146,7 +146,6 @@ def index():
         'max_size_mb': limits_config.get('attachment_max_size_mb', 10),
         'allowed_extensions': limits_config.get('allowed_attachment_extensions', 'jpg,jpeg,png,gif,txt')
     }
-    push_config = current_app.config.get('PUSH', {})
     vapid_public_key_for_js = ''
     public_key_path = '/app/public_key.pem'
     if os.path.exists(public_key_path):

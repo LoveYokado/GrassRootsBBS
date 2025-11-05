@@ -109,7 +109,7 @@ class WebTerminalHandler:
         self.ip_address = ip_address
         self.socketio = socketio
         self.speed = 'full'
-        self.app = app  # appオブジェクトを保持
+        self.app = app  # Flaskアプリケーションインスタンスを保持
         self.bps_delay = 0
         self.output_queue = collections.deque()
         self.input_queue = collections.deque()
@@ -120,13 +120,13 @@ class WebTerminalHandler:
         self.log_buffer = []
         self.mail_notified_this_session = False
         self.main_thread_active = True
-        self.pending_upload = None  # プラグインからのアップロード用
-        self.pending_upload_settings = None  # プラグインからのアップロード設定
-        self.pending_attachment = None  # 添付ファイル用の一時的な情報
+        self.pending_upload = None  # プラグインからのファイルアップロード結果を一時的に保持
+        self.pending_upload_settings = None  # プラグインからのファイルアップロード設定を一時的に保持
+        self.pending_attachment = None  # 掲示板投稿時の添付ファイル情報を一時的に保持
         self.is_mobile = self.user_session.get('menu_mode') == '4'
 
-        # クライアントのUIを制御するためのカスタムエスケープシーケンスのパターン
-        # これらのシーケンスはBPS遅延の影響を受けずに一括で送信する必要がある
+        # クライアントのUIを制御するためのカスタムエスケープシーケンスのパターン。
+        # これらのシーケンスはBPS遅延の影響を受けずに一括で送信する必要があります。
         self.control_sequence_pattern = re.compile(
             r'('
             r'\x1b\]GRBBS;[^\x07]*\x07'  # OSC: LINE_EDITなど
@@ -140,7 +140,7 @@ class WebTerminalHandler:
 
         @self.socketio.on('get_bbs_list')
         def handle_get_bbs_list():
-            """クライアントのBBSリストポップアップ(F7)からのデータ要求を処理します。"""
+            """クライアントのBBSリストポップアップ(F7キー)からのデータ要求を処理します。"""
             if not self.user_session.get('user_id'):
                 return  # 未認証の場合は何もしない
 
@@ -154,7 +154,7 @@ class WebTerminalHandler:
 
         @self.socketio.on('submit_bbs_link')
         def handle_submit_bbs_link(data):
-            """クライアントのBBSリストポップアップからの新規リンク申請を処理します。"""
+            """クライアントのBBSリストポップアップからの新規リンク申請を処理し、DBに保存します。"""
             user_id = self.user_session.get('user_id')
             if not user_id:
                 return
@@ -194,7 +194,7 @@ class WebTerminalHandler:
             self._timeout = timeout
 
         def send(self, data):
-            if isinstance(data, bytes):
+            if isinstance(data, bytes):  # バイト列の場合はUTF-8でデコード
                 text_to_send = data.decode('utf-8', 'ignore')
             else:
                 text_to_send = str(data)
@@ -237,13 +237,13 @@ class WebTerminalHandler:
                     if not char_byte:
                         return None
                     if char_byte in (b'\r', b'\n'):
-                        if echo:
+                        if echo:  # エコーバックが有効なら改行を送信
                             self.send(b'\r\n')
                         break
-                    elif char_byte in (b'\x08', b'\x7f'):
+                    elif char_byte in (b'\x08', b'\x7f'):  # バックスペース処理
                         if line_buffer:
                             deleted_char = line_buffer.pop()
-                            if echo:
+                            if echo:  # エコーバックが有効なら文字を削除
                                 width = unicodedata.east_asian_width(
                                     deleted_char)
                                 char_width = 2 if width in (
@@ -252,11 +252,11 @@ class WebTerminalHandler:
                                 self.send(
                                     backspaces + (b' ' * char_width) + backspaces)
                     else:
-                        try:
+                        try:  # UTF-8としてデコードを試みる
                             decoded_char = decoder.decode(char_byte)
                             if decoded_char:
                                 line_buffer.append(decoded_char)
-                                if echo:
+                                if echo:  # エコーバックが有効なら文字を送信
                                     self.send(decoded_char.encode('utf-8'))
                         except UnicodeDecodeError:
                             decoder.reset()
@@ -268,7 +268,7 @@ class WebTerminalHandler:
                 logging.error(
                     f"Error in process_input (SID: {self.handler.sid}): {e}")
                 return None
-            remaining = decoder.decode(b'', final=True)
+            remaining = decoder.decode(b'', final=True)  # バッファに残っている文字をデコード
             if remaining:
                 line_buffer.append(remaining)
             return "".join(line_buffer)
@@ -292,16 +292,14 @@ class WebTerminalHandler:
             サーバーから特殊シーケンスを送信してエディタを開き、クライアントは
             `multiline_input_submit` イベントで結果を返します。
             """
-            # Send a special escape sequence to open the multiline editor
-            self.send(b'\x1b[?2034h')
-            # Wait for the input to be populated by the socket event handler
-            # 5分間のタイムアウト
+            self.send(b'\x1b[?2034h')  # マルチラインエディタを開くシーケンスを送信
+            # 5分間のタイムアウトを設定
             if not self.handler.input_event.wait(timeout=300):
                 self.send(
                     b'\r\n\x1b[31m[Error] Input timed out.\x1b[0m\r\n')
                 return None
             self.handler.input_event.clear()
-            # The full text is now in the input queue
+            # 全文が入力キューに入っている
             return self.handler.input_queue.popleft()
 
     def stop_worker(self):
@@ -349,7 +347,7 @@ class WebTerminalHandler:
                 command = self.channel.process_input()
                 if command is None:
                     self.main_thread_active = False
-                    break
+                    break  # 接続が切れたらループを抜ける
                 # contextオブジェクトを直接渡すように修正
                 if util.handle_shortcut(context, command):
                     util.send_top_menu(self.channel, context.menu_mode)
@@ -362,7 +360,7 @@ class WebTerminalHandler:
                 result = command_dispatcher.dispatch_command(
                     command, context, self.app)
                 if result.get('status') == 'logoff':
-                    logoff_message_text = util.get_text_by_key(
+                    logoff_message_text = util.get_text_by_key(  # ログオフメッセージを取得
                         "logoff.message", context.menu_mode)
                     processed_text = logoff_message_text.replace(
                         '\r\n', '\n').replace('\n', '\r\n')
@@ -370,7 +368,7 @@ class WebTerminalHandler:
                     self.socketio.emit('force_disconnect', {
                                        'message': processed_text}, to=self.sid)
                     break
-                if 'new_menu_mode' in result:
+                if 'new_menu_mode' in result:  # メニューモードが変更された場合
                     context.menu_mode = result['new_menu_mode']
                     util.send_top_menu(
                         self.channel, self.user_session['menu_mode'])
@@ -393,14 +391,14 @@ class WebTerminalHandler:
             try:
                 text_to_send = self.output_queue.popleft()
 
-                # テキストを制御シーケンスと通常のテキストに分割
+                # テキストを制御シーケンスと通常のテキストに分割します。
                 parts = self.control_sequence_pattern.split(text_to_send)
 
                 for part in parts:
                     if not part:
                         continue
 
-                    # partが制御シーケンスと完全に一致するかチェック
+                    # partが制御シーケンスと完全に一致するかチェックします。
                     if self.control_sequence_pattern.fullmatch(part):
                         # 制御シーケンスは遅延なしで即時送信
                         self.socketio.emit('server_output', part, to=self.sid)
@@ -417,4 +415,4 @@ class WebTerminalHandler:
                             self.socketio.emit(
                                 'server_output', part, to=self.sid)
             except IndexError:
-                self.socketio.sleep(0.01)  # キューが空の場合は少し待つ
+                self.socketio.sleep(0.01)  # キューが空の場合は少し待機します。
