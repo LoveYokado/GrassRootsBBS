@@ -325,6 +325,45 @@ class UserManager:
         logging.warning("シスオペ(level=5)が見つかりませんでした。")
         return None
 
+    def get_user_activity_summary(self, page=1, per_page=15, sort_by='last_login', order='desc'):
+        """ユーザーアクティビティのサマリーを取得します。"""
+        allowed_sort_columns = {
+            'name': 'name', 'last_login': 'last_login',
+            'last_post_time': 'last_post_time', 'total_posts': 'total_posts'
+        }
+        sort_column = allowed_sort_columns.get(sort_by, 'last_login')
+        order_direction = 'DESC' if order.lower() == 'desc' else 'ASC'
+
+        count_query = "SELECT COUNT(*) as total FROM users"
+        total_count_result = self._db.execute_query(count_query, fetch='one')
+        total_items = total_count_result['total'] if total_count_result else 0
+
+        offset = (page - 1) * per_page
+
+        query = f"""
+            SELECT * FROM (
+                 SELECT
+                     u.id,
+                     u.name,
+                     u.lastlogin AS last_login,
+                     sub.last_post_time,
+                     sub.last_post_board_name,
+                     COALESCE(sub.total_posts, 0) AS total_posts
+                 FROM users u
+                 LEFT JOIN (
+                     SELECT user_id, MAX(created_at) AS last_post_time,
+                         (SELECT b.name FROM articles a2 JOIN boards b ON a2.board_id = b.id WHERE a2.user_id = a.user_id ORDER BY a2.created_at DESC LIMIT 1) AS last_post_board_name,
+                         COUNT(*) AS total_posts
+                     FROM articles a GROUP BY user_id
+                 ) AS sub ON u.id = sub.user_id
+            ) AS final_result
+            ORDER BY {sort_column} {order_direction}
+            LIMIT %s OFFSET %s
+        """
+        params = (per_page, offset)
+        users_activity = self._db.execute_query(query, params, fetch='all')
+        return users_activity, total_items
+
 
 class BoardManager:
     """`boards` テーブルに関連する全てのデータベース操作を管理します。"""
@@ -1839,6 +1878,11 @@ def get_all_users(page=1, per_page=15, sort_by='id', order='asc', search_term=No
 
 def get_sysop_user_id():
     return users.get_sysop_user_id()
+
+
+def get_user_activity_summary(page=1, per_page=15, sort_by='last_login', order='desc'):
+    """ユーザーアクティビティのサマリーを取得します。"""
+    return users.get_user_activity_summary(page, per_page, sort_by, order)
 
 
 def read_server_pref():

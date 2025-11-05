@@ -107,13 +107,58 @@
 
     {# --- User Activity Tab --- #}
     <div class="tab-pane fade {% if tab == 'activity' %}show active{% endif %}" id="activity" role="tabpanel">
-        <h3>User Activity</h3>
-        <p>This section will display user activity logs, such as login history and other actions. (Content to be
-            implemented)</p>
-        {# Example placeholder content #}
-        <div class="alert alert-info" role="alert">
-            User activity tracking is under construction.
+        <p>Displays a summary of user activity, including last login and posting details.</p>
+
+        {% with search_params=search_params, pagination=pagination,
+        search_params_for_per_page=search_params_for_per_page
+        %}
+        {% include 'admin/_pagination.html' %}
+        {% endwith %}
+
+        <div class="table-responsive">
+            <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+                <thead>
+                    <tr>
+                        <th><a
+                                href="{{ url_for('admin.user_management', tab='activity', sort_by='name', order=next_order if sort_by == 'name' else 'asc', per_page=search_params.per_page) }}">Name
+                                {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                        <th><a
+                                href="{{ url_for('admin.user_management', tab='activity', sort_by='last_login', order=next_order if sort_by == 'last_login' else 'desc', per_page=search_params.per_page) }}">Last
+                                Login {% if sort_by == 'last_login' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                %}</a>
+                        </th>
+                        <th><a
+                                href="{{ url_for('admin.user_management', tab='activity', sort_by='last_post_time', order=next_order if sort_by == 'last_post_time' else 'desc', per_page=search_params.per_page) }}">Last
+                                Post Time {% if sort_by == 'last_post_time' %}{{ '▲' if order == 'asc' else '▼' }}{%
+                                endif %}</a></th>
+                        <th>Last Post Board</th>
+                        <th><a
+                                href="{{ url_for('admin.user_management', tab='activity', sort_by='total_posts', order=next_order if sort_by == 'total_posts' else 'desc', per_page=search_params.per_page) }}">Total
+                                Posts {% if sort_by == 'total_posts' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                %}</a></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in user_activities %}
+                    <tr>
+                        <td>{{ activity.name }}</td>
+                        <td>{{ activity.last_login|int|timestamp_to_datetime if activity.last_login and
+                            activity.last_login > 0 else 'Never' }}</td>
+                        <td>{{ activity.last_post_time|int|timestamp_to_datetime if activity.last_post_time else 'N/A'
+                            }}</td>
+                        <td>{{ activity.last_post_board_name or 'N/A' }}</td>
+                        <td>{{ activity.total_posts or 0 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+
+        {% with search_params=search_params, pagination=pagination,
+        search_params_for_per_page=search_params_for_per_page
+        %}
+        {% include 'admin/_pagination.html' %}
+        {% endwith %}
     </div>
 </div>
 {% endblock %}
