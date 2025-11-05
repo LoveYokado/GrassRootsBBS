@@ -1262,6 +1262,7 @@ def chat_management():
                     if item['type'] == 'room':
                         item['push'] = 'push' in request.form
                         item['lock'] = 'lock' in request.form
+                        item['log'] = 'log' in request.form
                 else:
                     flash(f"Item '{item_id}' not found for editing.", 'danger')
 

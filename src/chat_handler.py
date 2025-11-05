@@ -14,6 +14,7 @@ import logging
 import collections
 import threading
 import time
+import os
 import json
 from . import terminal_handler
 from . import util, bbsmenu
@@ -35,6 +36,11 @@ chat_room_notification_timestamps = {}
 
 # グローバルな状態変数を保護するためのロックオブジェクト。
 chat_rooms_lock = threading.Lock()
+
+# --- ログ関連の設定 ---
+CHAT_LOG_DIR = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), '..', 'logs', 'chat'))
+
 
 # server.py から get_online_members_list をセットするためのグローバル変数
 ONLINE_MEMBERS_FUNC = None
@@ -60,6 +66,27 @@ def add_message_to_history(room_id: str, display_name: str, message: str, is_sys
     else:
         formatted_message = f"{display_name}: {message}"
     history.append(formatted_message)
+
+    # --- ログファイルへの書き込み処理 ---
+    try:
+        paths_config = util.app_config.get('paths', {})
+        chatroom_config_path = paths_config.get('chatroom_yaml')
+        chatroom_config = util.load_yaml_file_for_shortcut(
+            chatroom_config_path)
+
+        if chatroom_config:
+            target_item, _ = util.find_item_in_yaml(
+                chatroom_config, room_id, '2', "room")
+
+            if target_item and target_item.get('log') is True:
+                log_file_path = os.path.join(CHAT_LOG_DIR, f"{room_id}.txt")
+                timestamp = time.strftime(
+                    '%Y-%m-%d %H:%M:%S', time.localtime())
+                log_entry = f"[{timestamp}] {formatted_message}\n"
+                with open(log_file_path, 'a', encoding='utf-8') as f:
+                    f.write(log_entry)
+    except Exception as e:
+        logging.error(f"チャットログの書き込み中にエラー (Room: {room_id}): {e}")
 
 
 def broadcast_to_room(room_id: str, display_name: str,
@@ -224,6 +251,9 @@ def user_joins_room(room_id: str, login_id: str, display_name: str, chan, room_n
     logging.info(
         f"ChatEvent[{room_id}]: User {login_id}({display_name}) joined.")
 
+    # 履歴とログファイルに記録
+    add_message_to_history(room_id, "System", join_notification, True)
+
     # システムメッセージとしてブロードキャスト (画面表示用)
     broadcast_to_room(room_id, "System", join_notification,
                       is_system_message=True, exclude_login_id=login_id)
@@ -258,6 +288,9 @@ def user_leaves_room(room_id: str, login_id: str, display_name: str, room_name: 
                     is_system_message=True,
                     message_key_for_system="chat.owner_left_unlock_broadcast",
                     format_args_for_system={"room_name": room_name, "owner": login_id})
+
+    leave_notification = f"{display_name} が退室しました。"
+    add_message_to_history(room_id, "System", leave_notification, True)
 
     if chan_left:
         leave_notification = f"{display_name} が退室しました。"

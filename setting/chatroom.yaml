@@ -16,6 +16,7 @@ categories:
     type: room
     lock: false
     push: false
+    log: true
   - id: chat_free2
     number: 2
     name: フリールーム２
