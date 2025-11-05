@@ -178,7 +178,7 @@ def load_admin_texts():
                 {'title': nav_texts.get('who_online', "Who's Online"),
                  'endpoint': 'admin.who_online'},
                 {'title': nav_texts.get('user_management', 'User Management'),
-                 'endpoint': 'admin.user_list'},
+                 'endpoint': 'admin.user_management'},
             ]
         },
         {
@@ -352,55 +352,73 @@ def kick_user(sid):
     return redirect(url_for('admin.who_online'))
 
 
-@admin_bp.route('/users')
+@admin_bp.route('/users', methods=['GET'])
 @sysop_required
-def user_list():
-    """ユーザー一覧管理。登録されている全ユーザーの一覧を表示し、検索・ソートが可能です。"""
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 15, type=int)
-    sort_by = request.args.get('sort_by', 'id')
-    order = request.args.get('order', 'asc')
-    search_term = request.args.get('q', '')
+def user_management():
+    """ユーザー管理（ユーザー一覧 & アクティビティ）。タブ形式で管理します。"""
+    tab = request.args.get('tab', 'list')
 
-    next_order = 'desc' if order == 'asc' else 'asc'
+    if tab == 'list':
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 15, type=int)
+        sort_by = request.args.get('sort_by', 'id')
+        order = request.args.get('order', 'asc')
+        search_term = request.args.get('q', '')
+        next_order = 'desc' if order == 'asc' else 'asc'
 
-    try:
-        users, total_items = database.get_all_users(
-            page=page,
-            per_page=per_page,
-            sort_by=sort_by,
-            order=order,
+        try:
+            users, total_items = database.get_all_users(
+                page=page, per_page=per_page, sort_by=sort_by, order=order, search_term=search_term)
+            total_pages = (total_items + per_page - 1) // per_page
+        except Exception as e:
+            flash(f"Error retrieving user list: {e}", 'danger')
+            users, total_items, total_pages = [], 0, 0
+
+        search_params = {'tab': 'list', 'q': search_term,
+                         'sort_by': sort_by, 'order': order, 'per_page': per_page}
+        search_params_for_per_page = {
+            k: v for k, v in request.args.items() if k != 'per_page'}
+
+        pagination = {'page': page, 'per_page': per_page, 'total_items': total_items,
+                      'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages}
+
+        return render_template(
+            'admin/user_management.html', tab='list', users=users, pagination=pagination,
+            sort_by=sort_by, order=order, next_order=next_order,
+            search_params=search_params, search_params_for_per_page=search_params_for_per_page,
             search_term=search_term
         )
-        total_pages = (total_items + per_page - 1) // per_page
-    except Exception as e:
-        flash(f"Error retrieving user list: {e}", 'danger')
-        users = []
-        total_items = 0
-        total_pages = 0
 
-    search_params = {
-        'q': search_term,
-        'sort_by': sort_by,
-        'order': order,
-        'per_page': per_page
-    }
-    search_params_for_per_page = {k: v for k,
-                                  v in request.args.items() if k != 'per_page'}
+    elif tab == 'activity':
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 15, type=int)
+        sort_by = request.args.get('sort_by', 'last_login')
+        order = request.args.get('order', 'desc')
+        next_order = 'desc' if order == 'asc' else 'asc'
 
-    pagination = {
-        'page': page,
-        'per_page': per_page,
-        'total_items': total_items,
-        'total_pages': total_pages,
-        'has_prev': page > 1,
-        'has_next': page < total_pages
-    }
+        try:
+            user_activities, total_items = database.get_user_activity_summary(
+                page=page, per_page=per_page, sort_by=sort_by, order=order)
+            total_pages = (total_items + per_page - 1) // per_page
+        except Exception as e:
+            flash(f"Error retrieving user activity: {e}", 'danger')  # noqa
+            user_activities, total_items, total_pages = [], 0, 0
 
-    return render_template(
-        'admin/user_list.html', title='User Management', users=users, pagination=pagination,
-        sort_by=sort_by, order=order, next_order=next_order, search_params=search_params,
-        search_params_for_per_page=search_params_for_per_page)
+        pagination = {'page': page, 'per_page': per_page, 'total_items': total_items,
+                      'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages}
+        search_params = {'tab': 'activity', 'sort_by': sort_by,
+                         'order': order, 'per_page': per_page}
+        search_params_for_per_page = {
+            k: v for k, v in request.args.items() if k != 'per_page'}
+
+        return render_template(
+            'admin/user_management.html', tab='activity', user_activities=user_activities,
+            pagination=pagination, sort_by=sort_by, order=order, next_order=next_order,
+            search_params=search_params, search_params_for_per_page=search_params_for_per_page
+        )
+
+    # Fallback redirect
+    return redirect(url_for('admin.user_management', tab='list'))
 
 
 @admin_bp.route('/users/new', methods=['GET', 'POST'])
@@ -430,7 +448,7 @@ def new_user():
         if database.register_user(username, hashed_password, salt, comment, level, email=email):
             flash(
                 f"User '{username}' has been created successfully.", 'success')
-            return redirect(url_for('admin.user_list'))
+            return redirect(url_for('admin.user_management'))
         else:
             flash('Failed to create user.', 'danger')
 
@@ -446,7 +464,7 @@ def edit_user(user_id):
     user = database.get_user_by_id(user_id)
     if not user:
         flash(f"User with ID {user_id} not found.", 'danger')
-        return redirect(url_for('admin.user_list'))
+        return redirect(url_for('admin.user_management'))
 
     if request.method == 'POST':
         new_level = request.form.get('level', type=int)
@@ -468,7 +486,7 @@ def edit_user(user_id):
         database.update_record('users', updates, {'id': user_id})
         flash(
             f"User '{user['name']}' has been updated successfully.", 'success')
-        return redirect(url_for('admin.user_list'))
+        return redirect(url_for('admin.user_management'))
 
     passkeys = database.get_passkeys_by_user(user_id)
 
@@ -501,23 +519,22 @@ def delete_user(user_id):
 
     if not user_to_delete:
         flash(f"User with ID {user_id} not found.", 'danger')
-        return redirect(url_for('admin.user_list'))
+        return redirect(url_for('admin.user_management'))
 
     if user_to_delete['id'] == session.get('user_id'):
         flash("You cannot delete your own account.", 'danger')
-        return redirect(url_for('admin.user_list'))
+        return redirect(url_for('admin.user_management'))
 
     if user_to_delete['name'].upper() == 'GUEST':
         flash("The GUEST account cannot be deleted.", 'danger')
-        return redirect(url_for('admin.user_list'))
+        return redirect(url_for('admin.user_management'))
 
     if database.delete_user(user_id):
         flash(
             f"User '{user_to_delete['name']}' has been successfully deleted.", 'success')
     else:
         flash(f"Failed to delete user '{user_to_delete['name']}'.", 'danger')
-
-    return redirect(url_for('admin.user_list'))
+    return redirect(url_for('admin.user_management'))
 
 
 @admin_bp.route('/boards/new', methods=['GET', 'POST'])
