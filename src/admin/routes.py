@@ -25,9 +25,9 @@ from flask import jsonify
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
-@admin_bp.route('/bbs_list', methods=['GET', 'POST'])
+@admin_bp.route('/links', methods=['GET', 'POST'])
 @sysop_required
-def bbs_list():
+def link_list():
     """外部リンク一覧の管理ページ。WebターミナルのF7キーで表示されるリンクを管理します。"""
     if request.method == 'POST':
         action = request.form.get('action')
@@ -76,7 +76,7 @@ def bbs_list():
                 flash('Link has been set to pending for re-evaluation.', 'success')
             else:
                 flash('Failed to set link to pending.', 'danger')
-        return redirect(url_for('admin.bbs_list'))
+        return redirect(url_for('admin.link_list'))
 
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 15, type=int)
@@ -116,14 +116,14 @@ def bbs_list():
     )
 
 
-@admin_bp.route('/bbs_list/edit/<int:link_id>', methods=['GET', 'POST'])
+@admin_bp.route('/links/edit/<int:link_id>', methods=['GET', 'POST'])
 @sysop_required
-def edit_bbs_link(link_id):
-    """BBSリンクの編集ページ。指定されたIDのBBSリンクの名前、URL、説明を編集します。"""
+def edit_link(link_id):
+    """外部リンクの編集ページ。指定されたIDのリンクの名前、URL、説明を編集します。"""
     link = database.bbs_list_manager.get_by_id(link_id)
     if not link:
         flash('Link not found.', 'danger')
-        return redirect(url_for('admin.bbs_list'))
+        return redirect(url_for('admin.link_list'))
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -134,7 +134,7 @@ def edit_bbs_link(link_id):
             # Keep database function name
             if database.update_bbs_link(link_id, name, url, description):
                 flash('Link updated successfully.', 'success')
-                return redirect(url_for('admin.bbs_list'))
+                return redirect(url_for('admin.link_list'))
             else:
                 flash('Failed to update link.', 'danger')
         else:
@@ -142,7 +142,7 @@ def edit_bbs_link(link_id):
         link.update(name=name, url=url, description=description)
 
     title = f"Edit Link: {link['name']}"
-    return render_template('admin/edit_bbs_link.html', title=title, link=link)
+    return render_template('admin/edit_link.html', title=title, link=link)
 
 
 BACKUP_DIR = os.path.abspath(os.path.join(
@@ -191,7 +191,7 @@ def load_admin_texts():
                 {'title': nav_texts.get('content_management', 'Content Management'),  # Keep this
                  'endpoint': 'admin.content_management'},  # Keep this
                 {'title': nav_texts.get('bbs_list_management', 'Link Management'),
-                 'endpoint': 'admin.bbs_list'},
+                 'endpoint': 'admin.link_list'},
             ]
         },
         {

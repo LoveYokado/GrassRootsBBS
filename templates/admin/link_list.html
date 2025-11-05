@@ -18,7 +18,7 @@
             Add New Link
         </div>
         <div class="card-body">
-            <form method="post" action="{{ url_for('admin.bbs_list') }}">
+            <form method="post" action="{{ url_for('admin.link_list') }}">
                 <input type="hidden" name="action" value="add">
                 <div class="form-row">
                     <div class="form-group col-md-4">
@@ -53,25 +53,25 @@
                     <thead>
                         <tr>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', per_page=search_params.per_page) }}">ID
+                                    href="{{ url_for('admin.link_list', sort_by='id', order=next_order if sort_by == 'id' else 'asc', per_page=search_params.per_page) }}">ID
                                     {% if sort_by == 'id' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', per_page=search_params.per_page) }}">Name
+                                    href="{{ url_for('admin.link_list', sort_by='name', order=next_order if sort_by == 'name' else 'asc', per_page=search_params.per_page) }}">Name
                                     {% if sort_by == 'name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='url', order=next_order if sort_by == 'url' else 'asc', per_page=search_params.per_page) }}">URL
+                                    href="{{ url_for('admin.link_list', sort_by='url', order=next_order if sort_by == 'url' else 'asc', per_page=search_params.per_page) }}">URL
                                     {% if sort_by == 'url' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
                             <th>Description</th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='status', order=next_order if sort_by == 'status' else 'asc', per_page=search_params.per_page) }}">Status
+                                    href="{{ url_for('admin.link_list', sort_by='status', order=next_order if sort_by == 'status' else 'asc', per_page=search_params.per_page) }}">Status
                                     {% if sort_by == 'status' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='submitted_by', order=next_order if sort_by == 'submitted_by' else 'asc', per_page=search_params.per_page) }}">Submitted
+                                    href="{{ url_for('admin.link_list', sort_by='submitted_by', order=next_order if sort_by == 'submitted_by' else 'asc', per_page=search_params.per_page) }}">Submitted
                                     By {% if sort_by == 'submitted_by' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
                                     %}</a>
                             </th>
                             <th><a
-                                    href="{{ url_for('admin.bbs_list', sort_by='created_at', order=next_order if sort_by == 'created_at' else 'asc', per_page=search_params.per_page) }}">Created
+                                    href="{{ url_for('admin.link_list', sort_by='created_at', order=next_order if sort_by == 'created_at' else 'asc', per_page=search_params.per_page) }}">Created
                                     At {% if sort_by == 'created_at' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
                                     %}</a>
                             </th>
@@ -96,32 +96,32 @@
                             <td>{{ util.format_timestamp(link.created_at) }}</td>
                             <td>
                                 {% if link.status == 'pending' %}
-                                <form method="post" action="{{ url_for('admin.bbs_list') }}" style="display:inline;">
+                                <form method="post" action="{{ url_for('admin.link_list') }}" style="display:inline;">
                                     <input type="hidden" name="action" value="approve">
                                     <input type="hidden" name="id" value="{{ link.id }}">
                                     <button type="submit" class="action-link-restore">Approve</button>
                                 </form>
-                                <form method="post" action="{{ url_for('admin.bbs_list') }}" style="display:inline;">
+                                <form method="post" action="{{ url_for('admin.link_list') }}" style="display:inline;">
                                     <input type="hidden" name="action" value="reject">
                                     <input type="hidden" name="id" value="{{ link.id }}">
                                     <button type="submit" class="action-link-delete">Reject</button>
                                 </form>
                                 {% elif link.status == 'approved' %}
-                                <form method="post" action="{{ url_for('admin.bbs_list') }}" style="display:inline;">
+                                <form method="post" action="{{ url_for('admin.link_list') }}" style="display:inline;">
                                     <input type="hidden" name="action" value="unapprove">
                                     <input type="hidden" name="id" value="{{ link.id }}">
                                     <button type="submit" class="action-link-warning">Unapprove</button>
                                 </form>
                                 {% elif link.status == 'rejected' %}
-                                <form method="post" action="{{ url_for('admin.bbs_list') }}" style="display:inline;">
+                                <form method="post" action="{{ url_for('admin.link_list') }}" style="display:inline;">
                                     <input type="hidden" name="action" value="requeue">
                                     <input type="hidden" name="id" value="{{ link.id }}">
                                     <button type="submit" class="action-link-restore">Re-evaluate</button>
                                 </form>
                                 {% endif %}
-                                <a href="{{ url_for('admin.edit_bbs_link', link_id=link.id) }}"
+                                <a href="{{ url_for('admin.edit_link', link_id=link.id) }}"
                                     class="action-link-edit">Edit</a>
-                                <form method="post" action="{{ url_for('admin.bbs_list') }}" style="display:inline;">
+                                <form method="post" action="{{ url_for('admin.link_list') }}" style="display:inline;">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="{{ link.id }}">
                                     <button type="submit" class="action-link-delete"
