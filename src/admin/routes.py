@@ -28,7 +28,7 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @admin_bp.route('/bbs_list', methods=['GET', 'POST'])
 @sysop_required
 def bbs_list():
-    """BBSリンク一覧の管理ページ。WebターミナルのF7キーで表示されるリンクを管理します。"""
+    """外部リンク一覧の管理ページ。WebターミナルのF7キーで表示されるリンクを管理します。"""
     if request.method == 'POST':
         action = request.form.get('action')
         link_id = request.form.get('id')
@@ -38,36 +38,42 @@ def bbs_list():
 
         if action == 'add':
             if name and url:
+                # Keep database function name
                 if database.add_bbs_link(name, url, description, source='sysop', submitted_by=session.get('user_id')):
-                    flash('BBS link added successfully.', 'success')
+                    flash('Link added successfully.', 'success')
                 else:
-                    flash('Failed to add BBS link. URL might already exist.', 'danger')
+                    flash('Failed to add link. URL might already exist.', 'danger')
             else:
                 flash('Name and URL are required.', 'warning')
         elif action == 'delete':
             if link_id:
+                # Keep database function name
                 if database.delete_bbs_link(link_id):
-                    flash('BBS link deleted successfully.', 'success')
+                    flash('Link deleted successfully.', 'success')
                 else:
-                    flash('Failed to delete BBS link.', 'danger')
+                    flash('Failed to delete link.', 'danger')
         elif action == 'approve':
+            # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'approved'):
-                flash('BBS link approved.', 'success')
+                flash('Link approved.', 'success')
             else:
-                flash('Failed to approve BBS link.', 'danger')
+                flash('Failed to approve link.', 'danger')
         elif action == 'reject':
+            # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'rejected'):
-                flash('BBS link rejected.', 'success')
+                flash('Link rejected.', 'success')
             else:
-                flash('Failed to reject BBS link.', 'danger')
+                flash('Failed to reject link.', 'danger')
         elif action == 'unapprove':
+            # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'pending'):
-                flash('BBS link has been returned to pending status.', 'success')
+                flash('Link has been returned to pending status.', 'success')
             else:
-                flash('Failed to unapprove BBS link.', 'danger')
+                flash('Failed to unapprove link.', 'danger')
         elif action == 'requeue':
+            # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'pending'):
-                flash('BBS link has been set to pending for re-evaluation.', 'success')
+                flash('Link has been set to pending for re-evaluation.', 'success')
             else:
                 flash('Failed to set link to pending.', 'danger')
         return redirect(url_for('admin.bbs_list'))
@@ -83,7 +89,7 @@ def bbs_list():
             page=page, per_page=per_page, sort_by=sort_by, order=order)
         total_pages = (total_items + per_page - 1) // per_page
     except Exception as e:
-        flash(f"Error retrieving BBS link list: {e}", 'danger')
+        flash(f"Error retrieving link list: {e}", 'danger')
         links = []
         total_items = 0
         total_pages = 0
@@ -102,9 +108,9 @@ def bbs_list():
     }
 
     title = util.get_text_by_key(
-        'admin.bbs_list.title', session.get('menu_mode', '2'), 'BBS List Management')
+        'admin.bbs_list.title', session.get('menu_mode', '2'), 'Link Management')
     return render_template(
-        'admin/bbs_list.html', title=title, links=links, pagination=pagination,
+        'admin/link_list.html', title=title, links=links, pagination=pagination,
         sort_by=sort_by, order=order, next_order=next_order,
         search_params=search_params, search_params_for_per_page=search_params_for_per_page
     )
@@ -116,7 +122,7 @@ def edit_bbs_link(link_id):
     """BBSリンクの編集ページ。指定されたIDのBBSリンクの名前、URL、説明を編集します。"""
     link = database.bbs_list_manager.get_by_id(link_id)
     if not link:
-        flash('BBS link not found.', 'danger')
+        flash('Link not found.', 'danger')
         return redirect(url_for('admin.bbs_list'))
 
     if request.method == 'POST':
@@ -125,16 +131,17 @@ def edit_bbs_link(link_id):
         description = request.form.get('description', '')
 
         if name and url:
+            # Keep database function name
             if database.update_bbs_link(link_id, name, url, description):
-                flash('BBS link updated successfully.', 'success')
+                flash('Link updated successfully.', 'success')
                 return redirect(url_for('admin.bbs_list'))
             else:
-                flash('Failed to update BBS link.', 'danger')
+                flash('Failed to update link.', 'danger')
         else:
             flash('Name and URL are required.', 'warning')
         link.update(name=name, url=url, description=description)
 
-    title = f"Edit BBS Link: {link['name']}"
+    title = f"Edit Link: {link['name']}"
     return render_template('admin/edit_bbs_link.html', title=title, link=link)
 
 
@@ -181,9 +188,9 @@ def load_admin_texts():
                  'endpoint': 'admin.bbs_management'},
                 {'title': nav_texts.get('chat_management', 'Chat Management'),
                  'endpoint': 'admin.chat_management'},
-                {'title': nav_texts.get('content_management', 'Content Management'),
-                 'endpoint': 'admin.content_management'},
-                {'title': nav_texts.get('bbs_list_management', 'BBS List Management'),
+                {'title': nav_texts.get('content_management', 'Content Management'),  # Keep this
+                 'endpoint': 'admin.content_management'},  # Keep this
+                {'title': nav_texts.get('bbs_list_management', 'Link Management'),
                  'endpoint': 'admin.bbs_list'},
             ]
         },

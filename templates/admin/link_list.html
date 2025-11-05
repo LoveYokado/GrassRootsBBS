@@ -9,19 +9,20 @@
 {% block content %}
 <div class="container-fluid">
     <h1 class="mt-4">{{ title }}</h1>
-    <p>{{ util.get_text_by_key('admin.bbs_list.description', session.get('menu_mode', '2')) }}</p>
+    <p>{{ util.get_text_by_key('admin.bbs_list.description', session.get('menu_mode', '2'), "Manage external links
+        displayed with the F7 key in the web terminal.") }}</p>
 
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-plus mr-1"></i>
-            Add New BBS Link
+            Add New Link
         </div>
         <div class="card-body">
             <form method="post" action="{{ url_for('admin.bbs_list') }}">
                 <input type="hidden" name="action" value="add">
                 <div class="form-row">
                     <div class="form-group col-md-4">
-                        <label for="name">BBS Name</label>
+                        <label for="name">Link Name</label>
                         <input type="text" class="form-control" id="name" name="name" required>
                     </div>
                     <div class="form-group col-md-8">
@@ -42,7 +43,7 @@
     <div class="card mb-4">
         <div class="card-header">
             <i class="fas fa-table mr-1"></i>
-            Existing BBS Links
+            Existing Links
         </div>
         <div class="card-body">
             {% include 'admin/_pagination.html' %}
@@ -131,7 +132,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="8" class="text-center">No BBS links found.</td>
+                            <td colspan="8" class="text-center">No links found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
