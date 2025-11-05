@@ -355,8 +355,8 @@ def handle_chat_room(chan, login_id: str, display_name: str, menu_mode: str, use
                     is_mobile = (isinstance(chan, terminal_handler.WebTerminalHandler.WebChannel) and
                                  getattr(chan.handler, 'is_mobile', False)
                                  )
-                    util.telegram_send(chan, display_name,
-                                       online_user_logins, menu_mode, is_mobile=is_mobile)
+                    util.telegram_send(
+                        chan, display_name, online_user_logins, menu_mode, chan.handler.app, is_mobile=is_mobile)
                 else:
                     util.send_text_by_key(
                         chan, "common_messages.error", menu_mode)

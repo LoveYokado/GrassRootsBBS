@@ -24,6 +24,7 @@ import json
 import base64
 import requests
 from pywebpush import webpush, WebPushException
+from flask import current_app
 from PIL import Image
 import socket
 from cryptography.hazmat.primitives import serialization
@@ -493,7 +494,7 @@ def check_new_mail(chan, username, current_menu_mode, notified_in_session):
     return notified_in_session
 
 
-def telegram_send(chan, display_name, online_members_ids, current_menu_mode, is_mobile=False):
+def telegram_send(chan, display_name, online_members_ids, current_menu_mode, app, is_mobile=False):
     """オンラインユーザーに電報を送信する対話的なプロセスを処理します。"""
     from . import database
     send_text_by_key(chan, "telegram.send_message", current_menu_mode)
@@ -581,6 +582,23 @@ def telegram_send(chan, display_name, online_members_ids, current_menu_mode, is_
         # 送信者名は表示名(display_name)を保存
         database.save_telegram(
             display_name, recipient_name, message, current_timestamp)
+
+        # --- Telegramロギング ---
+        server_prefs = database.read_server_pref()
+        if server_prefs.get('telegram_logging_enabled'):
+            with app.app_context():
+                try:
+                    log_dir = os.path.join(
+                        current_app.config['PROJECT_ROOT'], 'logs', 'telegrams')
+                    os.makedirs(log_dir, exist_ok=True)
+                    log_file = os.path.join(log_dir, 'telegrams.log')
+                    log_timestamp = datetime.datetime.fromtimestamp(
+                        current_timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                    log_entry = f"[{log_timestamp}] From: {display_name} | To: {recipient_name} | Message: {strip_ansi(message)}\n"
+                    with open(log_file, 'a', encoding='utf-8') as f:
+                        f.write(log_entry)
+                except Exception as log_e:
+                    logging.error(f"電報のロギング中にエラー: {log_e}")
         send_text_by_key(chan, "telegram.send_success", current_menu_mode)
     except Exception as e:
         logging.warning(

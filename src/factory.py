@@ -49,6 +49,7 @@ def create_app():
     PROJECT_ROOT = os.path.dirname(_current_dir)
     APP_LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
     CHAT_LOG_DIR = os.path.join(APP_LOG_DIR, 'chat')
+    TELEGRAM_LOG_DIR = os.path.join(APP_LOG_DIR, 'telegrams')
     SESSION_LOG_DIR = os.path.join(APP_LOG_DIR, 'webapp_sessions')
 
     app = Flask(__name__, static_folder='../static',
@@ -83,6 +84,7 @@ def create_app():
         ATTACHMENT_DIR = os.path.join(PROJECT_ROOT, ATTACHMENT_DIR)
     os.makedirs(ATTACHMENT_DIR, exist_ok=True)
     os.makedirs(APP_LOG_DIR, exist_ok=True)
+    os.makedirs(TELEGRAM_LOG_DIR, exist_ok=True)
     os.makedirs(CHAT_LOG_DIR, exist_ok=True)
     QUARANTINE_DIR = app.config.get('CLAMAV', {}).get(
         'QUARANTINE_DIRECTORY', 'data/quarantine')

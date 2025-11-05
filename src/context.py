@@ -11,12 +11,13 @@ class CommandContext:
     クライアントとの通信チャンネルなどへの統一されたアクセスを提供します。
     """
 
-    def __init__(self, chan, user_session, server_pref, online_members_func):
+    def __init__(self, chan, user_session, server_pref, online_members_func, app):
         """CommandContextのコンストラクタ。"""
         self.chan = chan
         self._user_session = user_session
         self.server_pref = server_pref
         self.online_members_func = online_members_func
+        self.app = app
 
     @property
     def login_id(self) -> str:

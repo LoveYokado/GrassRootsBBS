@@ -838,7 +838,8 @@ def system_settings():
             'hamlet': request.form.get('hamlet', type=int),
             'default_exploration_list': request.form.get('default_exploration_list', '').strip(),
             'login_message': request.form.get('login_message', '').strip(),
-            'online_signup_enabled': 1 if 'online_signup_enabled' in request.form else 0
+            'online_signup_enabled': 1 if 'online_signup_enabled' in request.form else 0,
+            'telegram_logging_enabled': 1 if 'telegram_logging_enabled' in request.form else 0
         }
 
         for key in ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who', 'hamlet']:

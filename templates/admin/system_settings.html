@@ -75,6 +75,14 @@
                 </label>
                 <small>Allows new users to register from the login screen (requires SysOp approval).</small>
             </div>
+            <div class="form-group">
+                <label for="telegram_logging_enabled">
+                    <input type="checkbox" id="telegram_logging_enabled" name="telegram_logging_enabled" value="1" {% if
+                        settings.get('telegram_logging_enabled') %}checked{% endif %}>
+                    Enable Telegram Logging
+                </label>
+                <small>Logs all sent telegrams to <code>logs/telegrams/telegrams.log</code>.</small>
+            </div>
         </div>
 
     </div>
