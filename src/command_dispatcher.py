@@ -133,7 +133,7 @@ def handle_telegram(context):
         getattr(context.chan.handler, 'is_mobile', False)
     )
     util.telegram_send(context.chan, context.display_name,
-                       online_user_logins, context.menu_mode, is_mobile=is_mobile)
+                       online_user_logins, context.menu_mode, context.app, is_mobile=is_mobile)
     util.send_top_menu(context.chan, context.menu_mode)
     return {'status': 'continue'}
 

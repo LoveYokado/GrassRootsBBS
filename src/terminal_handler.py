@@ -340,7 +340,7 @@ class WebTerminalHandler:
                     'username'), self.user_session.get('menu_mode', '2'))
 
                 context = ctx.CommandContext(
-                    self.channel, self.user_session, server_pref_dict, get_webapp_online_members)
+                    self.channel, self.user_session, server_pref_dict, get_webapp_online_members, self.app)
 
                 util.send_text_by_key(
                     self.channel, "prompt.topmenu", context.menu_mode, add_newline=False)

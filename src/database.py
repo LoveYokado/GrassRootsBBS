@@ -1542,7 +1542,8 @@ class DatabaseInitializer:
                     hamlet INT DEFAULT 2,
                     login_message TEXT,
                     backup_schedule_enabled BOOLEAN DEFAULT 0,
-                    backup_schedule_cron VARCHAR(255) DEFAULT '0 3 * * *'
+                    backup_schedule_cron VARCHAR(255) DEFAULT '0 3 * * *',
+                    telegram_logging_enabled BOOLEAN DEFAULT 0
                 )
                 """,
                 """
