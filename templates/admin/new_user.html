@@ -32,7 +32,8 @@
     </div>
     <div class="form-actions">
         <button type="submit" style="background-color: #28a745; color: white;">Create User</button>
-        <a href="{{ url_for('admin.user_list') }}" style="background-color: #6c757d; color: white;">Cancel</a>
+        <a href="{{ url_for('admin.user_management', tab='list') }}"
+            style="background-color: #6c757d; color: white;">Cancel</a>
     </div>
 </form>
 {% endblock %}

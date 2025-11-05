@@ -44,7 +44,8 @@
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">{{ g.texts.get('admin_edit_user', {}).get('save_button',
                     'Save Changes') }}</button>
-                <a href="{{ url_for('admin.user_list') }}" class="btn btn-secondary">{{ g.texts.get('admin_edit_user',
+                <a href="{{ url_for('admin.user_management', tab='list') }}" class="btn btn-secondary">{{
+                    g.texts.get('admin_edit_user',
                     {}).get('cancel_button', 'Cancel') }}</a>
             </div>
         </form>
