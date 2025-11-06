@@ -212,7 +212,7 @@ class UserManager:
         elif days > 28:  # 28日を超え90日以下の場合は週単位で集計
             query = """
                 SELECT
-                    DATE_FORMAT(FROM_UNIXTIME(registdate), '%Y-%m') as registration_date,
+                    YEARWEEK(FROM_UNIXTIME(registdate), 1) as registration_date,
                     COUNT(*) as count
                 FROM users
                 WHERE registdate >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)

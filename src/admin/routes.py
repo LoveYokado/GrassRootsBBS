@@ -247,13 +247,18 @@ def dashboard():
         date_format_str = '%Y-%m'
     elif duration > 28:
         # 週単位のラベルを生成 (YYYY-WW)
+        # MySQLのYEARWEEK(date, 1)の挙動に合わせる
         labels = []
         today = datetime.now()
-        for i in range(duration // 7):
-            week_start = today - timedelta(days=today.weekday()) - \
-                timedelta(weeks=i)
-            labels.append(week_start.strftime('%Y-%U'))
-        labels.reverse()
+        for i in range(duration):
+            d = today - timedelta(days=i)
+            # isocalendar() は (year, week, weekday) を返す
+            year, week, _ = d.isocalendar()
+            # MySQLのYEARWEEK(date, 1)は、週が年にまたがる場合、4日以上がその年にある週を1週目とする。
+            # isocalendar()の挙動はこれと一致する。
+            # 週番号が1桁の場合は0埋めしてYYYYWW形式にする
+            labels.append(f"{year}{week:02d}")
+        labels = sorted(list(set(labels)))  # 重複を削除してソート
         date_format_str = '%Y%U'  # YEARWEEK()のモード1は%Y%Uに対応
     else:
         labels = [(datetime.now() - timedelta(days=i)
