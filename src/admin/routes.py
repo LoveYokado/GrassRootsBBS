@@ -18,11 +18,11 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from ..decorators import sysop_required
 import ipaddress
 
-import toml
-import yaml
 import shutil
 from flask import jsonify
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+# 管理画面のブループリント全体をレートリミットの対象外にする
+extensions.limiter.exempt(admin_bp)
 
 
 @admin_bp.route('/links', methods=['GET', 'POST'])
