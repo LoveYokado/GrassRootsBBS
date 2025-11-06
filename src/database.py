@@ -1190,6 +1190,40 @@ class AccessLogManager:
 
         return logs, total_items
 
+    def get_access_counts_by_type(self, days=7):
+        """
+        指定された期間のイベントタイプごとのアクセス数を日別/週別/月別で集計します。
+        """
+        if days > 90:  # 月単位
+            date_format_str = '%Y-%m'
+            group_by_clause = f"DATE_FORMAT(FROM_UNIXTIME(timestamp), '{date_format_str}')"
+        elif days > 28:  # 週単位
+            date_format_str = '%Y%U'
+            group_by_clause = f"YEARWEEK(FROM_UNIXTIME(timestamp), 1)"
+        else:  # 日単位
+            date_format_str = '%Y-%m-%d'
+            group_by_clause = f"DATE(FROM_UNIXTIME(timestamp))"
+
+        query = f"""
+            SELECT
+                {group_by_clause} AS date_period,
+                COUNT(*) AS total_access,
+                SUM(CASE WHEN event_type = 'PROXY_BLOCKED' THEN 1 ELSE 0 END) AS proxy_blocked,
+                SUM(CASE WHEN event_type = 'IP_BANNED' THEN 1 ELSE 0 END) AS ip_banned,
+                SUM(CASE WHEN event_type = 'LOGIN_FAILURE' THEN 1 ELSE 0 END) AS login_failure,
+                SUM(CASE WHEN username = 'GUEST' AND event_type = 'CONNECT' THEN 1 ELSE 0 END) AS guest_connect,
+                SUM(CASE WHEN username != 'GUEST' AND event_type = 'CONNECT' THEN 1 ELSE 0 END) AS member_connect
+            FROM access_logs
+            WHERE timestamp >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
+            GROUP BY date_period
+            ORDER BY date_period ASC
+        """
+        params = (days - 1,)
+        results = self._db.execute_query(query, params, fetch='all')
+
+        # 結果の 'date_period' を文字列に変換
+        return [{**row, 'date_period': str(row['date_period'])} for row in results] if results else []
+
 
 class BoardPermissionManager:
     """`board_user_permissions` テーブルに関連する全てのデータベース操作を管理します。"""
@@ -2106,6 +2140,11 @@ def log_access_event(ip_address, event_type, user_id=None, username=None, displa
 
 def get_access_logs(page=1, per_page=50, ip_address=None, username=None, display_name=None, event_type=None, sort_by='timestamp', order='desc'):
     return access_logs.get_logs(page, per_page, ip_address, username, display_name, event_type, sort_by, order)
+
+
+def get_access_counts_by_type(days=7):
+    """イベントタイプごとのアクセス数を集計します。"""
+    return access_logs.get_access_counts_by_type(days)
 
 
 def get_board_permissions(board_id_pk):

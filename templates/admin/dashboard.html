@@ -42,7 +42,14 @@
     </div>
 
     <div class="card is-wide" data-id="access-chart">
-        <div class="card-header">Recent Access (Last 7 Days)</div>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Recent Access</span>
+            <div class="btn-group btn-group-sm" role="group" id="access-duration-toggle">
+                <button type="button" class="btn btn-secondary" data-duration="7">7 Days</button>
+                <button type="button" class="btn btn-secondary active" data-duration="30">1 Month</button>
+                <button type="button" class="btn btn-secondary" data-duration="180">6 Months</button>
+            </div>
+        </div>
         <div class="card-body" style="position: relative; height:40vh;">
             <canvas id="accessChart"></canvas>
         </div>
@@ -174,6 +181,17 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#ccc' } },
+                        y: { ticks: { color: '#ccc' } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ccc'
+                            }
+                        }
+                    }
                 }
             });
         }
@@ -201,21 +219,96 @@
         }
     });
 
-    // --- Access Chart (Placeholder) ---
-    const accessCtx = document.getElementById('accessChart').getContext('2d');
-    new Chart(accessCtx, {
-        type: 'bar', // アクセス数は棒グラフが適しているかもしれません
-        data: {
-            labels: chartData.labels, // 同じラベルを共有
-            datasets: [{
+    // --- Access Chart ---
+    let accessChart;
+    function createOrUpdateAccessChart(data) {
+        const accessCtx = document.getElementById('accessChart').getContext('2d');
+        const datasets = [
+            {
                 label: 'Total Access',
-                data: [0, 0, 0, 0, 0, 0, 0], // ダミーデータ
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                data: data.access_counts.total,
                 borderColor: 'rgba(255, 99, 132, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                type: 'bar',
+                order: 1
+            },
+            {
+                label: 'Member Access',
+                data: data.access_counts.member,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                type: 'line',
+                fill: false,
+                tension: 0.3,
+                order: 0
+            },
+            {
+                label: 'Guest Access',
+                data: data.access_counts.guest,
+                borderColor: 'rgba(255, 206, 86, 1)',
+                backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                type: 'line',
+                fill: false,
+                tension: 0.3,
+                order: 0
+            },
+            {
+                label: 'Login Failures',
+                data: data.access_counts.login_failure,
+                borderColor: 'rgba(255, 159, 64, 1)',
+                hidden: true
+            },
+            {
+                label: 'Banned Access',
+                data: data.access_counts.banned,
+                borderColor: 'rgba(153, 102, 255, 1)',
+                hidden: true
+            },
+            {
+                label: 'Proxy/Tor Blocked',
+                data: data.access_counts.proxy,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                hidden: true
+            }
+        ];
+
+        if (accessChart) {
+            accessChart.data.labels = data.labels;
+            accessChart.data.datasets.forEach((dataset, index) => {
+                dataset.data = datasets[index].data;
+            });
+            accessChart.update();
+        } else {
+            accessChart = new Chart(accessCtx, {
+                type: 'bar',
+                data: { labels: data.labels, datasets: datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#ccc' } },
+                        y: { ticks: { color: '#ccc' } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#ccc' }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    createOrUpdateAccessChart(chartData);
+
+    document.getElementById('access-duration-toggle').addEventListener('click', function (e) {
+        if (e.target.tagName === 'BUTTON') {
+            const duration = e.target.dataset.duration;
+            this.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            fetch(`{{ url_for('admin.dashboard') }}?duration=${duration}`)
+                .then(response => response.json())
+                .then(newChartData => createOrUpdateAccessChart(newChartData));
+        }
     });
 
     // --- SortableJS ---

@@ -264,16 +264,28 @@ def dashboard():
     user_data_map = {str(item['registration_date']) if not isinstance(item['registration_date'], str) else item['registration_date']: item['count']
                      for item in user_data_raw} if user_data_raw else {}
     user_counts = [user_data_map.get(label, 0) for label in labels]
-
     article_data_raw = database.get_daily_article_posts(days=duration)
     article_data_map = {str(item['post_date']) if not isinstance(item['post_date'], str) else item['post_date']: item['count']
                         for item in article_data_raw} if article_data_raw else {}
     article_counts = [article_data_map.get(label, 0) for label in labels]
 
+    access_data_raw = database.get_access_counts_by_type(days=duration)
+    access_data_map = {item['date_period']: item for item in access_data_raw}
+
+    access_counts = {
+        'total': [access_data_map.get(label, {}).get('total_access', 0) for label in labels],
+        'banned': [access_data_map.get(label, {}).get('ip_banned', 0) for label in labels],
+        'proxy': [access_data_map.get(label, {}).get('proxy_blocked', 0) for label in labels],
+        'guest': [access_data_map.get(label, {}).get('guest_connect', 0) for label in labels],
+        'member': [access_data_map.get(label, {}).get('member_connect', 0) for label in labels],
+        'login_failure': [access_data_map.get(label, {}).get('login_failure', 0) for label in labels],
+    }
+
     chart_data = {
         'labels': labels,
         'user_registrations': user_counts,
         'article_posts': article_counts,
+        'access_counts': access_counts,
     }
 
     if 'duration' in request.args:
