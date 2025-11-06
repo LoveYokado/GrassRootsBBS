@@ -4,6 +4,13 @@
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 <style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5em;
+    }
+</style>
+<style>
     @media (max-width: 768px) {
         .dashboard-grid {
             grid-template-columns: 1fr;
@@ -16,37 +23,48 @@
 <h1>{{ title }}</h1>
 
 <div class="dashboard-grid">
-    <div class="main-panel">
-        <h2 style="margin-top: 0;">Recent Activity (Last 7 Days)</h2>
-        <div style="position: relative; height:40vh;">
+    <div class="card">
+        <div class="card-header">Recent Activity (Last 7 Days)</div>
+        <div class="card-body" style="position: relative; height:40vh;">
             <canvas id="activityChart"></canvas>
         </div>
     </div>
-    <div class="side-panel">
-        <h2>Statistics</h2>
-        <div class="compact-stats">
-            <p><span>Total Users:</span> <span>{{ stats.total_users }}</span></p>
-            <p><span>Total Boards:</span> <span>{{ stats.total_boards }}</span></p>
-            <p><span>Total Articles:</span> <span>{{ stats.total_articles }}</span></p>
-            <p><span><a href="{{ url_for('admin.who_online') }}" style="color: #87cefa;">Who's Online:</a></span>
-                <span>{{ stats.online_users }}</span>
-            </p>
+
+    <div class="card">
+        <div class="card-header">Recent Access (Last 7 Days)</div>
+        <div class="card-body" style="position: relative; height:40vh;">
+            <canvas id="accessChart"></canvas>
+        </div>
+    </div>
+
+    <div class="side-panels-container" style="display: flex; flex-direction: column; gap: 1.5em;">
+        <div class="card">
+            <div class="card-header">Statistics</div>
+            <div class="card-body compact-stats">
+                <p><span>Total Users:</span> <span>{{ stats.total_users }}</span></p>
+                <p><span>Total Boards:</span> <span>{{ stats.total_boards }}</span></p>
+                <p><span>Total Articles:</span> <span>{{ stats.total_articles }}</span></p>
+                <p><span><a href="{{ url_for('admin.who_online') }}" style="color: #87cefa;">Who's Online:</a></span>
+                    <span>{{ stats.online_users }}</span>
+                </p>
+            </div>
         </div>
 
-        <!-- 全員宛メッセージ -->
-        <div style="margin-top: 2em;">
-            <h2>{{ g.texts.get('broadcast', {}).get('title', 'Broadcast Message') }}</h2>
-            <p>{{ g.texts.get('broadcast', {}).get('description', 'Send a message to all online users.') }}</p>
-            <form action="{{ url_for('admin.broadcast') }}" method="post">
-                <div class="form-group">
-                    <textarea name="message" class="form-control" rows="3"
-                        placeholder="{{ g.texts.get('broadcast', {}).get('placeholder', 'Enter your message...') }}"></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="submit">{{ g.texts.get('broadcast', {}).get('send_button', 'Send Broadcast')
-                        }}</button>
-                </div>
-            </form>
+        <div class="card">
+            <div class="card-header">{{ g.texts.get('broadcast', {}).get('title', 'Broadcast Message') }}</div>
+            <div class="card-body">
+                <p>{{ g.texts.get('broadcast', {}).get('description', 'Send a message to all online users.') }}</p>
+                <form action="{{ url_for('admin.broadcast') }}" method="post" style="margin-top: 1em;">
+                    <div class="form-group">
+                        <textarea name="message" class="form-control" rows="3"
+                            placeholder="{{ g.texts.get('broadcast', {}).get('placeholder', 'Enter your message...') }}"></textarea>
+                    </div>
+                    <div class="form-actions" style="margin-top: 1em;">
+                        <button type="submit">{{ g.texts.get('broadcast', {}).get('send_button', 'Send Broadcast')
+                            }}</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -137,6 +155,23 @@
             maintainAspectRatio: false,
             // ここに他のChart.jsオプションを追加できます (例: スケール、ツールチップなど)
         }
+    });
+
+    // --- Access Chart (Placeholder) ---
+    const accessCtx = document.getElementById('accessChart').getContext('2d');
+    new Chart(accessCtx, {
+        type: 'bar', // アクセス数は棒グラフが適しているかもしれません
+        data: {
+            labels: chartData.labels, // 同じラベルを共有
+            datasets: [{
+                label: 'Total Access',
+                data: [0, 0, 0, 0, 0, 0, 0], // ダミーデータ
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
     });
     });
 </script>
