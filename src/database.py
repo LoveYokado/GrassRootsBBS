@@ -1224,6 +1224,35 @@ class AccessLogManager:
         # 結果の 'date_period' を文字列に変換
         return [{**row, 'date_period': str(row['date_period'])} for row in results] if results else []
 
+    def cleanup_old_logs(self, retention_days):
+        """
+        指定された保持日数より古いアクセスログを削除します。
+        """
+        if not isinstance(retention_days, int) or retention_days <= 0:
+            logging.warning(
+                f"無効なログ保持日数が指定されたため、クリーンアップをスキップします: {retention_days}")
+            return 0
+
+        try:
+            # UNIXタイムスタンプで比較
+            cutoff_timestamp = int(time.time()) - \
+                (retention_days * 24 * 60 * 60)
+
+            query = "DELETE FROM access_logs WHERE timestamp < %s"
+
+            conn = self._db.get_connection()
+            cursor = conn.cursor()
+            cursor.execute(query, (cutoff_timestamp,))
+            deleted_rows = cursor.rowcount
+            conn.commit()
+            if deleted_rows > 0:
+                logging.info(
+                    f"{deleted_rows}件の古いアクセスログを削除しました (保持期間: {retention_days}日)。")
+            return deleted_rows
+        except mysql.connector.Error as e:
+            logging.error(f"古いアクセスログの削除中にDBエラー: {e}", exc_info=True)
+            return 0
+
 
 class BoardPermissionManager:
     """`board_user_permissions` テーブルに関連する全てのデータベース操作を管理します。"""
@@ -2145,6 +2174,11 @@ def get_access_logs(page=1, per_page=50, ip_address=None, username=None, display
 def get_access_counts_by_type(days=7):
     """イベントタイプごとのアクセス数を集計します。"""
     return access_logs.get_access_counts_by_type(days)
+
+
+def cleanup_old_access_logs(retention_days):
+    """古いアクセスログをクリーンアップします。"""
+    return access_logs.cleanup_old_logs(retention_days)
 
 
 def get_board_permissions(board_id_pk):

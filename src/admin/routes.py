@@ -1602,7 +1602,23 @@ def access_management():
                 flash('IP ban rule has been removed.', 'success')
             else:
                 flash('Failed to remove IP ban rule.', 'danger')
-        return redirect(url_for('admin.access_management', tab='bans'))
+            return redirect(url_for('admin.access_management', tab='bans'))
+        elif action == 'cleanup_logs':
+            try:
+                # configから保持日数を取得
+                log_retention_days = current_app.config.get('DATABASE', {}).get(
+                    'log_retention_days', 90)
+                if log_retention_days > 0:
+                    deleted_count = database.cleanup_old_access_logs(
+                        log_retention_days)
+                    flash(
+                        f'Successfully cleaned up {deleted_count} old log entries (older than {log_retention_days} days).', 'success')
+                else:
+                    flash('Log cleanup is disabled (log_retention_days <= 0).', 'info')
+            except Exception as e:
+                logging.error(f"Manual log cleanup failed: {e}", exc_info=True)
+                flash('An error occurred during manual log cleanup.', 'danger')
+            return redirect(url_for('admin.access_management', tab='logs'))
 
     # --- GET Request Handling ---
     if tab == 'logs':
