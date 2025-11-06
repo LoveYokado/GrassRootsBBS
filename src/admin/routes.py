@@ -213,9 +213,10 @@ def load_admin_texts():
 @admin_bp.route('/')
 @sysop_required
 def dashboard():
-    """管理画面のダッシュボード。統計情報、システムヘルス、アクティビティグラフを表示します。"""
-    online_count = len(terminal_handler.get_webapp_online_members())
+    """管理画面のダッシュボード。統計情報、システムヘルス、アクティビティグラフを表示します。期間指定でグラフデータをJSONで返すことも可能です。"""
+    duration = request.args.get('duration', 30, type=int)
 
+    online_count = len(terminal_handler.get_webapp_online_members())
     stats = {
         'total_users': database.get_total_user_count(),
         'total_boards': database.get_total_board_count(),
@@ -235,17 +236,38 @@ def dashboard():
         'disk_total_gb': f"{disk_info.total / (1024**3):.1f}",
     }
 
-    labels = [(datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
-              for i in range(6, -1, -1)]
+    # --- Chart Data Generation ---
+    if duration > 90:
+        # 月単位のラベルを生成
+        labels = []
+        for i in range(duration // 30):
+            month = datetime.now() - timedelta(days=i * 30)
+            labels.append(month.strftime('%Y-%m'))
+        labels.reverse()
+        date_format_str = '%Y-%m'
+    elif duration > 28:
+        # 週単位のラベルを生成 (YYYY-WW)
+        labels = []
+        today = datetime.now()
+        for i in range(duration // 7):
+            week_start = today - timedelta(days=today.weekday()) - \
+                timedelta(weeks=i)
+            labels.append(week_start.strftime('%Y-%U'))
+        labels.reverse()
+        date_format_str = '%Y%U'  # YEARWEEK()のモード1は%Y%Uに対応
+    else:
+        labels = [(datetime.now() - timedelta(days=i)
+                   ).strftime('%Y-%m-%d') for i in range(duration - 1, -1, -1)]
+        date_format_str = '%Y-%m-%d'
 
-    user_data_raw = database.get_daily_user_registrations(days=7)
-    user_data_map = {item['registration_date'].strftime(
-        '%Y-%m-%d'): item['count'] for item in user_data_raw} if user_data_raw else {}
+    user_data_raw = database.get_daily_user_registrations(days=duration)
+    user_data_map = {str(item['registration_date']) if not isinstance(item['registration_date'], str) else item['registration_date']: item['count']
+                     for item in user_data_raw} if user_data_raw else {}
     user_counts = [user_data_map.get(label, 0) for label in labels]
 
-    article_data_raw = database.get_daily_article_posts(days=7)
-    article_data_map = {item['post_date'].strftime(
-        '%Y-%m-%d'): item['count'] for item in article_data_raw} if article_data_raw else {}
+    article_data_raw = database.get_daily_article_posts(days=duration)
+    article_data_map = {str(item['post_date']) if not isinstance(item['post_date'], str) else item['post_date']: item['count']
+                        for item in article_data_raw} if article_data_raw else {}
     article_counts = [article_data_map.get(label, 0) for label in labels]
 
     chart_data = {
@@ -254,12 +276,11 @@ def dashboard():
         'article_posts': article_counts,
     }
 
-    return render_template('admin/dashboard.html',
-                           title=g.texts.get('dashboard', {}).get(
-                               'title', 'Dashboard'),
-                           stats=stats, chart_data=chart_data,
-                           system_health=system_health
-                           )
+    if 'duration' in request.args:
+        return jsonify(chart_data)
+
+    return render_template('admin/dashboard.html', title=g.texts.get('dashboard', {}).get('title', 'Dashboard'),
+                           stats=stats, chart_data=chart_data, system_health=system_health)
 
 
 @admin_bp.route('/who')

@@ -199,16 +199,39 @@ class UserManager:
 
     def get_daily_registrations(self, days=7):
         """過去指定日数間の日毎のユーザー登録数を取得し、グラフ表示などに使用します。"""
-        query = """
-            SELECT
-                DATE(FROM_UNIXTIME(registdate)) as registration_date,
-                COUNT(*) as count
-            FROM users
-            WHERE registdate >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
-            GROUP BY registration_date
-            ORDER BY registration_date ASC
-        """
-        return self._db.execute_query(query, (days - 1,), fetch='all')
+        if days > 90:  # 90日を超える場合は月単位で集計
+            query = """
+                SELECT
+                    DATE_FORMAT(FROM_UNIXTIME(registdate), '%Y-%m') as registration_date,
+                    COUNT(*) as count
+                FROM users
+                WHERE registdate >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
+                GROUP BY registration_date
+                ORDER BY registration_date ASC
+            """
+        elif days > 28:  # 28日を超え90日以下の場合は週単位で集計
+            query = """
+                SELECT
+                    DATE_FORMAT(FROM_UNIXTIME(registdate), '%Y-%m') as registration_date,
+                    COUNT(*) as count
+                FROM users
+                WHERE registdate >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
+                GROUP BY registration_date
+                ORDER BY registration_date ASC
+            """
+        else:  # それ以外は日単位
+            query = """
+                SELECT
+                    DATE(FROM_UNIXTIME(registdate)) as registration_date,
+                    COUNT(*) as count
+                FROM users
+                WHERE registdate >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
+                GROUP BY registration_date
+                ORDER BY registration_date ASC
+            """
+        params = (days - 1,)
+        results = self._db.execute_query(query, params, fetch='all')
+        return results
 
     def register(self, username, hashed_password, salt, comment, level=0, menu_mode='2', telegram_restriction=0, email=''):
         """新しいユーザーをデータベースに登録します。ユーザー名は自動的に大文字に変換されます。"""
@@ -703,12 +726,33 @@ class ArticleManager:
 
     def get_daily_posts(self, days=7):
         """過去指定日数間の日毎の記事投稿数を取得し、グラフ表示などに使用します。"""
-        query = """
-            SELECT DATE(FROM_UNIXTIME(created_at)) as post_date, COUNT(*) as count
-            FROM articles WHERE created_at >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
-            GROUP BY post_date ORDER BY post_date ASC
-        """
-        return self._db.execute_query(query, (days - 1,), fetch='all')
+        if days > 90:  # 90日を超える場合は月単位で集計
+            query = """
+                SELECT
+                    DATE_FORMAT(FROM_UNIXTIME(created_at), '%Y-%m') as post_date,
+                    COUNT(*) as count
+                FROM articles
+                WHERE created_at >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
+                GROUP BY post_date ORDER BY post_date ASC
+            """
+        elif days > 28:  # 28日を超え90日以下の場合は週単位で集計
+            query = """
+                SELECT
+                    YEARWEEK(FROM_UNIXTIME(created_at), 1) as post_date,
+                    COUNT(*) as count
+                FROM articles
+                WHERE created_at >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
+                GROUP BY post_date ORDER BY post_date ASC
+            """
+        else:  # それ以外は日単位
+            query = """
+                SELECT DATE(FROM_UNIXTIME(created_at)) as post_date, COUNT(*) as count
+                FROM articles WHERE created_at >= UNIX_TIMESTAMP(CURDATE() - INTERVAL %s DAY)
+                GROUP BY post_date ORDER BY post_date ASC
+            """
+        params = (days - 1,)
+        results = self._db.execute_query(query, params, fetch='all')
+        return results
 
     def search_all(self, page=1, per_page=15, keyword=None, author_id=None, author_name_guest=None, sort_by='created_at', order='desc', article_id=None):
         """管理画面用に、全記事を対象にキーワードや投稿者で検索し、ページネーション付きで返します。"""
