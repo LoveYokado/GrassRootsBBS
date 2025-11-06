@@ -18,11 +18,11 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from ..decorators import sysop_required
 import ipaddress
 
-import toml
-import yaml
 import shutil
 from flask import jsonify
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+# 管理画面のブループリント全体をレートリミットの対象外にする
+extensions.limiter.exempt(admin_bp)
 
 
 @admin_bp.route('/links', methods=['GET', 'POST'])
@@ -247,13 +247,18 @@ def dashboard():
         date_format_str = '%Y-%m'
     elif duration > 28:
         # 週単位のラベルを生成 (YYYY-WW)
+        # MySQLのYEARWEEK(date, 1)の挙動に合わせる
         labels = []
         today = datetime.now()
-        for i in range(duration // 7):
-            week_start = today - timedelta(days=today.weekday()) - \
-                timedelta(weeks=i)
-            labels.append(week_start.strftime('%Y-%U'))
-        labels.reverse()
+        for i in range(duration):
+            d = today - timedelta(days=i)
+            # isocalendar() は (year, week, weekday) を返す
+            year, week, _ = d.isocalendar()
+            # MySQLのYEARWEEK(date, 1)は、週が年にまたがる場合、4日以上がその年にある週を1週目とする。
+            # isocalendar()の挙動はこれと一致する。
+            # 週番号が1桁の場合は0埋めしてYYYYWW形式にする
+            labels.append(f"{year}{week:02d}")
+        labels = sorted(list(set(labels)))  # 重複を削除してソート
         date_format_str = '%Y%U'  # YEARWEEK()のモード1は%Y%Uに対応
     else:
         labels = [(datetime.now() - timedelta(days=i)
@@ -1602,7 +1607,23 @@ def access_management():
                 flash('IP ban rule has been removed.', 'success')
             else:
                 flash('Failed to remove IP ban rule.', 'danger')
-        return redirect(url_for('admin.access_management', tab='bans'))
+            return redirect(url_for('admin.access_management', tab='bans'))
+        elif action == 'cleanup_logs':
+            try:
+                # configから保持日数を取得
+                log_retention_days = current_app.config.get('DATABASE', {}).get(
+                    'log_retention_days', 90)
+                if log_retention_days > 0:
+                    deleted_count = database.cleanup_old_access_logs(
+                        log_retention_days)
+                    flash(
+                        f'Successfully cleaned up {deleted_count} old log entries (older than {log_retention_days} days).', 'success')
+                else:
+                    flash('Log cleanup is disabled (log_retention_days <= 0).', 'info')
+            except Exception as e:
+                logging.error(f"Manual log cleanup failed: {e}", exc_info=True)
+                flash('An error occurred during manual log cleanup.', 'danger')
+            return redirect(url_for('admin.access_management', tab='logs'))
 
     # --- GET Request Handling ---
     if tab == 'logs':
