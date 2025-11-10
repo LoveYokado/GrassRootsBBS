@@ -1323,6 +1323,42 @@ socket.on('server_output', data => {
         }
     }
 
+   // カスタムエスケープシーケンスを処理してJavaScriptを実行
+    const runJsPattern = /\x1b\]GRBBS;RUN_JS;(.*?)\x07/g;
+    let jsMatch;
+    // `g`フラグを使っているので、ループで全てののマッチを処理
+    while ((jsMatch = runJsPattern.exec(data)) !== null) {
+        const jsCodeB64 = jsMatch[1];
+        try {
+            const jsCode = atob(jsCodeB64);  // Base64デコード
+            eval(jsCode);  // デコードしたJSコードを実行
+        } catch (e) {
+            console.error("Failed to execute JS from server:", e);
+        }
+    }
+    // 画面に表示しないように、処理したシーケンスをデータから削除
+
+    data = data.replace(runJsPattern, '');
+
+
+
+    // 管理画面オープン専用シーケンス
+    const openAdminPattern = /\x1b\]GRBBS;OPEN_ADMIN;(.*?)\x07/;
+    const openAdminMatch = data.match(openAdminPattern);
+    if (openAdminMatch) {
+        const urlB64 = openAdminMatch[1];
+        try {
+            const adminUrl = atob(urlB64);
+            // ユーザー操作と紐づいているのでブロックされない
+            window.open(adminUrl, '_blank');
+        } catch (e) {
+            console.error("Failed to open admin URL:", e);
+        }
+        data = data.replace(openAdminPattern, '');
+    }
+
+
+
     term.write(data);
 
     if (isScrolledToBottom) {
