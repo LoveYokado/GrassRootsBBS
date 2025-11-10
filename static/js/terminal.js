@@ -33,7 +33,7 @@ function bufferToBase64url(buffer) {
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
-const themes = { // eslint-disable-line no-unused-vars
+const themes = { 
     default: {
         background: '#000000',
         foreground: '#FFFFFF',
@@ -142,7 +142,7 @@ function applyTheme(themeName) {
     const mailControls = document.getElementById('mobile-mail-controls');
     const bbsEntryControls = document.getElementById('mobile-bbs-entry-controls');
     const topMenuControls = document.getElementById('mobile-top-menu-controls');
-    const pluginMenuControls = document.getElementById('mobile-plugin-menu-controls'); // eslint-disable-line no-unused-vars
+    const pluginMenuControls = document.getElementById('mobile-plugin-menu-controls'); 
 
     [mobileControls, chatControls, userprefControls, mailControls, bbsEntryControls, topMenuControls, pluginMenuControls].forEach(controls => {
         if (controls) {
@@ -151,7 +151,7 @@ function applyTheme(themeName) {
         }
     });
 
-    if (dynamicGlowStyle) { // eslint-disable-line no-undef
+    if (dynamicGlowStyle) { 
         dynamicGlowStyle.innerHTML = `#terminal.blur-effect { text-shadow: ${theme.text_shadow_glow || 'none'}; }`;
     }
 
@@ -190,7 +190,7 @@ function applyFont(fontName) {
 
     localStorage.setItem('terminalFont', fontName); 
     updateFontButtons(fontName);
-    if (!isDipSwitchUpdating) updateDipSwitches('font', fontName); // eslint-disable-line no-undef
+    if (!isDipSwitchUpdating) updateDipSwitches('font', fontName); 
     setTimeout(() => updateTerminalLayout(), 0);
 }
 
@@ -220,7 +220,7 @@ function applySpeed(speedName) {
     socket.emit('set_speed', speedName);
     localStorage.setItem('terminalSpeed', speedName);
     updateSpeedButtons(speedName); 
-    if (!isDipSwitchUpdating) updateDipSwitches('speed', speedName); // eslint-disable-line no-undef
+    if (!isDipSwitchUpdating) updateDipSwitches('speed', speedName); 
 }
 
 const effectStates = {
@@ -253,7 +253,7 @@ function toggleEffect(effectName) {
     localStorage.setItem('effectStates', JSON.stringify(effectStates));
     updateEffectButtons();
     if (!isDipSwitchUpdating) updateDipSwitches('effect');
-    setTimeout(updateTerminalLayout, 50); // eslint-disable-line no-undef
+    setTimeout(updateTerminalLayout, 50); 
 }
 
 function updateEffectButtons() {
@@ -293,7 +293,7 @@ function updateDipSwitches(groupName, value) {
     } else if (groupName === 'speed') {
         numericValue = speedMap[value]; 
     } else if (groupName === 'fontsize') {
-        numericValue = fontsizeMap[value]; // eslint-disable-line no-undef
+        numericValue = fontsizeMap[value]; 
     } else if (groupName === 'effect') {
         // エフェクトはビットごとのON/OFFなので特別に扱います
         const switches = document.querySelectorAll(`.dip-switch-group[data-group="effect"] input[type="checkbox"]`);
@@ -321,14 +321,14 @@ function updateDipSwitches(groupName, value) {
     });
 }
 
-const isMobileForTermInit = window.matchMedia('(max-width: 992px)').matches; // eslint-disable-line no-unused-vars
+const isMobileForTermInit = window.matchMedia('(max-width: 992px)').matches; 
 const term = new Terminal({
     cursorBlink: true,
     fontSize: 16, 
     scrollback: 1000, // ターミナルのスクロールバックを1000行に設定
 });
 const fitAddon = new FitAddon.FitAddon();
-term.loadAddon(fitAddon); // eslint-disable-line no-undef
+term.loadAddon(fitAddon);
 
 term.open(document.getElementById('terminal'));
 
@@ -337,7 +337,7 @@ function updateTerminalLayout() {
     const screenContainer = document.querySelector('.monitor-screen'); 
     const terminalContainer = document.getElementById('terminal');
     const isMobile = window.matchMedia('(max-width: 992px)').matches;
-    const isFullscreen = chassis.classList.contains('fullscreen'); // eslint-disable-line no-unused-vars
+    const isFullscreen = chassis.classList.contains('fullscreen');
 
     if (!isFullscreen) {
         screenContainer.style.width = ''; // フルスクリーンでなければ幅をリセット
@@ -376,7 +376,7 @@ function updateTerminalLayout() {
     }
 }
 
-const socket = io(); // eslint-disable-line no-undef
+const socket = io(); 
 
 const attachmentInput = document.getElementById('attachment-input');
 
@@ -406,7 +406,7 @@ socket.on('attachment_upload_success', (data) => {
 });
 
 socket.on('attachment_upload_error', (data) => {
-    console.error(`Upload error: ${data.message}`); // eslint-disable-line no-undef
+    console.error(`Upload error: ${data.message}`); 
     attachmentInput.value = '';
 });
 // --- ポップアップ関連の要素取得 --- 
@@ -464,7 +464,7 @@ const bbsSubmissionDescription = document.getElementById('bbs-submission-descrip
 
 function b64DecodeUnicode(str) {
     return decodeURIComponent(atob(str).split('').map(function (c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); // eslint-disable-line no-undef
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2); 
     }).join(''));
 }
 
@@ -488,7 +488,7 @@ function closeImagePopup() {
 }
 
 /** ポップアップ表示中のキー押下を処理する関数 */
-function handlePopupKeydown(e) { // eslint-disable-line no-unused-vars
+function handlePopupKeydown(e) { 
     closeImagePopup();
 }
 
@@ -552,7 +552,7 @@ function closeMultilineEditor() {
 multilineEditorInsertBtn.addEventListener('click', () => {
     // 入力されたテキストをサーバーに送信
     const textToInsert = multilineEditorInput.value;
-    socket.emit('multiline_input_submit', { // eslint-disable-line no-undef
+    socket.emit('multiline_input_submit', { 
         content: textToInsert
     });
     closeMultilineEditor();
@@ -656,7 +656,7 @@ function openBbsListPopup() {
     bbsListJumpBtn.disabled = true;
     bbsListJumpBtn.removeAttribute('data-url');
 
-    socket.emit('get_bbs_list'); // eslint-disable-line no-undef
+    socket.emit('get_bbs_list'); 
     bbsListOverlay.classList.add('visible');
     bbsListWindow.classList.add('visible');
 }
@@ -680,7 +680,7 @@ bbsListJumpBtn.addEventListener('click', () => {
 });
 
 // サーバーから受信したBBSリストデータを画面に描画
-socket.on('bbs_list_data', (data) => { // eslint-disable-line no-undef
+socket.on('bbs_list_data', (data) => { 
     currentBbsLinks = data.links || [];
     bbsStationsList.innerHTML = ''; // リストをクリア
 
@@ -726,7 +726,7 @@ document.getElementById('bbs-submission-submit-btn').addEventListener('click', (
     const description = bbsSubmissionDescription.value.trim();
 
     if (name && url) {
-        socket.emit('submit_bbs_link', { name, url, description }); // eslint-disable-line no-undef
+        socket.emit('submit_bbs_link', { name, url, description }); 
         closeBbsSubmissionPopup();
     } else {
         alert('BBS Name and URL are required.');
@@ -741,7 +741,7 @@ const fkeysRightContainer = document.getElementById('f-keys-right');
 for (let i = 1; i <= 8; i++) {
     const key = document.createElement('div');
     key.classList.add('f-key');
-    const fkeyId = `f${i}`; // eslint-disable-line no-unused-vars
+    const fkeyId = `f${i}`; 
     const definition = fkeyDefinitions[fkeyId]; 
 
     if (definition) {
@@ -749,7 +749,7 @@ for (let i = 1; i <= 8; i++) {
         if (definition.action === 'open_popup') {
             key.addEventListener('click', openPopup);
         } else if (definition.action === 'send_command') {
-            key.addEventListener('click', () => socket.emit('client_input', definition.value + '\r')); // eslint-disable-line no-undef
+            key.addEventListener('click', () => socket.emit('client_input', definition.value + '\r')); 
         } else if (definition.action === 'open_multiline_editor') {
             key.addEventListener('click', openMultilineEditor);
         } else if (definition.action === 'open_line_editor') {
@@ -757,7 +757,7 @@ for (let i = 1; i <= 8; i++) {
         } else if (definition.action === 'toggle_logging') {
             key.id = 'f2-log-btn';
             key.addEventListener('click', () => {
-                socket.emit('toggle_logging'); // eslint-disable-line no-undef
+                socket.emit('toggle_logging'); 
             });
         } else if (definition.action === 'open_log_viewer') {
             key.addEventListener('click', openLogViewer);
@@ -783,27 +783,27 @@ for (let i = 1; i <= 8; i++) {
 popupCloseBtn.addEventListener('click', closePopup);
 popupOverlay.addEventListener('click', closePopup);
 lineEditorCloseBtn.addEventListener('click', () => {
-    socket.emit('client_input', '\r'); // eslint-disable-line no-undef
+    socket.emit('client_input', '\r'); 
     closeLineEditor();
 });
 lineEditorCancelBtn.addEventListener('click', () => {
-    socket.emit('client_input', '\r'); // eslint-disable-line no-undef
+    socket.emit('client_input', '\r'); 
     closeLineEditor();
 });
 lineEditorOverlay.addEventListener('click', () => {
-    socket.emit('client_input', '\r'); // eslint-disable-line no-undef
+    socket.emit('client_input', '\r'); 
     closeLineEditor();
 });
 multilineEditorCloseBtn.addEventListener('click', () => {
-    socket.emit('multiline_input_submit', { content: '' }); // eslint-disable-line no-undef
+    socket.emit('multiline_input_submit', { content: '' }); 
     closeMultilineEditor();
 });
 multilineEditorCancelBtn.addEventListener('click', () => {
-    socket.emit('multiline_input_submit', { content: '' }); // eslint-disable-line no-undef
+    socket.emit('multiline_input_submit', { content: '' }); 
     closeMultilineEditor();
 });
 multilineEditorOverlay.addEventListener('click', () => {
-    socket.emit('multiline_input_submit', { content: '' }); // eslint-disable-line no-undef
+    socket.emit('multiline_input_submit', { content: '' }); 
     closeMultilineEditor();
 });
 multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
@@ -886,14 +886,14 @@ userSelectorList.addEventListener('click', (e) => {
 // ユーザー選択ポップアップの「OK」ボタンがクリックされたときの処理
 userSelectorOkBtn.addEventListener('click', () => {
     if (selectedUser) {
-        socket.emit('client_input', selectedUser + '\r'); // eslint-disable-line no-undef
+        socket.emit('client_input', selectedUser + '\r'); 
         closeUserSelector();
     }
 });
 
 // ユーザー選択ポップアップの「キャンセル」ボタンがクリックされたときの処理
 userSelectorCancelBtn.addEventListener('click', () => {
-    socket.emit('client_input', '\r'); // eslint-disable-line no-undef
+    socket.emit('client_input', '\r'); 
     closeUserSelector();
 });
 userSelectorCloseBtn.addEventListener('click', () => { userSelectorCancelBtn.click(); });
@@ -966,17 +966,17 @@ socket.on('end_password_input', () => {
 // ターミナルへのキー入力をサーバーに送信する処理
 term.onData(data => {
     if (isPasswordInputMode) {
-        if (data === '\r') { // eslint-disable-line no-undef
-            socket.emit('client_input', data); // eslint-disable-line no-undef
+        if (data === '\r') { 
+            socket.emit('client_input', data); 
         } else if (data === '\x7f' || data === '\x08') { // バックスペース
-            socket.emit('client_input', data); // eslint-disable-line no-undef
+            socket.emit('client_input', data); 
             term.write('\b \b');
         } else {
-            socket.emit('client_input', data); // eslint-disable-line no-undef
+            socket.emit('client_input', data); 
             term.write('*');
         }
     } else {
-        socket.emit('client_input', data); // eslint-disable-line no-undef
+        socket.emit('client_input', data); 
     }
 });
 
@@ -1168,7 +1168,7 @@ socket.on('server_output', data => {
         const onFocus = () => {
             window.removeEventListener('focus', onFocus);
             setTimeout(() => {
-                socket.emit('client_input', '\r'); // eslint-disable-line no-undef
+                socket.emit('client_input', '\r'); 
             }, 150);
         };
         window.addEventListener('focus', onFocus);
@@ -1180,7 +1180,7 @@ socket.on('server_output', data => {
     const attachmentUiHidePattern = /\x1b\[\?2032l/;
     if (attachmentUiHidePattern.test(data)) {
         const attachmentInput = document.getElementById('attachment-input');
-        attachmentInput.value = ''; // eslint-disable-line no-undef
+        attachmentInput.value = ''; 
         socket.emit('clear_pending_attachment');
         data = data.replace(attachmentUiHidePattern, '');
 
@@ -1331,7 +1331,7 @@ socket.on('server_output', data => {
 });
 
 // BBSリンク申請の結果をユーザーに通知
-socket.on('bbs_link_submission_result', (data) => { // eslint-disable-line no-unused-vars
+socket.on('bbs_link_submission_result', (data) => { 
     if (data.success) {
         alert('Link submitted for approval. Thank you!');
     } else {
@@ -1398,7 +1398,7 @@ socket.on('log_content', (data) => {
 
 socket.on('error_message', (data) => {
     term.writeln(`\r\n\x1b[31m[Error] ${data.message}\x1b[0m`);
-    socket.emit('client_input', '\r'); // eslint-disable-line no-undef
+    socket.emit('client_input', '\r'); 
 }); 
 // --- ロギング状態の管理 ---
 
@@ -1454,7 +1454,7 @@ socket.on('force_disconnect', (data) => {
     // サーバーから強制切断された場合の処理
     const message = (data && data.message) ? data.message : '[Connection closed by server]';
     term.writeln(`\r\n\n${message}`);
-    term.writeln('\r\nPress any key or click to return to the login screen...'); // eslint-disable-line no-undef
+    term.writeln('\r\nPress any key or click to return to the login screen...'); 
     socket.disconnect();
     const redirectToLogout = () => {
         window.location.href = URLS.logout;
@@ -1592,7 +1592,7 @@ socket.on('connect', () => {
     if (shortcut) {
         const command = `;${shortcut}\r`;
         setTimeout(() => {
-            socket.emit('client_input', command); // eslint-disable-line no-undef
+            socket.emit('client_input', command); 
             window.history.replaceState({}, document.title, "/");
         }, 500);
     }
@@ -1815,11 +1815,11 @@ document.addEventListener('DOMContentLoaded', () => {
         link.textContent = definition.label;
 
         if (definition.action === 'toggle_logging') {
-            link.id = 'sidenav-log-btn'; // eslint-disable-line no-unused-vars
+            link.id = 'sidenav-log-btn'; 
         }
 
         link.addEventListener('click', (e) => {
-            e.preventDefault(); // eslint-disable-line no-undef
+            e.preventDefault(); 
             if (definition.action === 'open_popup') { openPopup(); }
             else if (definition.action === 'toggle_logging') { socket.emit('toggle_logging'); }
             else if (definition.action === 'open_line_editor') { openLineEditor(); }
@@ -1884,10 +1884,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     for (const [id, key] of Object.entries(keyMaps)) {
         const btn = document.getElementById(id);
-        if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); } // eslint-disable-line no-undef
+        if (btn) { btn.addEventListener('click', () => { socket.emit('client_input', key); }); } 
     }
-    document.getElementById('confirm-btn-y').addEventListener('click', () => { socket.emit('client_input', 'y\r'); }); // eslint-disable-line no-undef
-    document.getElementById('confirm-btn-n').addEventListener('click', () => { socket.emit('client_input', 'n\r'); }); // eslint-disable-line no-undef
+    document.getElementById('confirm-btn-y').addEventListener('click', () => { socket.emit('client_input', 'y\r'); }); 
+    document.getElementById('confirm-btn-n').addEventListener('click', () => { socket.emit('client_input', 'n\r'); }); 
 
     // --- ウィンドウリサイズとキーボード表示のイベントハンドラ --- 
     window.addEventListener('resize', debounce(updateTerminalLayout, 100));
@@ -2015,7 +2015,7 @@ async function registerNewPasskey(callback) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 credential: registrationResponse,
-                nickname: 'My Passkey' // 将来的にはユーザーに入力させる
+                nickname: 'My Passkey' 
             }),
         });
         const verificationJSON = await verificationResp.json();

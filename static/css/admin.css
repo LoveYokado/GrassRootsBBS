@@ -15,7 +15,7 @@ body {
   margin: 0 auto;
 }
 
-h1, /* stylelint-disable-line no-duplicate-selectors */
+h1,
 h2,
 h3,
 h4,
@@ -30,7 +30,7 @@ h5 {
   left: 0;
   bottom: 0;
   width: 240px; /* サイドバーの幅 */
-  background-color: #1a1a1a; /* 暗い背景色 */
+  background-color: #1a1a1a;
   border-right: 1px solid #444;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
   z-index: 100;
@@ -57,19 +57,18 @@ h5 {
 
 .sidebar-header,
 .sidebar-item {
-  /* padding: 0.75rem 1.5rem; */
 }
 
 .sidebar-header {
   font-size: 0.8em;
-  color: #00ff00; /* 文字色を明るいグリーンに */
+  color: #00ff00;
   text-transform: uppercase;
   font-weight: bold;
-  border: 1px solid #008800; /* 枠線を明るく */
+  border: 1px solid #008800;
   border-radius: 5px;
   margin: 1rem 1rem 0.5rem 1rem;
   padding: 0.5rem;
-  background-color: #003300; /* 背景を明るく */
+  background-color: #003300;
   text-align: center;
 }
 
@@ -129,10 +128,10 @@ body.sidebar-open .main {
 }
 
 .hamburger-btn {
-  background-color: transparent; /* 背景を透明に */
-  border: none; /* 枠線を削除 */
+  background-color: transparent;
+  border: none;
   cursor: pointer;
-  padding: 10px; /* クリック領域を確保 */
+  padding: 10px;
 }
 
 .hamburger-btn span {
@@ -395,17 +394,17 @@ td a:hover {
 
 .nav-tabs .nav-link {
   border: 1px solid transparent;
-  color: #008800; /* 非選択タブの文字色を暗いグリーンに */
+  color: #008800;
   border-radius: 0;
 }
 
 .nav-tabs .nav-link:hover {
   border-color: #555;
-  color: #00cc66; /* ホバー時の文字色を少し明るく */
+  color: #00cc66;
 }
 
 .nav-tabs .nav-link.active {
-  color: #00ff00; /* 選択中タブの文字色を明るいグリーンに */
+  color: #00ff00;
   background-color: #3e3e3e;
   border-color: #444 #444 #3e3e3e;
   font-weight: bold;
@@ -419,7 +418,7 @@ td a:hover {
 }
 
 .nav-tabs.card-header-tabs {
-  margin-bottom: -0.75rem; /* card-headerのpaddingを相殺するため */
+  margin-bottom: -0.75rem; /* card-headerのpaddingを相殺 */
   border-bottom: 0;
 }
 

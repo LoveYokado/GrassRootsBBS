@@ -99,8 +99,8 @@ textarea:focus {
 /* --- プレースホルダーの文字色 --- */
 ::placeholder {
   /* Chrome, Firefox, Opera, Safari 10.1+ */
-  color: #008800; /* 少し暗めの緑色 */
-  opacity: 1; /* Firefoxでの透明度をリセット */
+  color: #008800;
+  opacity: 1;
 }
 
 :-ms-input-placeholder {
@@ -109,7 +109,6 @@ textarea:focus {
 }
 
 ::-ms-input-placeholder {
-  /* Microsoft Edge */
   color: #008800;
 }
 

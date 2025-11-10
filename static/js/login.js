@@ -36,7 +36,7 @@ async function startPasskeyLogin(username = '') {
         if (!resp.ok) {
             const errorData = await resp.json();
             throw new Error(errorData.error || 'Failed to get login options.');
-        } // prettier-ignore
+        } 
         options = await resp.json();
         loginButton.disabled = false;
         passkeyLoginButton.disabled = false;
@@ -59,7 +59,6 @@ async function startPasskeyLogin(username = '') {
     try {
         credential = await navigator.credentials.get({ publicKey: options });
     } catch (e) {
-        // ユーザーによるキャンセルはよくあることなので、エラー表示は控えめにする
         if (e.name !== "NotAllowedError") {
             alert(`Passkey認証に失敗しました: ${e.name}`);
         }
