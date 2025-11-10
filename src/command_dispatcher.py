@@ -11,11 +11,11 @@
 from . import util
 from . import bbsmenu
 from . import user_pref_menu
-from . import sysop_menu
 from . import mail_handler
 from . import chat_handler
 from . import bbs_handler
 from . import hamlet_game
+import base64
 
 # --- Command Handlers / 各コマンドに対応するハンドラ関数 ---
 # 各コマンドに対応するハンドラ関数
@@ -76,13 +76,26 @@ def handle_auto_download(context):
     return {'status': 'continue'}
 
 
-def handle_sysop_menu(context):
-    """`s` コマンドを処理し、システム管理者用のメニューを表示します。"""
-    context.chan.send(b'\x1b[?2031l')
-    result = sysop_menu.sysop_menu(
-        context.chan, context.login_id, context.display_name, context.menu_mode)
-    if result == "back_to_top":
-        util.send_top_menu(context.chan, context.menu_mode)
+def handle_open_admin_ui(context):
+    """`s` コマンドを処理し、Web管理画面を開くようにクライアントに指示します。"""
+    from . import terminal_handler
+    if isinstance(context.chan, terminal_handler.WebTerminalHandler.WebChannel):
+        admin_prefix = context.app.config.get(
+            'ADMIN', {}).get('url_prefix', '/admin')
+        origin = context.app.config.get('WEBAPP', {}).get('ORIGIN', '')
+        admin_url = f"{origin}{admin_prefix}"
+
+        # カスタムシーケンスでURLを送信（クライアント側で即時open）
+        url_b64 = base64.b64encode(admin_url.encode('utf-8')).decode('utf-8')
+        context.chan.send(
+            f'\x1b]GRBBS;OPEN_ADMIN;{url_b64}\x07'.encode('utf-8'))
+    else:
+        # Webクライアント以外（SSHなど）の場合は、URLを表示する(保険のため)
+        admin_prefix = context.app.config.get(
+            'ADMIN', {}).get('url_prefix', '/admin')
+        context.chan.send(
+            f"\r\nWeb Admin URL: {context.app.config.get('WEBAPP', {}).get('ORIGIN', '')}{admin_prefix}\r\n".encode('utf-8'))
+    util.send_top_menu(context.chan, context.menu_mode)
     return {'status': 'continue'}
 
 
@@ -211,10 +224,9 @@ COMMAND_DISPATCH_TABLE = {
     'h': {'handler': handle_help_h, 'level': 0},
     '?': {'handler': handle_help_q, 'level': 0},
     'n': {'handler': handle_explore_new_articles, 'level_key': 'bbs'},
+    'a': {'handler': handle_auto_download, 'level_key': 'bbs'},
     'x': {'handler': handle_full_sig_exploration, 'level_key': 'bbs'},
     'o': {'handler': handle_new_article_headlines, 'level_key': 'bbs'},
-    'a': {'handler': handle_auto_download, 'level_key': 'bbs'},
-    's': {'handler': handle_sysop_menu, 'level': 5},
     'w': {'handler': handle_who_menu, 'level_key': 'who'},
     '#': {'handler': handle_telegram, 'level_key': 'telegram'},
     '!': {'handler': handle_telegram, 'level_key': 'telegram'},
@@ -225,6 +237,7 @@ COMMAND_DISPATCH_TABLE = {
     'l': {'handler': handle_online_signup, 'level': 1, 'guest_only': True},
     'p': {'handler': handle_plugin_menu, 'level': 2},
     'e': {'handler': handle_logoff, 'level': 0},
+    's': {'handler': handle_open_admin_ui, 'level': 5},
     'z': {'handler': handle_hamlet_game, 'level_key': 'hamlet'},
 }
 
