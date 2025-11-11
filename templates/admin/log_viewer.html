@@ -60,25 +60,35 @@
     <div class="card mb-4">
         <div class="card-header">
             <ul class="nav nav-tabs card-header-tabs" id="logTabs" role="tablist">
-                <li class="nav-item">
-                    <a class="nav-link active" id="access-tab" data-toggle="tab" href="#access" role="tab"
-                        aria-controls="access" aria-selected="true">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if tab == 'logs' %}active{% endif %}" id="access-tab"
+                        href="{{ url_for('admin.access_management', tab='logs') }}" role="tab" aria-controls="access"
+                        aria-selected="{{ 'true' if tab == 'logs' else 'false' }}">
                         <i class="fas fa-list mr-1"></i> Access Logs
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="error-tab" data-toggle="tab" href="#error" role="tab" aria-controls="error"
-                        aria-selected="false">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if tab == 'error' %}active{% endif %}" id="error-tab" data-toggle="tab"
+                        href="#error" role="tab" aria-controls="error"
+                        aria-selected="{{ 'true' if tab == 'error' else 'false' }}">
                         <i class="fas fa-exclamation-triangle mr-1"></i> Error Logs
                         {% if error_logs %}
                         <span class="badge badge-danger ml-1">{{ error_logs|length }}</span>
                         {% endif %}
                     </a>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link {% if tab == 'audit' %}active{% endif %}" id="audit-tab"
+                        href="{{ url_for('admin.access_management', tab='audit') }}" role="tab" aria-controls="audit"
+                        aria-selected="{{ 'true' if tab == 'audit' else 'false' }}">
+                        <i class="fas fa-user-shield mr-1"></i> Audit Logs
+                    </a>
+                </li>
             </ul>
         </div>
         <div class="tab-content" id="logTabsContent">
-            <div class="tab-pane fade show active" id="access" role="tabpanel" aria-labelledby="access-tab">
+            <div class="tab-pane fade {% if tab == 'logs' %}show active{% endif %}" id="access" role="tabpanel"
+                aria-labelledby="access-tab">
                 <div class="card-body">
                     {% include 'admin/_pagination.html' %}
                     <div class="table-responsive">
@@ -144,7 +154,8 @@
                 </div>
             </div>
 
-            <div class="tab-pane fade" id="error" role="tabpanel" aria-labelledby="error-tab">
+            <div class="tab-pane fade {% if tab == 'error' %}show active{% endif %}" id="error" role="tabpanel"
+                aria-labelledby="error-tab">
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-bordered" width="100%" cellspacing="0">
@@ -164,6 +175,52 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade {% if tab == 'audit' %}show active{% endif %}" id="audit" role="tabpanel"
+                aria-labelledby="audit-tab">
+                <div class="card-body">
+                    {% include 'admin/_pagination.html' %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>IP Address</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in audit_logs %}
+                                <tr>
+                                    <td style="white-space: nowrap;">{{ log.timestamp }}</td>
+                                    <td>
+                                        {% if log.user_id %}
+                                        <a href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">{{ log.username
+                                            or log.user_id }}</a>
+                                        {% else %}
+                                        {{ log.username or 'N/A' }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ log.ip_address }}</td>
+                                    <td><span class="badge badge-info">{{ log.action }}</span></td>
+                                    <td>
+                                        <pre
+                                            style="white-space: pre-wrap; word-break: break-all; margin: 0; font-size: 0.8em;">{{ log.details | tojson(indent=2) }}</pre>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">No audit logs found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% include 'admin/_pagination.html' %}
                 </div>
             </div>
         </div>

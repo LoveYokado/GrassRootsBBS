@@ -1967,6 +1967,45 @@ def access_management():
             pagination={'total_pages': 0}, sort_by='', order='', next_order=''
         )
 
+    elif tab == 'audit':
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 15, type=int)
+        if page < 1:
+            page = 1
+
+        audit_logs = []
+        try:
+            log_dir = os.path.join(current_app.config['PROJECT_ROOT'], 'logs')
+            audit_log_path = os.path.join(log_dir, 'audit.log')
+            if os.path.exists(audit_log_path):
+                with open(audit_log_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        try:
+                            audit_logs.append(json.loads(line))
+                        except json.JSONDecodeError:
+                            continue  # パースできない行はスキップ
+            audit_logs.reverse()  # 新しいログを上にする
+        except Exception as e:
+            flash(f"Error reading audit log file: {e}", 'danger')
+
+        total_items = len(audit_logs)
+        total_pages = (total_items + per_page - 1) // per_page
+        start_index = (page - 1) * per_page
+        end_index = start_index + per_page
+        paginated_audit_logs = audit_logs[start_index:end_index]
+
+        pagination = {
+            'page': page, 'per_page': per_page, 'total_items': total_items,
+            'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages
+        }
+        search_params = {'tab': 'audit', 'per_page': per_page}
+        search_params_for_per_page = {
+            k: v for k, v in request.args.items() if k not in ['per_page', 'tab']}
+
+        return render_template('admin/log_viewer.html', title='Access Management', tab='audit',
+                               audit_logs=paginated_audit_logs, pagination=pagination,
+                               search_params=search_params, search_params_for_per_page=search_params_for_per_page)
+
     return redirect(url_for('admin.access_management', tab='logs'))
 
 
