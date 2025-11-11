@@ -484,6 +484,16 @@ def new_user():
 
         salt, hashed_password = util.hash_password(password)
         if database.register_user(username, hashed_password, salt, comment, level, email=email):
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='CREATE_USER',
+                details={
+                    'new_username': username,
+                    'level': level,
+                    'email': email,
+                    'comment': comment
+                }
+            )
             flash(
                 f"User '{username}' has been created successfully.", 'success')
             return redirect(url_for('admin.user_management'))
@@ -516,14 +526,37 @@ def edit_user(user_id):
             'comment': new_comment
         }
 
+        password_changed = False
         if new_password:
+            password_changed = True
             salt, hashed_password = util.hash_password(new_password)
             updates['password'] = hashed_password
             updates['salt'] = salt
 
-        database.update_record('users', updates, {'id': user_id})
-        flash(
-            f"User '{user['name']}' has been updated successfully.", 'success')
+        if database.update_record('users', updates, {'id': user_id}):
+            # --- 監査ログ記録 ---
+            # ログにはハッシュ化されたパスワードやソルトを含めない
+            log_details = {
+                'target_user_id': user_id,
+                'target_username': user['name'],
+                'changes': {
+                    'level': new_level,
+                    'email': new_email,
+                    'comment': new_comment,
+                }
+            }
+            if password_changed:
+                # パスワードが変更されたことだけ記録
+                log_details['changes']['password'] = '********'
+
+            util.log_audit_event(
+                action='UPDATE_USER_INFO',
+                details=log_details
+            )
+            flash(
+                f"User '{user['name']}' has been updated successfully.", 'success')
+        else:
+            flash(f"Failed to update user '{user['name']}'.", 'danger')
         return redirect(url_for('admin.user_management'))
 
     passkeys = database.get_passkeys_by_user(user_id)
@@ -568,6 +601,14 @@ def delete_user(user_id):
         return redirect(url_for('admin.user_management'))
 
     if database.delete_user(user_id):
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='DELETE_USER',
+            details={
+                'target_user_id': user_id,
+                'target_username': user_to_delete['name']
+            }
+        )
         flash(
             f"User '{user_to_delete['name']}' has been successfully deleted.", 'success')
     else:
@@ -888,6 +929,11 @@ def system_settings():
                 return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
 
         if database.update_record('server_pref', settings_to_update, {'id': 1}):
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='UPDATE_SYSTEM_SETTINGS',
+                details=settings_to_update
+            )
             flash('System settings have been updated successfully.', 'success')
         else:
             flash('Failed to update system settings.', 'danger')

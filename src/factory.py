@@ -113,6 +113,17 @@ def create_app():
     error_handler.setFormatter(logging.Formatter(
         '[%(asctime)s] [%(levelname)s] [%(name)s] %(message)s'))
 
+    # --- 監査ログ設定 ---
+    audit_logger = logging.getLogger('grbbs.audit')
+    audit_logger.setLevel(logging.INFO)
+    audit_handler = RotatingFileHandler(
+        os.path.join(APP_LOG_DIR, 'audit.log'),
+        maxBytes=1024 * 1024 * 2, backupCount=3, encoding='utf-8'
+    )
+    audit_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+    audit_logger.addHandler(audit_handler)
+    audit_logger.propagate = False
+
     database.init_app(app)
 
     # --- Flask拡張機能の初期化 ---
