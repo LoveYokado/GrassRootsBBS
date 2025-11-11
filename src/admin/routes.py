@@ -1256,6 +1256,14 @@ def toggle_plugin_status():
     if database.upsert_plugin_setting(plugin_id, is_enabled):
         flash(
             f"Plugin '{plugin_id}' has been {action}d. Restart the server to apply changes.", 'success')
+        util.log_audit_event(
+            action='TOGGLE_PLUGIN_STATUS',
+            details={
+                'plugin_id': plugin_id,
+                'action': action,
+                'is_enabled': is_enabled
+            }
+        )
     else:
         flash(f"Failed to update status for plugin '{plugin_id}'.", 'danger')
 
@@ -1268,6 +1276,12 @@ def reload_plugins():
     """プラグインを動的に再読み込みします。"""
     plugin_manager.load_plugins()
     flash('Plugins have been reloaded.', 'success')
+    util.log_audit_event(
+        action='RELOAD_PLUGINS',
+        details={
+            'message': 'Plugins have been reloaded.'
+        }
+    )
     return redirect(url_for('admin.plugin_management'))
 
 
@@ -1315,6 +1329,12 @@ def delete_all_plugin_data(plugin_id):
     if database.delete_all_plugin_data(plugin_id):
         flash(
             f"All data for plugin '{plugin_id}' has been deleted.", 'success')
+        util.log_audit_event(
+            action='DELETE_ALL_PLUGIN_DATA',
+            details={
+                'plugin_id': plugin_id
+            }
+        )
     else:
         flash(f"Failed to delete all data for plugin '{plugin_id}'.", 'danger')
     return redirect(url_for('admin.plugin_data_view', plugin_id=plugin_id))
