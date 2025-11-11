@@ -1360,7 +1360,7 @@ def chat_management():
                                 f"Parent item '{parent_id}' not found or is not a category.", 'danger')
                 # --- 監査ログ記録 ---
                 util.log_audit_event(
-                    action='ADD_BBS_MENU_ITEM',
+                    action='ADD_CHAT_ITEM',
                     details={
                         'parent_id': parent_id,
                         'item_id': new_id,
@@ -1385,6 +1385,17 @@ def chat_management():
                         item['push'] = 'push' in request.form
                         item['lock'] = 'lock' in request.form
                         item['log'] = 'log' in request.form
+
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='EDIT_CHAT_ITEM',
+                        details={
+                            'item_id': item_id,
+                            'new_name': item['name'],
+                            'new_description': item.get('description', ''),
+                            'new_settings': {'push': item.get('push'), 'lock': item.get('lock'), 'log': item.get('log')} if item['type'] == 'room' else {}
+                        }
+                    )
                 else:
                     flash(f"Item '{item_id}' not found for editing.", 'danger')
 
@@ -1406,6 +1417,14 @@ def chat_management():
 
                 if item and target_list is not None and index != -1:
                     del target_list[index]
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='DELETE_CHAT_ITEM',
+                        details={
+                            'item_id': item_id,
+                            'item_name': item.get('name')
+                        }
+                    )
                 else:
                     flash(
                         f"Item '{item_id}' not found for deletion.", 'danger')
@@ -1469,6 +1488,14 @@ def reorder_chat_items():
         target_list[:] = [item_map[id] for id in ordered_ids if id in item_map]
 
         util.save_chat_config(chat_config)
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='REORDER_CHAT_ITEMS',
+            details={
+                'parent_id': parent_id,
+                'ordered_ids': ordered_ids
+            }
+        )
         return jsonify({'status': 'success'})
 
     except Exception as e:
@@ -1523,7 +1550,16 @@ def bbs_management():
                         else:
                             flash(
                                 f"Parent item '{parent_id}' not found or is not a category.", 'danger')
-
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='ADD_CHAT_ITEM',
+                        details={
+                            'parent_id': parent_id,
+                            'item_id': new_id,
+                            'item_name': new_name,
+                            'item_type': new_type
+                        }
+                    )
             elif action == 'edit':
                 item_id = request.form.get('id')
                 item, _, _ = find_item_and_parent(

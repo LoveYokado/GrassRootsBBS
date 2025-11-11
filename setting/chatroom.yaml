@@ -20,10 +20,11 @@ categories:
   - id: chat_free2
     number: 2
     name: フリールーム２
-    description: まったりお話ししましょう。
+    description: まったりお話ししましょうよ。ね？
     type: room
-    lock: false
-    push: false
+    lock: true
+    push: true
+    log: true
   - id: lonely_room
     number: 3
     name: 淋しいやつのための部屋
@@ -41,11 +42,6 @@ categories:
       '
     type: child
     items:
-    - id: chat_deep_a
-      number: 1
-      name: 深掘り部屋A
-      type: room
-      lock: false
     - id: chat_expert_discussion
       number: 2
       name: フリー専門議論
@@ -61,6 +57,11 @@ categories:
         lock: false
         type: room
       type: child
+    - id: chat_deep_a
+      number: 1
+      name: 深掘り部屋A
+      type: room
+      lock: false
 - id: chat_specialized
   number: 2
   name: 専門チャット
