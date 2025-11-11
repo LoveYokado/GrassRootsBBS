@@ -40,6 +40,14 @@ def link_list():
             if name and url:
                 # Keep database function name
                 if database.add_bbs_link(name, url, description, source='sysop', submitted_by=session.get('user_id')):
+                    util.log_audit_event(
+                        action='ADD_BBS_LINK',
+                        details={
+                            'name': name,
+                            'url': url,
+                            'description': description
+                        }
+                    )
                     flash('Link added successfully.', 'success')
                 else:
                     flash('Failed to add link. URL might already exist.', 'danger')
@@ -47,32 +55,57 @@ def link_list():
                 flash('Name and URL are required.', 'warning')
         elif action == 'delete':
             if link_id:
+                link_to_delete = database.bbs_list_manager.get_by_id(link_id)
                 # Keep database function name
                 if database.delete_bbs_link(link_id):
+                    util.log_audit_event(
+                        action='DELETE_BBS_LINK',
+                        details={
+                            'link_id': link_id,
+                            'name': link_to_delete.get('name') if link_to_delete else 'N/A',
+                            'url': link_to_delete.get('url') if link_to_delete else 'N/A'
+                        }
+                    )
                     flash('Link deleted successfully.', 'success')
                 else:
                     flash('Failed to delete link.', 'danger')
         elif action == 'approve':
             # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'approved'):
+                util.log_audit_event(
+                    action='UPDATE_BBS_LINK_STATUS',
+                    details={'link_id': link_id, 'new_status': 'approved'}
+                )
                 flash('Link approved.', 'success')
             else:
                 flash('Failed to approve link.', 'danger')
         elif action == 'reject':
             # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'rejected'):
+                util.log_audit_event(
+                    action='UPDATE_BBS_LINK_STATUS',
+                    details={'link_id': link_id, 'new_status': 'rejected'}
+                )
                 flash('Link rejected.', 'success')
             else:
                 flash('Failed to reject link.', 'danger')
         elif action == 'unapprove':
             # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'pending'):
+                util.log_audit_event(
+                    action='UPDATE_BBS_LINK_STATUS',
+                    details={'link_id': link_id, 'new_status': 'pending'}
+                )
                 flash('Link has been returned to pending status.', 'success')
             else:
                 flash('Failed to unapprove link.', 'danger')
         elif action == 'requeue':
             # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'pending'):
+                util.log_audit_event(
+                    action='UPDATE_BBS_LINK_STATUS',
+                    details={'link_id': link_id, 'new_status': 'pending'}
+                )
                 flash('Link has been set to pending for re-evaluation.', 'success')
             else:
                 flash('Failed to set link to pending.', 'danger')
@@ -133,6 +166,16 @@ def edit_link(link_id):
         if name and url:
             # Keep database function name
             if database.update_bbs_link(link_id, name, url, description):
+                # --- 監査ログ記録 ---
+                util.log_audit_event(
+                    action='EDIT_BBS_LINK',
+                    details={
+                        'link_id': link_id,
+                        'name': name,
+                        'url': url,
+                        'description': description
+                    }
+                )
                 flash('Link updated successfully.', 'success')
                 return redirect(url_for('admin.link_list'))
             else:

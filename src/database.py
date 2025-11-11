@@ -1518,9 +1518,42 @@ class BBSListManager:
 
     def update(self, link_id, name, url, description):
         """指定されたIDのBBSリンクの内容（名前、URL、説明）を更新します。"""
-        query = "UPDATE bbs_list SET name = %s, url = %s, description = %s WHERE id = %s"
-        params = (name, url, description, link_id)
-        return self._db.execute_query(query, params) is not None
+        current_link = self.get_by_id(link_id)
+        if not current_link:
+            logging.error(f"BBSリンクの更新失敗: ID '{link_id}' が見つかりません。")
+            return False
+
+        url_changed = current_link.get('url') != url
+
+        try:
+            if url_changed:
+                # URLが変更された場合、新しいURLが他に存在しないかチェック
+                check_query = "SELECT id FROM bbs_list WHERE url = %s AND id != %s"
+                existing_link = self._db.execute_query(
+                    check_query, (url, link_id), fetch='one')
+                if existing_link:
+                    logging.warning(
+                        f"BBSリンクの更新失敗: URL '{url}' は既に他のリンク(ID: {existing_link['id']})で使用されています。")
+                    raise mysql.connector.Error(
+                        errno=1062, msg=f"Duplicate entry '{url}' for key 'url'")
+
+            # URLが変更されたかどうかに応じてクエリを構築
+            set_clauses = ["name = %s", "description = %s"]
+            params = [name, description]
+            if url_changed:
+                set_clauses.append("url = %s")
+                params.append(url)
+            params.append(link_id)
+
+            query = f"UPDATE bbs_list SET {', '.join(set_clauses)} WHERE id = %s"
+            return self._db.execute_query(query, tuple(params)) is not None
+        except mysql.connector.Error as e:
+            if e.errno == 1062:
+                logging.warning(
+                    f"BBSリンクの更新に失敗しました: URL '{url}' は既に存在します。")
+            else:
+                logging.error(f"BBSリンクの更新に失敗しました: {e}")
+            return False
 
     def update_status(self, link_id, status):
         """
