@@ -850,6 +850,16 @@ def delete_article(article_id):
     was_deleted = article['is_deleted']
 
     if database.toggle_article_deleted_status(article_id):
+        # --- 監査ログ記録 ---
+        action_log = 'RESTORE_ARTICLE' if was_deleted else 'DELETE_ARTICLE'
+        util.log_audit_event(
+            action=action_log,
+            details={
+                'target_article_id': article_id,
+                'target_article_title': article.get('title', '(No Title)'),
+                'target_board_id': article.get('board_id')
+            }
+        )
         if was_deleted:
             flash(f"Article ID {article_id} has been restored.", 'success')
         else:
@@ -883,10 +893,24 @@ def bulk_action_articles():
     if action == 'delete':
         updated_count = database.bulk_update_articles_deleted_status(
             selected_ids, 1)
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='BULK_DELETE_ARTICLES',
+            details={
+                'target_article_ids': selected_ids,
+                'count': updated_count
+            }
+        )
         flash(f"{updated_count} articles have been marked as deleted.", 'success')
     elif action == 'restore':
         updated_count = database.bulk_update_articles_deleted_status(
             selected_ids, 0)
+        util.log_audit_event(
+            action='BULK_RESTORE_ARTICLES',
+            details={
+                'target_article_ids': selected_ids,
+                'count': updated_count
+            })
         flash(f"{updated_count} articles have been restored.", 'success')
     else:
         flash('Invalid action.', 'danger')
@@ -908,6 +932,13 @@ def delete_quarantined_file(filename):
     try:
         if os.path.exists(filepath) and os.path.isfile(filepath):
             os.remove(filepath)
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='DELETE_QUARANTINED_FILE',
+                details={
+                    'filename': filename
+                }
+            )
     except OSError as e:
         flash(f"Error deleting file '{filename}': {e}", 'danger')
         return redirect(url_for('admin.content_management', tab='attachments'))
