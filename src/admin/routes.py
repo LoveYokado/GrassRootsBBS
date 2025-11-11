@@ -1985,6 +1985,10 @@ def access_management():
 
     elif tab == 'audit':
         page = request.args.get('page', 1, type=int)
+        search_user = request.args.get('audit_user', '').strip()
+        search_ip = request.args.get('audit_ip', '').strip()
+        search_action = request.args.get('audit_action', '').strip()
+        search_keyword = request.args.get('audit_keyword', '').strip()
         per_page = request.args.get('per_page', 15, type=int)
         if page < 1:
             page = 1
@@ -2007,7 +2011,23 @@ def access_management():
                                 json_str = line[json_start_index + 3:].strip()
                                 log_data = json.loads(json_str)
                                 log_data['timestamp'] = timestamp_str
-                                audit_logs.append(log_data)
+
+                                # フィルタリングロジック
+                                match = True
+                                if search_user and search_user.lower() not in log_data.get('username', '').lower():
+                                    match = False
+                                if search_ip and search_ip not in log_data.get('ip_address', ''):
+                                    match = False
+                                if search_action and search_action.lower() not in log_data.get('action', '').lower():
+                                    match = False
+                                if search_keyword:
+                                    details_str = json.dumps(log_data.get(
+                                        'details', {}), ensure_ascii=False)
+                                    if search_keyword.lower() not in details_str.lower():
+                                        match = False
+
+                                if match:
+                                    audit_logs.append(log_data)
                         except json.JSONDecodeError:
                             continue  # パースできない行はスキップ
             audit_logs.reverse()  # 新しいログを上にする
@@ -2024,7 +2044,8 @@ def access_management():
             'page': page, 'per_page': per_page, 'total_items': total_items,
             'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages
         }
-        search_params = {'tab': 'audit', 'per_page': per_page}
+        search_params = {'tab': 'audit', 'per_page': per_page, 'audit_user': search_user,
+                         'audit_ip': search_ip, 'audit_action': search_action, 'audit_keyword': search_keyword}
         search_params_for_per_page = {
             k: v for k, v in request.args.items() if k not in ['per_page', 'tab']}
 
