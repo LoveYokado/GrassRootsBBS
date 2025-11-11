@@ -68,8 +68,8 @@
                     </a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link {% if tab == 'error' %}active{% endif %}" id="error-tab" data-toggle="tab"
-                        href="#error" role="tab" aria-controls="error"
+                    <a class="nav-link {% if tab == 'error' %}active{% endif %}" id="error-tab"
+                        href="{{ url_for('admin.access_management', tab='error') }}" role="tab" aria-controls="error"
                         aria-selected="{{ 'true' if tab == 'error' else 'false' }}">
                         <i class="fas fa-exclamation-triangle mr-1"></i> Error Logs
                         {% if error_logs %}
@@ -209,7 +209,7 @@
                                     <td><span class="badge badge-info">{{ log.action }}</span></td>
                                     <td>
                                         <pre
-                                            style="white-space: pre-wrap; word-break: break-all; margin: 0; font-size: 0.8em;">{{ log.details | tojson(indent=2) }}</pre>
+                                            style="white-space: pre-wrap; word-break: break-all; margin: 0; font-size: 0.8em; color: inherit;">{{ log.details | tojson(indent=2) }}</pre>
                                     </td>
                                 </tr>
                                 {% else %}

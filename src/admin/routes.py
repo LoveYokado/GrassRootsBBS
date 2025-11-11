@@ -1029,6 +1029,11 @@ def system_settings():
                     f"Invalid level for {key}. Must be between 0 and 5.", 'danger')
                 current_settings = database.read_server_pref() or {}
                 return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='UPDATE_SYSTEM_SETTINGS',
+            details=settings_to_update
+        )
 
         if database.update_record('server_pref', settings_to_update, {'id': 1}):
             # --- 監査ログ記録 ---
@@ -1492,15 +1497,14 @@ def chat_management():
                         else:
                             flash(
                                 f"Parent item '{parent_id}' not found or is not a category.", 'danger')
-                # --- 監査ログ記録 ---
-                util.log_audit_event(
-                    action='ADD_CHAT_ITEM',
-                    details={
-                        'parent_id': parent_id,
-                        'item_id': new_id,
-                        'item_type': new_type
-                    }
-                )
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='ADD_CHAT_ITEM',
+                        details={
+                            'parent_id': parent_id, 'item_id': new_id,
+                            'item_name': new_name, 'item_type': new_type
+                        }
+                    )
 
             elif action == 'edit':
                 item_id = request.form.get('id')
@@ -1526,7 +1530,7 @@ def chat_management():
                         details={
                             'item_id': item_id,
                             'new_name': item['name'],
-                            'new_description': item.get('description', ''),
+                            'new_description': item.get('description'),
                             'new_settings': {'push': item.get('push'), 'lock': item.get('lock'), 'log': item.get('log')} if item['type'] == 'room' else {}
                         }
                     )
@@ -1556,7 +1560,7 @@ def chat_management():
                         action='DELETE_CHAT_ITEM',
                         details={
                             'item_id': item_id,
-                            'item_name': item.get('name')
+                            'item_name': item.get('name'),
                         }
                     )
                 else:
@@ -1684,16 +1688,16 @@ def bbs_management():
                         else:
                             flash(
                                 f"Parent item '{parent_id}' not found or is not a category.", 'danger')
-                    # --- 監査ログ記録 ---
-                    util.log_audit_event(
-                        action='ADD_CHAT_ITEM',
-                        details={
-                            'parent_id': parent_id,
-                            'item_id': new_id,
-                            'item_name': new_name,
-                            'item_type': new_type
-                        }
-                    )
+                    if new_id:
+                        # --- 監査ログ記録 ---
+                        util.log_audit_event(
+                            action='ADD_BBS_MENU_ITEM',
+                            details={
+                                'parent_id': parent_id,
+                                'item_id': new_id,
+                                'item_type': new_type
+                            }
+                        )
             elif action == 'edit':
                 item_id = request.form.get('id')
                 item, _, _ = find_item_and_parent(
@@ -1717,7 +1721,7 @@ def bbs_management():
                         details={
                             'item_id': item_id,
                             'new_name': name,
-                            'new_description': description
+                            'new_description': description,
                         }
                     )
                 else:
@@ -1741,7 +1745,7 @@ def bbs_management():
                         action='DELETE_BBS_MENU_ITEM',
                         details={
                             'item_id': item_id,
-                            'parent_id': parent.get('id') if parent else 'root_categories'
+                            'parent_id': parent.get('id') if parent else 'root_categories',
                         }
                     )
                 else:
@@ -1854,6 +1858,17 @@ def access_management():
     tab = request.args.get('tab', 'logs')
     ip_to_ban = request.args.get('ip_address', '')
 
+    # エラーログはどのタブでも共通して読み込む
+    error_logs = []
+    try:
+        log_dir = os.path.join(current_app.config['PROJECT_ROOT'], 'logs')
+        error_log_path = os.path.join(log_dir, 'grbbs.error.log')
+        if os.path.exists(error_log_path):
+            with open(error_log_path, 'r', encoding='utf-8') as f:
+                error_logs = f.readlines()[::-1]
+    except Exception as e:
+        flash(f"Error reading error log file: {e}", 'danger')
+
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
@@ -1909,16 +1924,6 @@ def access_management():
         if page < 1:
             page = 1
 
-        error_logs = []
-        try:
-            log_dir = os.path.join(current_app.config['PROJECT_ROOT'], 'logs')
-            error_log_path = os.path.join(log_dir, 'grbbs.error.log')
-            if os.path.exists(error_log_path):
-                with open(error_log_path, 'r', encoding='utf-8') as f:
-                    error_logs = f.readlines()[::-1]
-        except Exception as e:
-            flash(f"Error reading error log file: {e}", 'danger')
-
         try:
             logs, total_items = database.get_access_logs(
                 page=page, per_page=per_page, ip_address=search_ip, username=search_user,
@@ -1950,6 +1955,17 @@ def access_management():
             bans=[], user_map={}, ip_to_ban=''
         )
 
+    elif tab == 'error':
+        # error_logsは既に読み込み済み
+        return render_template(
+            'admin/log_viewer.html', title='Access Management', tab='error',
+            error_logs=error_logs,
+            # Dummy data for other tabs
+            logs=[], bans=[], user_map={}, ip_to_ban='',
+            search_params={}, search_params_for_per_page={},
+            pagination={'total_pages': 0}, sort_by='', order='', next_order=''
+        )
+
     elif tab == 'bans':
         try:
             bans = database.get_all_ip_bans()
@@ -1962,8 +1978,8 @@ def access_management():
         return render_template(
             'admin/log_viewer.html', title="Access Management", tab='bans',
             bans=bans, user_map=user_map, ip_to_ban=ip_to_ban,
-            # Dummy data for logs tab
-            logs=[], error_logs=[], search_params={}, search_params_for_per_page={},
+            error_logs=error_logs,
+            logs=[], search_params={}, search_params_for_per_page={},
             pagination={'total_pages': 0}, sort_by='', order='', next_order=''
         )
 
@@ -1980,8 +1996,18 @@ def access_management():
             if os.path.exists(audit_log_path):
                 with open(audit_log_path, 'r', encoding='utf-8') as f:
                     for line in f:
+                        # タイムスタンプ部分を除外し、JSON部分のみを抽出
                         try:
-                            audit_logs.append(json.loads(line))
+                            json_start_index = line.find(' - ')
+                            if json_start_index != -1:
+                                timestamp_full_str = line[:json_start_index].strip(
+                                )
+                                timestamp_str = timestamp_full_str.split(',')[
+                                    0]
+                                json_str = line[json_start_index + 3:].strip()
+                                log_data = json.loads(json_str)
+                                log_data['timestamp'] = timestamp_str
+                                audit_logs.append(log_data)
                         except json.JSONDecodeError:
                             continue  # パースできない行はスキップ
             audit_logs.reverse()  # 新しいログを上にする
@@ -2004,7 +2030,7 @@ def access_management():
 
         return render_template('admin/log_viewer.html', title='Access Management', tab='audit',
                                audit_logs=paginated_audit_logs, pagination=pagination,
-                               search_params=search_params, search_params_for_per_page=search_params_for_per_page)
+                               search_params=search_params, search_params_for_per_page=search_params_for_per_page, error_logs=error_logs)
 
     return redirect(url_for('admin.access_management', tab='logs'))
 
