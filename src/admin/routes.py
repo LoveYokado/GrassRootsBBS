@@ -661,6 +661,20 @@ def new_board():
         operators_json = json.dumps([sysop_user_id]) if sysop_user_id else '[]'
 
         if database.create_board_entry(shortcut_id, name, description, operators_json, default_permission, "", "active", read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies):
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='CREATE_BOARD',
+                details={
+                    'shortcut_id': shortcut_id,
+                    'name': name,
+                    'board_type': board_type,
+                    'default_permission': default_permission,
+                    'read_level': read_level,
+                    'write_level': write_level,
+                    'allow_attachments': allow_attachments,
+                    'max_threads': max_threads,
+                    'max_replies': max_replies,
+                })
             flash(f"Board '{name}' has been created successfully.", 'success')
             return redirect(url_for('admin.bbs_management', tab='list'))
         else:
@@ -748,6 +762,12 @@ def edit_board(board_id):
         }
 
         if database.update_record('boards', updates, {'id': board_id}):
+            # --- 監査ログ記録 ---
+            log_details = updates.copy()
+            log_details['board_id'] = board_id
+            log_details['shortcut_id'] = board.get('shortcut_id')
+            util.log_audit_event(action='UPDATE_BOARD', details=log_details)
+
             database.delete_board_permissions_by_board_id(board_id)
 
             if new_permission_user_ids:
@@ -802,6 +822,14 @@ def delete_board(board_id):
         return redirect(url_for('admin.bbs_management', tab='list'))
 
     if database.delete_board_and_related_data(board_id):
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='DELETE_BOARD',
+            details={
+                'target_board_id': board_id,
+                'target_shortcut_id': board_to_delete.get('shortcut_id'),
+                'target_board_name': board_to_delete.get('name')
+            })
         flash(
             f"Board '{board_to_delete['name']}' and all related data have been successfully deleted.", 'success')
     else:
@@ -1330,6 +1358,15 @@ def chat_management():
                         else:
                             flash(
                                 f"Parent item '{parent_id}' not found or is not a category.", 'danger')
+                # --- 監査ログ記録 ---
+                util.log_audit_event(
+                    action='ADD_BBS_MENU_ITEM',
+                    details={
+                        'parent_id': parent_id,
+                        'item_id': new_id,
+                        'item_type': new_type
+                    }
+                )
 
             elif action == 'edit':
                 item_id = request.form.get('id')
@@ -1503,6 +1540,16 @@ def bbs_management():
                         item['description'] = description
                     elif 'description' in item:
                         del item['description']
+
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='EDIT_BBS_MENU_ITEM',
+                        details={
+                            'item_id': item_id,
+                            'new_name': name,
+                            'new_description': description
+                        }
+                    )
                 else:
                     flash(f"Item '{item_id}' not found for editing.", 'danger')
 
@@ -1519,6 +1566,14 @@ def bbs_management():
 
                 if item and target_list is not None and index != -1:
                     del target_list[index]
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='DELETE_BBS_MENU_ITEM',
+                        details={
+                            'item_id': item_id,
+                            'parent_id': parent.get('id') if parent else 'root_categories'
+                        }
+                    )
                 else:
                     flash(
                         f"Item '{item_id}' not found for deletion.", 'danger')
@@ -1798,6 +1853,13 @@ def reorder_bbs_items():
         target_list[:] = reordered_items
 
         util.save_bbs_config(bbs_config)
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='REORDER_BBS_MENU',
+            details={
+                'parent_id': parent_id,
+                'ordered_ids': ordered_ids
+            })
         return jsonify({'status': 'success'})
 
     except Exception as e:
