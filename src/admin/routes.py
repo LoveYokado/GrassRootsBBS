@@ -1062,6 +1062,14 @@ def backup_management():
             cron_string = request.form.get('schedule_cron', '0 3 * * *')
 
             if database.update_backup_schedule(is_enabled, cron_string):
+                # --- 監査ログ記録 ---
+                util.log_audit_event(
+                    action='UPDATE_BACKUP_SCHEDULE',
+                    details={
+                        'enabled': is_enabled,
+                        'cron_string': cron_string
+                    }
+                )
                 flash('Backup schedule updated successfully.', 'success')
             else:
                 flash('Failed to update backup schedule.', 'danger')
@@ -1118,6 +1126,13 @@ def create_backup_route():
     try:
         filename = backup_util.create_backup()
         if filename:
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='CREATE_BACKUP',
+                details={
+                    'filename': filename
+                }
+            )
             flash(f'Backup file "{filename}" created successfully.', 'success')
         else:
             flash('Backup creation failed. Please check the logs for details.', 'error')
@@ -1132,6 +1147,13 @@ def create_backup_route():
 @sysop_required
 def download_backup(filename):
     """バックアップファイルのダウンロード。指定されたバックアップファイルをダウンロードさせます。"""
+    # --- 監査ログ記録 ---
+    util.log_audit_event(
+        action='DOWNLOAD_BACKUP',
+        details={
+            'filename': filename
+        }
+    )
     return send_from_directory(BACKUP_DIR, filename, as_attachment=True)
 
 
@@ -1147,6 +1169,13 @@ def delete_backup(filename):
 
         if os.path.exists(filepath) and os.path.isfile(filepath):
             os.remove(filepath)
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='DELETE_BACKUP',
+                details={
+                    'filename': filename
+                }
+            )
             flash(f'Backup file "{filename}" has been deleted.', 'success')
         else:
             flash(f'File "{filename}" not found.', 'warning')
@@ -1163,6 +1192,13 @@ def restore_from_backup(filename):
     try:
         success = backup_util.restore_from_backup(filename)
         if success:
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='RESTORE_FROM_BACKUP',
+                details={
+                    'filename': filename
+                }
+            )
             flash(
                 f'Restore from backup "{filename}" has started. The server will restart automatically upon completion.', 'success')
 
@@ -1191,6 +1227,10 @@ def wipe_all_data():
             return redirect(url_for('admin.backup_management'))
 
         if backup_util.wipe_all_data():
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='WIPE_ALL_DATA'
+            )
             flash(
                 'All data has been wiped. The system will now restart to apply initial settings.', 'success')
 
