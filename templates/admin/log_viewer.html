@@ -1,6 +1,6 @@
 {% extends "admin/base_admin.html" %}
 
-{% block title %}{{ g.texts.get('access_log', {}).get('title', 'Access Log Viewer') }}{% endblock %}
+{% block title %}{{ g.texts.get('log_viewer', {}).get('title', 'Log Viewer') }}{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
@@ -12,9 +12,8 @@
 
 {% block content %}
 <div class="container-fluid">
-    <h1 class="mt-4">{{ g.texts.get('access_log', {}).get('title', 'Access Log Viewer') }}</h1>
-    <p>{{ g.texts.get('access_log', {}).get('description', 'Displays recent access logs. Newest logs are shown at the
-        top.') }}</p>
+    <h1 class="mt-4">{{ g.texts.get('log_viewer', {}).get('title', 'Log Viewer') }}</h1>
+    <p>{{ g.texts.get('log_viewer', {}).get('description', 'View system access and error logs.') }}</p>
 
     <div class="card mb-4">
         <div class="card-header">

@@ -201,7 +201,7 @@ def load_admin_texts():
                  'endpoint': 'admin.system_settings'},
                 {'title': nav_texts.get('plugins', 'Plugin Management'),
                  'endpoint': 'admin.plugin_management'},
-                {'title': nav_texts.get('access_management', 'Access Management'),
+                {'title': nav_texts.get('access_log', 'Log Viewer'),
                  'endpoint': 'admin.access_management'},
                 {'title': nav_texts.get('data_management', 'Data Management'),
                  'endpoint': 'admin.backup_management'},
