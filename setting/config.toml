@@ -124,10 +124,3 @@ socket_timeout_seconds = 25
 article_wrap_width = 78
 # 返信本文の折り返し幅 (インデントを考慮)
 reply_wrap_width = 76
-
-[database]
-# アクセスログなどをDBに保持する日数。この日数を超えた古いログは自動的に削除されます。
-log_retention_days = 90
-# 古いログを削除するジョブを実行する時刻 (cron形式)。
-# デフォルトは "5 4 * * *" (毎日 AM 4:05)。
-log_cleanup_cron = "5 4 * * *"

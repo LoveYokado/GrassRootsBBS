@@ -1690,6 +1690,8 @@ class DatabaseInitializer:
                     backup_schedule_cron VARCHAR(255) DEFAULT '0 3 * * *',
                     telegram_logging_enabled BOOLEAN DEFAULT 0,
                     plugin_execution_timeout INT DEFAULT 60,
+                    log_retention_days INT DEFAULT 90,
+                    log_cleanup_cron VARCHAR(255) DEFAULT '5 4 * * *',
                     max_backups INT DEFAULT 0
                 )
                 """,

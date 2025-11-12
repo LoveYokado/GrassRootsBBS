@@ -92,6 +92,20 @@
                 <small>The maximum time a plugin can run before being terminated. Prevents infinite loops.</small>
             </div>
 
+            <h3>Log Settings</h3>
+            <div class="form-group">
+                <label for="log_retention_days">Access Log Retention (days)</label>
+                <input type="number" id="log_retention_days" name="log_retention_days"
+                    value="{{ settings.get('log_retention_days', 90) }}" min="0" max="3650" required>
+                <small>Days to keep access logs. Older logs will be deleted. Set to 0 to disable cleanup.</small>
+            </div>
+            <div class="form-group">
+                <label for="log_cleanup_cron">Log Cleanup Schedule (cron)</label>
+                <input type="text" id="log_cleanup_cron" name="log_cleanup_cron"
+                    value="{{ settings.get('log_cleanup_cron', '5 4 * * *') }}" required>
+                <small>The schedule for running the log cleanup job. Default is every day at 4:05 AM.</small>
+            </div>
+
         </div>
 
     </div>

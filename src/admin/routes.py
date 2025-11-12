@@ -1021,7 +1021,9 @@ def system_settings():
             'login_message': request.form.get('login_message', '').strip(),
             'online_signup_enabled': 1 if 'online_signup_enabled' in request.form else 0,
             'telegram_logging_enabled': 1 if 'telegram_logging_enabled' in request.form else 0,
-            'plugin_execution_timeout': request.form.get('plugin_execution_timeout', 60, type=int)
+            'plugin_execution_timeout': request.form.get('plugin_execution_timeout', 60, type=int),
+            'log_retention_days': request.form.get('log_retention_days', 90, type=int),
+            'log_cleanup_cron': request.form.get('log_cleanup_cron', '5 4 * * *').strip()
         }
 
         for key in ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who', 'hamlet']:

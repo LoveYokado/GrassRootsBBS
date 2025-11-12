@@ -306,8 +306,10 @@ def create_app():
 
     def scheduled_log_cleanup_job():
         """定期的に実行されるログクリーンアップジョブ。"""
+        # ジョブ実行時に毎回DBから最新の設定を読み込む
         with app.app_context():
-            log_retention_days = app.config.get('DATABASE', {}).get(
+            schedule_settings = database.read_server_pref()
+            log_retention_days = schedule_settings.get(
                 'log_retention_days', 90)
             if log_retention_days > 0:
                 logging.info("Starting scheduled log cleanup job...")
@@ -315,7 +317,6 @@ def create_app():
             else:
                 logging.info(
                     "Log retention is disabled (log_retention_days <= 0). Skipping cleanup.")
-
     schedule_settings = database.read_server_pref()
     if schedule_settings.get('backup_schedule_enabled'):
         try:
@@ -336,8 +337,7 @@ def create_app():
         logging.info("Automatic backup schedule is disabled.")
 
     # ログクリーンアップジョブを登録
-    db_config = app.config.get('DATABASE', {})
-    log_cleanup_cron = db_config.get('log_cleanup_cron', '5 4 * * *')
+    log_cleanup_cron = schedule_settings.get('log_cleanup_cron', '5 4 * * *')
     scheduler.add_job(
         scheduled_log_cleanup_job,
         trigger=CronTrigger.from_crontab(log_cleanup_cron),
