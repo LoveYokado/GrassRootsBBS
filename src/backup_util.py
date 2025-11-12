@@ -178,17 +178,28 @@ def restore_from_backup(filename):
         logging.info("データベースのリストアが完了しました。")
 
         # --- 3. 設定ファイルで指定されたディレクトリのリストア ---
-        for src_rel_path in source_dirs:
-            # まず既存のものを削除
-            dest_abs_path = os.path.join(PROJECT_ROOT, src_rel_path)
-            if os.path.exists(dest_abs_path):
-                shutil.rmtree(dest_abs_path)
 
-            # バックアップからコピー
+        for src_rel_path in source_dirs:
+            dest_abs_path = os.path.join(PROJECT_ROOT, src_rel_path)
             backup_src_path = os.path.join(
                 content_dir, os.path.basename(src_rel_path))
-            if os.path.exists(backup_src_path):
-                shutil.copytree(backup_src_path, dest_abs_path)
+
+            # ディレクトリが存在しない場合は作成
+            os.makedirs(dest_abs_path, exist_ok=True)
+
+            # 既存のディレクトリの中身をクリア
+            if os.path.exists(dest_abs_path):
+                for item in os.listdir(dest_abs_path):
+                    item_path = os.path.join(dest_abs_path, item)
+                    if os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                    else:
+                        os.remove(item_path)
+
+            # バックアップから新しい内容をコピー
+            if os.path.exists(backup_src_path) and os.path.isdir(backup_src_path):
+                shutil.copytree(backup_src_path, dest_abs_path,
+                                dirs_exist_ok=True)
                 logging.info(f"'{src_rel_path}' をリストアしました。")
 
         return True

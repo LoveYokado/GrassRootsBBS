@@ -40,6 +40,14 @@ def link_list():
             if name and url:
                 # Keep database function name
                 if database.add_bbs_link(name, url, description, source='sysop', submitted_by=session.get('user_id')):
+                    util.log_audit_event(
+                        action='ADD_BBS_LINK',
+                        details={
+                            'name': name,
+                            'url': url,
+                            'description': description
+                        }
+                    )
                     flash('Link added successfully.', 'success')
                 else:
                     flash('Failed to add link. URL might already exist.', 'danger')
@@ -47,32 +55,57 @@ def link_list():
                 flash('Name and URL are required.', 'warning')
         elif action == 'delete':
             if link_id:
+                link_to_delete = database.bbs_list_manager.get_by_id(link_id)
                 # Keep database function name
                 if database.delete_bbs_link(link_id):
+                    util.log_audit_event(
+                        action='DELETE_BBS_LINK',
+                        details={
+                            'link_id': link_id,
+                            'name': link_to_delete.get('name') if link_to_delete else 'N/A',
+                            'url': link_to_delete.get('url') if link_to_delete else 'N/A'
+                        }
+                    )
                     flash('Link deleted successfully.', 'success')
                 else:
                     flash('Failed to delete link.', 'danger')
         elif action == 'approve':
             # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'approved'):
+                util.log_audit_event(
+                    action='UPDATE_BBS_LINK_STATUS',
+                    details={'link_id': link_id, 'new_status': 'approved'}
+                )
                 flash('Link approved.', 'success')
             else:
                 flash('Failed to approve link.', 'danger')
         elif action == 'reject':
             # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'rejected'):
+                util.log_audit_event(
+                    action='UPDATE_BBS_LINK_STATUS',
+                    details={'link_id': link_id, 'new_status': 'rejected'}
+                )
                 flash('Link rejected.', 'success')
             else:
                 flash('Failed to reject link.', 'danger')
         elif action == 'unapprove':
             # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'pending'):
+                util.log_audit_event(
+                    action='UPDATE_BBS_LINK_STATUS',
+                    details={'link_id': link_id, 'new_status': 'pending'}
+                )
                 flash('Link has been returned to pending status.', 'success')
             else:
                 flash('Failed to unapprove link.', 'danger')
         elif action == 'requeue':
             # Keep database function name
             if link_id and database.update_bbs_link_status(link_id, 'pending'):
+                util.log_audit_event(
+                    action='UPDATE_BBS_LINK_STATUS',
+                    details={'link_id': link_id, 'new_status': 'pending'}
+                )
                 flash('Link has been set to pending for re-evaluation.', 'success')
             else:
                 flash('Failed to set link to pending.', 'danger')
@@ -133,6 +166,16 @@ def edit_link(link_id):
         if name and url:
             # Keep database function name
             if database.update_bbs_link(link_id, name, url, description):
+                # --- 監査ログ記録 ---
+                util.log_audit_event(
+                    action='EDIT_BBS_LINK',
+                    details={
+                        'link_id': link_id,
+                        'name': name,
+                        'url': url,
+                        'description': description
+                    }
+                )
                 flash('Link updated successfully.', 'success')
                 return redirect(url_for('admin.link_list'))
             else:
@@ -201,7 +244,7 @@ def load_admin_texts():
                  'endpoint': 'admin.system_settings'},
                 {'title': nav_texts.get('plugins', 'Plugin Management'),
                  'endpoint': 'admin.plugin_management'},
-                {'title': nav_texts.get('access_management', 'Access Management'),
+                {'title': nav_texts.get('access_log', 'Log Viewer'),
                  'endpoint': 'admin.access_management'},
                 {'title': nav_texts.get('data_management', 'Data Management'),
                  'endpoint': 'admin.backup_management'},
@@ -484,6 +527,16 @@ def new_user():
 
         salt, hashed_password = util.hash_password(password)
         if database.register_user(username, hashed_password, salt, comment, level, email=email):
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='CREATE_USER',
+                details={
+                    'new_username': username,
+                    'level': level,
+                    'email': email,
+                    'comment': comment
+                }
+            )
             flash(
                 f"User '{username}' has been created successfully.", 'success')
             return redirect(url_for('admin.user_management'))
@@ -516,14 +569,37 @@ def edit_user(user_id):
             'comment': new_comment
         }
 
+        password_changed = False
         if new_password:
+            password_changed = True
             salt, hashed_password = util.hash_password(new_password)
             updates['password'] = hashed_password
             updates['salt'] = salt
 
-        database.update_record('users', updates, {'id': user_id})
-        flash(
-            f"User '{user['name']}' has been updated successfully.", 'success')
+        if database.update_record('users', updates, {'id': user_id}):
+            # --- 監査ログ記録 ---
+            # ログにはハッシュ化されたパスワードやソルトを含めない
+            log_details = {
+                'target_user_id': user_id,
+                'target_username': user['name'],
+                'changes': {
+                    'level': new_level,
+                    'email': new_email,
+                    'comment': new_comment,
+                }
+            }
+            if password_changed:
+                # パスワードが変更されたことだけ記録
+                log_details['changes']['password'] = '********'
+
+            util.log_audit_event(
+                action='UPDATE_USER_INFO',
+                details=log_details
+            )
+            flash(
+                f"User '{user['name']}' has been updated successfully.", 'success')
+        else:
+            flash(f"Failed to update user '{user['name']}'.", 'danger')
         return redirect(url_for('admin.user_management'))
 
     passkeys = database.get_passkeys_by_user(user_id)
@@ -568,6 +644,14 @@ def delete_user(user_id):
         return redirect(url_for('admin.user_management'))
 
     if database.delete_user(user_id):
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='DELETE_USER',
+            details={
+                'target_user_id': user_id,
+                'target_username': user_to_delete['name']
+            }
+        )
         flash(
             f"User '{user_to_delete['name']}' has been successfully deleted.", 'success')
     else:
@@ -620,6 +704,20 @@ def new_board():
         operators_json = json.dumps([sysop_user_id]) if sysop_user_id else '[]'
 
         if database.create_board_entry(shortcut_id, name, description, operators_json, default_permission, "", "active", read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies):
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='CREATE_BOARD',
+                details={
+                    'shortcut_id': shortcut_id,
+                    'name': name,
+                    'board_type': board_type,
+                    'default_permission': default_permission,
+                    'read_level': read_level,
+                    'write_level': write_level,
+                    'allow_attachments': allow_attachments,
+                    'max_threads': max_threads,
+                    'max_replies': max_replies,
+                })
             flash(f"Board '{name}' has been created successfully.", 'success')
             return redirect(url_for('admin.bbs_management', tab='list'))
         else:
@@ -707,6 +805,12 @@ def edit_board(board_id):
         }
 
         if database.update_record('boards', updates, {'id': board_id}):
+            # --- 監査ログ記録 ---
+            log_details = updates.copy()
+            log_details['board_id'] = board_id
+            log_details['shortcut_id'] = board.get('shortcut_id')
+            util.log_audit_event(action='UPDATE_BOARD', details=log_details)
+
             database.delete_board_permissions_by_board_id(board_id)
 
             if new_permission_user_ids:
@@ -761,6 +865,14 @@ def delete_board(board_id):
         return redirect(url_for('admin.bbs_management', tab='list'))
 
     if database.delete_board_and_related_data(board_id):
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='DELETE_BOARD',
+            details={
+                'target_board_id': board_id,
+                'target_shortcut_id': board_to_delete.get('shortcut_id'),
+                'target_board_name': board_to_delete.get('name')
+            })
         flash(
             f"Board '{board_to_delete['name']}' and all related data have been successfully deleted.", 'success')
     else:
@@ -781,6 +893,16 @@ def delete_article(article_id):
     was_deleted = article['is_deleted']
 
     if database.toggle_article_deleted_status(article_id):
+        # --- 監査ログ記録 ---
+        action_log = 'RESTORE_ARTICLE' if was_deleted else 'DELETE_ARTICLE'
+        util.log_audit_event(
+            action=action_log,
+            details={
+                'target_article_id': article_id,
+                'target_article_title': article.get('title', '(No Title)'),
+                'target_board_id': article.get('board_id')
+            }
+        )
         if was_deleted:
             flash(f"Article ID {article_id} has been restored.", 'success')
         else:
@@ -814,10 +936,24 @@ def bulk_action_articles():
     if action == 'delete':
         updated_count = database.bulk_update_articles_deleted_status(
             selected_ids, 1)
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='BULK_DELETE_ARTICLES',
+            details={
+                'target_article_ids': selected_ids,
+                'count': updated_count
+            }
+        )
         flash(f"{updated_count} articles have been marked as deleted.", 'success')
     elif action == 'restore':
         updated_count = database.bulk_update_articles_deleted_status(
             selected_ids, 0)
+        util.log_audit_event(
+            action='BULK_RESTORE_ARTICLES',
+            details={
+                'target_article_ids': selected_ids,
+                'count': updated_count
+            })
         flash(f"{updated_count} articles have been restored.", 'success')
     else:
         flash('Invalid action.', 'danger')
@@ -839,6 +975,13 @@ def delete_quarantined_file(filename):
     try:
         if os.path.exists(filepath) and os.path.isfile(filepath):
             os.remove(filepath)
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='DELETE_QUARANTINED_FILE',
+                details={
+                    'filename': filename
+                }
+            )
     except OSError as e:
         flash(f"Error deleting file '{filename}': {e}", 'danger')
         return redirect(url_for('admin.content_management', tab='attachments'))
@@ -886,8 +1029,18 @@ def system_settings():
                     f"Invalid level for {key}. Must be between 0 and 5.", 'danger')
                 current_settings = database.read_server_pref() or {}
                 return render_template('admin/system_settings.html', title='System Settings', settings=current_settings)
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='UPDATE_SYSTEM_SETTINGS',
+            details=settings_to_update
+        )
 
         if database.update_record('server_pref', settings_to_update, {'id': 1}):
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='UPDATE_SYSTEM_SETTINGS',
+                details=settings_to_update
+            )
             flash('System settings have been updated successfully.', 'success')
         else:
             flash('Failed to update system settings.', 'danger')
@@ -914,6 +1067,14 @@ def backup_management():
             cron_string = request.form.get('schedule_cron', '0 3 * * *')
 
             if database.update_backup_schedule(is_enabled, cron_string):
+                # --- 監査ログ記録 ---
+                util.log_audit_event(
+                    action='UPDATE_BACKUP_SCHEDULE',
+                    details={
+                        'enabled': is_enabled,
+                        'cron_string': cron_string
+                    }
+                )
                 flash('Backup schedule updated successfully.', 'success')
             else:
                 flash('Failed to update backup schedule.', 'danger')
@@ -970,6 +1131,13 @@ def create_backup_route():
     try:
         filename = backup_util.create_backup()
         if filename:
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='CREATE_BACKUP',
+                details={
+                    'filename': filename
+                }
+            )
             flash(f'Backup file "{filename}" created successfully.', 'success')
         else:
             flash('Backup creation failed. Please check the logs for details.', 'error')
@@ -984,6 +1152,13 @@ def create_backup_route():
 @sysop_required
 def download_backup(filename):
     """バックアップファイルのダウンロード。指定されたバックアップファイルをダウンロードさせます。"""
+    # --- 監査ログ記録 ---
+    util.log_audit_event(
+        action='DOWNLOAD_BACKUP',
+        details={
+            'filename': filename
+        }
+    )
     return send_from_directory(BACKUP_DIR, filename, as_attachment=True)
 
 
@@ -999,6 +1174,13 @@ def delete_backup(filename):
 
         if os.path.exists(filepath) and os.path.isfile(filepath):
             os.remove(filepath)
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='DELETE_BACKUP',
+                details={
+                    'filename': filename
+                }
+            )
             flash(f'Backup file "{filename}" has been deleted.', 'success')
         else:
             flash(f'File "{filename}" not found.', 'warning')
@@ -1015,6 +1197,13 @@ def restore_from_backup(filename):
     try:
         success = backup_util.restore_from_backup(filename)
         if success:
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='RESTORE_FROM_BACKUP',
+                details={
+                    'filename': filename
+                }
+            )
             flash(
                 f'Restore from backup "{filename}" has started. The server will restart automatically upon completion.', 'success')
 
@@ -1043,6 +1232,10 @@ def wipe_all_data():
             return redirect(url_for('admin.backup_management'))
 
         if backup_util.wipe_all_data():
+            # --- 監査ログ記録 ---
+            util.log_audit_event(
+                action='WIPE_ALL_DATA'
+            )
             flash(
                 'All data has been wiped. The system will now restart to apply initial settings.', 'success')
 
@@ -1108,6 +1301,14 @@ def toggle_plugin_status():
     if database.upsert_plugin_setting(plugin_id, is_enabled):
         flash(
             f"Plugin '{plugin_id}' has been {action}d. Restart the server to apply changes.", 'success')
+        util.log_audit_event(
+            action='TOGGLE_PLUGIN_STATUS',
+            details={
+                'plugin_id': plugin_id,
+                'action': action,
+                'is_enabled': is_enabled
+            }
+        )
     else:
         flash(f"Failed to update status for plugin '{plugin_id}'.", 'danger')
 
@@ -1120,6 +1321,12 @@ def reload_plugins():
     """プラグインを動的に再読み込みします。"""
     plugin_manager.load_plugins()
     flash('Plugins have been reloaded.', 'success')
+    util.log_audit_event(
+        action='RELOAD_PLUGINS',
+        details={
+            'message': 'Plugins have been reloaded.'
+        }
+    )
     return redirect(url_for('admin.plugin_management'))
 
 
@@ -1167,6 +1374,12 @@ def delete_all_plugin_data(plugin_id):
     if database.delete_all_plugin_data(plugin_id):
         flash(
             f"All data for plugin '{plugin_id}' has been deleted.", 'success')
+        util.log_audit_event(
+            action='DELETE_ALL_PLUGIN_DATA',
+            details={
+                'plugin_id': plugin_id
+            }
+        )
     else:
         flash(f"Failed to delete all data for plugin '{plugin_id}'.", 'danger')
     return redirect(url_for('admin.plugin_data_view', plugin_id=plugin_id))
@@ -1284,6 +1497,14 @@ def chat_management():
                         else:
                             flash(
                                 f"Parent item '{parent_id}' not found or is not a category.", 'danger')
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='ADD_CHAT_ITEM',
+                        details={
+                            'parent_id': parent_id, 'item_id': new_id,
+                            'item_name': new_name, 'item_type': new_type
+                        }
+                    )
 
             elif action == 'edit':
                 item_id = request.form.get('id')
@@ -1302,6 +1523,17 @@ def chat_management():
                         item['push'] = 'push' in request.form
                         item['lock'] = 'lock' in request.form
                         item['log'] = 'log' in request.form
+
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='EDIT_CHAT_ITEM',
+                        details={
+                            'item_id': item_id,
+                            'new_name': item['name'],
+                            'new_description': item.get('description'),
+                            'new_settings': {'push': item.get('push'), 'lock': item.get('lock'), 'log': item.get('log')} if item['type'] == 'room' else {}
+                        }
+                    )
                 else:
                     flash(f"Item '{item_id}' not found for editing.", 'danger')
 
@@ -1323,6 +1555,14 @@ def chat_management():
 
                 if item and target_list is not None and index != -1:
                     del target_list[index]
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='DELETE_CHAT_ITEM',
+                        details={
+                            'item_id': item_id,
+                            'item_name': item.get('name'),
+                        }
+                    )
                 else:
                     flash(
                         f"Item '{item_id}' not found for deletion.", 'danger')
@@ -1386,6 +1626,14 @@ def reorder_chat_items():
         target_list[:] = [item_map[id] for id in ordered_ids if id in item_map]
 
         util.save_chat_config(chat_config)
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='REORDER_CHAT_ITEMS',
+            details={
+                'parent_id': parent_id,
+                'ordered_ids': ordered_ids
+            }
+        )
         return jsonify({'status': 'success'})
 
     except Exception as e:
@@ -1440,7 +1688,16 @@ def bbs_management():
                         else:
                             flash(
                                 f"Parent item '{parent_id}' not found or is not a category.", 'danger')
-
+                    if new_id:
+                        # --- 監査ログ記録 ---
+                        util.log_audit_event(
+                            action='ADD_BBS_MENU_ITEM',
+                            details={
+                                'parent_id': parent_id,
+                                'item_id': new_id,
+                                'item_type': new_type
+                            }
+                        )
             elif action == 'edit':
                 item_id = request.form.get('id')
                 item, _, _ = find_item_and_parent(
@@ -1457,6 +1714,16 @@ def bbs_management():
                         item['description'] = description
                     elif 'description' in item:
                         del item['description']
+
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='EDIT_BBS_MENU_ITEM',
+                        details={
+                            'item_id': item_id,
+                            'new_name': name,
+                            'new_description': description,
+                        }
+                    )
                 else:
                     flash(f"Item '{item_id}' not found for editing.", 'danger')
 
@@ -1473,6 +1740,14 @@ def bbs_management():
 
                 if item and target_list is not None and index != -1:
                     del target_list[index]
+                    # --- 監査ログ記録 ---
+                    util.log_audit_event(
+                        action='DELETE_BBS_MENU_ITEM',
+                        details={
+                            'item_id': item_id,
+                            'parent_id': parent.get('id') if parent else 'root_categories',
+                        }
+                    )
                 else:
                     flash(
                         f"Item '{item_id}' not found for deletion.", 'danger')
@@ -1580,8 +1855,21 @@ def bbs_management():
 @sysop_required
 def access_management():
     """アクセス管理（ログ & IP BAN）。アクセスログ閲覧とIP BANをタブ形式で一元管理します。"""
+    from collections import deque
     tab = request.args.get('tab', 'logs')
     ip_to_ban = request.args.get('ip_address', '')
+
+    # エラーログはどのタブでも共通して読み込む
+    error_logs = []
+    try:
+        log_dir = os.path.join(current_app.config['PROJECT_ROOT'], 'logs')
+        error_log_path = os.path.join(log_dir, 'grbbs.error.log')
+        if os.path.exists(error_log_path):
+            with open(error_log_path, 'r', encoding='utf-8') as f:
+                # ファイルの末尾5000行のみを読み込む
+                error_logs = list(deque(f, 5000))[::-1]
+    except Exception as e:
+        flash(f"Error reading error log file: {e}", 'danger')
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -1632,26 +1920,18 @@ def access_management():
         search_user = request.args.get('user', '')
         search_display_name = request.args.get('display_name', '')
         search_event = request.args.get('event', '')
+        search_message = request.args.get('message', '')
         sort_by = request.args.get('sort_by', 'timestamp')
         order = request.args.get('order', 'desc')
         per_page = request.args.get('per_page', 15, type=int)
         if page < 1:
             page = 1
 
-        error_logs = []
-        try:
-            log_dir = os.path.join(current_app.config['PROJECT_ROOT'], 'logs')
-            error_log_path = os.path.join(log_dir, 'grbbs.error.log')
-            if os.path.exists(error_log_path):
-                with open(error_log_path, 'r', encoding='utf-8') as f:
-                    error_logs = f.readlines()[::-1]
-        except Exception as e:
-            flash(f"Error reading error log file: {e}", 'danger')
-
         try:
             logs, total_items = database.get_access_logs(
                 page=page, per_page=per_page, ip_address=search_ip, username=search_user,
-                display_name=search_display_name, event_type=search_event, sort_by=sort_by, order=order
+                display_name=search_display_name, event_type=search_event,
+                message=search_message, sort_by=sort_by, order=order
             )
             total_pages = (total_items + per_page - 1) // per_page
         except Exception as e:
@@ -1660,7 +1940,8 @@ def access_management():
 
         search_params = {
             'tab': 'logs', 'ip': search_ip, 'user': search_user, 'display_name': search_display_name,
-            'event': search_event, 'sort_by': sort_by, 'order': order, 'per_page': per_page
+            'event': search_event, 'message': search_message, 'sort_by': sort_by, 'order': order,
+            'per_page': per_page
         }
         search_params_for_per_page = {k: v for k, v in request.args.items() if k not in [
             'per_page', 'tab']}
@@ -1679,6 +1960,17 @@ def access_management():
             bans=[], user_map={}, ip_to_ban=''
         )
 
+    elif tab == 'error':
+        # error_logsは既に読み込み済み
+        return render_template(
+            'admin/log_viewer.html', title='Access Management', tab='error',
+            error_logs=error_logs,
+            # Dummy data for other tabs
+            logs=[], bans=[], user_map={}, ip_to_ban='',
+            search_params={}, search_params_for_per_page={},
+            pagination={'total_pages': 0}, sort_by='', order='', next_order=''
+        )
+
     elif tab == 'bans':
         try:
             bans = database.get_all_ip_bans()
@@ -1691,10 +1983,81 @@ def access_management():
         return render_template(
             'admin/log_viewer.html', title="Access Management", tab='bans',
             bans=bans, user_map=user_map, ip_to_ban=ip_to_ban,
-            # Dummy data for logs tab
-            logs=[], error_logs=[], search_params={}, search_params_for_per_page={},
+            error_logs=error_logs,
+            logs=[], search_params={}, search_params_for_per_page={},
             pagination={'total_pages': 0}, sort_by='', order='', next_order=''
         )
+
+    elif tab == 'audit':
+        page = request.args.get('page', 1, type=int)
+        search_user = request.args.get('audit_user', '').strip()
+        search_ip = request.args.get('audit_ip', '').strip()
+        search_action = request.args.get('audit_action', '').strip()
+        search_keyword = request.args.get('audit_keyword', '').strip()
+        per_page = request.args.get('per_page', 15, type=int)
+        if page < 1:
+            page = 1
+
+        audit_logs = []
+        try:
+            log_dir = os.path.join(current_app.config['PROJECT_ROOT'], 'logs')
+            audit_log_path = os.path.join(log_dir, 'audit.log')
+            if os.path.exists(audit_log_path):
+                with open(audit_log_path, 'r', encoding='utf-8') as f:
+                    # ファイルの末尾5000行のみを読み込む
+                    for line in deque(f, 5000):
+                        # タイムスタンプ部分を除外し、JSON部分のみを抽出
+                        try:
+                            json_start_index = line.find(' - ')
+                            if json_start_index != -1:
+                                timestamp_full_str = line[:json_start_index].strip(
+                                )
+                                timestamp_str = timestamp_full_str.split(',')[
+                                    0]
+                                json_str = line[json_start_index + 3:].strip()
+                                log_data = json.loads(json_str)
+                                log_data['timestamp'] = timestamp_str
+
+                                # フィルタリングロジック
+                                match = True
+                                if search_user and search_user.lower() not in log_data.get('username', '').lower():
+                                    match = False
+                                if search_ip and search_ip not in log_data.get('ip_address', ''):
+                                    match = False
+                                if search_action and search_action.lower() not in log_data.get('action', '').lower():
+                                    match = False
+                                if search_keyword:
+                                    details_str = json.dumps(log_data.get(
+                                        'details', {}), ensure_ascii=False)
+                                    if search_keyword.lower() not in details_str.lower():
+                                        match = False
+
+                                if match:
+                                    audit_logs.append(log_data)
+                        except json.JSONDecodeError:
+                            continue  # パースできない行はスキップ
+            audit_logs.reverse()  # 新しいログを上にする
+        except Exception as e:
+            flash(f"Error reading audit log file: {e}", 'danger')
+
+        total_items = len(audit_logs)
+        total_pages = (total_items + per_page - 1) // per_page
+        start_index = (page - 1) * per_page
+        end_index = start_index + per_page
+        paginated_audit_logs = audit_logs[start_index:end_index]
+
+        pagination = {
+            'page': page, 'per_page': per_page, 'total_items': total_items,
+            'total_pages': total_pages, 'has_prev': page > 1, 'has_next': page < total_pages
+        }
+        search_params = {'tab': 'audit', 'per_page': per_page, 'audit_user': search_user,
+                         'audit_ip': search_ip, 'audit_action': search_action, 'audit_keyword': search_keyword}
+        search_params_for_per_page = {
+            k: v for k, v in request.args.items() if k not in ['per_page', 'tab']}
+
+        return render_template('admin/log_viewer.html', title='Access Management', tab='audit',
+                               audit_logs=paginated_audit_logs, pagination=pagination,
+                               search_params=search_params, search_params_for_per_page=search_params_for_per_page, error_logs=error_logs)
 
     return redirect(url_for('admin.access_management', tab='logs'))
 
@@ -1752,6 +2115,13 @@ def reorder_bbs_items():
         target_list[:] = reordered_items
 
         util.save_bbs_config(bbs_config)
+        # --- 監査ログ記録 ---
+        util.log_audit_event(
+            action='REORDER_BBS_MENU',
+            details={
+                'parent_id': parent_id,
+                'ordered_ids': ordered_ids
+            })
         return jsonify({'status': 'success'})
 
     except Exception as e:

@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
+
 """ユーティリティモジュール。
 
 このモジュールは、GrassRootsBBSアプリケーション全体で共通して使用される 
@@ -18,9 +19,9 @@ import yaml
 import datetime
 import re
 import secrets
-import string
-from flask import request
 import json
+import string
+from flask import request, session
 import base64
 import requests
 from pywebpush import webpush, WebPushException
@@ -31,6 +32,29 @@ from cryptography.hazmat.primitives import serialization
 
 # --- Global Variables / グローバル変数 ---
 _master_text_data_cache = None
+
+
+def log_audit_event(action: str, details: dict):
+    """
+    シスオペの操作監査ログを記録します。
+
+    Args:
+        action (str): 操作の種類 (例: 'UPDATE_SYSTEM_SETTINGS')。
+        details (dict): 操作の詳細情報。
+    """
+    try:
+        audit_logger = logging.getLogger('grbbs.audit')
+        log_entry = {
+            "user_id": session.get('user_id'),
+            "username": session.get('username'),
+            "ip_address": get_client_ip(),
+            "action": action,
+            "details": details
+        }
+        # JSON形式でログを記録することで、後々の解析が容易になります。
+        audit_logger.info(json.dumps(log_entry, ensure_ascii=False))
+    except Exception as e:
+        logging.error(f"監査ログの記録中にエラーが発生しました: {e}")
 
 
 def get_tracking_code():
@@ -804,7 +828,6 @@ def initialize_database_and_sysop():
             "environment variables. Server startup will be incomplete."
         )
     else:
-        # Import here to avoid circular dependency
         from . import database
         database.initializer.initialize_and_sysop(
             sysop_id, sysop_password, sysop_email)

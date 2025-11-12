@@ -5,7 +5,7 @@
 データベース抽象化レイヤー (DAL)
 
 このモジュールは、全てのデータベース操作に対する構造化された抽象的な
-インターフェースを提供します。各クラスが特定のテーブルやデータの論理的な 
+インターフェースを提供します。各クラスが特定のテーブルやデータの論理的な
 グループを担当し、関連するSQLクエリをカプセル化するマネージャー方式を採用しています。
 """
 
@@ -80,8 +80,8 @@ class DBManager:
 
         :param query: 実行するSQLクエリ文字列。
         :param params: クエリにバインドするパラメータのタプル。
-        :param fetch: 'one' (単一行), 'all' (全行), または None (INSERT/UPDATE/DELETE)。 
-        :return: fetchの結果、またはINSERT時のlastrowid。エラー時はNone。 
+        :param fetch: 'one' (単一行), 'all' (全行), または None (INSERT/UPDATE/DELETE)。
+        :return: fetchの結果、またはINSERT時のlastrowid。エラー時はNone。
         """
         conn = None
         cursor = None
@@ -113,8 +113,8 @@ class DBManager:
         指定されたテーブルのレコードを更新する汎用的なメソッドです。
 
         :param table: 更新するテーブル名。
-        :param set_data: 更新するカラムと値の辞書 (例: {'col1': 'val1'})。 
-        :param where_data: 更新対象を特定するWHERE句の辞書 (例: {'id': 1})。 
+        :param set_data: 更新するカラムと値の辞書 (例: {'col1': 'val1'})。
+        :param where_data: 更新対象を特定するWHERE句の辞書 (例: {'id': 1})。
         """
         if not set_data or not where_data:
             logging.error("update_record: set_data or where_data is empty.")
@@ -191,7 +191,7 @@ class UserManager:
         登録されている総ユーザー数を取得します。
         管理画面のダッシュボードなどで使用されます。
 
-        :return: ユーザーの総数 (int)。 
+        :return: ユーザーの総数 (int)。
         """
         query = "SELECT COUNT(*) as count FROM users"
         result = self._db.execute_query(query, fetch='one')
@@ -1136,7 +1136,7 @@ class AccessLogManager:
                   username, display_name, event_type, message)
         self._db.execute_query(query, params)
 
-    def get_logs(self, page=1, per_page=50, ip_address=None, username=None, display_name=None, event_type=None, sort_by='timestamp', order='desc'):
+    def get_logs(self, page=1, per_page=50, ip_address=None, username=None, display_name=None, event_type=None, message=None, sort_by='timestamp', order='desc'):
         """管理画面用に、ページネーション、フィルタリング、ソート機能付きでアクセスログを取得します。"""
         where_clauses = []
         params = []
@@ -1154,8 +1154,12 @@ class AccessLogManager:
             params.append(f"%{display_name}%")
 
         if event_type:
-            where_clauses.append("event_type = %s")
-            params.append(event_type)
+            where_clauses.append("LOWER(event_type) LIKE %s")
+            params.append(f"%{event_type.lower()}%")
+
+        if message:
+            where_clauses.append("LOWER(message) LIKE %s")
+            params.append(f"%{message.lower()}%")
 
         where_sql = ""
         if where_clauses:
@@ -1518,9 +1522,42 @@ class BBSListManager:
 
     def update(self, link_id, name, url, description):
         """指定されたIDのBBSリンクの内容（名前、URL、説明）を更新します。"""
-        query = "UPDATE bbs_list SET name = %s, url = %s, description = %s WHERE id = %s"
-        params = (name, url, description, link_id)
-        return self._db.execute_query(query, params) is not None
+        current_link = self.get_by_id(link_id)
+        if not current_link:
+            logging.error(f"BBSリンクの更新失敗: ID '{link_id}' が見つかりません。")
+            return False
+
+        url_changed = current_link.get('url') != url
+
+        try:
+            if url_changed:
+                # URLが変更された場合、新しいURLが他に存在しないかチェック
+                check_query = "SELECT id FROM bbs_list WHERE url = %s AND id != %s"
+                existing_link = self._db.execute_query(
+                    check_query, (url, link_id), fetch='one')
+                if existing_link:
+                    logging.warning(
+                        f"BBSリンクの更新失敗: URL '{url}' は既に他のリンク(ID: {existing_link['id']})で使用されています。")
+                    raise mysql.connector.Error(
+                        errno=1062, msg=f"Duplicate entry '{url}' for key 'url'")
+
+            # URLが変更されたかどうかに応じてクエリを構築
+            set_clauses = ["name = %s", "description = %s"]
+            params = [name, description]
+            if url_changed:
+                set_clauses.append("url = %s")
+                params.append(url)
+            params.append(link_id)
+
+            query = f"UPDATE bbs_list SET {', '.join(set_clauses)} WHERE id = %s"
+            return self._db.execute_query(query, tuple(params)) is not None
+        except mysql.connector.Error as e:
+            if e.errno == 1062:
+                logging.warning(
+                    f"BBSリンクの更新に失敗しました: URL '{url}' は既に存在します。")
+            else:
+                logging.error(f"BBSリンクの更新に失敗しました: {e}")
+            return False
 
     def update_status(self, link_id, status):
         """
@@ -2167,8 +2204,8 @@ def log_access_event(ip_address, event_type, user_id=None, username=None, displa
     return access_logs.log_event(ip_address, event_type, user_id, username, display_name, message)
 
 
-def get_access_logs(page=1, per_page=50, ip_address=None, username=None, display_name=None, event_type=None, sort_by='timestamp', order='desc'):
-    return access_logs.get_logs(page, per_page, ip_address, username, display_name, event_type, sort_by, order)
+def get_access_logs(page=1, per_page=50, ip_address=None, username=None, display_name=None, event_type=None, message=None, sort_by='timestamp', order='desc'):  # noqa
+    return access_logs.get_logs(page, per_page, ip_address, username, display_name, event_type, message, sort_by, order)  # noqa
 
 
 def get_access_counts_by_type(days=7):

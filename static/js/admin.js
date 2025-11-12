@@ -29,4 +29,15 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     });
+
+    // --- System Settings ---
+    // 'Fill with all board IDs' ボタン
+    const fillButton = document.getElementById('fill-board-ids-btn');
+    const explorationListTextarea = document.getElementById('default_exploration_list');
+
+    if (fillButton && explorationListTextarea && typeof allBoardIds !== 'undefined') {
+        fillButton.addEventListener('click', function () {
+            explorationListTextarea.value = allBoardIds.join(',');
+        });
+    }
 });

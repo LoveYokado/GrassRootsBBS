@@ -2965,9 +2965,13 @@ terminal_ui:
       mode_3: "No users are currently online."
   log_viewer:
     title:
-      mode_1: "アクセスログビューワー"
-      mode_2: "アクセスログビューワー"
-      mode_3: "Access Log Viewer"
+      mode_1: "ログビューワー"
+      mode_2: "ログビューワー"
+      mode_3: "Log Viewer"
+    description:
+      mode_1: "システムのアクセスログとエラーログを閲覧します。"
+      mode_2: "システムのアクセスログとエラーログを閲覧します。"
+      mode_3: "View system access and error logs."
     ip_label:
       mode_1: "IPアドレス"
       mode_2: "IPアドレス"
