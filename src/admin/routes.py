@@ -1820,20 +1820,31 @@ def bbs_management():
     elif tab == 'menu':
         bbs_config = util.load_bbs_config()
         board_id_map = {}
+        board_info_map = {}
         all_boards, _ = database.get_all_boards_for_sysop_list(per_page=9999)
         if all_boards:
             board_id_map = {board['shortcut_id']: board['id']
                             for board in all_boards}
+            board_info_map = {board['shortcut_id']
+                : board for board in all_boards}
 
-        def enrich_items_with_db_id(items):
+        def enrich_items_with_db_info(items):
             if not isinstance(items, list):
                 return
             for item in items:
                 if item.get('type') == 'board':
-                    item['db_id'] = board_id_map.get(item.get('id'))
+                    shortcut_id = item.get('id')
+                    item['db_id'] = board_id_map.get(shortcut_id)
+                    # yamlにnameやdescriptionがなければ、DBの情報をフォールバックとして使用
+                    if 'name' not in item or not item['name']:
+                        item['name'] = board_info_map.get(
+                            shortcut_id, {}).get('name', '')
+                    if 'description' not in item or not item['description']:
+                        item['description'] = board_info_map.get(
+                            shortcut_id, {}).get('description', '')
                 if 'items' in item and isinstance(item.get('items'), list):
-                    enrich_items_with_db_id(item['items'])
-        enrich_items_with_db_id(bbs_config.get('categories', []))
+                    enrich_items_with_db_info(item['items'])
+        enrich_items_with_db_info(bbs_config.get('categories', []))
 
         return render_template(
             'admin/bbs_management.html', title="BBS Management", tab='menu',
@@ -2129,7 +2140,7 @@ def reorder_bbs_items():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-@admin_bp.route('/content', methods=['GET'])
+@admin_bp.route('/content', methods=['GET', 'POST'])
 @sysop_required
 def content_management():
     """コンテンツ管理（記事 & 添付ファイル）。記事検索と添付ファイル管理をタブ形式で提供します。"""

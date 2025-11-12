@@ -2,7 +2,7 @@ categories:
 - id: bbs_general
   number: 1
   name: 総合掲示板!
-  description: 自由な話題で盛り上がりましょう！
+  description: 自由な話題で盛り上がりましょうね！
   type: child
   items:
   - id: bbs_free

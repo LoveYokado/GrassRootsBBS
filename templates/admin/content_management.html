@@ -87,16 +87,13 @@
                             <td style="word-break: break-all;">{{ (article.body or '') | truncate(80) }}</td>
                             <td>{{ article.created_at|int|timestamp_to_datetime }}</td>
                             <td>
-                                <form method="post"
-                                    action="{{ url_for('admin.delete_article', article_id=article.id) }}"
-                                    style="display: inline;"
-                                    onsubmit="return confirm('Are you sure you want to {{ 'restore' if article.is_deleted else 'delete' }} this article?');">
-                                    {% if article.is_deleted %}
-                                    <button type="submit" class="action-link-restore">Undelete</button>
-                                    {% else %}
-                                    <button type="submit" class="action-link-delete">Delete</button>
-                                    {% endif %}
-                                </form>
+                                {% if article.is_deleted %}
+                                <a href="#" class="action-link-restore"
+                                    onclick="submitActionForm('{{ url_for('admin.delete_article', article_id=article.id) }}'); return false;">Undelete</a>
+                                {% else %}
+                                <a href="#" class="action-link-delete"
+                                    onclick="submitActionForm('{{ url_for('admin.delete_article', article_id=article.id) }}'); return false;">Delete</a>
+                                {% endif %}
                             </td>
                         </tr>
                         {% else %}

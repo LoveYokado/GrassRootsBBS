@@ -41,3 +41,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 });
+
+/**
+ * 指定されたURLにPOSTリクエストを送信する動的なフォームを作成してサブミットします。
+ * @param {string} url - フォームの送信先URL。
+ * @param {string} confirmMessage - ユーザーに表示する確認メッセージ。
+ */
+function submitActionForm(url, confirmMessage) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    document.body.appendChild(form);
+    form.submit();
+}
