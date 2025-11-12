@@ -26,9 +26,6 @@
                     href="#error" role="tab" aria-controls="error"
                     aria-selected="{{ 'true' if tab == 'error' else 'false' }}">
                     <i class="fas fa-exclamation-triangle mr-1"></i> Error Logs
-                    {% if error_logs %}
-                    <span class="badge badge-danger ml-1">{{ error_logs|length }}</span>
-                    {% endif %}
                 </a>
             </li>
             <li class="nav-item" role="presentation">

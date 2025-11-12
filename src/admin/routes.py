@@ -1855,6 +1855,7 @@ def bbs_management():
 @sysop_required
 def access_management():
     """アクセス管理（ログ & IP BAN）。アクセスログ閲覧とIP BANをタブ形式で一元管理します。"""
+    from collections import deque
     tab = request.args.get('tab', 'logs')
     ip_to_ban = request.args.get('ip_address', '')
 
@@ -1865,7 +1866,8 @@ def access_management():
         error_log_path = os.path.join(log_dir, 'grbbs.error.log')
         if os.path.exists(error_log_path):
             with open(error_log_path, 'r', encoding='utf-8') as f:
-                error_logs = f.readlines()[::-1]
+                # ファイルの末尾5000行のみを読み込む
+                error_logs = list(deque(f, 5000))[::-1]
     except Exception as e:
         flash(f"Error reading error log file: {e}", 'danger')
 
@@ -1999,7 +2001,8 @@ def access_management():
             audit_log_path = os.path.join(log_dir, 'audit.log')
             if os.path.exists(audit_log_path):
                 with open(audit_log_path, 'r', encoding='utf-8') as f:
-                    for line in f:
+                    # ファイルの末尾5000行のみを読み込む
+                    for line in deque(f, 5000):
                         # タイムスタンプ部分を除外し、JSON部分のみを抽出
                         try:
                             json_start_index = line.find(' - ')
