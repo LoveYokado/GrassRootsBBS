@@ -83,6 +83,15 @@
                 </label>
                 <small>Logs all sent telegrams to <code>logs/telegrams/telegrams.log</code>.</small>
             </div>
+
+            <h3>Plugin Settings</h3>
+            <div class="form-group">
+                <label for="plugin_execution_timeout">Plugin Execution Timeout (seconds)</label>
+                <input type="number" id="plugin_execution_timeout" name="plugin_execution_timeout"
+                    value="{{ settings.get('plugin_execution_timeout', 60) }}" min="5" max="300" required>
+                <small>The maximum time a plugin can run before being terminated. Prevents infinite loops.</small>
+            </div>
+
         </div>
 
     </div>

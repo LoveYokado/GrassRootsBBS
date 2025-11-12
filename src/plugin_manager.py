@@ -168,9 +168,10 @@ def run_plugin(app, plugin_id, context):
     elif isinstance(plugin_timeout_setting, int):
         timeout_seconds = plugin_timeout_setting  # プラグイン指定の秒数
     else:
-        # 未設定の場合はconfig.tomlからグローバル設定を読み込む
-        plugins_config = util.app_config.get('plugins', {})
-        timeout_seconds = plugins_config.get('execution_timeout', 60)
+        # 未設定の場合はDBからグローバル設定を読み込む
+        server_prefs = database.read_server_pref()
+        # DBに設定がなければデフォルトで60秒
+        timeout_seconds = server_prefs.get('plugin_execution_timeout', 60)
 
     logging.info(
         f"プラグイン '{plugin_data['name']}' を実行します (タイムアウト: {timeout_seconds if timeout_seconds is not None else 'なし'})...")

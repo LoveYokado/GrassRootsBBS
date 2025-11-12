@@ -287,10 +287,10 @@ def wipe_all_data():
 
 def cleanup_old_backups():
     """古いバックアップファイルをクリーンアップします。"""
-    scheduler_config = util.app_config.get('scheduler', {})
-    max_backups = scheduler_config.get('max_backups', 0)
+    server_prefs = database.read_server_pref()
+    max_backups_setting = server_prefs.get('max_backups', 0)
 
-    if max_backups <= 0:
+    if max_backups_setting <= 0:
         logging.info("バックアップの自動クリーンアップは無効です (max_backups <= 0)。")
         return
 
@@ -310,9 +310,9 @@ def cleanup_old_backups():
         backups.sort(key=lambda f: os.path.getmtime(
             os.path.join(backup_dir, f)), reverse=True)
 
-        # 保持する数を超えたものを削除
-        if len(backups) > max_backups:
-            files_to_delete = backups[max_backups:]
+        # 保持する数を超えたものを削除 (max_backups_setting は保持する数)
+        if len(backups) > max_backups_setting:
+            files_to_delete = backups[max_backups_setting:]
             logging.info(
                 f"{len(files_to_delete)}件の古いバックアップを削除します: {files_to_delete}")
             for filename in files_to_delete:

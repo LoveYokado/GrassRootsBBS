@@ -1083,11 +1083,12 @@ class ServerPrefManager:
         result = self._db.execute_query(query, fetch='one')
         return result if result else {}
 
-    def update_backup_schedule(self, enabled: bool, cron_string: str):
-        """自動バックアップのスケジュール設定（有効/無効、cron文字列）を更新します。"""
+    def update_backup_schedule(self, enabled: bool, cron_string: str, max_backups: int):
+        """自動バックアップのスケジュール設定（有効/無効、cron文字列、保持数）を更新します。"""
         update_data = {
             'backup_schedule_enabled': enabled,
-            'backup_schedule_cron': cron_string
+            'backup_schedule_cron': cron_string,
+            'max_backups': max_backups
         }
         return self._db.update_record('server_pref', update_data, {'id': 1})
 
@@ -1687,7 +1688,9 @@ class DatabaseInitializer:
                     login_message TEXT,
                     backup_schedule_enabled BOOLEAN DEFAULT 0,
                     backup_schedule_cron VARCHAR(255) DEFAULT '0 3 * * *',
-                    telegram_logging_enabled BOOLEAN DEFAULT 0
+                    telegram_logging_enabled BOOLEAN DEFAULT 0,
+                    plugin_execution_timeout INT DEFAULT 60,
+                    max_backups INT DEFAULT 0
                 )
                 """,
                 """
@@ -2034,8 +2037,8 @@ def read_server_pref():
     return server_prefs.read()
 
 
-def update_backup_schedule(enabled: bool, cron_string: str):
-    return server_prefs.update_backup_schedule(enabled, cron_string)
+def update_backup_schedule(enabled: bool, cron_string: str, max_backups: int):
+    return server_prefs.update_backup_schedule(enabled, cron_string, max_backups)
 
 
 def update_online_signup_status(enabled: bool):

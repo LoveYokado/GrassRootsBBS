@@ -1020,7 +1020,8 @@ def system_settings():
             'default_exploration_list': request.form.get('default_exploration_list', '').strip(),
             'login_message': request.form.get('login_message', '').strip(),
             'online_signup_enabled': 1 if 'online_signup_enabled' in request.form else 0,
-            'telegram_logging_enabled': 1 if 'telegram_logging_enabled' in request.form else 0
+            'telegram_logging_enabled': 1 if 'telegram_logging_enabled' in request.form else 0,
+            'plugin_execution_timeout': request.form.get('plugin_execution_timeout', 60, type=int)
         }
 
         for key in ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who', 'hamlet']:
@@ -1065,14 +1066,16 @@ def backup_management():
         if request.form.get('action') == 'save_schedule':
             is_enabled = 'schedule_enabled' in request.form
             cron_string = request.form.get('schedule_cron', '0 3 * * *')
+            max_backups = request.form.get('max_backups', 0, type=int)
 
-            if database.update_backup_schedule(is_enabled, cron_string):
+            if database.update_backup_schedule(is_enabled, cron_string, max_backups):
                 # --- 監査ログ記録 ---
                 util.log_audit_event(
                     action='UPDATE_BACKUP_SCHEDULE',
                     details={
                         'enabled': is_enabled,
-                        'cron_string': cron_string
+                        'cron_string': cron_string,
+                        'max_backups': max_backups
                     }
                 )
                 flash('Backup schedule updated successfully.', 'success')
