@@ -828,7 +828,6 @@ def initialize_database_and_sysop():
             "environment variables. Server startup will be incomplete."
         )
     else:
-        # Import here to avoid circular dependency
         from . import database
         database.initializer.initialize_and_sysop(
             sysop_id, sysop_password, sysop_email)

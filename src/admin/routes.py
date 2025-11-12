@@ -1920,6 +1920,7 @@ def access_management():
         search_user = request.args.get('user', '')
         search_display_name = request.args.get('display_name', '')
         search_event = request.args.get('event', '')
+        search_message = request.args.get('message', '')
         sort_by = request.args.get('sort_by', 'timestamp')
         order = request.args.get('order', 'desc')
         per_page = request.args.get('per_page', 15, type=int)
@@ -1929,7 +1930,8 @@ def access_management():
         try:
             logs, total_items = database.get_access_logs(
                 page=page, per_page=per_page, ip_address=search_ip, username=search_user,
-                display_name=search_display_name, event_type=search_event, sort_by=sort_by, order=order
+                display_name=search_display_name, event_type=search_event,
+                message=search_message, sort_by=sort_by, order=order
             )
             total_pages = (total_items + per_page - 1) // per_page
         except Exception as e:
@@ -1938,7 +1940,8 @@ def access_management():
 
         search_params = {
             'tab': 'logs', 'ip': search_ip, 'user': search_user, 'display_name': search_display_name,
-            'event': search_event, 'sort_by': sort_by, 'order': order, 'per_page': per_page
+            'event': search_event, 'message': search_message, 'sort_by': sort_by, 'order': order,
+            'per_page': per_page
         }
         search_params_for_per_page = {k: v for k, v in request.args.items() if k not in [
             'per_page', 'tab']}

@@ -8,6 +8,37 @@
 
 {% block scripts %}
 {{ super() }}
+
+<script>document.addEventListener('DOMContentLoaded', function () {
+        // --- Error Log Filter ---
+        const filterButtons = document.querySelectorAll('#error-log-level-filter button');
+        const searchInput = document.getElementById('errorLogSearch');
+        const logRows = document.querySelectorAll('#error tbody tr');
+        let currentLevel = 'ALL';
+
+        function filterLogs() {
+            const keyword = searchInput.value.toLowerCase();
+            logRows.forEach(row => {
+                const logText = row.textContent.toLowerCase();
+                const levelMatch = currentLevel === 'ALL' || logText.includes(`[${currentLevel.toLowerCase()}]`);
+                const keywordMatch = logText.includes(keyword);
+
+                row.style.display = (levelMatch && keywordMatch) ? '' : 'none';
+            });
+        }
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                currentLevel = this.dataset.level;
+                filterLogs();
+            });
+        });
+
+        searchInput.addEventListener('keyup', filterLogs);
+    });</script>
+
 {% endblock %}
 
 {% block content %}
@@ -41,6 +72,49 @@
         <div class="tab-pane fade {% if tab == 'logs' %}show active{% endif %}" id="access" role="tabpanel"
             aria-labelledby="access-tab">
             <div class="card-body">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-search mr-1"></i> Search Access Logs
+                    </div>
+                    <div class="card-body">
+                        <form method="get" action="{{ url_for('admin.access_management') }}">
+                            <input type="hidden" name="tab" value="logs">
+                            <div class="d-flex flex-wrap gap-3 align-items-end">
+                                <div class="form-group flex-grow-1">
+                                    <label for="ip">IP Address</label>
+                                    <input type="text" id="ip" name="ip" value="{{ search_params.ip or '' }}"
+                                        class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="user">Username</label>
+                                    <input type="text" id="user" name="user" value="{{ search_params.user or '' }}"
+                                        class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="display_name">Display Name</label>
+                                    <input type="text" id="display_name" name="display_name"
+                                        value="{{ search_params.display_name or '' }}" class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="event">Event Type</label>
+                                    <input type="text" id="event" name="event" value="{{ search_params.event or '' }}"
+                                        class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="message">Message</label>
+                                    <input type="text" id="message" name="message"
+                                        value="{{ search_params.message or '' }}" class="form-control">
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Search</button>
+                                    <a href="{{ url_for('admin.access_management', tab='logs') }}"
+                                        class="btn btn-secondary">Clear</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
                 {% include 'admin/_pagination.html' %}
                 <div class="table-responsive">
                     <table class="table table-bordered" width="100%" cellspacing="0">
@@ -113,7 +187,15 @@
                         <i class="fas fa-search mr-1"></i> Search Error Logs
                     </div>
                     <div class="card-body">
-                        <input type="text" id="errorLogSearch" class="form-control" placeholder="Filter error logs...">
+                        <div id="error-log-level-filter" class="btn-group" role="group">
+                            <button type="button" class="btn btn-secondary active" data-level="ALL">All</button>
+                            <button type="button" class="btn btn-info" data-level="INFO">Info</button>
+                            <button type="button" class="btn btn-warning" data-level="WARNING">Warning</button>
+                            <button type="button" class="btn btn-danger" data-level="ERROR">Error</button>
+                            <button type="button" class="btn btn-dark" data-level="CRITICAL">Critical</button>
+                        </div>
+                        <input type="text" id="errorLogSearch" class="form-control mt-2"
+                            placeholder="Filter by keyword...">
                     </div>
                 </div>
                 <div class="table-responsive">

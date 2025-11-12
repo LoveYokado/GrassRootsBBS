@@ -178,6 +178,7 @@ def restore_from_backup(filename):
         logging.info("データベースのリストアが完了しました。")
 
         # --- 3. 設定ファイルで指定されたディレクトリのリストア ---
+
         for src_rel_path in source_dirs:
             dest_abs_path = os.path.join(PROJECT_ROOT, src_rel_path)
             backup_src_path = os.path.join(
