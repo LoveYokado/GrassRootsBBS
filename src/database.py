@@ -1692,6 +1692,9 @@ class DatabaseInitializer:
                     plugin_execution_timeout INT DEFAULT 60,
                     log_retention_days INT DEFAULT 90,
                     log_cleanup_cron VARCHAR(255) DEFAULT '5 4 * * *',
+                    bbs_socket_timeout_seconds INT DEFAULT 25,
+                    bbs_article_wrap_width INT DEFAULT 78,
+                    bbs_reply_wrap_width INT DEFAULT 76,
                     max_backups INT DEFAULT 0
                 )
                 """,

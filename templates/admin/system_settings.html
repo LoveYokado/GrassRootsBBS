@@ -106,6 +106,25 @@
                 <small>The schedule for running the log cleanup job. Default is every day at 4:05 AM.</small>
             </div>
 
+            <h3>BBS Settings</h3>
+            <div class="form-group">
+                <label for="bbs_socket_timeout_seconds">BBS Socket Timeout (seconds)</label>
+                <input type="number" id="bbs_socket_timeout_seconds" name="bbs_socket_timeout_seconds"
+                    value="{{ settings.get('bbs_socket_timeout_seconds', 25) }}" min="10" max="300" required>
+                <small>Timeout for user input in the BBS command loop to prevent worker hangs.</small>
+            </div>
+            <div class="form-group">
+                <label for="bbs_article_wrap_width">Article Body Wrap Width</label>
+                <input type="number" id="bbs_article_wrap_width" name="bbs_article_wrap_width"
+                    value="{{ settings.get('bbs_article_wrap_width', 78) }}" min="40" max="120" required>
+                <small>The character width at which article bodies are wrapped.</small>
+            </div>
+            <div class="form-group">
+                <label for="bbs_reply_wrap_width">Reply Body Wrap Width</label>
+                <input type="number" id="bbs_reply_wrap_width" name="bbs_reply_wrap_width"
+                    value="{{ settings.get('bbs_reply_wrap_width', 76) }}" min="40" max="120" required>
+                <small>The character width for replies (takes indentation into account).</small>
+            </div>
         </div>
 
     </div>

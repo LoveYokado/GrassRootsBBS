@@ -1023,7 +1023,10 @@ def system_settings():
             'telegram_logging_enabled': 1 if 'telegram_logging_enabled' in request.form else 0,
             'plugin_execution_timeout': request.form.get('plugin_execution_timeout', 60, type=int),
             'log_retention_days': request.form.get('log_retention_days', 90, type=int),
-            'log_cleanup_cron': request.form.get('log_cleanup_cron', '5 4 * * *').strip()
+            'log_cleanup_cron': request.form.get('log_cleanup_cron', '5 4 * * *').strip(),
+            'bbs_socket_timeout_seconds': request.form.get('bbs_socket_timeout_seconds', 25, type=int),
+            'bbs_article_wrap_width': request.form.get('bbs_article_wrap_width', 78, type=int),
+            'bbs_reply_wrap_width': request.form.get('bbs_reply_wrap_width', 76, type=int)
         }
 
         for key in ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who', 'hamlet']:
