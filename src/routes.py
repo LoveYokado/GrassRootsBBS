@@ -214,8 +214,9 @@ def login():
 
         if not is_guest and session.get('lockout_expiration', 0) > time.time():
             remaining_time = session.get('lockout_expiration', 0) - time.time()
-            error = util.get_text_by_key("auth.account_locked_temporary", session.get(
-                'menu_mode', locale), default_value="Account is temporarily locked. Please try again in {remaining_time:.0f} seconds.").format(remaining_time=remaining_time)
+            server_prefs = database.read_server_pref()
+            error = util.get_text_by_key("auth.account_locked_temporary", server_prefs.get('menu_mode', session.get('menu_mode', locale)),
+                                         default_value="Account is temporarily locked. Please try again in {remaining_time:.0f} seconds.").format(remaining_time=remaining_time)
             return render_template('login.html', error=error, page_title=page_title, logo_path=logo_path, message=message), 403
 
         user_auth_info = database.get_user_auth_info(username)
@@ -227,7 +228,8 @@ def login():
             from .terminal_handler import client_states
             if not is_guest:
                 for sid, handler in client_states.copy().items():
-                    if handler.user_session.get('username') == username:
+                    server_prefs = database.read_server_pref()
+                    if handler.user_session.get('username') == username and server_prefs.get('menu_mode', handler.user_session.get('menu_mode', '2')):
                         error = util.get_text_by_key("auth.already_logged_in", handler.user_session.get(  # noqa
                             'menu_mode', '2')).replace('\r\n', '')
                         database.log_access_event(ip_address=util.get_client_ip(),
@@ -262,11 +264,12 @@ def login():
             return redirect(url_for('web.index'))
         else:
             if not is_guest:
+                server_prefs = database.read_server_pref()
                 session['login_attempts'] = session.get(
                     'login_attempts', 0) + 1
-                if session['login_attempts'] >= current_app.config['MAX_LOGIN_ATTEMPTS']:
+                if session['login_attempts'] >= server_prefs.get('max_password_attempts', 3):
                     session['lockout_expiration'] = time.time(
-                    ) + current_app.config['LOCKOUT_TIME_SECONDS']
+                    ) + server_prefs.get('lockout_time_seconds', 300)
                     lockout_minutes = current_app.config['LOCKOUT_TIME_SECONDS'] / 60
                     error = util.get_text_by_key("auth.account_locked_permanent", locale).format(
                         lockout_minutes=lockout_minutes)
@@ -288,6 +291,20 @@ def login():
     # Passkey認証フローのためにリダイレクトされてきた場合の処理
     passkey_username = session.pop('passkey_login_username', None)
 
+    # --- Proxy/VPN/Torチェック ---
+    server_prefs = database.read_server_pref()
+    if server_prefs.get('block_proxies', False):
+        remote_ip_str = util.get_client_ip()
+        if remote_ip_str:
+            is_proxy, reason = util.is_proxy_connection(remote_ip_str)
+            if is_proxy:
+                logging.warning(
+                    f"Proxy/VPN/Torからのアクセスをブロックしました。IP: {remote_ip_str}, Reason: {reason}")
+                database.log_access_event(
+                    ip_address=remote_ip_str, event_type='PROXY_BLOCKED',
+                    username=username, display_name=username,
+                    message=f"Blocked proxy/hosting access ({reason})."
+                )
     return render_template('login.html', page_title=page_title, logo_path=logo_path, message=message,
                            passkey_username_for_js=passkey_username, lang=locale)
 

@@ -26,12 +26,7 @@ ID_MIN_LENGTH = 3                                 #IDの最小文字数
 ID_MAX_LENGTH = 20                                #IDの最大文字数
 PASSWORD_MIN_LENGTH = 8                           #パスワードの最小文字数
 PASSWORD_MAX_LENGTH = 64                          #パスワードの最大文字数
-MAX_PASSWORD_ATTEMPTS = 3                         # パスワード最大試行回数
-LOCKOUT_TIME_SECONDS = 300                        # アカウントロック時間（秒）
-# --- Proxy/VPN/Tor Blocking ---
-# trueに設定すると、ip-api.comを使用してプロキシやホスティング経由の接続をブロックします。
-# この機能は外部APIへの問い合わせを行うため、パフォーマンスに影響を与える可能性があります。
-block_proxies = true
+
 [limits]
 mail_subject_max_length = 42                           #メールタイトルの最大文字数
 mail_body_max_length = 8192                            #メール本文の最大文字数

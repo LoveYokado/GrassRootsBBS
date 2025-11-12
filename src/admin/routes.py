@@ -1024,9 +1024,9 @@ def system_settings():
             'plugin_execution_timeout': request.form.get('plugin_execution_timeout', 60, type=int),
             'log_retention_days': request.form.get('log_retention_days', 90, type=int),
             'log_cleanup_cron': request.form.get('log_cleanup_cron', '5 4 * * *').strip(),
-            'bbs_socket_timeout_seconds': request.form.get('bbs_socket_timeout_seconds', 25, type=int),
-            'bbs_article_wrap_width': request.form.get('bbs_article_wrap_width', 78, type=int),
-            'bbs_reply_wrap_width': request.form.get('bbs_reply_wrap_width', 76, type=int)
+            'max_password_attempts': request.form.get('max_password_attempts', 3, type=int),
+            'lockout_time_seconds': request.form.get('lockout_time_seconds', 300, type=int),
+            'block_proxies': 1 if 'block_proxies' in request.form else 0
         }
 
         for key in ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who', 'hamlet']:
