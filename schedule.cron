@@ -1,0 +1,2 @@
+*/5 * * * * root ls -l >> /tmp/test
+
