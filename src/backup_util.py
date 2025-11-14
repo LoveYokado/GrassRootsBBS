@@ -14,7 +14,7 @@ import subprocess
 import tarfile
 import shutil
 import logging
-from . import util
+from . import util, database
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 

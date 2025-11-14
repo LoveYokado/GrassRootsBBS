@@ -53,7 +53,7 @@ def dispatch_tasks():
                 log_cleanup_job()
 
             # バックアップのスケジュールをチェック
-            if settings.get('backup_schedule_enabled'):
+            if settings.get('backup_schedule_enabled', False):
                 backup_cron = settings.get('backup_schedule_cron', '0 3 * * *')
                 if croniter.match(backup_cron, now):
                     backup_job()
