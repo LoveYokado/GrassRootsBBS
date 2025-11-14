@@ -1694,8 +1694,6 @@ class DatabaseInitializer:
                     log_cleanup_cron VARCHAR(255) DEFAULT '5 4 * * *',
                     bbs_socket_timeout_seconds INT DEFAULT 25,
                     bbs_article_wrap_width INT DEFAULT 78,
-                    max_password_attempts INT DEFAULT 3,
-                    lockout_time_seconds INT DEFAULT 300,
                     block_proxies BOOLEAN DEFAULT 0,
                     bbs_reply_wrap_width INT DEFAULT 76,
                     max_backups INT DEFAULT 0
