@@ -11,7 +11,7 @@ workers = 1
 worker_class = "geventwebsocket.gunicorn.workers.GeventWebSocketWorker"
 
 # 開発用にリロードを有効にする
-reload = True
+reload = False
 
 # ロギング設定
 # Gunicornのログは標準出力/エラー出力に設定。アプリケーションログは別途設定。
