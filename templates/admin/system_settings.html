@@ -127,6 +127,17 @@
                 </label>
                 <small>Blocks connections via proxy, VPN, or Tor using ip-api.com (may impact performance).</small>
             </div>
+
+            <h3>Maintenance Mode</h3>
+            <div class="form-group">
+                <label for="maintenance_mode">
+                    <input type="checkbox" id="maintenance_mode" name="maintenance_mode" value="1" {% if
+                        settings.get('maintenance_mode') %}checked{% endif %}>
+                    Enable Maintenance Mode
+                </label>
+                <small>If enabled, only administrators (Level 5) can log in. All other users will be redirected to a
+                    maintenance page.</small>
+            </div>
         </div>
 
     </div>

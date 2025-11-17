@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Maintenance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <style>
+        .message {
+            text-align: left;
+            line-height: 1.6;
+        }
+
+        .maintenance-image {
+            max-width: 100%;
+            height: auto;
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <h1>Under Maintenance</h1>
+        <img src="{{ url_for('static', filename='images/maintenance_in_progress.png') }}" alt="Maintenance"
+            class="maintenance-image">
+        <p class="message">The service is currently undergoing maintenance.<br />
+            Please wait a little while and try accessing again later.</p>
+    </div>
+</body>
+
+</html>
