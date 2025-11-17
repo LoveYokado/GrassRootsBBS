@@ -105,7 +105,7 @@ body {
 .sidenav a {
   padding: 10px 15px 10px 32px;
   text-decoration: none;
-  font-size: 1.1em;
+  font-size: 1.1rem;
   color: #f1f1f1;
   display: block;
   transition: 0.2s;
@@ -118,8 +118,8 @@ body {
 .sidenav .closebtn {
   position: absolute;
   top: 0;
-  right: 15px;
-  font-size: 2.2em;
+  right: 25px;
+  font-size: 2.2rem;
   /* ベースフォントサイズに連動させる */
   margin-left: 50px;
   color: #d3cba0;
@@ -130,7 +130,7 @@ body {
   padding: 10px 15px;
   margin: 8px 15px;
   text-decoration: none;
-  font-size: 1.1em;
+  font-size: 1.1rem;
   display: block;
   transition: background-color 0.2s, border-color 0.2s;
   border-radius: 5px;
@@ -190,7 +190,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 .monitor-footer {
   text-align: center;
   padding-top: 15px;
-  font-size: 1.2em;
+  font-size: 1.2rem;
   font-weight: bold;
   color: #706b58;
   text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7),
@@ -264,8 +264,8 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 .f-key {
   background-color: #ffffff;
   color: #000000;
-  padding: 2px 6px;
-  font-size: 0.8em;
+  padding: 2px 8px;
+  font-size: 0.8rem;
   cursor: pointer;
   user-select: none;
   border-radius: 2px;
@@ -331,7 +331,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 #bbs-list-jump-btn {
   margin-top: auto;
   padding: 10px;
-  font-size: 1.1em;
+  font-size: 1.1rem;
 }
 
 .popup-content .detail-pane h3 {
@@ -415,7 +415,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 .popup-close-btn {
   background: none;
   border: none;
-  font-size: 1.5em;
+  font-size: 1.5rem;
   color: #706b58;
   cursor: pointer;
 }
@@ -480,7 +480,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   border: none;
   background-color: transparent;
   color: #706b58;
-  font-size: 1em;
+  font-size: 1rem;
   border-bottom: 3px solid transparent;
   margin-bottom: -1px;
 }
@@ -576,7 +576,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   margin: 2px;
   cursor: pointer;
   border-radius: 3px;
-  font-size: 0.9em;
+  font-size: 0.9rem;
   font-family: sans-serif;
 }
 
@@ -698,15 +698,15 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   }
 
   #popup-window .popup-content h3 {
-    font-size: 1.2em;
+    font-size: 1.2rem;
     margin-bottom: 0.8em;
   }
 
   #popup-window .popup-content button {
     display: block;
     width: 100%;
-    padding: 0.8em 1em;
-    font-size: 1.1em;
+    padding: 0.8rem 1rem;
+    font-size: 1.1rem;
     margin: 0.5em 0;
     box-sizing: border-box;
   }
@@ -779,7 +779,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   background-color: #444;
   border: 1px solid #666;
   color: #eee;
-  font-size: 1em;
+  font-size: 1rem;
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -817,7 +817,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 #bbs-btn-up {
   grid-column: 3;
   grid-row: 1;
-  font-size: 1.5em;
+  font-size: 1.5rem;
 }
 
 #bbs-btn-delete {
@@ -828,7 +828,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 #bbs-btn-left {
   grid-column: 2;
   grid-row: 2;
-  font-size: 1.5em;
+  font-size: 1.5rem;
 }
 
 #bbs-btn-read {
@@ -839,7 +839,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 #bbs-btn-right {
   grid-column: 4;
   grid-row: 2;
-  font-size: 1.5em;
+  font-size: 1.5rem;
 }
 
 #bbs-btn-help {
@@ -850,7 +850,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 #bbs-btn-down {
   grid-column: 3;
   grid-row: 3;
-  font-size: 1.5em;
+  font-size: 1.5rem;
 }
 
 #bbs-btn-exit {

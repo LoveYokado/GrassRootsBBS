@@ -27,7 +27,7 @@ body {
 }
 
 .user-info {
-  font-size: 0.9em;
+  font-size: 0.9rem;
 }
 
 .user-info a {
@@ -40,7 +40,7 @@ body {
 }
 
 .category-title {
-  font-size: 1.2em;
+  font-size: 1.2rem;
   font-weight: bold;
   color: #333;
   border-bottom: 1px solid #ccc;
@@ -63,7 +63,7 @@ body {
   text-decoration: none;
   color: #005a9c;
   font-weight: bold;
-  font-size: 1.1em;
+  font-size: 1.1rem;
 }
 
 .board-item a:hover {
@@ -73,5 +73,5 @@ body {
 .board-item p {
   margin: 0.2em 0 0 0;
   color: #555;
-  font-size: 0.9em;
+  font-size: 0.9rem;
 }
