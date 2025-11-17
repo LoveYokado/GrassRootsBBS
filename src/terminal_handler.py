@@ -205,7 +205,6 @@ class WebTerminalHandler:
         def recv(self, n):
             while len(self.recv_buffer) < n and self.active:
                 if not self.handler.input_queue:
-                    # タイムアウトを無効化
                     if not self.handler.input_event.wait(timeout=None):
                         raise socket.timeout("timed out")
                     self.handler.input_event.clear()

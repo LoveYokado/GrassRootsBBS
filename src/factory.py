@@ -158,7 +158,6 @@ def create_app():
     # --- Blueprintの登録 ---
     app.register_blueprint(web_bp)
     app.register_blueprint(admin_bp, url_prefix=admin_prefix)
-    # internal_bp の登録は削除
 
     errors.register_error_handlers(app)
 

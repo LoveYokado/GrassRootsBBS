@@ -192,6 +192,8 @@ class CommandHandler:
             """データベースから記事リストを再読み込みし、表示を更新します。"""
             nonlocal articles, current_index, article_id_width, display_initial_header, last_login_timestamp
             current_article_id_on_reload = None
+            if articles and 0 <= current_index < len(articles):
+                current_article_id_on_reload = articles[current_index]['id']
 
             if board_type == 'thread':
                 fetched_articles = self.article_manager.get_threads(
