@@ -44,6 +44,22 @@ def login_required(f):
     return decorated_function
 
 
+def check_maintenance(f):
+    """メンテナンスモードをチェックするデコレータ。"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        server_prefs = database.read_server_pref()
+        if server_prefs.get('maintenance_mode'):
+            # メンテナンスモードが有効
+            user_level = session.get('userlevel', 0)
+            if user_level < 5:
+                # 管理者でなければメンテナンスページへ
+                return render_template('maintenance.html')
+        # メンテナンスモードが無効、または管理者であれば通常通り処理
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 @web_bp.route('/manifest.json')
 def manifest():
     """PWA (Progressive Web App) のマニフェストファイルを配信します。"""
@@ -128,6 +144,7 @@ def unsubscribe():
 
 @web_bp.route('/')
 @login_required
+@check_maintenance
 def index():
     """メインのターミナルページを描画します。"""
     menu_mode = session.get('menu_mode', '2')
@@ -199,6 +216,14 @@ def login():
     logo_path = webapp_config.get('LOGIN_PAGE_LOGO_PATH')
 
     if request.method == 'POST':
+        server_prefs = database.read_server_pref()
+        if server_prefs.get('maintenance_mode'):
+            # メンテナンスモード中は管理者(level 5)のみログイン試行を許可
+            username_to_check = request.form.get('username', '').upper()
+            user_to_check = database.get_user_auth_info(username_to_check)
+            if not user_to_check or user_to_check.get('level', 0) < 5:
+                return render_template('maintenance.html')
+
         username = request.form.get('username', '').upper()
         password = request.form.get('password')
         error = None

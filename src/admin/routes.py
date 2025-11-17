@@ -1032,7 +1032,8 @@ def system_settings():
             # Security Settings
             'max_password_attempts': request.form.get('max_password_attempts', 3, type=int),
             'lockout_time_seconds': request.form.get('lockout_time_seconds', 300, type=int),
-            'block_proxies': 1 if 'block_proxies' in request.form else 0
+            'block_proxies': 1 if 'block_proxies' in request.form else 0,
+            'maintenance_mode': 1 if 'maintenance_mode' in request.form else 0
         }
 
         for key in ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who', 'hamlet']:
