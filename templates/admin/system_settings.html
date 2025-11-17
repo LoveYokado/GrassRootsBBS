@@ -66,6 +66,44 @@
                 <textarea id="default_exploration_list" name="default_exploration_list"
                     rows="5">{{ settings.get('default_exploration_list', '') }}</textarea>
             </div>
+
+            <h3>Site Information</h3>
+            <div class="form-group">
+                <label for="server_name">Server Name</label>
+                <input type="text" id="server_name" name="server_name" value="{{ settings.get('server_name', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="operator_name">Operator Name</label>
+                <input type="text" id="operator_name" name="operator_name"
+                    value="{{ settings.get('operator_name', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_email">Contact Email</label>
+                <input type="email" id="contact_email" name="contact_email"
+                    value="{{ settings.get('contact_email', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_x_url">Contact X (Twitter) URL</label>
+                <input type="url" id="contact_x_url" name="contact_x_url"
+                    value="{{ settings.get('contact_x_url', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_threads_url">Contact Threads URL</label>
+                <input type="url" id="contact_threads_url" name="contact_threads_url"
+                    value="{{ settings.get('contact_threads_url', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_bluesky_url">Contact Bluesky URL</label>
+                <input type="url" id="contact_bluesky_url" name="contact_bluesky_url"
+                    value="{{ settings.get('contact_bluesky_url', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_mastodon_url">Contact Mastodon URL</label>
+                <input type="url" id="contact_mastodon_url" name="contact_mastodon_url"
+                    value="{{ settings.get('contact_mastodon_url', '') }}">
+            </div>
+
+
             <h3>Other Settings</h3>
             <div class="form-group">
                 <label for="online_signup_enabled">
@@ -136,7 +174,14 @@
                     Enable Maintenance Mode
                 </label>
                 <small>If enabled, only administrators (Level 5) can log in. All other users will be redirected to a
-                    maintenance page.</small>
+            </div>
+
+            <h3>Webapp Settings</h3>
+            <div class="form-group">
+                <label for="max_concurrent_webapp_clients">Maximum Concurrent WebApp Clients</label>
+                <input type="number" id="max_concurrent_webapp_clients" name="max_concurrent_webapp_clients"
+                    value="{{ settings.get('max_concurrent_webapp_clients', 4) }}" min="0" max="100" required>
+                maintenance page.</small>
             </div>
         </div>
 
