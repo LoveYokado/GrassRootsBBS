@@ -1018,6 +1018,7 @@ def system_settings():
             'who': request.form.get('who', type=int),
             'hamlet': request.form.get('hamlet', type=int),
             'default_exploration_list': request.form.get('default_exploration_list', '').strip(),
+            'bbs_article_wrap_width': request.form.get('bbs_article_wrap_width', 78, type=int),
             'login_message': request.form.get('login_message', '').strip(),
             'online_signup_enabled': 1 if 'online_signup_enabled' in request.form else 0,
             'telegram_logging_enabled': 1 if 'telegram_logging_enabled' in request.form else 0,

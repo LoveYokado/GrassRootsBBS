@@ -1096,6 +1096,17 @@ class ServerPrefManager:
         """オンラインサインアップ機能の有効/無効状態を更新します。"""
         return self._db.update_record('server_pref', {'online_signup_enabled': enabled}, {'id': 1})
 
+    def update_system_settings(self, settings_dict):
+        """
+        server_prefテーブルのレコードを辞書データで一括更新します。
+        ID=1のレコードが存在することを前提としています。
+        """
+        if 'id' in settings_dict:
+            del settings_dict['id']  # 更新データにidは含めない
+
+        # update_recordは成功時にNoneではない値を返すので、それをboolに変換
+        return self._db.update_record('server_pref', settings_dict, {'id': 1}) is not None
+
 
 class PluginManagerDB:  # Renamed to avoid conflict with plugin_manager.py
     """`plugins` テーブルに関連する全てのデータベース操作を管理します。"""
@@ -2050,6 +2061,11 @@ def update_backup_schedule(enabled: bool, cron_string: str, max_backups: int):
 def update_online_signup_status(enabled: bool):
     """オンラインサインアップの有効/無効をDBで更新する"""
     return server_prefs.update_online_signup_status(enabled)
+
+
+def update_system_settings(settings_dict):
+    """システム設定を一括で更新します。"""
+    return server_prefs.update_system_settings(settings_dict)
 
 
 def get_board_by_shortcut_id(shortcut_id):
