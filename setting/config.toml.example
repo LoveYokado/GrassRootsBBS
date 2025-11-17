@@ -7,13 +7,6 @@
 operator_name = "SYSOP"
 server_name = "My GR-BBS"
 
-# お問い合わせ先のSNSアカウントURL (空欄にすると非表示になります)
-# Contact SNS account URLs (will be hidden if left blank).
-contact_x_url = ""
-contact_threads_url = ""
-contact_bluesky_url = ""
-contact_mastodon_url = ""
-
 [webapp]
 # BBSにアクセスする際のURL。PasskeyやPush通知で必要です。
 # The URL to access your BBS. Required for Passkey and Push notifications.
@@ -36,10 +29,6 @@ RP_ID = "localhost"
 # 添付ファイルのアップロード先ディレクトリ
 # Directory for attachment uploads.
 ATTACHMENT_UPLOAD_DIR = "data/attachments"
-
-# WebAppの最大同時接続数 (0は無制限)
-# Maximum number of concurrent WebApp clients (0 for unlimited).
-MAX_CONCURRENT_WEBAPP_CLIENTS = 10
 
 [database]
 # Docker Compose環境では、これらの値は .env ファイルから読み込まれるため、通常このセクションの編集は不要です。
@@ -174,8 +163,6 @@ schedule = "0 3 * * *"
 max_backups = 7
 
 [bbs]
-# 掲示板のコマンドループ中のソケットタイムアウト秒数
-# Socket timeout in seconds during the BBS command loop.
 socket_timeout_seconds = 25
 # 記事本文の折り返し幅
 # Wrap width for article bodies.

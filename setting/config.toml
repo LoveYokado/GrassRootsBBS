@@ -40,11 +40,8 @@ allowed_attachment_extensions = "jpg,jpeg,png,gif,txt" # 許可する拡張子 (
 # --- WebAppの公開URL設定 ---
 # PasskeyやPush通知など、ブラウザのセキュリティ機能で必要になります。
 #ORIGIN = "https://synovially-establishable-margherita.ngrok-free.dev"
-ORIGIN = "http://localhost:5000" # BBSにアクセスする際の完全なURL (プロトコル、ホスト、ポートを含む)
-RP_ID = "localhost"              # Passkeyで使われるドメイン名 (ポート番号は含めない)
-
-# WEBAPP_KEY_PATH removed from here
-MAX_CONCURRENT_WEBAPP_CLIENTS = 4        # WebAppの同時接続可能クライアント数(0で無制限)
+ORIGIN = "http://localhost:5000"         # BBSにアクセスする際の完全なURL (プロトコル、ホスト、ポートを含む)
+RP_ID = "localhost"                      # Passkeyで使われるドメイン名 (ポート番号は含めない)
 LOGIN_PAGE_LOGO_PATH = "images/logo.png" # static/からの相対パス
 
 [admin]
