@@ -131,8 +131,9 @@ class CommandHandler:
         # モバイル用の操作ボタンを表示
         self.chan.send(b'\x1b[?2030h')
         try:
-            bbs_config = util.app_config.get('bbs', {})
-            socket_timeout = bbs_config.get('socket_timeout_seconds', 25.0)
+            server_prefs = database.read_server_pref()
+            socket_timeout = server_prefs.get(
+                'bbs_socket_timeout_seconds', 25.0)
 
             while True:
                 # メニュー表示
@@ -1382,8 +1383,9 @@ class CommandHandler:
         if article['body'] != turn_over_marker:
             # textwrap.wrapは改行文字を正しく扱えないため、先に splitlines() で行に分割し、
             # 各行を個別にwrapすることで、ユーザーの入力した改行と自動折り返しを両立させる。
-            bbs_config = util.app_config.get('bbs', {})
-            article_wrap_width = bbs_config.get('article_wrap_width', 78)
+            server_prefs = database.read_server_pref()
+            article_wrap_width = server_prefs.get(
+                'bbs_article_wrap_width', 78)
 
             body_lines = article['body'].splitlines()
             for line in body_lines:
@@ -1444,13 +1446,13 @@ class CommandHandler:
             replies = self.article_manager.get_replies(article['id'])
             if replies:
                 util.send_text_by_key(
-                    self.chan, "bbs.read_replies_header", self.menu_mode,
-                    parent_article_number=article['article_number']
+                    self.chan, "bbs.read_replies_header", self.menu_mode, parent_article_number=article['article_number']
                 )
                 for i, reply in enumerate(replies):
                     # 返信の表示
-                    bbs_config = util.app_config.get('bbs', {})
-                    reply_wrap_width = bbs_config.get('reply_wrap_width', 76)
+                    server_prefs = database.read_server_pref()
+                    reply_wrap_width = server_prefs.get(
+                        'bbs_reply_wrap_width', 76)
 
                     reply_sender_name = ""
                     try:

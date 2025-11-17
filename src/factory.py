@@ -17,8 +17,6 @@ from logging.handlers import RotatingFileHandler
 from urllib.parse import urlparse
 
 import redis
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from flask import Flask, Response, session
 from flask import request
 from markupsafe import escape, Markup
@@ -160,6 +158,7 @@ def create_app():
     # --- Blueprintの登録 ---
     app.register_blueprint(web_bp)
     app.register_blueprint(admin_bp, url_prefix=admin_prefix)
+    # internal_bp の登録は削除
 
     errors.register_error_handlers(app)
 
@@ -288,66 +287,5 @@ def create_app():
         app, cors_allowed_origins=allowed_origins, **engineio_options)
 
     init_events(socketio, app)
-
-    # --- スケジュールジョブ ---
-    scheduler = BackgroundScheduler(daemon=True, timezone='Asia/Tokyo')
-
-    def scheduled_backup_job():
-        """定期的に実行されるバックアップジョブ。"""
-        with app.app_context():
-            logging.info("Starting scheduled backup job...")
-            filename = backup_util.create_backup()
-            if filename:
-                logging.info(
-                    f"Scheduled backup created successfully: {filename}")
-                backup_util.cleanup_old_backups()
-            else:
-                logging.error("Scheduled backup creation failed.")
-
-    def scheduled_log_cleanup_job():
-        """定期的に実行されるログクリーンアップジョブ。"""
-        with app.app_context():
-            log_retention_days = app.config.get('DATABASE', {}).get(
-                'log_retention_days', 90)
-            if log_retention_days > 0:
-                logging.info("Starting scheduled log cleanup job...")
-                database.cleanup_old_access_logs(log_retention_days)
-            else:
-                logging.info(
-                    "Log retention is disabled (log_retention_days <= 0). Skipping cleanup.")
-
-    schedule_settings = database.read_server_pref()
-    if schedule_settings.get('backup_schedule_enabled'):
-        try:
-            cron_schedule = schedule_settings.get(
-                'backup_schedule_cron', '0 3 * * *')
-            scheduler.add_job(
-                scheduled_backup_job,
-                trigger=CronTrigger.from_crontab(cron_schedule),
-                id='backup_job',
-                name='Daily Backup and Cleanup',
-                replace_existing=True
-            )
-            logging.info(
-                f"Backup scheduler enabled. Schedule: '{cron_schedule}'")
-        except Exception as e:
-            logging.error(f"Failed to initialize scheduler: {e}")
-    else:
-        logging.info("Automatic backup schedule is disabled.")
-
-    # ログクリーンアップジョブを登録
-    db_config = app.config.get('DATABASE', {})
-    log_cleanup_cron = db_config.get('log_cleanup_cron', '5 4 * * *')
-    scheduler.add_job(
-        scheduled_log_cleanup_job,
-        trigger=CronTrigger.from_crontab(log_cleanup_cron),
-        id='log_cleanup_job',
-        name='Daily Log Cleanup'
-    )
-    logging.info(
-        f"Log cleanup scheduler enabled. Schedule: '{log_cleanup_cron}'")
-
-    if scheduler.get_jobs():
-        scheduler.start()
 
     return app, socketio

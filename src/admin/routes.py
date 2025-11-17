@@ -1018,9 +1018,21 @@ def system_settings():
             'who': request.form.get('who', type=int),
             'hamlet': request.form.get('hamlet', type=int),
             'default_exploration_list': request.form.get('default_exploration_list', '').strip(),
+            'bbs_article_wrap_width': request.form.get('bbs_article_wrap_width', 78, type=int),
             'login_message': request.form.get('login_message', '').strip(),
             'online_signup_enabled': 1 if 'online_signup_enabled' in request.form else 0,
-            'telegram_logging_enabled': 1 if 'telegram_logging_enabled' in request.form else 0
+            'telegram_logging_enabled': 1 if 'telegram_logging_enabled' in request.form else 0,
+            'plugin_execution_timeout': request.form.get('plugin_execution_timeout', 60, type=int),
+            # Log & Backup Settings
+            'log_retention_days': request.form.get('log_retention_days', 90, type=int),
+            'log_cleanup_cron': request.form.get('log_cleanup_cron', '5 4 * * *').strip(),
+            'backup_schedule_enabled': 1 if 'backup_schedule_enabled' in request.form else 0,
+            'backup_schedule_cron': request.form.get('backup_schedule_cron', '0 3 * * *').strip(),
+            'max_backups': request.form.get('max_backups', 0, type=int),
+            # Security Settings
+            'max_password_attempts': request.form.get('max_password_attempts', 3, type=int),
+            'lockout_time_seconds': request.form.get('lockout_time_seconds', 300, type=int),
+            'block_proxies': 1 if 'block_proxies' in request.form else 0
         }
 
         for key in ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who', 'hamlet']:
@@ -1035,7 +1047,7 @@ def system_settings():
             details=settings_to_update
         )
 
-        if database.update_record('server_pref', settings_to_update, {'id': 1}):
+        if database.update_system_settings(settings_to_update):
             # --- 監査ログ記録 ---
             util.log_audit_event(
                 action='UPDATE_SYSTEM_SETTINGS',
@@ -1065,14 +1077,16 @@ def backup_management():
         if request.form.get('action') == 'save_schedule':
             is_enabled = 'schedule_enabled' in request.form
             cron_string = request.form.get('schedule_cron', '0 3 * * *')
+            max_backups = request.form.get('max_backups', 0, type=int)
 
-            if database.update_backup_schedule(is_enabled, cron_string):
+            if database.update_backup_schedule(is_enabled, cron_string, max_backups):
                 # --- 監査ログ記録 ---
                 util.log_audit_event(
                     action='UPDATE_BACKUP_SCHEDULE',
                     details={
                         'enabled': is_enabled,
-                        'cron_string': cron_string
+                        'cron_string': cron_string,
+                        'max_backups': max_backups
                     }
                 )
                 flash('Backup schedule updated successfully.', 'success')

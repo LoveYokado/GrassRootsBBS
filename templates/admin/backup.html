@@ -32,6 +32,12 @@
                 <small>Uses standard cron format. See <a href="https://crontab.guru/" target="_blank"
                         style="color: #87cefa;">crontab.guru</a> for help.</small>
             </div>
+            <div class="form-group">
+                <label for="maxBackups">Number of Backups to Keep (0 for unlimited)</label>
+                <input type="number" id="maxBackups" name="max_backups" value="{{ schedule_settings.max_backups or 0 }}"
+                    min="0" max="999" placeholder="e.g., 7">
+                <small>Set to 0 to keep all backups (not recommended for long term).</small>
+            </div>
             <div class="form-actions">
                 <button type="submit" name="action" value="save_schedule"
                     style="background-color: #28a745; color: white;">Save Schedule</button>

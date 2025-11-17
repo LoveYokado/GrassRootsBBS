@@ -1,0 +1,4 @@
+# 毎分テストスクリプトを実行し、出力をDockerのログに流す
+* * * * * root cd /app && /usr/local/bin/python -m src.run_task >> /proc/1/fd/1 2>>/proc/1/fd/2
+
+# このファイルの末尾には必ず空行を入れてください。

@@ -1083,17 +1083,29 @@ class ServerPrefManager:
         result = self._db.execute_query(query, fetch='one')
         return result if result else {}
 
-    def update_backup_schedule(self, enabled: bool, cron_string: str):
-        """自動バックアップのスケジュール設定（有効/無効、cron文字列）を更新します。"""
+    def update_backup_schedule(self, enabled: bool, cron_string: str, max_backups: int):
+        """自動バックアップのスケジュール設定（有効/無効、cron文字列、保持数）を更新します。"""
         update_data = {
             'backup_schedule_enabled': enabled,
-            'backup_schedule_cron': cron_string
+            'backup_schedule_cron': cron_string,
+            'max_backups': max_backups
         }
         return self._db.update_record('server_pref', update_data, {'id': 1})
 
     def update_online_signup_status(self, enabled: bool):
         """オンラインサインアップ機能の有効/無効状態を更新します。"""
         return self._db.update_record('server_pref', {'online_signup_enabled': enabled}, {'id': 1})
+
+    def update_system_settings(self, settings_dict):
+        """
+        server_prefテーブルのレコードを辞書データで一括更新します。
+        ID=1のレコードが存在することを前提としています。
+        """
+        if 'id' in settings_dict:
+            del settings_dict['id']  # 更新データにidは含めない
+
+        # update_recordは成功時にNoneではない値を返すので、それをboolに変換
+        return self._db.update_record('server_pref', settings_dict, {'id': 1}) is not None
 
 
 class PluginManagerDB:  # Renamed to avoid conflict with plugin_manager.py
@@ -1687,7 +1699,15 @@ class DatabaseInitializer:
                     login_message TEXT,
                     backup_schedule_enabled BOOLEAN DEFAULT 0,
                     backup_schedule_cron VARCHAR(255) DEFAULT '0 3 * * *',
-                    telegram_logging_enabled BOOLEAN DEFAULT 0
+                    telegram_logging_enabled BOOLEAN DEFAULT 0,
+                    plugin_execution_timeout INT DEFAULT 60,
+                    log_retention_days INT DEFAULT 90,
+                    log_cleanup_cron VARCHAR(255) DEFAULT '5 4 * * *',
+                    bbs_socket_timeout_seconds INT DEFAULT 25,
+                    bbs_article_wrap_width INT DEFAULT 78,
+                    block_proxies BOOLEAN DEFAULT 0,
+                    bbs_reply_wrap_width INT DEFAULT 76,
+                    max_backups INT DEFAULT 0
                 )
                 """,
                 """
@@ -2034,13 +2054,18 @@ def read_server_pref():
     return server_prefs.read()
 
 
-def update_backup_schedule(enabled: bool, cron_string: str):
-    return server_prefs.update_backup_schedule(enabled, cron_string)
+def update_backup_schedule(enabled: bool, cron_string: str, max_backups: int):
+    return server_prefs.update_backup_schedule(enabled, cron_string, max_backups)
 
 
 def update_online_signup_status(enabled: bool):
     """オンラインサインアップの有効/無効をDBで更新する"""
     return server_prefs.update_online_signup_status(enabled)
+
+
+def update_system_settings(settings_dict):
+    """システム設定を一括で更新します。"""
+    return server_prefs.update_system_settings(settings_dict)
 
 
 def get_board_by_shortcut_id(shortcut_id):
