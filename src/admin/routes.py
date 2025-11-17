@@ -1018,6 +1018,14 @@ def system_settings():
             'who': request.form.get('who', type=int),
             'hamlet': request.form.get('hamlet', type=int),
             'default_exploration_list': request.form.get('default_exploration_list', '').strip(),
+            # Site Info
+            'server_name': request.form.get('server_name', '').strip(),
+            'operator_name': request.form.get('operator_name', '').strip(),
+            'contact_email': request.form.get('contact_email', '').strip(),
+            'contact_x_url': request.form.get('contact_x_url', '').strip(),
+            'contact_threads_url': request.form.get('contact_threads_url', '').strip(),
+            'contact_bluesky_url': request.form.get('contact_bluesky_url', '').strip(),
+            'contact_mastodon_url': request.form.get('contact_mastodon_url', '').strip(),
             'bbs_article_wrap_width': request.form.get('bbs_article_wrap_width', 78, type=int),
             'login_message': request.form.get('login_message', '').strip(),
             'online_signup_enabled': 1 if 'online_signup_enabled' in request.form else 0,
@@ -1033,7 +1041,8 @@ def system_settings():
             'max_password_attempts': request.form.get('max_password_attempts', 3, type=int),
             'lockout_time_seconds': request.form.get('lockout_time_seconds', 300, type=int),
             'block_proxies': 1 if 'block_proxies' in request.form else 0,
-            'maintenance_mode': 1 if 'maintenance_mode' in request.form else 0
+            'maintenance_mode': 1 if 'maintenance_mode' in request.form else 0,
+            'max_concurrent_webapp_clients': request.form.get('max_concurrent_webapp_clients', 4, type=int)
         }
 
         for key in ['bbs', 'chat', 'mail', 'telegram', 'userpref', 'who', 'hamlet']:

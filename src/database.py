@@ -1697,6 +1697,13 @@ class DatabaseInitializer:
                     default_exploration_list TEXT,
                     hamlet INT DEFAULT 2,
                     login_message TEXT,
+                    operator_name VARCHAR(255),
+                    server_name VARCHAR(255),
+                    contact_email VARCHAR(255),
+                    contact_x_url VARCHAR(255),
+                    contact_threads_url VARCHAR(255),
+                    contact_bluesky_url VARCHAR(255),
+                    contact_mastodon_url VARCHAR(255),
                     backup_schedule_enabled BOOLEAN DEFAULT 0,
                     backup_schedule_cron VARCHAR(255) DEFAULT '0 3 * * *',
                     telegram_logging_enabled BOOLEAN DEFAULT 0,
@@ -1710,6 +1717,7 @@ class DatabaseInitializer:
                     block_proxies BOOLEAN DEFAULT 0,
                     bbs_reply_wrap_width INT DEFAULT 76,
                     maintenance_mode BOOLEAN DEFAULT 0,
+                    max_concurrent_webapp_clients INT DEFAULT 4,
                     max_backups INT DEFAULT 0
                 )
                 """,

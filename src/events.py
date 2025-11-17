@@ -81,9 +81,9 @@ def init_events(socketio, app):
                 disconnect(sid_to_disconnect, silent=True)
 
         with terminal_handler.current_webapp_clients_lock:
-            max_clients_config = app.config.get('WEBAPP', {})
-            max_clients = max_clients_config.get(
-                'MAX_CONCURRENT_WEBAPP_CLIENTS', 0)
+            server_prefs = database.read_server_pref()
+            max_clients = server_prefs.get(
+                'max_concurrent_webapp_clients', 4)
             if max_clients > 0 and terminal_handler.current_webapp_clients >= max_clients:
                 return False
             terminal_handler.current_webapp_clients += 1
