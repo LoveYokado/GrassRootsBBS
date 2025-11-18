@@ -1,26 +1,30 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
+
 """管理画面のルーティング定義モジュール。
 
 このモジュールは、FlaskのBlueprintを利用して、BBSの管理機能に関連する
 全てのWebエンドポイント (例: `/admin/dashboard`, `/admin/users`など) を定義します。
 """
 
+from io import StringIO
 import json
 import os
 from datetime import datetime, timedelta
 import time
+import csv
 import logging
 from .. import database, util, backup_util, plugin_manager, terminal_handler, extensions
 import psutil
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, send_from_directory, g, current_app, Response
 from ..decorators import sysop_required
 import ipaddress
 
 import shutil
 from flask import jsonify
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
 # 管理画面のブループリント全体をレートリミットの対象外にする
 extensions.limiter.exempt(admin_bp)
 
@@ -146,6 +150,7 @@ def link_list():
         'admin/link_list.html', title=title, links=links, pagination=pagination,
         sort_by=sort_by, order=order, next_order=next_order,
         search_params=search_params, search_params_for_per_page=search_params_for_per_page
+
     )
 
 
@@ -1223,6 +1228,7 @@ def restore_from_backup(filename):
         if success:
             # --- 監査ログ記録 ---
             util.log_audit_event(
+
                 action='RESTORE_FROM_BACKUP',
                 details={
                     'filename': filename
@@ -1237,6 +1243,7 @@ def restore_from_backup(filename):
                 os._exit(0)
             import threading
             threading.Thread(target=restart_server).start()
+
         else:
             flash(
                 f'Failed to restore from backup "{filename}". Please check the logs for details.', 'error')
@@ -1256,6 +1263,7 @@ def wipe_all_data():
             return redirect(url_for('admin.backup_management'))
 
         if backup_util.wipe_all_data():
+
             # --- 監査ログ記録 ---
             util.log_audit_event(
                 action='WIPE_ALL_DATA'
@@ -1849,8 +1857,7 @@ def bbs_management():
         if all_boards:
             board_id_map = {board['shortcut_id']: board['id']
                             for board in all_boards}
-            board_info_map = {board['shortcut_id']
-                : board for board in all_boards}
+            board_info_map = {board['shortcut_id']                              : board for board in all_boards}
 
         def enrich_items_with_db_info(items):
             if not isinstance(items, list):
@@ -1873,6 +1880,7 @@ def bbs_management():
         return render_template(
             'admin/bbs_management.html', title="BBS Management", tab='menu',
             bbs_config=bbs_config,
+
             search_params={},
             search_params_for_per_page={},
             pagination={'total_pages': 0},
@@ -1883,6 +1891,153 @@ def bbs_management():
         )
 
     # Fallback redirect
+    return redirect(url_for('admin.bbs_management', tab='list'))
+
+
+@admin_bp.route('/boards/export/<int:board_id>')
+@sysop_required
+def export_board(board_id):
+    """指定された掲示板の情報と記事をJSON形式でエクスポートします。"""
+    board = database.get_board_by_id(board_id)
+    if not board:
+        flash(f"Board with ID {board_id} not found.", 'danger')
+        return redirect(url_for('admin.bbs_management', tab='list'))
+
+    articles = database.get_articles_by_board_id(
+        board_id, include_deleted=True)
+
+    # ユーザーIDからユーザー名へのマッピングを作成
+    user_ids = {
+        int(art['user_id']) for art in articles if str(art['user_id']).isdigit()
+    }
+    user_map = database.get_user_names_from_user_ids(list(user_ids))
+
+    # エクスポート用の記事リストを作成
+    exported_articles = []
+    for article in articles:
+        user_id_str = str(article['user_id'])
+        username = ''
+        if user_id_str.isdigit():
+            username = user_map.get(int(user_id_str), '')
+
+        exported_articles.append({
+            'article_number': article.get('article_number'),
+            'parent_article_id': article.get('parent_article_id'),
+            'user_id_original': article.get('user_id'),
+            'username_original': username,
+            'title': article.get('title'),
+            'body': article.get('body'),
+            'created_at': article.get('created_at'),
+            'is_deleted': article.get('is_deleted'),
+            'ip_address': article.get('ip_address'),
+            'attachment_originalname': article.get('attachment_originalname')
+        })
+
+    export_data = {
+        'board_info': dict(board),
+        'articles': exported_articles
+    }
+
+    response = Response(json.dumps(export_data, indent=2,
+                        ensure_ascii=False), mimetype='application/json')
+    response.headers["Content-Disposition"] = f"attachment; filename=board_{board['shortcut_id']}_export.json"
+    return response
+
+
+@admin_bp.route('/boards/import', methods=['POST'])
+@sysop_required
+def import_board():
+    """アップロードされたJSONファイルから新しい掲示板をインポートします。"""
+    if 'import_file' not in request.files:
+        flash('No file part', 'danger')
+        return redirect(url_for('admin.bbs_management', tab='list'))
+
+    file = request.files['import_file']
+    if file.filename == '':
+        flash('No selected file', 'danger')
+        return redirect(url_for('admin.bbs_management', tab='list'))
+
+    new_shortcut_id = request.form.get('new_shortcut_id', '').strip()
+    if not new_shortcut_id:
+        flash('New Shortcut ID is required for import.', 'danger')
+        return redirect(url_for('admin.bbs_management', tab='list'))
+
+    if database.get_board_by_shortcut_id(new_shortcut_id):
+        flash(f'Shortcut ID "{new_shortcut_id}" already exists.', 'danger')
+        return redirect(url_for('admin.bbs_management', tab='list'))
+
+    if file and file.filename.endswith('.json'):
+        try:
+            import_data = json.load(file.stream)
+            board_info = import_data.get('board_info', {})
+            articles_to_import = import_data.get('articles', [])
+
+            # 新しい掲示板を作成
+            new_board_id = database.create_board_entry(
+                shortcut_id=new_shortcut_id,
+                name=board_info.get('name', 'Imported Board'),
+                description=board_info.get('description', ''),
+                operators=board_info.get('operators', '[]'),
+                default_permission=board_info.get(
+                    'default_permission', 'open'),
+                kanban_body=board_info.get('kanban_body', ''),
+                status=board_info.get('status', 'active'),
+                read_level=board_info.get('read_level', 1),
+                write_level=board_info.get('write_level', 1),
+                board_type=board_info.get('board_type', 'simple'),
+                allow_attachments=board_info.get('allow_attachments', 0),
+                allowed_extensions=board_info.get('allowed_extensions'),
+                max_attachment_size_mb=board_info.get(
+                    'max_attachment_size_mb'),
+                max_threads=board_info.get('max_threads', 0),
+                max_replies=board_info.get('max_replies', 0)
+            )
+
+            if not new_board_id:
+                raise Exception(
+                    "Failed to create a new board in the database.")
+
+            # 記事をインポート
+            # 元の記事番号と新しい記事IDのマッピング
+            original_article_number_to_new_id = {}
+
+            for article_data in sorted(articles_to_import, key=lambda x: x.get('article_number', 0)):
+                # 投稿者IDを解決
+                user_id_to_save = '1'  # デフォルトはGUEST
+                if article_data.get('username_original'):
+                    user = database.get_user_auth_info(
+                        article_data['username_original'])
+                    if user:
+                        user_id_to_save = user['id']
+
+                # 親記事IDを解決
+                parent_id_to_save = None
+                original_parent_num = article_data.get('parent_article_id')
+                if original_parent_num and original_parent_num in original_article_number_to_new_id:
+                    parent_id_to_save = original_article_number_to_new_id[original_parent_num]
+
+                new_article_id = database.insert_article(
+                    board_id_pk=new_board_id,
+                    article_number=article_data.get('article_number'),
+                    user_identifier=user_id_to_save,
+                    title=article_data.get('title'),
+                    body=article_data.get('body'),
+                    timestamp=article_data.get('created_at'),
+                    ip_address=article_data.get('ip_address'),
+                    parent_article_id=parent_id_to_save
+                    # attachment_filename, attachment_originalname, attachment_size は今後の実装
+                )
+
+                original_article_number_to_new_id[article_data.get(
+                    'article_number')] = new_article_id
+
+            flash(
+                f'Successfully imported board as "{new_shortcut_id}". {len(articles_to_import)} articles were imported.', 'success')
+        except Exception as e:
+            flash(f'An error occurred during import: {e}', 'danger')
+    else:
+        flash('Please upload a valid .json file.', 'danger')
+
     return redirect(url_for('admin.bbs_management', tab='list'))
 
 

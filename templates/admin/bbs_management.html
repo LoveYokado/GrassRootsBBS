@@ -129,6 +129,31 @@
                 Board</a>
         </div>
 
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-upload mr-1"></i>
+                Import Board from JSON
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin.import_board') }}" enctype="multipart/form-data">
+                    <div class="form-row align-items-end">
+                        <div class="form-group col-md-4">
+                            <label for="import_file">JSON File</label>
+                            <input type="file" class="form-control-file" id="import_file" name="import_file"
+                                accept=".json" required>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="new_shortcut_id">New Shortcut ID</label>
+                            <input type="text" class="form-control" id="new_shortcut_id" name="new_shortcut_id"
+                                placeholder="e.g., imported_news" required>
+                        </div>
+                        <div class="form-group col-md-4"><button type="submit"
+                                class="btn btn-primary btn-block">Import</button></div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         {% include 'admin/_pagination.html' %}
 
         <div class="table-responsive">
@@ -196,6 +221,7 @@
                                 onsubmit="return confirm('Are you sure you want to delete board \'{{ board.name }}\' and all its articles? This action cannot be undone.');">
                                 <button type="submit" class="action-link-delete">Delete</button>
                             </form>
+                            | <a href="{{ url_for('admin.export_board', board_id=board.id) }}">Export</a>
                         </td>
                     </tr>
                     {% else %}

@@ -416,14 +416,14 @@ class BoardManager:
         return result['count'] if result else 0
 
     def create_entry(self, shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple", allow_attachments=0, allowed_extensions=None, max_attachment_size_mb=None, max_threads=0, max_replies=0):
-        """新しい掲示板をデータベースに作成します。"""
+        """新しい掲示板をデータベースに作成し、そのIDを返します。"""
         query = """
         INSERT INTO boards (shortcut_id, name, description, operators, default_permission, kanban_body, status, last_posted_at, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         params = (shortcut_id, name, description, operators, default_permission,
                   kanban_body, status, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies)
-        return self._db.execute_query(query, params) is not None
+        return self._db.execute_query(query, params)
 
     def delete_entry(self, shortcut_id):
         """ショートカットIDを指定して掲示板を削除します。関連データは削除されません。"""
@@ -611,7 +611,7 @@ class ArticleManager:
         return result['next_num'] if result else 1
 
     def insert(self, board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None, attachment_size=None):
-        """新しい記事をデータベースに挿入します。返信の場合は`parent_article_id`を指定します。"""
+        """新しい記事をデータベースに挿入し、そのIDを返します。返信の場合は`parent_article_id`を指定します。"""
         query = """
             INSERT INTO articles (board_id, article_number, user_id, parent_article_id, title, body, created_at, ip_address, attachment_filename, attachment_originalname, attachment_size)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -619,7 +619,7 @@ class ArticleManager:
         params = (board_id_pk, article_number, user_identifier,
                   parent_article_id, title, body, timestamp, ip_address,
                   attachment_filename, attachment_originalname, attachment_size)
-        return self._db.execute_query(query, params)
+        return self._db.execute_query(query, params)  # lastrowidを返す
 
     def get_by_id(self, article_id):
         """主キー（`id`）を指定して記事を取得します。"""
@@ -2096,7 +2096,7 @@ def get_total_board_count():
 
 
 def create_board_entry(shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level=1, write_level=1, board_type="simple", allow_attachments=0, allowed_extensions=None, max_attachment_size_mb=None, max_threads=0, max_replies=0):
-    return boards.create_entry(shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies)
+    return boards.create_entry(shortcut_id, name, description, operators, default_permission, kanban_body, status, read_level, write_level, board_type, allow_attachments, allowed_extensions, max_attachment_size_mb, max_threads, max_replies)  # noqa
 
 
 def delete_board_entry(shortcut_id):
@@ -2144,7 +2144,7 @@ def get_next_article_number(board_id_pk):
 
 
 def insert_article(board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address=None, parent_article_id=None, attachment_filename=None, attachment_originalname=None, attachment_size=None):
-    return articles.insert(board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address, parent_article_id, attachment_filename, attachment_originalname, attachment_size)
+    return articles.insert(board_id_pk, article_number, user_identifier, title, body, timestamp, ip_address, parent_article_id, attachment_filename, attachment_originalname, attachment_size)  # noqa
 
 
 def get_article_by_id(article_id):

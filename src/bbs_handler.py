@@ -15,6 +15,7 @@ import json
 import textwrap
 import re
 import base64
+import csv
 from . import util, hierarchical_menu, bbs_manager, database, manual_menu_handler, terminal_handler
 
 
@@ -164,6 +165,7 @@ class CommandHandler:
                     self.chan.send(b'\x1b[?2030h')
                 elif choice == 'e' or choice == '':
                     return "empty_exit"
+
                 else:
                     util.send_text_by_key(
                         self.chan, "common_messages.invalid_command", self.menu_mode)
@@ -1917,6 +1919,7 @@ def handle_bbs_menu(chan, login_id, display_name, menu_mode, shortcut_id, ip_add
             else:  # None (切断) の場合
                 return None
         else:  # 掲示板が見つからない場合
+
             util.send_text_by_key(
                 chan, "bbs.board_not_found", menu_mode, shortcut_id=shortcut_id)
     else:
