@@ -63,14 +63,6 @@ GUEST_ID_SALT = "your_unique_random_string_here"
 # この機能は外部APIへの問い合わせを行うため、パフォーマンスに影響を与える可能性があります。
 block_proxies = false
 
-# ログイン試行回数の上限
-# Maximum number of login attempts.
-MAX_PASSWORD_ATTEMPTS = 3
-
-# ログインロックアウト時間（秒）
-# Lockout time in seconds after too many failed login attempts.
-LOCKOUT_TIME_SECONDS = 300
-
 # IDの最小/最大文字数
 # Minimum/Maximum length for user IDs.
 ID_MIN_LENGTH = 3
@@ -152,16 +144,6 @@ backup_directory = "data/backups"
 # Directories to include in the backup (relative to project root).
 source_directories = ["data/attachments", "setting"]
 
-# 自動バックアップのスケジュール設定 (cron形式: 分 時 日 月 曜日)
-# Schedule for automatic backups (cron format: minute hour day month weekday).
-# 例: "0 3 * * *" は毎日午前3時に実行
-# Example: "0 3 * * *" runs every day at 3 AM.
-schedule = "0 3 * * *"
-
-# 自動クリーンアップで保持するバックアップの最大数
-# Maximum number of backups to keep during automatic cleanup.
-max_backups = 7
-
 [bbs]
 socket_timeout_seconds = 25
 # 記事本文の折り返し幅
@@ -170,11 +152,6 @@ article_wrap_width = 78
 # 返信本文の折り返し幅 (インデントを考慮)
 # Wrap width for reply bodies (considering indentation).
 reply_wrap_width = 76
-
-[plugins]
-# プラグイン実行のタイムアウト時間（秒）
-# Execution timeout for plugins in seconds.
-execution_timeout = 60
 
 [server]
 # BBSの名称 (ログファイル名などに使用)

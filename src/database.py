@@ -619,7 +619,7 @@ class ArticleManager:
         params = (board_id_pk, article_number, user_identifier,
                   parent_article_id, title, body, timestamp, ip_address,
                   attachment_filename, attachment_originalname, attachment_size)
-        return self._db.execute_query(query, params)
+        return self._db.execute_query(query, params)  # lastrowidを返す
 
     def get_by_id(self, article_id):
         """主キー（`id`）を指定して記事を取得します。"""
