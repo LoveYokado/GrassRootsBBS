@@ -576,7 +576,7 @@ class ArticleManager:
         if not include_deleted:
             where_clauses.append("is_deleted = 0")
 
-        query = f"SELECT id, article_number, user_id, parent_article_id, title, body, created_at, is_deleted, ip_address FROM articles WHERE {' AND '.join(where_clauses)} ORDER BY {order_by}"
+        query = f"SELECT id, article_number, user_id, parent_article_id, title, body, created_at, is_deleted, ip_address, attachment_filename, attachment_originalname, attachment_size FROM articles WHERE {' AND '.join(where_clauses)} ORDER BY {order_by}"
         return self._db.execute_query(query, tuple(params), fetch='all')
 
     def get_by_board_and_number(self, board_id, article_number, include_deleted=False):

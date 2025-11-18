@@ -1857,7 +1857,7 @@ def bbs_management():
         if all_boards:
             board_id_map = {board['shortcut_id']: board['id']
                             for board in all_boards}
-            board_info_map = {board['shortcut_id']                              : board for board in all_boards}
+            board_info_map = {board['shortcut_id']: board for board in all_boards}
 
         def enrich_items_with_db_info(items):
             if not isinstance(items, list):
@@ -1930,7 +1930,9 @@ def export_board(board_id):
             'created_at': article.get('created_at'),
             'is_deleted': article.get('is_deleted'),
             'ip_address': article.get('ip_address'),
-            'attachment_originalname': article.get('attachment_originalname')
+            'attachment_filename': article.get('attachment_filename'),
+            'attachment_originalname': article.get('attachment_originalname'),
+            'attachment_size': article.get('attachment_size')
         })
 
     export_data = {
@@ -2024,8 +2026,12 @@ def import_board():
                     body=article_data.get('body'),
                     timestamp=article_data.get('created_at'),
                     ip_address=article_data.get('ip_address'),
-                    parent_article_id=parent_id_to_save
-                    # attachment_filename, attachment_originalname, attachment_size は今後の実装
+                    parent_article_id=parent_id_to_save,
+                    attachment_filename=article_data.get(
+                        'attachment_filename'),
+                    attachment_originalname=article_data.get(
+                        'attachment_originalname'),
+                    attachment_size=article_data.get('attachment_size')
                 )
 
                 original_article_number_to_new_id[article_data.get(
