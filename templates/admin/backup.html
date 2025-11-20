@@ -106,6 +106,13 @@
     </div>
 </div>
 
+<div class="form-actions">
+    <form method="post" action="{{ url_for('admin.optimize_tables') }}"
+        onsubmit="return confirm('Optimize all database tables? This may take several minutes.');">
+        <button type="submit">Optimize Database Tables</button>
+    </form>
+</div>
+
 <div class="danger-zone">
     <h2>Danger Zone</h2>
     <p>This action is irreversible and will permanently delete ALL users, boards, articles, and attachments. Please be

@@ -1253,6 +1253,26 @@ def restore_from_backup(filename):
     return redirect(url_for('admin.backup_management'))
 
 
+@admin_bp.route('/optimize_tables', methods=['POST'])
+@sysop_required
+def optimize_tables():
+    """全てのデータベーステーブルを最適化します。"""
+    try:
+        result = database.optimize_all_tables()
+        if result:
+            flash('All database tables have been optimized.', 'success')
+            util.log_audit_event(action='OPTIMIZE_TABLES',
+                                 details={'status': 'success'})
+        else:
+            flash(
+                'Failed to optimize all database tables. Check the logs for details.', 'danger')
+            util.log_audit_event(action='OPTIMIZE_TABLES',
+                                 details={'status': 'failed'})
+    except Exception as e:
+        flash(f'An error occurred during table optimization: {e}', 'danger')
+    return redirect(url_for('admin.backup_management'))
+
+
 @admin_bp.route('/wipe-data', methods=['POST'])
 @sysop_required
 def wipe_all_data():
@@ -1857,7 +1877,8 @@ def bbs_management():
         if all_boards:
             board_id_map = {board['shortcut_id']: board['id']
                             for board in all_boards}
-            board_info_map = {board['shortcut_id']: board for board in all_boards}
+            board_info_map = {board['shortcut_id']
+                : board for board in all_boards}
 
         def enrich_items_with_db_info(items):
             if not isinstance(items, list):

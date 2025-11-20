@@ -2336,6 +2336,21 @@ def initialize_database_and_sysop(sysop_id, sysop_password, sysop_email):
     return initializer.initialize_and_sysop(sysop_id, sysop_password, sysop_email)
 
 
+def optimize_all_tables():
+    """全てのテーブルに対して `OPTIMIZE TABLE` コマンドを実行します。"""
+    try:
+        tables = ['users', 'server_pref', 'mails', 'telegrams', 'boards', 'articles', 'passkeys',
+                  'board_user_permissions', 'push_subscriptions', 'activitypub_actors', 'plugins', 'access_logs', 'bbs_list']
+        for table in tables:
+            query = f"OPTIMIZE TABLE `{table}`"
+            db_manager.execute_query(query)
+        logging.info("全てのテーブルの最適化が完了しました。")
+        return True
+    except Exception as e:
+        logging.error(f"テーブル最適化中にエラーが発生しました: {e}", exc_info=True)
+        return False
+
+
 def save_plugin_data(plugin_id, key, value):
     """プラグインのデータを保存または更新します。"""
     return plugin_data_manager.save(plugin_id, key, value)
