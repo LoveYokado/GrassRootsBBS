@@ -1668,7 +1668,11 @@ function makePopupDraggable(popup) {
         }
     });
 }
-document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
+document.querySelectorAll('.popup-window').forEach(popup => {
+    if (popup.id !== 'line-editor-window') {
+        makePopupDraggable(popup);
+    }
+});
 makePopupDraggable(logViewerWindow);
 
 // 画像ポップアップのクリックイベント（オーバーレイまたは画像自体をクリックで閉じる）

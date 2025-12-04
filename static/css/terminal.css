@@ -199,7 +199,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 
 .monitor-screen {
   background-color: #000;
-  padding: 10px;
+  padding: 10px 10px 40px 10px; /* 下部のパディングを広げてエディタのスペースを確保 */
   box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.9);
   border-style: solid;
   border-width: 2px;
@@ -384,9 +384,23 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   min-width: 300px;
 }
 
+/* --- 1行エディタの新しいスタイル --- */
 #line-editor-window {
-  width: 80%;
-  max-width: 900px;
+  /* 位置をターミナルの下部に変更 */
+  position: absolute;
+  top: auto; /* top: 50% を上書き */
+  bottom: 10px; /* 親要素(.monitor-screen)の下から10pxの位置 */
+  left: 10px; /* 親要素の左から10pxの位置 */
+  transform: none; /* transformをリセット */
+  width: calc(100% - 20px); /* 左右のパディング(10px * 2)を引く */
+  /* デザインをコンパクトに変更 */
+  background: #000;
+  border: 1px solid #888;
+  border-radius: 0;
+  padding: 4px 8px;
+  box-shadow: none;
+  box-sizing: border-box;
+  z-index: 100; /* 他の要素より手前に */
 }
 
 .popup-overlay.visible,
@@ -403,13 +417,6 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   margin-bottom: 15px;
   cursor: grab;
   user-select: none;
-}
-
-.popup-header h2 {
-  margin: 0;
-  color: #706b58;
-  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7),
-    -1px -1px 1px rgba(0, 0, 0, 0.1);
 }
 
 .popup-close-btn {
@@ -441,6 +448,23 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   color: #504b38;
   cursor: pointer;
   border-radius: 3px;
+}
+
+/* 1行エディタではヘッダーとボタンを非表示にする */
+#line-editor-window .popup-header h2,
+#line-editor-window .popup-content button {
+  display: none;
+}
+/* ただし、閉じるボタンは表示してスタイルを調整 */
+#line-editor-window .popup-close-btn {
+  display: block;
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  padding: 0 5px;
+  color: #888;
 }
 
 /* --- ログビューワーのスタイル調整 --- */
