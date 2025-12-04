@@ -37,9 +37,9 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
 
     # --- カラム幅の定義 ---
     # 送信者/受信者: 21文字, 件名: 31文字
-    # textdata.yaml のヘッダ定義と一致します。
-    SENDER_RCPT_WIDTH = 21
-    SUBJECT_WIDTH = 31
+    # ターミナルの横幅(約80文字)に合わせて調整します。
+    SENDER_RCPT_WIDTH = 14
+    SUBJECT_WIDTH = 38
 
     mail_id = mail_data['id']
     date_str = util.format_timestamp(
@@ -65,12 +65,10 @@ def format_mail_header_str(mail_data, view_mode, mail_id_width=5):  # noqa
         else:
             if view_mode == 'inbox' and mail_data['is_read'] == 0:
                 status_mark_char = "#"
-            display_subject_final = util.shorten_text_by_slicing(
-                subject, width=SUBJECT_WIDTH)
+            display_subject_final = subject
     except KeyError as e:
         logging.warning(f"メールヘッダ表示中にキーエラー ({mail_id}): {e}")
-        display_subject_final = util.shorten_text_by_slicing(
-            subject, width=SUBJECT_WIDTH)
+        display_subject_final = subject
 
     # --- 送信者名/受信者名を決定 ---
     display_name = ""
