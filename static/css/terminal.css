@@ -199,7 +199,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 
 .monitor-screen {
   background-color: #000;
-  padding: 10px;
+  padding: 10px 10px 40px 10px; /* 下部のパディングを広げてエディタのスペースを確保 */
   box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.9);
   border-style: solid;
   border-width: 2px;
@@ -384,9 +384,21 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   min-width: 300px;
 }
 
+/* --- 1行エディタスタイル --- */
 #line-editor-window {
-  width: 80%;
-  max-width: 900px;
+  position: absolute;
+  top: auto; /* top: 50% を上書き */
+  bottom: 10px; /* 親要素(.monitor-screen)の下から10pxの位置 */
+  left: 10px; /* 親要素の左から10pxの位置 */
+  transform: none; /* transformをリセット */
+  width: calc(100% - 20px); /* 左右のパディング(10px * 2)を引く */
+  background: #000;
+  border: 1px solid #888;
+  border-radius: 0;
+  padding: 4px 8px;
+  box-shadow: none;
+  box-sizing: border-box;
+  z-index: 100; /* 他の要素より手前に */
 }
 
 .popup-overlay.visible,
@@ -403,13 +415,6 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   margin-bottom: 15px;
   cursor: grab;
   user-select: none;
-}
-
-.popup-header h2 {
-  margin: 0;
-  color: #706b58;
-  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7),
-    -1px -1px 1px rgba(0, 0, 0, 0.1);
 }
 
 .popup-close-btn {
@@ -443,7 +448,30 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   border-radius: 3px;
 }
 
-/* --- ログビューワーのスタイル調整 --- */
+/* 1行エディタではヘッダーとボタンを非表示にする */
+#line-editor-window .popup-header h2,
+#line-editor-window .popup-content button {
+  display: none;
+}
+/* ただし、閉じるボタンは表示してスタイルを調整 */
+#line-editor-window .popup-close-btn {
+  position: absolute;
+  top: -25px;
+  right: 5px; /* 右端からの距離 */
+  transform: none; /* 垂直方向のtransformをリセット */
+  width: 22px; /* ボタンの幅 */
+  height: 22px; /* ボタンの高さ */
+  padding: 0; /* パディングをリセット */
+  font-size: 1rem; /* ×記号のサイズ */
+  line-height: 20px; /* ×記号を垂直方向に中央揃え */
+  text-align: center; /* ×記号を水平方向に中央揃え */
+  color: #aaa; /* ×記号の色 */
+  border: 1px solid #888; /* 四角い枠線 */
+  background-color: #222; /* ボタンの背景色 */
+  border-radius: 3px; /* 角を少し丸める */
+}
+
+/* --- ログビューワ --- */
 #log-viewer-window {
   width: 80vw;
   height: 70vh;

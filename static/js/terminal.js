@@ -564,7 +564,6 @@ multilineEditorInsertBtn.addEventListener('click', () => {
 function openLineEditor() {
     lineEditorInput.value = '';
     historyIndex = lineEditorHistory.length;
-    lineEditorOverlay.classList.add('visible');
     lineEditorWindow.classList.add('visible');
     lineEditorInput.focus();
 }
@@ -573,18 +572,20 @@ function openLineEditor() {
  * 1行エディタのポップアップを閉じます。
  */
 function closeLineEditor() {
-    lineEditorOverlay.classList.remove('visible');
     lineEditorWindow.classList.remove('visible');
 }
 
 lineEditorInsertBtn.addEventListener('click', () => {
     // 入力されたテキストを履歴に追加し、サーバーに送信
     const textToInsert = lineEditorInput.value;
-    if (lineEditorHistory.length === 0 || lineEditorHistory[lineEditorHistory.length - 1] !== textToInsert) {
+    // 空でない場合のみ履歴に追加
+    if (textToInsert && (lineEditorHistory.length === 0 || lineEditorHistory[lineEditorHistory.length - 1] !== textToInsert)) {
         lineEditorHistory.push(textToInsert);
     }
     socket.emit('client_input', textToInsert + '\r'); // サーバー側の process_input を終了させるために改行を追加
-    closeLineEditor();
+    lineEditorInput.value = ''; // 入力欄をクリア
+    historyIndex = lineEditorHistory.length; // 履歴インデックスをリセット
+    lineEditorInput.focus(); // フォーカスを維持
 });
 
 // 1行エディタでのキーボードイベント（Enter, 上下矢印）を処理
@@ -782,18 +783,17 @@ for (let i = 1; i <= 8; i++) {
 
 popupCloseBtn.addEventListener('click', closePopup);
 popupOverlay.addEventListener('click', closePopup);
+
+// 1行エディタの閉じる/キャンセルボタンは、入力をキャンセル（空行を送信）して閉じる
 lineEditorCloseBtn.addEventListener('click', () => {
-    socket.emit('client_input', '\r'); 
+    socket.emit('client_input', '\r'); // サーバーの入力待ちを解除
     closeLineEditor();
 });
 lineEditorCancelBtn.addEventListener('click', () => {
-    socket.emit('client_input', '\r'); 
-    closeLineEditor();
+    lineEditorCloseBtn.click(); // 閉じるボタンと同じ動作
 });
-lineEditorOverlay.addEventListener('click', () => {
-    socket.emit('client_input', '\r'); 
-    closeLineEditor();
-});
+
+// マルチラインエディタの閉じる/キャンセルボタンは、空の内容を送信して閉じる
 multilineEditorCloseBtn.addEventListener('click', () => {
     socket.emit('multiline_input_submit', { content: '' }); 
     closeMultilineEditor();
@@ -806,7 +806,6 @@ multilineEditorOverlay.addEventListener('click', () => {
     socket.emit('multiline_input_submit', { content: '' }); 
     closeMultilineEditor();
 });
-multilineEditorOverlay.addEventListener('click', closeMultilineEditor);
 logViewerCloseBtn.addEventListener('click', closeLogViewer);
 logViewerOverlay.addEventListener('click', closeLogViewer);
 
@@ -1669,7 +1668,11 @@ function makePopupDraggable(popup) {
         }
     });
 }
-document.querySelectorAll('.popup-window').forEach(makePopupDraggable);
+document.querySelectorAll('.popup-window').forEach(popup => {
+    if (popup.id !== 'line-editor-window') {
+        makePopupDraggable(popup);
+    }
+});
 makePopupDraggable(logViewerWindow);
 
 // 画像ポップアップのクリックイベント（オーバーレイまたは画像自体をクリックで閉じる）
