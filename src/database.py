@@ -1825,6 +1825,7 @@ class DatabaseInitializer:
                     actor_identifier VARCHAR(255) NOT NULL,
                     private_key_pem TEXT,
                     public_key_pem TEXT,
+                    is_enabled BOOLEAN NOT NULL DEFAULT 0,
                     created_at INT,
                     UNIQUE KEY (actor_type, actor_identifier)
                 )
