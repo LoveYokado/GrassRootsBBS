@@ -384,16 +384,14 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   min-width: 300px;
 }
 
-/* --- 1行エディタの新しいスタイル --- */
+/* --- 1行エディタスタイル --- */
 #line-editor-window {
-  /* 位置をターミナルの下部に変更 */
   position: absolute;
   top: auto; /* top: 50% を上書き */
   bottom: 10px; /* 親要素(.monitor-screen)の下から10pxの位置 */
   left: 10px; /* 親要素の左から10pxの位置 */
   transform: none; /* transformをリセット */
   width: calc(100% - 20px); /* 左右のパディング(10px * 2)を引く */
-  /* デザインをコンパクトに変更 */
   background: #000;
   border: 1px solid #888;
   border-radius: 0;
@@ -457,17 +455,23 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 }
 /* ただし、閉じるボタンは表示してスタイルを調整 */
 #line-editor-window .popup-close-btn {
-  display: block;
   position: absolute;
-  top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
-  font-size: 1.2rem;
-  padding: 0 5px;
-  color: #888;
+  top: -25px;
+  right: 5px; /* 右端からの距離 */
+  transform: none; /* 垂直方向のtransformをリセット */
+  width: 22px; /* ボタンの幅 */
+  height: 22px; /* ボタンの高さ */
+  padding: 0; /* パディングをリセット */
+  font-size: 1rem; /* ×記号のサイズ */
+  line-height: 20px; /* ×記号を垂直方向に中央揃え */
+  text-align: center; /* ×記号を水平方向に中央揃え */
+  color: #aaa; /* ×記号の色 */
+  border: 1px solid #888; /* 四角い枠線 */
+  background-color: #222; /* ボタンの背景色 */
+  border-radius: 3px; /* 角を少し丸める */
 }
 
-/* --- ログビューワーのスタイル調整 --- */
+/* --- ログビューワ --- */
 #log-viewer-window {
   width: 80vw;
   height: 70vh;
