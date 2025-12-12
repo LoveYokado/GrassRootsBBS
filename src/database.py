@@ -236,7 +236,7 @@ class UserManager:
     def register(self, username, hashed_password, salt, comment, level=0, menu_mode='2', telegram_restriction=0, email=''):
         """新しいユーザーをデータベースに登録します。ユーザー名は自動的に大文字に変換されます。"""
         query = """
-            INSERT INTO users (name, password, salt, registdate, level, lastlogin, lastlogout,
+            INSERT IGNORE INTO users (name, password, salt, registdate, level, lastlogin, lastlogout,
                 comment, email, menu_mode, telegram_restriction, blacklist,
                 exploration_list, read_progress
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
