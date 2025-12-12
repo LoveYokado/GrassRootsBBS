@@ -52,10 +52,7 @@ def load_plugins():
         if os.path.isdir(plugin_dir) and os.path.exists(metadata_path):
             plugin_id = item
             try:
-                # DBに設定がなければデフォルトで有効とし、その設定をDBに保存
                 is_enabled = plugin_settings.get(plugin_id, True)
-                if plugin_id not in plugin_settings:
-                    database.upsert_plugin_setting(plugin_id, True)
 
                 if not is_enabled:
                     logging.info(

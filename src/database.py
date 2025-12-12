@@ -1852,6 +1852,41 @@ class DatabaseInitializer:
                     INDEX (ip_address),
                     INDEX (user_id)
                 )
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS bbs_list (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    name VARCHAR(255) NOT NULL,
+                    url VARCHAR(255) UNIQUE NOT NULL,
+                    description TEXT,
+                    source VARCHAR(50) NOT NULL,
+                    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+                    submitted_by INT,
+                    created_at INT,
+                    FOREIGN KEY (submitted_by) REFERENCES users(id) ON DELETE SET NULL
+                )
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS ip_bans (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    ip_address VARCHAR(45) UNIQUE NOT NULL,
+                    reason TEXT,
+                    added_by INT,
+                    created_at INT,
+                    FOREIGN KEY (added_by) REFERENCES users(id) ON DELETE SET NULL
+                )
+                """,
+                """
+                CREATE TABLE IF NOT EXISTS plugin_data (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    plugin_id VARCHAR(255) NOT NULL,
+                    `key` VARCHAR(255) NOT NULL,
+                    `value` JSON,
+                    created_at INT,
+                    updated_at INT,
+                    UNIQUE KEY (plugin_id, `key`),
+                    INDEX (plugin_id)
+                )
                 """
             ]
             for query in create_queries:
@@ -1863,7 +1898,7 @@ class DatabaseInitializer:
             # server_pref
             if not self._db.execute_query("SELECT * FROM server_pref", fetch='one'):
                 self._db.execute_query(
-                    "INSERT INTO server_pref (id, login_message) VALUES (%s, %s)",
+                    "INSERT IGNORE INTO server_pref (id, login_message) VALUES (%s, %s)",
                     (1, 'GR-BBSへようこそ！')
                 )
                 logging.info("Initialized server_pref with default values.")

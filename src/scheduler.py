@@ -8,7 +8,7 @@ from croniter import croniter
 
 # Flaskアプリケーションの機能を利用するために必要なモジュールをインポート
 from .factory import create_app
-from . import database, backup_util
+from . import database, backup_util, plugin_manager
 
 # ロギングの基本設定
 logging.basicConfig(
