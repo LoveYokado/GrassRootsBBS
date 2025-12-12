@@ -1906,29 +1906,27 @@ class DatabaseInitializer:
             # Sysopユーザー
             # usersマネージャーのメソッドを使用
             if not users.get_auth_info(sysop_id):
-                salt, hashed_password = util.hash_password(sysop_password)
-                users.register(
-                    username=sysop_id,
-                    hashed_password=hashed_password,
-                    salt=salt,
-                    comment='Sysop',
-                    level=5,
-                    email=sysop_email
-                )
-                logging.info(f"Sysop user '{sysop_id}' created.")
+                logging.info(f"Sysop user '{sysop_id}' not found, creating...")
+            salt, hashed_password = util.hash_password(sysop_password)
+            users.register(
+                username=sysop_id, hashed_password=hashed_password, salt=salt,
+                comment='Sysop', level=5, email=sysop_email
+            )
+            logging.info(f"Attempted to create Sysop user '{sysop_id}'.")
 
             # Guestユーザー
             if not users.get_auth_info('GUEST'):
-                salt, hashed_password = util.hash_password('GUEST')
-                users.register(
-                    username='GUEST',
-                    hashed_password=hashed_password,
-                    salt=salt,
-                    comment='Guest',
-                    level=1,
-                    email='guest@example.com'
-                )
-                logging.info("Guest user created.")
+                logging.info("Guest user not found, creating...")
+            guest_salt, guest_hashed_password = util.hash_password('GUEST')
+            users.register(
+                username='GUEST',
+                hashed_password=guest_hashed_password,
+                salt=guest_salt,
+                comment='Guest',
+                level=1,
+                email='guest@example.com'
+            )
+            logging.info("Attempted to create Guest user.")
 
             return True
         except Exception as e:
