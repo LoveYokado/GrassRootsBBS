@@ -30,16 +30,6 @@ RP_ID = "localhost"
 # Directory for attachment uploads.
 ATTACHMENT_UPLOAD_DIR = "data/attachments"
 
-[database]
-# Docker Compose環境では、これらの値は .env ファイルから読み込まれるため、通常このセクションの編集は不要です。
-# In a Docker Compose environment, these values are read from the .env file,
-# so editing this section is usually not necessary.
-# 独自環境でセットアップする場合にのみ、実際の接続情報を記述してください。
-host = "db"
-user = "grbbs_user"
-password = "password"
-name = "grbbs"
-
 [paths]
 # メニュー定義ファイルのパス
 # Paths to menu definition files.

@@ -84,7 +84,7 @@ cd GrassRootsBBS
 
 ### 2. 環境変数の設定
 
-`.env.example` をコピーして `.env` ファイルを作成し、内容を編集します。
+`.env.example` をコピーして `.env` ファイルを作成し、内容を編集します。このファイルで、管理者アカウントとデータベースの接続情報を設定します。
 
 ```bash
 cp .env.example .env

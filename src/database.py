@@ -2430,12 +2430,11 @@ def init_app(app):
     """ 
     Flaskアプリケーションインスタンスを使用してデータベース接続プールを初期化します。
     """
-    db_config_from_file = app.config.get('DATABASE', {})
     db_config = {
-        'host': os.getenv('DB_HOST', db_config_from_file.get('host', 'localhost')),
-        'user': os.getenv('DB_USER', db_config_from_file.get('user', 'grbbs_user')),
-        'password': os.getenv('DB_PASSWORD', db_config_from_file.get('password', 'password')),
-        'database': os.getenv('DB_NAME', db_config_from_file.get('name', 'grbbs')),
+        'host': os.getenv('DB_HOST', 'localhost'),
+        'user': os.getenv('DB_USER', 'grbbs_user'),
+        'password': os.getenv('DB_PASSWORD', ''),
+        'database': os.getenv('DB_NAME', 'grbbs'),
         'charset': 'utf8mb4',
         'collation': 'utf8mb4_general_ci',
         'autocommit': False
