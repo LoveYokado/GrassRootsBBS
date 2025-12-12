@@ -1,8 +1,11 @@
 # SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
 # SPDX-License-Identifier: MIT
 
-from pywebpush import vapid
 import os
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.backends import default_backend
+import logging
 
 
 def generate_keys():
@@ -16,24 +19,43 @@ def generate_keys():
     private_key_path = os.path.join(project_root, 'private_key.pem')
     public_key_path = os.path.join(project_root, 'public_key.pem')
 
-    # pywebpushライブラリのコマンドライン機能を呼び出して鍵を生成・保存
     try:
         print("Generating VAPID keys...")
-        vapid.main(['--private', private_key_path,
-                   '--public', public_key_path])
+        # 楕円曲線暗号(ECC)のキーペアを生成 (P-256カーブを使用)
+        private_key = ec.generate_private_key(
+            ec.SECP256R1(), default_backend()
+        )
+
+        # --- 秘密鍵をPEM形式で保存 ---
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+        with open(private_key_path, 'wb') as f:
+            f.write(private_pem)
+
+        # --- 公開鍵をPEM形式で保存 ---
+        public_key = private_key.public_key()
+        public_pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+        with open(public_key_path, 'wb') as f:
+            f.write(public_pem)
 
         print("\n" + "="*50)
         print("VAPID keys have been generated successfully!")
         print(f"  - Private Key: {private_key_path}")
         print(f"  - Public Key:  {public_key_path}")
         print("\nNext Steps:")
-        print("1. Ensure 'private_key.pem' is in the project root directory.")
         print(
-            "2. Copy the content of 'public_key.pem' into your config.toml under [push] -> VAPID_PUBLIC_KEY.")
+            "Set the values for VAPID_CLAIMS_EMAIL and VAPID_PRIVATE_KEY in 'config.toml' under [push] section.")
         print("="*50 + "\n")
 
     except Exception as e:
-        print(f"\nAn error occurred during key generation: {e}")
+        logging.error(
+            f"An error occurred during key generation: {e}", exc_info=True)
 
 
 if __name__ == "__main__":
