@@ -6,7 +6,6 @@ SPDX-License-Identifier: MIT
 *::before,
 *::after {
   box-sizing: border-box;
-  /* レイアウト計算を容易にするため、全要素に適用 */
 }
 
 html {
@@ -15,7 +14,6 @@ html {
 
 body {
   min-height: 100%;
-  /* コンテンツが少なくても画面の高さいっぱいに広がるように */
   margin: 0;
   background-color: #282c34;
   font-family: '"M PLUS 1m", "Courier New", monospace';
@@ -164,7 +162,6 @@ button:active {
   text-decoration: none;
 }
 
-/* --- Static Page Container (for Privacy Policy, Contact, etc.) --- */
 .static-container {
   background-color: rgba(0, 20, 0, 0.75);
   border: 1px solid rgba(0, 255, 0, 0.3);
@@ -219,7 +216,6 @@ button:active {
 @media screen and (max-width: 992px) {
   body {
     display: block;
-    /* flexboxによる中央寄せを解除 */
     padding: 2rem 1rem;
   }
 
@@ -229,7 +225,6 @@ button:active {
     padding: 20px;
     box-shadow: none;
     margin: 0 auto;
-    /* 水平中央寄せ */
   }
 
   .logo {

@@ -86,7 +86,6 @@ body {
 
 #scroll-to-bottom-btn img {
   transform: rotate(90deg);
-  /* 矢印アイコンを90度回転 */
 }
 
 .sidenav {
@@ -120,7 +119,6 @@ body {
   top: 0;
   right: 25px;
   font-size: 2.2rem;
-  /* ベースフォントサイズに連動させる */
   margin-left: 50px;
   color: #d3cba0;
 }
@@ -139,7 +137,6 @@ body {
   border: 1px solid;
 }
 
-/* テーマごとのスタイル */
 body.theme-default .sidenav a:not(.closebtn) {
   background-color: #333;
   border-color: #555;
@@ -180,9 +177,6 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   box-shadow: none;
 }
 
-/* 
- * ベゼルがオフのときはフッターのブランドロゴも非表示にします。
- */
 .monitor-chassis.bezel-off .monitor-footer {
   display: none;
 }
@@ -199,7 +193,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 
 .monitor-screen {
   background-color: #000;
-  padding: 10px 10px 40px 10px; /* 下部のパディングを広げてエディタのスペースを確保 */
+  padding: 10px 10px 40px 10px;
   box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.9);
   border-style: solid;
   border-width: 2px;
@@ -221,7 +215,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 }
 
 /* 
- * 走査線エフェクトを擬似要素で追加します。
+ * 走査線エフェクト
  */
 .monitor-screen.scanline-effect::after {
   content: " ";
@@ -274,7 +268,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   box-sizing: border-box;
 }
 
-/* --- ログビューワー用ポップアップのスタイル --- */
+/* --- ログビューワー用ポップアップ --- */
 #log-viewer-window {
   width: 80vw;
   height: 70vh;
@@ -295,7 +289,6 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   padding-right: 15px;
 }
 
-/* --- BBSリストビューワー用ポップアップのスタイル --- */
 #bbs-list-window {
   width: 80vw;
   height: 70vh;
@@ -387,18 +380,18 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 /* --- 1行エディタスタイル --- */
 #line-editor-window {
   position: absolute;
-  top: auto; /* top: 50% を上書き */
-  bottom: 10px; /* 親要素(.monitor-screen)の下から10pxの位置 */
-  left: 10px; /* 親要素の左から10pxの位置 */
-  transform: none; /* transformをリセット */
-  width: calc(100% - 20px); /* 左右のパディング(10px * 2)を引く */
+  top: auto;
+  bottom: 10px;
+  left: 10px;
+  transform: none;
+  width: calc(100% - 20px);
   background: #000;
   border: 1px solid #888;
   border-radius: 0;
   padding: 4px 8px;
   box-shadow: none;
   box-sizing: border-box;
-  z-index: 100; /* 他の要素より手前に */
+  z-index: 100;
 }
 
 .popup-overlay.visible,
@@ -457,18 +450,18 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 #line-editor-window .popup-close-btn {
   position: absolute;
   top: -25px;
-  right: 5px; /* 右端からの距離 */
-  transform: none; /* 垂直方向のtransformをリセット */
-  width: 22px; /* ボタンの幅 */
-  height: 22px; /* ボタンの高さ */
-  padding: 0; /* パディングをリセット */
-  font-size: 1rem; /* ×記号のサイズ */
-  line-height: 20px; /* ×記号を垂直方向に中央揃え */
-  text-align: center; /* ×記号を水平方向に中央揃え */
-  color: #aaa; /* ×記号の色 */
-  border: 1px solid #888; /* 四角い枠線 */
-  background-color: #222; /* ボタンの背景色 */
-  border-radius: 3px; /* 角を少し丸める */
+  right: 5px;
+  transform: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 20px;
+  text-align: center;
+  color: #aaa;
+  border: 1px solid #888;
+  background-color: #222;
+  border-radius: 3px;
 }
 
 /* --- ログビューワ --- */
@@ -722,7 +715,6 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
     width: 90vw;
     max-height: 85vh;
     overflow-y: auto;
-    /* コンテンツが多い場合にスクロール可能にする */
   }
 
   #popup-window .popup-content h3 {
@@ -1175,9 +1167,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   display: flex;
   justify-content: center;
   gap: 12px;
-  /* グループ間の隙間 */
   flex-wrap: wrap;
-  /* 画面が狭い場合に折り返す */
 }
 
 .dip-switch-group {
@@ -1201,7 +1191,6 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   color: white;
   font-family: "Courier New", monospace !important;
   font-size: 10px !important;
-  /* フォントサイズを固定 */
   text-shadow: 1px 1px 1px #000;
 }
 
@@ -1259,13 +1248,11 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 
 /* --- 画像のみのポップアップ --- */
 .popup-overlay.image-only-popup.visible {
-  /* visibleクラスが付いた時だけflexで中央揃えにする */
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: rgba(0, 0, 0, 0.8);
   cursor: pointer;
-  /* クリック可能であることを示す */
 }
 
 .popup-overlay.image-only-popup img {

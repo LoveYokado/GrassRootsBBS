@@ -25,16 +25,16 @@ h5 {
 
 /* --- Layout & Sidebar --- */
 .sidebar {
-  position: fixed; /* 画面に固定 */
+  position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
-  width: 240px; /* サイドバーの幅 */
+  width: 240px;
   background-color: #1a1a1a;
   border-right: 1px solid #444;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
   z-index: 100;
-  overflow-y: auto; /* コンテンツが多い場合にスクロール */
+  overflow-y: auto;
   transition: transform 0.3s ease-in-out;
 }
 
@@ -107,11 +107,10 @@ h5 {
 }
 
 .main {
-  margin-left: 0; /* サイドバーが閉じた状態をデフォルトにする */
+  margin-left: 0;
   transition: margin-left 0.3s ease-in-out;
 }
 
-/* bodyにsidebar-openクラスが付いたらメインコンテンツを押し出す */
 body.sidebar-open .main {
   margin-left: 240px;
 }
@@ -143,7 +142,6 @@ body.sidebar-open .main {
   transition: 0.3s;
 }
 
-/* サイドバーをデフォルトで隠し、bodyにsidebar-openクラスが付いたら表示する */
 .sidebar {
   transform: translateX(-100%);
 }
@@ -171,11 +169,11 @@ body.sidebar-open .sidebar {
   }
 
   .main {
-    margin-left: 240px; /* サイドバーの幅分、常にマージンを確保 */
+    margin-left: 240px;
   }
 
   .main .navbar {
-    display: none; /* デスクトップではメインコンテンツ内のnavbar（ハンバーガーボタン）を非表示 */
+    display: none;
   }
 }
 /* --- テーブル --- */
@@ -411,18 +409,16 @@ td a:hover {
 }
 
 .tab-content {
-  /* タブ内のテーブルが他のページと同じスタイルになるように調整 */
   background-color: #2a2a2a;
   border: none;
   padding: 0;
 }
 
 .nav-tabs.card-header-tabs {
-  margin-bottom: -0.75rem; /* card-headerのpaddingを相殺 */
+  margin-bottom: -0.75rem;
   border-bottom: 0;
 }
 
-/* --- Pagination Styles --- */
 .pagination-controls {
   display: flex;
   justify-content: space-between;
