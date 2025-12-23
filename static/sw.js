@@ -2,7 +2,7 @@
 
 self.addEventListener('install', (event) => {
     console.log('Service Worker installing.');
-    // self.skipWaiting(); // 待機中のService Workerを強制的にアクティブにします。
+    // self.skipWaiting(); // 待機中のService Workerを強制的にアクティブ
 });
 
 self.addEventListener('activate', event => {

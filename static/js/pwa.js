@@ -3,8 +3,8 @@
 let vapidPublicKey = null;
 
 /**
- * Base64URLエンコードされた文字列をUint8Arrayに変換します。
- * @param {string} base64String - Base64URL文字列
+ * Base64URLエンコードされた文字列をUint8Arrayに変換
+ * @param {string} base64String 
  * @returns {Uint8Array}
  */
 function urlBase64ToUint8Array(base64String) {
@@ -23,7 +23,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 /**
- * ユーザーをプッシュ通知に登録します。
+ * ユーザーをプッシュ通知に登録
  */
 async function subscribeUser() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -64,7 +64,7 @@ async function subscribeUser() {
 }
 
 /**
- * ユーザーのプッシュ通知登録を解除します。
+ * ユーザーのプッシュ通知登録を解除
  */
 async function unsubscribeUser() {
     const registration = await navigator.serviceWorker.ready;

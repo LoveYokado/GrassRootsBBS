@@ -1692,7 +1692,7 @@ let pushStatus;
 
 const sidenavInstallContainer = document.createElement('div');
 sidenavInstallContainer.id = 'pwa-install-container-sidenav';
-sidenavInstallContainer.style.display = 'none'; // 最初は非表示
+sidenavInstallContainer.style.display = 'none';
 sidenavInstallContainer.style.padding = '8px 15px';
 
 const sidenavInstallButton = document.createElement('a');
@@ -1740,7 +1740,7 @@ async function handleInstallPrompt() {
 sidenavInstallButton.addEventListener('click', handleInstallPrompt);
 
 /**
- * プッシュ通知の現在の状態をチェックし、UIを更新します。
+ * プッシュ通知の現在の状態をチェックし、UIを更新
  */
 async function updatePushStatus() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -1982,7 +1982,7 @@ function closeNav() {
 } 
 
 /**
- * 関数が連続して呼び出されるのを防ぎ、最後の呼び出しから指定時間後に一度だけ実行します。
+ * 関数が連続して呼び出されるのを防ぎ、最後の呼び出しから指定時間後に一度だけ実行
  * @param {Function} func - デバウンス対象の関数
  * @param {number} wait - 待機時間 (ミリ秒)
  * @returns {Function}
@@ -1997,7 +1997,7 @@ function debounce(func, wait) {
 }
 
 /**
- * 新しいPasskeyの登録フローを開始します。
+ * 新しいPasskeyの登録フローを開始
  */
 async function registerNewPasskey(callback) {
     let options;
