@@ -5,12 +5,12 @@ data/bbs.db
 data/attachments/*
 data/backups/*
 data/quarantine/*
-logs/*
+logs/
 setting/config.toml
 setting/trackingdata.txt
 static/manifest.json
 .env
-.vscode
+.vscode/
 docker-compose.yml
 private_key.pem
 public_key.pem
