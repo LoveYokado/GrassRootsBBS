@@ -5,7 +5,7 @@ services:
   grassrootsbbs:
     build: .
     container_name: grassrootsbbs-app
-    user: "${UID:-1000}:${GID:-1000}"
+    # user: "${UID:-1000}:${GID:-1000}"
     # ホストの5000番ポートをコンテナの5000番ポートにマッピング
     ports:
       - "5000:5000"

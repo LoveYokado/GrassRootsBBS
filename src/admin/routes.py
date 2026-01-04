@@ -1716,7 +1716,6 @@ def bbs_management():
     if request.method == 'POST':
         bbs_config = util.load_bbs_config()
         action = request.form.get('action')
-
         try:
             if action == 'add':
                 parent_id = request.form.get('parent_id')
@@ -1725,31 +1724,32 @@ def bbs_management():
 
                 if not new_id:
                     flash('ID is required.', 'danger')
-                else:
-                    new_item = {'id': new_id, 'type': new_type}
+                    return redirect(url_for('admin.bbs_management', tab='menu'))
 
-                    if parent_id == 'root_categories':
-                        bbs_config.setdefault(
-                            'categories', []).append(new_item)
+                new_item = {'id': new_id, 'type': new_type}
+                added = False
+                if parent_id == 'root_categories':
+                    bbs_config.setdefault('categories', []).append(new_item)
+                    added = True
+                else:
+                    parent_item, _, _ = find_item_and_parent(
+                        bbs_config.get('categories', []), parent_id)
+                    if parent_item and parent_item.get('type') == 'child':
+                        parent_item.setdefault('items', []).append(new_item)
+                        added = True
                     else:
-                        parent_item, _, _ = find_item_and_parent(
-                            bbs_config.get('categories', []), parent_id)
-                        if parent_item and parent_item.get('type') == 'child':
-                            parent_item.setdefault(
-                                'items', []).append(new_item)
-                        else:
-                            flash(
-                                f"Parent item '{parent_id}' not found or is not a category.", 'danger')
-                    if new_id:
-                        # --- 監査ログ記録 ---
-                        util.log_audit_event(
-                            action='ADD_BBS_MENU_ITEM',
-                            details={
-                                'parent_id': parent_id,
-                                'item_id': new_id,
-                                'item_type': new_type
-                            }
-                        )
+                        flash(
+                            f"Parent item '{parent_id}' not found or is not a category.", 'danger')
+                        return redirect(url_for('admin.bbs_management', tab='menu'))
+
+                if added:
+                    util.save_bbs_config(bbs_config)
+                    util.log_audit_event(
+                        action='ADD_BBS_MENU_ITEM',
+                        details={'parent_id': parent_id, 'item_id': new_id, 'item_type': new_type}
+                    )
+                    flash('BBS menu item added successfully.', 'success')
+
             elif action == 'edit':
                 item_id = request.form.get('id')
                 item, _, _ = find_item_and_parent(
@@ -1758,31 +1758,32 @@ def bbs_management():
                 if item:
                     name = request.form.get('name', '').strip()
                     description = request.form.get('description', '').strip()
+                    
                     if name:
                         item['name'] = name
                     elif 'name' in item:
                         del item['name']
+                    
                     if description:
                         item['description'] = description
                     elif 'description' in item:
                         del item['description']
 
-                    # --- 監査ログ記録 ---
+                    util.save_bbs_config(bbs_config)
                     util.log_audit_event(
                         action='EDIT_BBS_MENU_ITEM',
-                        details={
-                            'item_id': item_id,
-                            'new_name': name,
-                            'new_description': description,
-                        }
+                        details={'item_id': item_id, 'new_name': name, 'new_description': description}
                     )
+                    flash('BBS menu item updated successfully.', 'success')
                 else:
                     flash(f"Item '{item_id}' not found for editing.", 'danger')
+                    return redirect(url_for('admin.bbs_management', tab='menu'))
 
             elif action == 'delete':
                 item_id = request.form.get('id')
                 item, parent, index = find_item_and_parent(
                     bbs_config.get('categories', []), item_id)
+                
                 target_list = None
                 if item:
                     if parent:
@@ -1792,20 +1793,14 @@ def bbs_management():
 
                 if item and target_list is not None and index != -1:
                     del target_list[index]
-                    # --- 監査ログ記録 ---
+                    util.save_bbs_config(bbs_config)
                     util.log_audit_event(
                         action='DELETE_BBS_MENU_ITEM',
-                        details={
-                            'item_id': item_id,
-                            'parent_id': parent.get('id') if parent else 'root_categories',
-                        }
+                        details={'item_id': item_id, 'parent_id': parent.get('id') if parent else 'root_categories'}
                     )
+                    flash('BBS menu item deleted successfully.', 'success')
                 else:
-                    flash(
-                        f"Item '{item_id}' not found for deletion.", 'danger')
-
-            util.save_bbs_config(bbs_config)
-            flash('BBS menu configuration updated successfully.', 'success')
+                    flash(f"Item '{item_id}' not found for deletion.", 'danger')
 
         except Exception as e:
             flash(f"An error occurred: {e}", 'danger')
