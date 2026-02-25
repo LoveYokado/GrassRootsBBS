@@ -4138,5 +4138,5 @@ push_notifications:
 
 privacy_policy_page:
   contact_form_link_text:
-    ja: また、<a href="{contact_url}">お問い合わせフォーム</a>からもご連絡いただけます。
-    en: You can also contact us via our <a href="{contact_url}">contact form</a>.
+    ja: また、<a href="contact">お問い合わせフォーム</a>からもご連絡いただけます。
+    en: You can also contact us via our <a href="contact">contact form</a>.
