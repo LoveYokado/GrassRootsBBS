@@ -4,7 +4,7 @@ SPDX-License-Identifier: MIT
 */ 
 
 /**
- * Base64URLエンコードされた文字列をArrayBufferに変換します。
+ * Base64URLエンコードされた文字列をArrayBufferに変換
  * @param {string} base64urlString - Base64URL文字列
  * @returns {ArrayBuffer}
  */
@@ -19,7 +19,7 @@ function base64urlToBuffer(base64urlString) {
 }
 
 /** 
- * ArrayBufferをBase64URLエンコードされた文字列に変換します。 
+ * ArrayBufferをBase64URLエンコードされた文字列に変換
  * @param {ArrayBuffer} buffer - 変換するArrayBuffer
  * @returns {string}
  */
@@ -65,7 +65,6 @@ const themes = {
         fkey_bg: '#00FF00',
         fkey_fg: '#000000',
         text_shadow_glow: '0 0 5px rgba(0, 255, 0, 0.5), 0 0 10px rgba(0, 255, 0, 0.3)',
-        // 全てのANSIカラーをテーマ色で上書き
         black: '#00FF00',
         red: '#00FF00',
         green: '#00FF00',
@@ -87,10 +86,9 @@ const themes = {
         background: '#1a1000',
         foreground: '#FFB000',
         cursor: '#FFB000',
-        fkey_bg: '#FFB000', // prettier-ignore
+        fkey_bg: '#FFB000', 
         fkey_fg: '#1a1000',
         text_shadow_glow: '0 0 5px rgba(255, 176, 0, 0.5), 0 0 10px rgba(255, 176, 0, 0.3)',
-        // 全てのANSIカラーをテーマ色で上書き
         black: '#FFB000',
         red: '#FFB000',
         green: '#FFB000',
@@ -125,6 +123,7 @@ const fontsizeMapReverse = Object.fromEntries(Object.entries(fontsizeMap).map(([
 const pushMapReverse = Object.fromEntries(Object.entries(pushMap).map(([k, v]) => [v, k]));
 
 let isDipSwitchUpdating = false; // DIPスイッチ操作による再帰呼び出しを防ぐフラグ
+let isLineEditorOpen = false; // 1行エディタが開いているかどうかのフラグ
 
 const dynamicGlowStyle = document.getElementById('dynamic-glow-style');
 
@@ -170,7 +169,7 @@ function applyTheme(themeName) {
         }
     });
 
-    // テーマに応じてANSIカラーボタンの表示/非表示を切り替えます。 
+    // テーマに応じてANSIカラーボタンの表示/非表示を切り替え
     const ansiColorButtons = document.getElementById('ansi-color-buttons');
     if (ansiColorButtons) {
         if (themeName === 'green' || themeName === 'amber') {
@@ -295,7 +294,6 @@ function updateDipSwitches(groupName, value) {
     } else if (groupName === 'fontsize') {
         numericValue = fontsizeMap[value]; 
     } else if (groupName === 'effect') {
-        // エフェクトはビットごとのON/OFFなので特別に扱います
         const switches = document.querySelectorAll(`.dip-switch-group[data-group="effect"] input[type="checkbox"]`);
         switches.forEach(sw => {
             const effectName = Object.keys(effectMap).find(key => effectMap[key] === parseInt(sw.dataset.bit));
@@ -303,7 +301,6 @@ function updateDipSwitches(groupName, value) {
         });
         return;
     } else if (groupName === 'push') {
-        // エフェクトはビットごとのON/OFFなので特別に扱います
         const switches = document.querySelectorAll(`.dip-switch-group[data-group="effect"] input[type="checkbox"]`);
         switches.forEach(sw => {
             const effectName = Object.keys(effectMap).find(key => effectMap[key] === parseInt(sw.dataset.bit));
@@ -562,17 +559,45 @@ multilineEditorInsertBtn.addEventListener('click', () => {
  * 1行エディタのポップアップを開きます。
  */
 function openLineEditor() {
+    isLineEditorOpen = true;
+    hideAllMobileControls(); // 他に表示されているモバイルコントロールを全て隠す
     lineEditorInput.value = '';
     historyIndex = lineEditorHistory.length;
     lineEditorWindow.classList.add('visible');
+
+    // モバイルでの表示位置調整
+    if (window.matchMedia('(max-width: 992px)').matches) {
+        lineEditorWindow.classList.add('mobile-view'); // モバイル表示用のクラス
+        lineEditorWindow.style.top = '';
+        lineEditorWindow.style.bottom = '';
+        setTimeout(() => {
+            try { fitAddon.fit(); } catch(e) {}
+        }, 10);
+    } else {
+        lineEditorWindow.classList.remove('mobile-view');
+        // デスクトップ表示用にインラインスタイルをリセット
+        lineEditorWindow.style.top = '';
+        lineEditorWindow.style.bottom = '';
+    }
+
     lineEditorInput.focus();
 }
 
 /**
- * 1行エディタのポップアップを閉じます。
+ * 1行エディタのポップアップを閉じる。
  */
 function closeLineEditor() {
+    isLineEditorOpen = false;
     lineEditorWindow.classList.remove('visible');
+
+    // モバイルの場合、パディングをリセット
+    if (window.matchMedia('(max-width: 992px)').matches) {
+        const monitorScreen = document.querySelector('.monitor-screen');
+        if (monitorScreen) {
+            monitorScreen.style.paddingBottom = '';
+            setTimeout(() => { try { fitAddon.fit(); } catch(e) {} }, 10);
+        }
+    }
 }
 
 lineEditorInsertBtn.addEventListener('click', () => {
@@ -1935,15 +1960,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const handleViewportResize = () => {
             const isMobile = window.matchMedia('(max-width: 992px)').matches;
             if (!isMobile) {
-                document.body.style.height = '';
+                document.body.style.height = '100dvh';
                 return;
             }
             document.body.style.height = `${vv.height}px`;
             const keyboardHeight = window.innerHeight - vv.height;
             const isKeyboardVisible = keyboardHeight > 80;
             const monitorScreen = document.querySelector('.monitor-screen');
-            if (isKeyboardVisible) {
-                monitorScreen.style.paddingBottom = '0px';
+            
+            if (isLineEditorOpen) {
+                // Flexboxで自動調整されるためパディング処理は不要
+            } else if (isKeyboardVisible) {
+                monitorScreen.style.paddingBottom = '0px'; // エディタなしでキーボードが出ている場合（通常ありえないが念のため）
             } else {
                 const storedHeight = monitorScreen.dataset.controlsHeight;
                 if (storedHeight) {
@@ -1953,10 +1981,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             setTimeout(() => {
                 try {
-                    fitAddon.fit();
-                    if (isKeyboardVisible) {
-                        window.scrollTo(0, document.body.scrollHeight);
-                    }
+                    fitAddon.fit(); 
+                    // レイアウト崩れを防ぐため、スクロール位置をトップに固定（bodyの高さがviewportに合っているため）
+                    window.scrollTo(0, 0);
                 } catch (e) { /* ignore */ }
             }, 150);
         };

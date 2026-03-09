@@ -1,6 +1,12 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body,
 html {
-  height: 100%;
+  height: 100dvh; /* モバイルでのキーボード表示に対応 */
   margin: 0;
   background-color: #282c34;
   font-family: '"M PLUS 1m", "Courier New", monospace';
@@ -34,7 +40,8 @@ body {
   border-right: 2px solid #b0a888;
   border-radius: 15px;
   padding: 25px;
-  box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5),
+  box-shadow:
+    8px 8px 20px rgba(0, 0, 0, 0.5),
     inset 3px 3px 5px rgba(255, 255, 255, 0.6),
     inset -3px -3px 5px rgba(0, 0, 0, 0.2);
   position: relative;
@@ -130,7 +137,9 @@ body {
   text-decoration: none;
   font-size: 1.1rem;
   display: block;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
   border-radius: 5px;
   text-align: center;
   font-weight: bold;
@@ -187,7 +196,8 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   font-size: 1.2rem;
   font-weight: bold;
   color: #706b58;
-  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7),
+  text-shadow:
+    1px 1px 1px rgba(255, 255, 255, 0.7),
     -1px -1px 1px rgba(0, 0, 0, 0.1);
 }
 
@@ -370,28 +380,12 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   border-right: 2px solid #b0a888;
   border-radius: 15px;
   padding: 20px;
-  box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5),
+  box-shadow:
+    8px 8px 20px rgba(0, 0, 0, 0.5),
     inset 3px 3px 5px rgba(255, 255, 255, 0.6),
     inset -3px -3px 5px rgba(0, 0, 0, 0.2);
   z-index: 1001;
   min-width: 300px;
-}
-
-/* --- 1行エディタスタイル --- */
-#line-editor-window {
-  position: absolute;
-  top: auto;
-  bottom: 10px;
-  left: 10px;
-  transform: none;
-  width: calc(100% - 20px);
-  background: #000;
-  border: 1px solid #888;
-  border-radius: 0;
-  padding: 4px 8px;
-  box-shadow: none;
-  box-sizing: border-box;
-  z-index: 100;
 }
 
 .popup-overlay.visible,
@@ -626,12 +620,16 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 /* --- レスポンシブ対応 (モバイル表示) --- */
 @media screen and (max-width: 992px) {
   body {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   .monitor-chassis {
     width: 100%;
-    height: 100%;
+    height: auto; /* Flexboxで高さを制御するためautoに変更 */
+    flex: 1; /* 残りのスペースを埋める */
+    min-height: 0; /* 内容が多くてもFlexコンテナからはみ出さないようにする */
     max-height: none;
     padding: 0;
     border: 0;
@@ -749,6 +747,42 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 
   .mobile-btn {
     text-shadow: var(--glow-text-shadow-mobile, none);
+  }
+
+  /* モバイルでの1行エディタの表示を最適化 */
+  #line-editor-window.mobile-view {
+    position: relative; /* Flexアイテムとして配置 */
+    flex: 0 0 auto; /* 高さは内容に合わせ、伸縮しない */
+    width: 100%;
+    top: auto;
+    left: 0;
+    bottom: auto;
+    transform: none;
+    padding: 0;
+    margin-top: 0;
+    border-radius: 0;
+    border-width: 1px 0; /* 上下のボーダーのみ */
+    box-sizing: border-box;
+    background: #000; /* 背景色を明示的に指定 */
+    box-shadow: none;
+    z-index: 100;
+  }
+  #line-editor-window.mobile-view .popup-header,
+  #line-editor-window.mobile-view .popup-content label,
+  #line-editor-window.mobile-view .popup-content div {
+    display: none;
+  }
+  #line-editor-window.mobile-view .popup-content {
+    margin: 0;
+    padding: 0;
+  }
+  #line-editor-window.mobile-view .popup-content input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 0;
+    padding: 10px; /* 入力しやすくするためにパディングを確保 */
+    margin: 0;
   }
 }
 
