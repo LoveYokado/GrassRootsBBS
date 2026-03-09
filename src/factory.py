@@ -133,6 +133,8 @@ def create_app():
     with db_init_lock:
         if not db_initialized:
             database.init_app(app)
+            if not database.check_database_initialized():
+                util.initialize_database_and_sysop()
             plugin_manager.load_plugins()
             db_initialized = True
 

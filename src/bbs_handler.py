@@ -1538,10 +1538,12 @@ class CommandHandler:
         is_mobile_web_client = False
         try:
             # Webクライアントかつモバイルの場合のみマルチラインエディタを使用
-            is_mobile_web_client = (
-                isinstance(self.chan, terminal_handler.WebTerminalHandler.WebChannel) and
-                getattr(self.chan.handler, 'is_mobile', False)
-            )
+            # is_mobile_web_client = (
+            #     isinstance(self.chan, terminal_handler.WebTerminalHandler.WebChannel) and
+            #     getattr(self.chan.handler, 'is_mobile', False)
+            # )
+            # レトロな雰囲気を残すため、モバイルでもインラインエディタを使用する
+            is_mobile_web_client = False
             if is_mobile_web_client:
                 # モバイルWebクライアントの場合はマルチラインエディタを呼び出す
                 body = self.chan.process_multiline_input()
@@ -1691,7 +1693,9 @@ class CommandHandler:
 
         is_mobile_web_client = False
         try:
-            is_mobile_web_client = self.chan.handler.is_mobile
+            # is_mobile_web_client = self.chan.handler.is_mobile
+            # レトロな雰囲気を残すため、モバイルでもインラインエディタを使用する
+            is_mobile_web_client = False
             util.send_text_by_key(self.chan, "bbs.post_header", self.menu_mode)
             limits_config = util.app_config.get('limits', {})
             title_max_len = limits_config.get('bbs_title_max_length', 100)
