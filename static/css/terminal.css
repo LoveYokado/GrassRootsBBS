@@ -436,7 +436,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
 }
 
 /* 1行エディタではヘッダーとボタンを非表示にする */
-#line-editor-window .popup-header h2,
+#line-editor-window .popup-header,
 #line-editor-window .popup-content button {
   display: none;
 }
@@ -766,6 +766,22 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
     background: #000; /* 背景色を明示的に指定 */
     box-shadow: none;
     z-index: 100;
+  }
+  /* モバイル用閉じるボタンのスタイル */
+  #line-editor-window.mobile-view .popup-close-btn {
+    display: block;
+    position: absolute;
+    top: -35px;
+    right: 5px;
+    width: 30px;
+    height: 30px;
+    line-height: 28px;
+    font-size: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #666;
+    border-radius: 50%;
+    color: #fff;
+    z-index: 101;
   }
   #line-editor-window.mobile-view .popup-header,
   #line-editor-window.mobile-view .popup-content label,
