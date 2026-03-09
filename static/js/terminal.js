@@ -610,7 +610,7 @@ lineEditorInsertBtn.addEventListener('click', () => {
     socket.emit('client_input', textToInsert + '\r'); // サーバー側の process_input を終了させるために改行を追加
     lineEditorInput.value = ''; // 入力欄をクリア
     historyIndex = lineEditorHistory.length; // 履歴インデックスをリセット
-    closeLineEditor(); // 入力後はエディタを閉じる
+    lineEditorInput.focus(); // フォーカスを維持
 });
 
 // 1行エディタでのキーボードイベント（Enter, 上下矢印）を処理
