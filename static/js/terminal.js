@@ -565,7 +565,7 @@ function openLineEditor() {
     historyIndex = lineEditorHistory.length;
     lineEditorWindow.classList.add('visible');
 
-    // モバイルでの表示位置調整
+    // モバイルかデスクトップかでクラスを切り替え、表示を最適化します。
     if (window.matchMedia('(max-width: 992px)').matches) {
         lineEditorWindow.classList.add('mobile-view'); // モバイル表示用のクラス
         lineEditorWindow.style.top = '';
@@ -575,7 +575,7 @@ function openLineEditor() {
         }, 10);
     } else {
         lineEditorWindow.classList.remove('mobile-view');
-        // デスクトップ表示用にインラインスタイルをリセット
+        // デスクトップ表示用にインラインスタイルをリセットし、CSSでの制御に任せます。
         lineEditorWindow.style.top = '';
         lineEditorWindow.style.bottom = '';
     }

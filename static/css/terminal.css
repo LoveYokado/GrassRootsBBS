@@ -435,27 +435,47 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   border-radius: 3px;
 }
 
-/* 1行エディタではヘッダーとボタンを非表示にする */
-#line-editor-window .popup-header,
-#line-editor-window .popup-content button {
+/* --- 1行エディタのスタイル調整 --- */
+/* デスクトップ版: ファンクションキーの下に表示されるシンプルなバーにする */
+#line-editor-window:not(.mobile-view) {
+  top: auto; /* 上の位置指定を解除 */
+  bottom: 40px; /* 画面下からの位置 */
+  left: 50%;
+  transform: translateX(-50%); /* 水平方向のみ中央揃え */
+  width: 80%; /* 幅を調整 */
+  max-width: 900px;
+  padding: 0;
+  background: #000;
+  border: 1px solid #888;
+  border-radius: 0;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+/* デスクトップ版1行エディタでは、ヘッダー、ラベル、ボタンを非表示 */
+#line-editor-window:not(.mobile-view) .popup-header,
+#line-editor-window:not(.mobile-view) .popup-content label,
+#line-editor-window:not(.mobile-view) .popup-content div {
   display: none;
 }
-/* ただし、閉じるボタンは表示してスタイルを調整 */
-#line-editor-window .popup-close-btn {
-  position: absolute;
-  top: -25px;
-  right: 5px;
-  transform: none;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  font-size: 1rem;
-  line-height: 20px;
-  text-align: center;
-  color: #aaa;
-  border: 1px solid #888;
-  background-color: #222;
-  border-radius: 3px;
+
+/* デスクトップ版1行エディタの閉じるボタンは非表示 */
+#line-editor-window:not(.mobile-view) .popup-close-btn {
+  display: none;
+}
+
+/* デスクトップ版1行エディタの入力欄 */
+#line-editor-window:not(.mobile-view) #line-editor-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 0;
+  padding: 10px;
+  margin: 0;
+}
+
+/* モバイル版1行エディタの閉じるボタンは表示 */
+#line-editor-window.mobile-view .popup-close-btn {
+  display: block;
 }
 
 /* --- ログビューワ --- */
