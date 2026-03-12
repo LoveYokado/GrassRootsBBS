@@ -458,9 +458,25 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   display: none;
 }
 
-/* デスクトップ版1行エディタの閉じるボタンは非表示 */
+/* デスクトップ版1行エディタの閉じるボタン */
 #line-editor-window:not(.mobile-view) .popup-close-btn {
   display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  padding: 0;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-left: 1px solid #888;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 20;
 }
 
 /* デスクトップ版1行エディタの入力欄 */
@@ -469,7 +485,7 @@ body.theme-amber .sidenav a:not(.closebtn):hover {
   box-sizing: border-box;
   border: none;
   border-radius: 0;
-  padding: 10px;
+  padding: 10px 50px 10px 10px;
   margin: 0;
 }
 

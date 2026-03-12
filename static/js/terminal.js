@@ -113,7 +113,7 @@ const fontMap = { 'M PLUS 1m': 0, 'M PLUS 1 Code': 1, 'IBM Plex Mono': 2, DotGot
 const speedMap = { full: 0, 9600: 1, 4800: 2, 2400: 3, 300: 4 };
 const effectMap = { bezel: 0, blur: 1, scanline: 2 };
 const pushMap = { on: 1, off: 0 };
-const fontsizeMap = { 12: 0, 16: 1, 20: 2, 24: 3 };
+const fontsizeMap = { 8: 0, 12: 1, 16: 2, 20: 3 };
 
 // 逆引きマップ
 const themeMapReverse = Object.fromEntries(Object.entries(themeMap).map(([k, v]) => [v, k]));
@@ -1534,7 +1534,7 @@ function loadSettings() {
 
     // フォント
     const isMobileForLoad = window.matchMedia('(max-width: 992px)').matches;
-    const defaultFontSize = isMobileForLoad ? '28' : '16';
+    const defaultFontSize = isMobileForLoad ? '16' : '12';
     const savedFontName = localStorage.getItem('terminalFont') || 'M PLUS 1m';
     applyFont(savedFontName);
 
