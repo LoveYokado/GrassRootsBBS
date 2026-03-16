@@ -1,0 +1,79 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>View the status of all loaded plugins.</p>
+
+<div class="mb-3">
+    <form action="{{ url_for('admin.reload_plugins') }}" method="post" style="display: inline;">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-sync-alt"></i> Reload All Plugins
+        </button>
+    </form>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-puzzle-piece me-1"></i>
+        Loaded Plugins
+    </div>
+    <div class="card-body">
+        {% include 'admin/_pagination.html' %}
+        <div class="table-responsive">
+            <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>ID</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for plugin in plugins %}
+                    <tr>
+                        <td>{{ plugin.name }}</td>
+                        <td>{{ plugin.description }}</td>
+                        <td>
+                            {% if plugin.is_enabled %}
+                            <span style="color: #28a745; font-weight: bold;">Enabled</span>
+                            {% else %}
+                            <span style="color: #dc3545;">Disabled</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ plugin.id }}</td>
+                        <td>
+                            <form method="post" action="{{ url_for('admin.toggle_plugin_status') }}"
+                                style="display: inline;">
+                                <input type="hidden" name="plugin_id" value="{{ plugin.id }}">
+                                {% if plugin.is_enabled %}
+                                <button type="submit" name="action" value="disable"
+                                    class="action-link-delete">Disable</button>
+                                {% else %}
+                                <button type="submit" name="action" value="enable"
+                                    class="action-link-restore">Enable</button>
+                                {% endif %}
+                            </form>
+                            <a href="{{ url_for('admin.plugin_data_view', plugin_id=plugin.id) }}"
+                                class="action-link-edit" style="margin-left: 10px;">View Data</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5">No plugins are currently available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include 'admin/_pagination.html' %}
+    </div>
+</div>
+{% endblock %}

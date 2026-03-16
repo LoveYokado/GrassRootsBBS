@@ -1,0 +1,12 @@
+{% extends "errors/base_error.html" %}
+
+{% block title %}Internal Server Error{% endblock %}
+
+{% block error_code %}500{% endblock %}
+{% block error_title %}Internal Server Error{% endblock %}
+{% block error_message %}
+<p>
+    The server encountered an internal error and was unable to complete your request.
+    Please try again later or contact the administrator.
+</p>
+{% endblock %}

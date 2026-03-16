@@ -1,0 +1,1351 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body,
+html {
+  height: 100dvh; /* モバイルでのキーボード表示に対応 */
+  margin: 0;
+  background-color: #282c34;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+}
+
+/* 
+ * iOSの自動ズームを防ぐため、Xterm.jsが内部的に使用する
+ * 非表示のテキストエリアのフォントサイズを16px以上に保ちます。
+ */
+.xterm-helper-textarea {
+  font-size: 16px !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -9999px !important;
+  width: 0 !important;
+  height: 0 !important;
+  opacity: 0 !important;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.monitor-chassis {
+  background: linear-gradient(145deg, #f0e8c0, #d3cba0);
+  border-top: 2px solid #fdf5d5;
+  border-left: 2px solid #fdf5d5;
+  border-bottom: 2px solid #b0a888;
+  border-right: 2px solid #b0a888;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow:
+    8px 8px 20px rgba(0, 0, 0, 0.5),
+    inset 3px 3px 5px rgba(255, 255, 255, 0.6),
+    inset -3px -3px 5px rgba(0, 0, 0, 0.2);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: 95vh;
+}
+
+/* --- ハンバーガーメニュー --- */
+#hamburger-btn {
+  display: none;
+  /* デフォルトでは非表示 */
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
+  padding: 5px;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+}
+
+#hamburger-btn img,
+#scroll-to-bottom-btn img {
+  width: 100%;
+  height: 100%;
+  filter: invert(83%) sepia(15%) saturate(411%) hue-rotate(359deg)
+    brightness(91%) contrast(88%);
+}
+
+#scroll-to-bottom-btn {
+  display: none;
+  /* デフォルトでは非表示 */
+  position: absolute;
+  top: 60px;
+  right: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 10;
+  padding: 5px;
+  width: 44px;
+  height: 44px;
+  box-sizing: border-box;
+}
+
+#scroll-to-bottom-btn img {
+  transform: rotate(90deg);
+}
+
+.sidenav {
+  height: 100%;
+  width: 0;
+  position: fixed;
+  z-index: 1002;
+  top: 0;
+  left: 0;
+  background-color: rgba(30, 30, 30, 0.95);
+  overflow-x: hidden;
+  transition: 0.3s;
+  padding-top: 60px;
+}
+
+.sidenav a {
+  padding: 10px 15px 10px 32px;
+  text-decoration: none;
+  font-size: 1.1rem;
+  color: #f1f1f1;
+  display: block;
+  transition: 0.2s;
+}
+
+.sidenav a:hover {
+  color: #c0c0c0;
+}
+
+.sidenav .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 2.2rem;
+  margin-left: 50px;
+  color: #d3cba0;
+}
+
+/* --- サイドナビのボタンスタイル --- */
+.sidenav a:not(.closebtn) {
+  padding: 10px 15px;
+  margin: 8px 15px;
+  text-decoration: none;
+  font-size: 1.1rem;
+  display: block;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
+  border-radius: 5px;
+  text-align: center;
+  font-weight: bold;
+  border: 1px solid;
+}
+
+body.theme-default .sidenav a:not(.closebtn) {
+  background-color: #333;
+  border-color: #555;
+  color: #eee;
+}
+
+body.theme-default .sidenav a:not(.closebtn):hover {
+  background-color: #444;
+  border-color: #777;
+}
+
+body.theme-green .sidenav a:not(.closebtn) {
+  background-color: #003300;
+  border-color: #008800;
+  color: #00ff00;
+}
+
+body.theme-green .sidenav a:not(.closebtn):hover {
+  background-color: #005500;
+  border-color: #00ff00;
+}
+
+body.theme-amber .sidenav a:not(.closebtn) {
+  background-color: #3a2000;
+  border-color: #885000;
+  color: #ffb000;
+}
+
+body.theme-amber .sidenav a:not(.closebtn):hover {
+  background-color: #5a4000;
+  border-color: #ffb000;
+}
+
+.monitor-chassis.bezel-off {
+  background: none;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.monitor-chassis.bezel-off .monitor-footer {
+  display: none;
+}
+
+.monitor-footer {
+  text-align: center;
+  padding-top: 15px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #706b58;
+  text-shadow:
+    1px 1px 1px rgba(255, 255, 255, 0.7),
+    -1px -1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.monitor-screen {
+  background-color: #000;
+  padding: 10px 10px 40px 10px;
+  box-shadow: inset 2px 2px 10px rgba(0, 0, 0, 0.9);
+  border-style: solid;
+  border-width: 2px;
+  border-color: #222 #555 #555 #222;
+  border-radius: 8px;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  flex-grow: 1;
+  min-height: 0;
+  touch-action: none;
+}
+
+/* にじみ効果（グローエフェクト） */
+#terminal.blur-effect,
+.mobile-btn.blur-effect {
+  text-shadow: var(--glow-text-shadow, none);
+}
+
+/* 
+ * 走査線エフェクト
+ */
+.monitor-screen.scanline-effect::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15),
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+}
+
+#terminal {
+  flex-grow: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#function-keys-container {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 5px 0;
+  background-color: #000;
+  margin-top: 15px;
+}
+
+.f-key-group {
+  display: flex;
+  gap: 4px;
+}
+
+.f-key {
+  background-color: #ffffff;
+  color: #000000;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 2px;
+  white-space: nowrap;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* --- ログビューワー用ポップアップ --- */
+#log-viewer-window {
+  width: 80vw;
+  height: 70vh;
+  max-width: 1200px;
+  max-height: 800px;
+}
+
+.log-viewer-container {
+  display: flex;
+  height: calc(100% - 50px);
+  gap: 15px;
+}
+
+.file-list-pane {
+  flex: 0 0 300px;
+  overflow-y: auto;
+  border-right: 1px solid #b0a888;
+  padding-right: 15px;
+}
+
+#bbs-list-window {
+  width: 80vw;
+  height: 70vh;
+  max-width: 1000px;
+  max-height: 700px;
+}
+
+.bbs-list-container {
+  display: flex;
+  height: calc(100% - 50px);
+  gap: 15px;
+}
+
+.list-pane {
+  flex: 0 0 250px;
+  overflow-y: auto;
+  border-right: 1px solid #b0a888;
+  padding-right: 15px;
+}
+
+.detail-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background-color: #000;
+  color: #fff;
+  padding: 15px;
+  border-radius: 5px;
+  box-shadow: inset 1px 1px 5px rgba(0, 0, 0, 0.7);
+}
+
+#bbs-list-jump-btn {
+  margin-top: auto;
+  padding: 10px;
+  font-size: 1.1rem;
+}
+
+.popup-content .detail-pane h3 {
+  font-weight: bold;
+  margin-top: 0;
+  color: #fff;
+  text-shadow: none;
+}
+
+.content-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#log-content-display {
+  width: 100%;
+  height: 100%;
+}
+
+/* --- ポップアップウィンドウの共通スタイル --- */
+.popup-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.popup-window {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(145deg, #f0e8c0, #d3cba0);
+  border-top: 2px solid #fdf5d5;
+  border-left: 2px solid #fdf5d5;
+  border-bottom: 2px solid #b0a888;
+  border-right: 2px solid #b0a888;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow:
+    8px 8px 20px rgba(0, 0, 0, 0.5),
+    inset 3px 3px 5px rgba(255, 255, 255, 0.6),
+    inset -3px -3px 5px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+  min-width: 300px;
+}
+
+.popup-overlay.visible,
+.popup-window.visible {
+  display: block;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #b0a888;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+  cursor: grab;
+  user-select: none;
+}
+
+.popup-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #706b58;
+  cursor: pointer;
+}
+
+.popup-content h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #706b58;
+  text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.7);
+}
+
+.popup-content div {
+  margin-bottom: 15px;
+}
+
+.popup-content button {
+  background: linear-gradient(145deg, #e0d8b8, #c8c098);
+  border: 1px solid #b0a888;
+  border-top-color: #fdf5d5;
+  border-left-color: #fdf5d5;
+  padding: 8px 12px;
+  margin: 2px;
+  color: #504b38;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+/* --- 1行エディタのスタイル調整 --- */
+/* デスクトップ版: ファンクションキーの下に表示されるシンプルなバーにする */
+#line-editor-window:not(.mobile-view) {
+  top: auto; /* 上の位置指定を解除 */
+  bottom: 40px; /* 画面下からの位置 */
+  left: 50%;
+  transform: translateX(-50%); /* 水平方向のみ中央揃え */
+  width: 80%; /* 幅を調整 */
+  max-width: 900px;
+  padding: 0;
+  background: #000;
+  border: 1px solid #888;
+  border-radius: 0;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+}
+
+/* デスクトップ版1行エディタでは、ヘッダー、ラベル、ボタンを非表示 */
+#line-editor-window:not(.mobile-view) .popup-header,
+#line-editor-window:not(.mobile-view) .popup-content label,
+#line-editor-window:not(.mobile-view) .popup-content div {
+  display: none;
+}
+
+/* デスクトップ版1行エディタの閉じるボタン */
+#line-editor-window:not(.mobile-view) .popup-close-btn {
+  display: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  padding: 0;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-left: 1px solid #888;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 20;
+}
+
+/* デスクトップ版1行エディタの入力欄 */
+#line-editor-window:not(.mobile-view) #line-editor-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 0;
+  padding: 10px 50px 10px 10px;
+  margin: 0;
+}
+
+/* モバイル版1行エディタの閉じるボタンは表示 */
+#line-editor-window.mobile-view .popup-close-btn {
+  display: block;
+}
+
+/* --- ログビューワ --- */
+#log-viewer-window {
+  width: 80vw;
+  height: 70vh;
+  max-width: 1200px;
+  max-height: 800px;
+}
+
+.log-viewer-container {
+  display: flex;
+  height: calc(100% - 50px);
+  gap: 15px;
+}
+
+.file-list-pane {
+  flex: 0 0 300px;
+  overflow-y: auto;
+  border-right: 1px solid #b0a888;
+
+  padding-right: 1;
+}
+
+.popup-content button:hover {
+  background-color: #e9e9e9;
+}
+
+.popup-content button:active {
+  background: linear-gradient(145deg, #c8c098, #e0d8b8);
+  transform: translateY(1px);
+}
+
+.tab-button {
+  padding: 10px 15px;
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  color: #706b58;
+  font-size: 1rem;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab-button.active {
+  color: #504b38;
+  font-weight: bold;
+  border-bottom-color: #504b38;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.popup-content button.active {
+  background: #b0a888;
+  box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.popup-window input[type="text"] {
+  width: 95%;
+  padding: 8px;
+  margin-bottom: 15px;
+  background-color: #000;
+  color: #eee;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #222 #555 #555 #222;
+  border-radius: 4px;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+}
+
+.popup-window-input {
+  width: 95%;
+  padding: 8px;
+  margin-bottom: 15px;
+  background-color: #000;
+  color: #eee;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #222 #555 #555 #222;
+  border-radius: 4px;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+}
+
+.popup-window-textarea {
+  width: 100%;
+  background-color: #000;
+  color: #eee;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #222 #555 #555 #222;
+  border-radius: 4px;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+  resize: none;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.popup-window textarea {
+  height: 250px;
+  padding: 8px;
+  margin-bottom: 15px;
+  background-color: #000;
+  color: #eee;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #222 #555 #555 #222;
+  border-radius: 4px;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+  resize: vertical;
+}
+
+#ansi-controls {
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.control-group {
+  margin-bottom: 5px;
+}
+
+.ansi-btn {
+  background: linear-gradient(145deg, #e0d8b8, #c8c098);
+  border: 1px solid #b0a888;
+  border-top-color: #fdf5d5;
+  border-left-color: #fdf5d5;
+  padding: 2px 8px;
+  margin: 2px;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 0.9rem;
+  font-family: sans-serif;
+}
+
+/* xterm.jsの点滅(blink)を有効にするためのアニメーション */
+.xterm .xterm-screen .blinking {
+  animation: xterm-blink 1s steps(1, start) infinite;
+}
+
+@keyframes xterm-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* 
+ * Xterm.jsが内部で生成するスクロールバーを非表示にします。
+ * スクロール自体は可能です。
+ */
+.xterm-viewport {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+/* --- レスポンシブ対応 (モバイル表示) --- */
+@media screen and (max-width: 992px) {
+  body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .monitor-chassis {
+    width: 100%;
+    height: auto; /* Flexboxで高さを制御するためautoに変更 */
+    flex: 1; /* 残りのスペースを埋める */
+    min-height: 0; /* 内容が多くてもFlexコンテナからはみ出さないようにする */
+    max-height: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    box-sizing: border-box;
+  }
+
+  .monitor-screen {
+    height: 100%;
+    border-radius: 0;
+    padding: 2px;
+    box-sizing: border-box;
+  }
+
+  #function-keys-container {
+    display: none;
+    /* モバイルではファンクションキーを非表示 */
+  }
+
+  #hamburger-btn {
+    display: block;
+    /* モバイルではハンバーガーメニューを表示 */
+  }
+
+  #scroll-to-bottom-btn {
+    display: block;
+    /* モバイルで表示 */
+  }
+
+  #dip-switch-container {
+    display: none;
+    /* モバイルではDIPスイッチを非表示 */
+  }
+
+  #multiline-editor-window,
+  #log-viewer-window {
+    width: 95vw;
+    height: 90vh;
+    padding: 10px;
+  }
+
+  #multiline-editor-window .popup-header {
+    margin-bottom: 10px;
+  }
+
+  #multiline-editor-window .popup-content {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 60px);
+  }
+
+  #multiline-editor-input {
+    flex-grow: 1;
+    min-height: 100px;
+  }
+
+  .log-viewer-container {
+    flex-direction: column;
+  }
+
+  .file-list-pane {
+    flex: 0 1 40%;
+    border-right: none;
+    border-bottom: 1px solid #b0a888;
+    padding-right: 0;
+    padding-bottom: 10px;
+  }
+
+  .list-pane {
+    flex: 0 1 40%;
+    border-right: none;
+    border-bottom: 1px solid #b0a888;
+    padding-right: 0;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+
+  /* --- モバイルでの設定画面の視認性向上 --- */
+  #popup-window {
+    width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+
+  #popup-window .popup-content h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.8em;
+  }
+
+  #popup-window .popup-content button {
+    display: block;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-size: 1.1rem;
+    margin: 0.5em 0;
+    box-sizing: border-box;
+  }
+
+  /* --- モバイルでの画面効果 --- */
+  #terminal.blur-effect,
+  .mobile-btn.blur-effect {
+    text-shadow: var(--glow-text-shadow-mobile, none);
+  }
+
+  .monitor-screen.scanline-effect::after {
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.25),
+      rgba(0, 0, 0, 0.25) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  }
+
+  .mobile-btn {
+    text-shadow: var(--glow-text-shadow-mobile, none);
+  }
+
+  /* モバイルでの1行エディタの表示を最適化 */
+  #line-editor-window.mobile-view {
+    position: relative; /* Flexアイテムとして配置 */
+    flex: 0 0 auto; /* 高さは内容に合わせ、伸縮しない */
+    width: 100%;
+    top: auto;
+    left: 0;
+    bottom: auto;
+    transform: none;
+    padding: 0;
+    margin-top: 0;
+    border-radius: 0;
+    border-width: 1px 0; /* 上下のボーダーのみ */
+    box-sizing: border-box;
+    background: #000; /* 背景色を明示的に指定 */
+    box-shadow: none;
+    z-index: 100;
+  }
+  /* モバイル用閉じるボタンのスタイル */
+  #line-editor-window.mobile-view .popup-close-btn {
+    display: block;
+    position: absolute;
+    top: -35px;
+    right: 5px;
+    width: 30px;
+    height: 30px;
+    line-height: 28px;
+    font-size: 1.5rem;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 1px solid #666;
+    border-radius: 50%;
+    color: #fff;
+    z-index: 101;
+  }
+  #line-editor-window.mobile-view .popup-header,
+  #line-editor-window.mobile-view .popup-content label,
+  #line-editor-window.mobile-view .popup-content div {
+    display: none;
+  }
+  #line-editor-window.mobile-view .popup-content {
+    margin: 0;
+    padding: 0;
+  }
+  #line-editor-window.mobile-view .popup-content input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 0;
+    padding: 10px; /* 入力しやすくするためにパディングを確保 */
+    margin: 0;
+  }
+}
+
+/* --- デスクトップ表示でのスタイル調整 --- */
+@media screen and (min-width: 993px) {
+  #mobile-bbs-controls,
+  #mobile-chat-controls,
+  #mobile-userpref-controls,
+  #mobile-mail-controls,
+  #mobile-bbs-entry-controls,
+  #mobile-top-menu-controls,
+  #mobile-plugin-menu-controls {
+    display: none !important;
+  }
+
+  #popup-window {
+    min-width: 650px;
+  }
+}
+
+.xterm-viewport::-webkit-scrollbar {
+  /* Webkit系ブラウザでスクロールバーを非表示 */
+  display: none;
+  /* Safari and Chrome */
+}
+
+/* --- モバイルBBSコントロール --- */
+#mobile-bbs-controls {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(20, 20, 20, 0.9);
+  padding: 10px;
+  box-sizing: border-box;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 5px;
+  z-index: 100;
+}
+
+#mobile-bbs-controls.visible {
+  display: grid;
+}
+
+.mobile-btn {
+  background-color: #444;
+  border: 1px solid #666;
+  color: #eee;
+  font-size: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+  font-weight: bold;
+  padding: 0.5em 0;
+}
+
+#bbs-btn-y {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+#bbs-btn-n {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.mobile-btn:active {
+  background-color: #666;
+}
+
+#bbs-btn-end-write {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+#bbs-btn-write {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+#bbs-btn-up {
+  grid-column: 3;
+  grid-row: 1;
+  font-size: 1.5rem;
+}
+
+#bbs-btn-delete {
+  grid-column: 5;
+  grid-row: 2;
+}
+
+#bbs-btn-left {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 1.5rem;
+}
+
+#bbs-btn-read {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+#bbs-btn-right {
+  grid-column: 4;
+  grid-row: 2;
+  font-size: 1.5rem;
+}
+
+#bbs-btn-help {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+#bbs-btn-down {
+  grid-column: 3;
+  grid-row: 3;
+  font-size: 1.5rem;
+}
+
+#bbs-btn-exit {
+  grid-column: 5;
+  grid-row: 3;
+}
+
+/* --- テーマごとのボタンのスタイル --- */
+/* デフォルトテーマ */
+#mobile-bbs-controls.theme-default #bbs-btn-read {
+  background-color: #a83232;
+}
+
+#mobile-bbs-controls.theme-default #bbs-btn-read:active {
+  background-color: #c85252;
+}
+
+/* グリーンテーマ */
+#mobile-bbs-controls.theme-green .mobile-btn {
+  background-color: #000000;
+  border-color: #00ff00;
+  color: #00ff00;
+}
+
+#mobile-bbs-controls.theme-green .mobile-btn:active {
+  background-color: #00ff00;
+  color: #000000;
+}
+
+#mobile-bbs-controls.theme-green #bbs-btn-read {
+  background-color: #00ff00;
+  color: #000000;
+}
+
+#mobile-bbs-controls.theme-green #bbs-btn-read:active {
+  background-color: #000000;
+  color: #00ff00;
+}
+
+/* アンバーテーマ */
+#mobile-bbs-controls.theme-amber .mobile-btn {
+  background-color: #1a1000;
+  border-color: #ffb000;
+  color: #ffb000;
+}
+
+#mobile-bbs-controls.theme-amber .mobile-btn:active {
+  background-color: #ffb000;
+  color: #1a1000;
+}
+
+#mobile-bbs-controls.theme-amber #bbs-btn-read {
+  background-color: #ffb000;
+  color: #1a1000;
+}
+
+#mobile-bbs-controls.theme-amber #bbs-btn-read:active {
+  background-color: #1a1000;
+  color: #ffb000;
+}
+
+/* --- モバイルチャットコントロールのテーマ --- */
+/* グリーンテーマ */
+#mobile-chat-controls.theme-green .mobile-btn {
+  background-color: #000000;
+  border-color: #00ff00;
+  color: #00ff00;
+}
+
+#mobile-chat-controls.theme-green .mobile-btn:active {
+  background-color: #00ff00;
+  color: #000000;
+}
+
+/* アンバーテーマ */
+#mobile-chat-controls.theme-amber .mobile-btn {
+  background-color: #1a1000;
+  border-color: #ffb000;
+  color: #ffb000;
+}
+
+#mobile-chat-controls.theme-amber .mobile-btn:active {
+  background-color: #ffb000;
+  color: #1a1000;
+}
+
+/* --- モバイルチャットコントロール --- */
+#mobile-chat-controls {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(20, 20, 20, 0.9);
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 100;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+}
+
+#mobile-chat-controls.visible {
+  display: grid;
+}
+
+/* --- モバイルユーザー設定コントロール --- */
+#mobile-userpref-controls {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(20, 20, 20, 0.9);
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 100;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 8px;
+}
+
+#mobile-userpref-controls.visible {
+  display: grid;
+}
+
+#userpref-btn-enter {
+  grid-column: 1 / -1;
+}
+
+/* --- モバイルユーザー設定コントロールのテーマ --- */
+#mobile-userpref-controls.theme-green .mobile-btn {
+  background-color: #000000;
+  border-color: #00ff00;
+  color: #00ff00;
+}
+
+#mobile-userpref-controls.theme-green .mobile-btn:active {
+  background-color: #00ff00;
+  color: #000000;
+}
+
+#mobile-userpref-controls.theme-amber .mobile-btn {
+  background-color: #1a1000;
+  border-color: #ffb000;
+  color: #ffb000;
+}
+
+#mobile-userpref-controls.theme-amber .mobile-btn:active {
+  background-color: #ffb000;
+  color: #1a1000;
+}
+
+/* --- モバイルメール＆掲示板入口コントロール --- */
+#mobile-mail-controls,
+#mobile-bbs-entry-controls {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(20, 20, 20, 0.9);
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 100;
+  gap: 8px;
+}
+
+#mobile-mail-controls.visible,
+#mobile-bbs-entry-controls.visible {
+  display: grid;
+}
+
+#mobile-mail-controls {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+#mobile-bbs-entry-controls {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* --- モバイル確認コントロール --- */
+#mobile-confirm-controls {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(20, 20, 20, 0.9);
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 100;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+#mobile-confirm-controls.visible {
+  display: grid;
+}
+
+/* --- モバイルトップメニューコントロール --- */
+#mobile-top-menu-controls {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(20, 20, 20, 0.9);
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 100;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8px;
+}
+
+#mobile-plugin-menu-controls {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(20, 20, 20, 0.9);
+  padding: 10px;
+  box-sizing: border-box;
+  z-index: 100;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 8px;
+}
+
+#mobile-plugin-menu-controls.visible {
+  display: grid;
+}
+
+#plugin-btn-enter {
+  grid-column: 1 / -1;
+}
+
+#mobile-top-menu-controls.visible {
+  display: grid;
+}
+
+/* --- テーマ適用 --- */
+#mobile-mail-controls.theme-green .mobile-btn,
+#mobile-plugin-menu-controls.theme-green .mobile-btn,
+#mobile-bbs-entry-controls.theme-green .mobile-btn,
+#mobile-confirm-controls.theme-green .mobile-btn,
+#mobile-top-menu-controls.theme-green .mobile-btn {
+  background-color: #000000;
+  border-color: #00ff00;
+  color: #00ff00;
+}
+
+#mobile-mail-controls.theme-green .mobile-btn:active,
+#mobile-plugin-menu-controls.theme-green .mobile-btn:active,
+#mobile-bbs-entry-controls.theme-green .mobile-btn:active,
+#mobile-confirm-controls.theme-green .mobile-btn:active,
+#mobile-top-menu-controls.theme-green .mobile-btn:active {
+  background-color: #00ff00;
+  color: #000000;
+}
+
+#mobile-mail-controls.theme-amber .mobile-btn,
+#mobile-plugin-menu-controls.theme-amber .mobile-btn,
+#mobile-bbs-entry-controls.theme-amber .mobile-btn,
+#mobile-confirm-controls.theme-amber .mobile-btn,
+#mobile-top-menu-controls.theme-amber .mobile-btn {
+  background-color: #1a1000;
+  border-color: #ffb000;
+  color: #ffb000;
+}
+
+#mobile-mail-controls.theme-amber .mobile-btn:active,
+#mobile-plugin-menu-controls.theme-amber .mobile-btn:active,
+#mobile-bbs-entry-controls.theme-amber .mobile-btn:active,
+#mobile-confirm-controls.theme-amber .mobile-btn:active,
+/* --- ディップスイッチ --- */
+#dip-switch-container {
+  margin-top: 20px;
+  border-top: 1px solid #b0a888;
+  padding-top: 15px;
+}
+
+.dip-switch-panel {
+  background-color: #4a4a4a;
+  border: 2px solid #333333;
+  border-radius: 5px;
+  padding: 15px 15px 0px 15px;
+  box-shadow: inset 1px 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.dip-switch-bank {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dip-switch-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #962d22;
+  padding: 5px 8px;
+  border-radius: 3px;
+  background-color: #c0392b;
+}
+
+.dip-switch-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.dip-switch-number {
+  color: white;
+  font-family: "Courier New", monospace !important;
+  font-size: 10px !important;
+  text-shadow: 1px 1px 1px #000;
+}
+
+.dip-switch {
+  position: relative;
+  width: 20px;
+  height: 40px;
+  background-color: #fff;
+  border: 1px solid #999;
+  border-radius: 3px;
+}
+
+.dip-switch input[type="checkbox"] {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.dip-switch label {
+  position: absolute;
+  width: 16px;
+  height: 18px;
+  background-color: #333;
+  border: 1px solid #222;
+  cursor: pointer;
+  transition: top 0.15s ease-in-out;
+  left: 1px;
+  box-shadow: inset 0 2px 2px rgba(0, 0, 0, 0.5);
+}
+
+.dip-switch input[type="checkbox"] + label {
+  top: 20px;
+  /* OFF (下) */
+}
+
+.dip-switch input[type="checkbox"]:checked + label {
+  top: 1px;
+  /* ON (上) */
+}
+
+#user-selector-list li {
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #eee;
+}
+
+#user-selector-list li:hover {
+  background-color: #333;
+}
+
+#user-selector-list li.selected {
+  background-color: #555;
+  font-weight: bold;
+}
+
+/* --- 画像のみのポップアップ --- */
+.popup-overlay.image-only-popup.visible {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+}
+
+.popup-overlay.image-only-popup img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  /* アスペクト比を維持 */
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+  /* 画像に影を付けて浮かび上がらせる */
+}

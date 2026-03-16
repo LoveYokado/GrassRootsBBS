@@ -1,0 +1,100 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<form method="post">
+    <div class="form-group">
+        <label for="shortcut_id">Shortcut ID (e.g., 'news', '雑談')</label>
+        <input type="text" id="shortcut_id" name="shortcut_id" required>
+    </div>
+    <div class="form-group">
+        <label for="name">Board Name</label>
+        <input type="text" id="name" name="name" required>
+    </div>
+    <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="3"></textarea>
+    </div>
+    <div class="form-group">
+        <label for="board_type">Board Type</label>
+        <select id="board_type" name="board_type">
+            <option value="simple" selected>Simple (レスなし)</option>
+            <option value="thread">Thread (レスあり)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="default_permission">Default Permission</label>
+        <select id="default_permission" name="default_permission">
+            <option value="open" selected>Open (誰でも読み書き可)</option>
+            <option value="close">Close (リスト内のユーザーのみ)</option>
+            <option value="readonly">Read-Only (誰でも読めるが、書込みはリスト内のユーザーのみ)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="read_level">Read Level (0-5)</label>
+        <input type="number" id="read_level" name="read_level" value="1" min="0" max="5" required>
+    </div>
+    <div class="form-group">
+        <label for="write_level">Write Level (0-5)</label>
+        <input type="number" id="write_level" name="write_level" value="1" min="0" max="5" required>
+    </div>
+    <div class="form-group">
+        <label for="allow_attachments">
+            <input type="checkbox" id="allow_attachments" name="allow_attachments" value="1">
+            Allow File Attachments
+        </label>
+    </div>
+    <div class="form-group">
+        <label for="allowed_extensions">Allowed Extensions (e.g., jpg,png,gif / blank for global setting)</label>
+        <input type="text" id="allowed_extensions" name="allowed_extensions">
+    </div>
+    <div class="form-group">
+        <label for="max_attachment_size_mb">Max File Size (MB) (blank for global setting)</label>
+        <input type="number" id="max_attachment_size_mb" name="max_attachment_size_mb" min="1">
+    </div>
+    <div class="form-group">
+        <label for="max_threads">Max Threads/Articles (1-99999)</label>
+        <input type="number" id="max_threads" name="max_threads" value="99999" min="1" max="99999" required>
+    </div>
+
+    <div class="form-group" id="max_replies_group" style="display: none;">
+        <label for="max_replies">Max Replies (1-999)</label>
+        <input type="number" id="max_replies" name="max_replies" value="999" min="1" max="999" disabled>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" style="background-color: #28a745; color: white;">Create Board</button>
+        <a href="{{ url_for('admin.bbs_management', tab='list') }}"
+            style="background-color: #6c757d; color: white;">Cancel</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const boardTypeSelect = document.getElementById('board_type');
+        const maxRepliesInput = document.getElementById('max_replies');
+        const maxRepliesGroup = document.getElementById('max_replies_group');
+
+        function toggleMaxReplies() {
+            if (boardTypeSelect.value === 'thread') {
+                maxRepliesGroup.style.display = 'block';
+                maxRepliesInput.disabled = false;
+            } else {
+                maxRepliesGroup.style.display = 'none';
+                maxRepliesInput.disabled = true;
+            }
+        }
+        boardTypeSelect.addEventListener('change', toggleMaxReplies);
+        toggleMaxReplies();
+    });
+</script>
+{% endblock %}

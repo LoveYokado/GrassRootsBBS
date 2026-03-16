@@ -1,0 +1,15 @@
+{% extends "errors/base_error.html" %}
+
+{% block title %}Too Many Requests{% endblock %}
+
+{% block error_code %}429{% endblock %}
+{% block error_title %}Too Many Requests{% endblock %}
+{% block error_message %}
+<p>
+    You have sent too many requests in a given amount of time.
+    Please wait a moment and try again.
+</p>
+<p class="details">
+    (Limit: {{ error.description }})
+</p>
+{% endblock %}

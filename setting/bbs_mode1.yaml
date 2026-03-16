@@ -1,0 +1,85 @@
+# ==============================================================================
+# Manual BBS Menu Configuration (for Mode 1)
+#
+# This file defines the structure and text for the manually crafted,
+# text-based BBS menu, primarily used in "Mode 1".
+# It allows for creating nested menus and linking them to specific boards.
+#
+# Structure:
+#   menu_id:
+#     display_text: The text to be displayed for this menu.
+#     prompt_key: The key from textdata.yaml for the input prompt.
+#     actions:
+#       "user_input": { type: "action_type", ... }
+#
+# Action Types:
+#   - submenu: Navigates to another menu defined in this file.
+#   - board: Links to a specific BBS board (ends the menu navigation).
+#   - back: Goes back to the previous menu in the stack.
+#   - exit_to_top: Exits the entire menu system and returns to the top menu.
+# ==============================================================================
+#
+# ==============================================================================
+# 手書きBBSメニュー設定 (モード1用)
+#
+# このファイルは、主に「モード1」で使用される、手書きのテキストベース
+# BBSメニューの構造とテキストを定義します。
+# 入れ子構造のメニューを作成し、特定の掲示板にリンクさせることができます。
+#
+# ==============================================================================
+
+# --- Main Menu / メインメニュー ---
+main_bbs_menu:
+  display_text:
+    mode_1: |
+      +---------------------------------------+
+      |          掲示板メインメニュー         |
+      +---------------------------------------+
+      1. 総合カテゴリ
+      2. 趣味カテゴリ
+      E. 終了 (トップメニューへ)
+    mode_2: |
+      +---------------------------------------+
+      |             BBS Main Menu             |
+      +---------------------------------------+
+      1. General Category
+      2. Hobby Category
+      E. Exit (to Top Menu)
+  prompt_key: "prompt.bbs_top"
+  actions:
+    "1": { type: "submenu", target_menu_id: "general_category_menu" } # -> 総合カテゴリへ
+    "2": { type: "submenu", target_menu_id: "hobby_category_menu" }   # -> 趣味カテゴリへ
+    "e": { type: "exit_to_top" } # トップメニューに戻る
+    "": { type: "exit_to_top" } # 空エンターでもトップメニューに戻る
+
+# --- General Category Menu / 総合カテゴリメニュー ---
+general_category_menu:
+  display_text:
+    mode_1: |
+      --- 総合カテゴリ ---
+      1. 雑談板 (bbs_free)
+      B. 戻る
+    mode_2: |
+      --- General Category ---
+      1. Free Talk (bbs_free)
+      B. Back
+  actions:
+    "1": { type: "board", board_id: "bbs_free" } # -> 雑談板へ
+    "b": { type: "back" } # 前のメニューに戻る
+    "": { type: "back" } # 空エンターで戻る
+
+# --- Hobby Category Menu / 趣味カテゴリメニュー ---
+hobby_category_menu:
+  display_text:
+    mode_1: |
+      --- 趣味カテゴリ ---
+      1. ゲーム板 (bbs_hobby_game)
+      B. 戻る
+    mode_2: |
+      --- Hobby Category ---
+      1. Game Board (bbs_hobby_game)
+      B. Back
+  actions:
+    "1": { type: "board", board_id: "bbs_hobby_game" } # -> ゲーム板へ
+    "b": { type: "back" } # 前のメニューに戻る
+    "": { type: "back" } # 空エンターで戻る

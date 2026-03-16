@@ -1,0 +1,45 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4">{{ title }}</h1>
+    <p>Edit the details for the link below.</p>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-edit mr-1"></i>
+            Edit Link
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('admin.edit_link', link_id=link.id) }}">
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="name">Link Name</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ link.name }}" required>
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label for="url">URL</label>
+                        <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com"
+                            value="{{ link.url }}" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <input type="text" class="form-control" id="description" name="description"
+                        value="{{ link.description or '' }}">
+                </div>
+                <div class="form-actions">
+                    <button type="submit">Save Changes</button>
+                    <a href="{{ url_for('admin.link_list') }}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

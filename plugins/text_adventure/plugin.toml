@@ -1,0 +1,4 @@
+name = "画像添付型テキストアドベンチャーゲーム作成ツール"
+description = "選択式テキストアドベンチャーゲームを作成するためのツール。複数人による編集もサポートしています。"
+entry_point = "plugins.text_adventure.game"
+timeout = "none"

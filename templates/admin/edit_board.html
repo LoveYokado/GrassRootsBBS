@@ -1,0 +1,108 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }} - {{ board.name }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}: {{ board.name }}</h1>
+
+<form method="post" action="{{ url_for('admin.edit_board', board_id=board.id) }}">
+    <div class="form-group">
+        <label for="shortcut_id">Shortcut ID (read-only)</label>
+        <input type="text" id="shortcut_id" name="shortcut_id" value="{{ board.shortcut_id }}" readonly>
+    </div>
+    <div class="form-group">
+        <label for="name">Board Name</label>
+        <input type="text" id="name" name="name" value="{{ board.name }}" required>
+    </div>
+    <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="3">{{ board.description or '' }}</textarea>
+    </div>
+    <div class="form-group">
+        <label for="kanban_body">Kanban (Signboard)</label>
+        <textarea id="kanban_body" name="kanban_body" rows="5">{{ board.kanban_body or '' }}</textarea>
+        <small>This message is displayed when a user enters the board. Supports multi-line text.</small>
+    </div>
+    <div class="form-group">
+        <label for="board_type">Board Type</label>
+        <input type="text" id="board_type" name="board_type" value="{{ board.board_type }}" readonly>
+        <small>Board type cannot be changed after creation.</small>
+    </div>
+    <div class="form-group">
+        <label for="default_permission">Default Permission</label>
+        <select id="default_permission" name="default_permission">
+            <option value="open" {% if board.default_permission=='open' %}selected{% endif %}>Open (誰でも読み書き可)</option>
+            <option value="close" {% if board.default_permission=='close' %}selected{% endif %}>Close (リスト内のユーザーのみ)
+            </option>
+            <option value="readonly" {% if board.default_permission=='readonly' %}selected{% endif %}>Read-Only
+                (誰でも読めるが、書込みはリスト内のユーザーのみ)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="read_level">Read Level (0-5)</label>
+        <input type="number" id="read_level" name="read_level" value="{{ board.read_level }}" min="0" max="5" required>
+    </div>
+    <div class="form-group">
+        <label for="write_level">Write Level (0-5)</label>
+        <input type="number" id="write_level" name="write_level" value="{{ board.write_level }}" min="0" max="5"
+            required>
+    </div>
+    <div class="form-group">
+        <label for="allow_attachments">
+            <input type="checkbox" id="allow_attachments" name="allow_attachments" value="1" {% if
+                board.allow_attachments %}checked{% endif %}>
+            Allow File Attachments
+        </label>
+    </div>
+    <div class="form-group">
+        <label for="allowed_extensions">Allowed Extensions (e.g., jpg,png,gif / blank for global setting)</label>
+        <input type="text" id="allowed_extensions" name="allowed_extensions"
+            value="{{ board.allowed_extensions or '' }}">
+    </div>
+    <div class="form-group">
+        <label for="max_attachment_size_mb">Max File Size (MB) (blank for global setting)</label>
+        <input type="number" id="max_attachment_size_mb" name="max_attachment_size_mb"
+            value="{{ board.max_attachment_size_mb or '' }}" min="1">
+    </div>
+    <div class="form-group">
+        <label for="max_threads">Max Threads/Articles (1-99999)</label>
+        <input type="number" id="max_threads" name="max_threads"
+            value="{{ board.max_threads if board.max_threads is not none else '99999' }}" min="1" max="99999" required>
+    </div>
+
+    <div class="form-group" id="max_replies_group"
+        style="display: {% if board.board_type == 'thread' %}block{% else %}none{% endif %};">
+        <label for="max_replies">Max Replies (1-999)</label>
+        <input type="number" id="max_replies" name="max_replies"
+            value="{{ board.max_replies if board.max_replies is not none else '999' }}" min="1" max="999" {% if
+            board.board_type !='thread' %}disabled{% endif %}>
+    </div>
+
+    <div class="form-group">
+        <label for="operators">Operators (comma-separated)</label>
+        <input type="text" id="operators" name="operators"
+            value="{{ board.operators_str if board.operators_str else '' }}">
+        <small>Enter user IDs separated by commas. The user who creates the board is automatically added.</small>
+    </div>
+    <div class="form-group">
+        <label for="permission_users">B/W List (comma-separated usernames)</label>
+        <textarea id="permission_users" name="permission_users"
+            rows="3">{{ board.permission_users_str or '' }}</textarea>
+        <small>
+            How this list works depends on the 'Default Permission' setting:<br>
+            - <b>Open:</b> This is a <u>blacklist</u>. Listed users are denied access.<br>
+            - <b>Close / Read-Only:</b> This is a <u>whitelist</u>. Only listed users are granted access/write
+            permission.
+        </small>
+    </div>
+    <div class="form-actions">
+        <button type="submit" style="background-color: #28a745; color: white;">Save Changes</button>
+        <a href="{{ url_for('admin.bbs_management', tab='list') }}"
+            style="background-color: #6c757d; color: white;">Cancel</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,22 @@
+<!--
+  このファイルは、Webサイトのトラッキングコード（例: Google Analytics）を挿入するためのものです。
+  以下のサンプルはGoogle Analytics (GA4) の例です。
+  使用する場合は、このコメントアウトを解除し、'G-XXXXXXXXXX' をご自身の測定IDに置き換えてください。
+-->
+
+<!--
+  This file is for inserting website tracking code (e.g., Google Analytics).
+  The sample below is for Google Analytics (GA4).
+  To use it, remove the comment block and replace 'G-XXXXXXXXXX' with your own Measurement ID.
+-->
+
+<!--
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+-->

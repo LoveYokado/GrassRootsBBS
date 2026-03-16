@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Privacy policy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+
+<body>
+    <div class="static-container">
+        {% if lang == 'ja' %}
+        <div class="japanese-section">
+            <h1>プライバシーポリシー</h1>
+
+            <h2>1. はじめに</h2>
+            <p>ウェブアプリ「GrassRootsBBS」上で提供される「<strong>{{ site_info.server_name | default('[サーバー名]')
+                    }}</strong>」（以下、「当サービス」といいます）を運営する
+                <strong>{{ site_info.operator_name | default('[事業者名または運営者名]')
+                    }}</strong>
+                （以下、「当運営」といいます）は、ユーザーの皆様（以下、「ユーザー」といいます）からお預かりする個人情報の重要性を認識し、その適切な取扱いと保護を重要な責務と考えます。本プライバシーポリシーは、当サービスにおける個人情報の収集、利用、管理について定めます。
+            </p>
+
+            <h2>2. 収集する情報と利用目的</h2>
+            <p>当サービスでは、以下の情報を取得し、それぞれの利用目的の達成に必要な範囲内で利用します。</p>
+            <ul>
+                <li>
+                    <strong>IPアドレス</strong>
+                    <ul>
+                        <li>サービスの不正利用（荒らし、スパム、なりすまし等）の防止と対応のため。</li>
+                        <li>サーバーの負荷状況の把握やセキュリティ対策のため。</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>メールアドレス</strong>
+                    <ul>
+                        <li>ユーザーの本人確認、アカウント管理、及びお問い合わせ対応のため。</li>
+                        <li>システム障害などの重要なお知らせや、サービスのアップデート情報などの連絡のため。</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>掲示板・チャット・電報などの投稿内容</strong>
+                    <ul>
+                        <li>サービスの提供（ユーザー同士の情報交換、コミュニケーション）のため。</li>
+                        <li>投稿内容の監視、または通報に基づく規約違反のチェックと対応のため。</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h2>3. Cookie等の利用について</h2>
+            <p>当サービスでは、ユーザーの利便性向上のため、Cookieおよびローカルストレージを使用しています。これらはログイン状態の維持や、ターミナルの表示設定（フォント、配色など）の保存に利用されます。ユーザーはブラウザの設定によりCookieを無効化できますが、その場合、当サービスの一部機能が正常に利用できなくなる可能性があります。
+            </p>
+
+            <h2>4. 個人情報の第三者提供について</h2>
+            <p>当運営は、法令で認められている場合を除き、あらかじめユーザーの同意を得ることなく、個人情報を第三者に提供しません。ただし、以下のいずれかに該当する場合に限り、必要な範囲で提供することがあります。</p>
+            <ul>
+                <li>法令に基づく場合（例：捜査機関から照会があった場合など）。</li>
+                <li>人の生命、身体または財産の保護のために必要がある場合であって、本人の同意を得ることが困難であるとき。</li>
+                <li>当サービスの利用規約に違反したユーザーの不正利用を防ぐため、やむを得ず開示する場合（例：不正行為に対する法的な対応のため、必要最低限の情報を当局や関係者に提供する場合）。</li>
+            </ul>
+
+            <h2>5. 投稿情報（公開情報）の取り扱いについて</h2>
+            <p>掲示板、チャット、電報サービスなど、ユーザーご自身が当サービス内で投稿・発信された情報（テキスト、画像、ニックネームなど）は、他のユーザーに公開されます。
+                ユーザーが意図せず、ご自身や他者の個人情報（氏名、住所、電話番号、メールアドレス、金融情報など）を投稿された場合、それらの情報も公開され、不特定多数のユーザーが閲覧可能な状態になります。
+                当運営は、ユーザーに対し、機密性の高い情報や個人を特定し得る情報を投稿・書き込みしないよう、強く推奨し、ご注意を促します。</p>
+
+            <h2>6. 個人情報の安全管理措置（セキュリティ）</h2>
+            <p>当運営は、収集した個人情報の紛失、破壊、改ざん、および漏えいなどを防止するため、以下の技術的および組織的な安全管理措置を適切に講じ、個人情報の保護に努めます。</p>
+            <ul>
+                <li>通信の暗号化 (SSL/TLS)</li>
+                <li>パスワードのハッシュ化による安全な保管</li>
+                <li>不正アクセス対策（ファイアウォール、IPアドレスによるアクセス制限など）</li>
+            </ul>
+
+            <h2>7. プライバシーポリシーの変更</h2>
+            <p>当運営は、法令の改正、社会情勢の変化、または当サービスの運営上の必要性に基づき、本プライバシーポリシーを変更することがあります。
+                変更を行う場合は、その内容と適用時期について、当サービス内（ウェブサイト、トップページなど）に掲載するなどの適切な方法により、ユーザーに告知いたします。変更後のプライバシーポリシーは、告知した適用時期から効力を生じるものとします。
+            </p>
+
+            <h2>8. お問い合わせ窓口</h2>
+            <p id="contact-info">個人情報の開示・訂正・利用停止等のご請求、または本ポリシーに関するご質問は、以下の窓口にご連絡ください。</p>
+            {% if site_info.contact_x_url %}
+            <p><strong>X (Twitter):</strong> <a href="{{ site_info.contact_x_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_x_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_threads_url %}
+            <p><strong>Threads:</strong> <a href="{{ site_info.contact_threads_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_threads_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_bluesky_url %}
+            <p><strong>Bluesky:</strong> <a href="{{ site_info.contact_bluesky_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_bluesky_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_mastodon_url %}
+            <p><strong>Mastodon:</strong> <a href="{{ site_info.contact_mastodon_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_mastodon_url }}</a></p>
+            {% endif %}
+            <p>{{ util.get_text_by_key('privacy_policy_page.contact_form_link_text', lang) |
+                format(contact_url=url_for('web.contact')) | safe }}
+            </p>
+        </div>
+        {% else %}
+        <div class="english-section">
+
+            <h1>Privacy Policy</h1>
+            <h2>1. Introduction</h2>
+            <p>This Privacy Policy explains how <strong>{{ site_info.operator_name | default('[Your Company/Operator
+                    Name]') }}</strong> (hereinafter referred to
+                as "we," "us," or "our") collects, uses, and manages personal information for the web application
+                "GrassRootsBBS" (hereinafter referred to as "the Service"). We recognize the importance of the personal
+                information entrusted to us by our users and consider its proper handling and protection to be a
+                significant responsibility.</p>
+            <h2>2. Information We Collect and How We Use It</h2>
+            <p>The Service collects the following information and uses it within the scope necessary to achieve the
+                respective purposes of use.</p>
+            <ul>
+                <li><strong>IP Address</strong>
+                    <ul>
+                        <li>To prevent and respond to fraudulent use of the service (e.g., vandalism, spam,
+                            impersonation).</li>
+                        <li>To monitor server load and for security measures.</li>
+                    </ul>
+                </li>
+                <li><strong>Email Address</strong>
+                    <ul>
+                        <li>For user identity verification, account management, and responding to inquiries.</li>
+                        <li>To send important notifications, such as system failures or service updates.</li>
+                    </ul>
+                </li>
+                <li><strong>Content of Posts (BBS, Chat, Telegrams, etc.)</strong>
+                    <ul>
+                        <li>To provide the service (e.g., information exchange and communication between users).</li>
+                        <li>To monitor content and respond to violations of the terms of service based on reports.</li>
+                    </ul>
+                </li>
+            </ul>
+            <h2>3. Use of Cookies, etc.</h2>
+            <p>The Service uses cookies and local storage to improve user convenience. This data is used to maintain
+                login status and save terminal display settings (e.g., font, color scheme). Users can disable cookies
+                through their browser settings, but doing so may prevent some features of the Service from functioning
+                correctly.</p>
+            <h2>4. Sharing of Personal Information with Third Parties</h2>
+            <p>We will not provide personal information to third parties without the user's prior consent, except where
+                permitted by law. However, we may provide information to the extent necessary in the following cases:
+            </p>
+            <ul>
+                <li>When required by law (e.g., in response to an inquiry from a law enforcement agency).</li>
+                <li>When it is necessary for the protection of a person's life, body, or property and it is difficult to
+                    obtain the consent of the individual.</li>
+                <li>When it is necessary to disclose information to prevent fraudulent use by a user who has violated
+                    the terms of service (e.g., providing the minimum necessary information to authorities or related
+                    parties for legal action against fraudulent activities).</li>
+            </ul>
+            <h2>5. Handling of Posted Information (Public Information)</h2>
+            <p>Information that you post or transmit within the Service, such as on bulletin boards, in chat rooms, or
+                via telegrams (including text, images, and nicknames), will be made public to other users. If you
+                unintentionally post your own or another person's personal information (e.g., name, address, phone
+                number, email address, financial information), that information will also be made public and accessible
+                to an unspecified number of users. We strongly recommend and caution users not to post or write highly
+                confidential or personally identifiable information.</p>
+            <h2>6. Security Measures for Personal Information</h2>
+            <p>To prevent the loss, destruction, alteration, and leakage of collected personal information, we implement
+                appropriate technical and organizational security measures, including:</p>
+            <ul>
+                <li>Encryption of communications (SSL/TLS).</li>
+                <li>Secure storage of passwords through hashing.</li>
+                <li>Measures against unauthorized access (e.g., firewalls, IP address-based access restrictions).</li>
+            </ul>
+            <h2>7. Changes to this Privacy Policy</h2>
+            <p>We may amend this Privacy Policy due to changes in laws, social conditions, or operational needs of the
+                Service. When we make changes, we will notify users of the content and effective date of the changes
+                through appropriate means, such as by posting on the Service's website or top page. The revised Privacy
+                Policy will become effective from the notified date.</p>
+            <h2 id="contact-info-en">8. Contact Information</h2>
+            <p>For requests regarding the disclosure, correction, or suspension of use of personal information, or for
+                any questions regarding this policy, please contact us at the following:</p>
+            {% if site_info.contact_x_url %}
+            <p><strong>X (Twitter):</strong> <a href="{{ site_info.contact_x_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_x_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_threads_url %}
+            <p><strong>Threads:</strong> <a href="{{ site_info.contact_threads_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_threads_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_bluesky_url %}
+            <p><strong>Bluesky:</strong> <a href="{{ site_info.contact_bluesky_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_bluesky_url }}</a></p>
+            {% endif %}
+            {% if site_info.contact_mastodon_url %}
+            <p><strong>Mastodon:</strong> <a href="{{ site_info.contact_mastodon_url }}" target="_blank"
+                    rel="noopener noreferrer">{{ site_info.contact_mastodon_url }}</a></p>
+            {% endif %}
+            <p class="lang-en">{{ util.get_text_by_key('privacy_policy_page.contact_form_link_text', lang) |
+                format(contact_url=url_for('web.contact')) | safe }}</p>
+        </div>
+        {% endif %}
+
+        <a href="{{ url_for('web.login') }}" style="display: block; text-align: center; margin-top: 20px;">{{
+            util.get_text_by_key('contact_page.back_to_login', lang, 'Back to Login') }}</a>
+    </div>
+</body>
+
+</html>

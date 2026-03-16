@@ -1,0 +1,202 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Here you can change the minimum access levels for top menu commands and other server-wide settings.</p>
+
+<form method="post">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2em;">
+
+        <div>
+            <h3>Command Access Levels (0-5)</h3>
+            <div class="form-group">
+                <label for="bbs">BBS (b)</label>
+                <input type="number" id="bbs" name="bbs" value="{{ settings.get('bbs', 2) }}" min="0" max="5" required>
+            </div>
+            <div class="form-group">
+                <label for="chat">Chat (c)</label>
+                <input type="number" id="chat" name="chat" value="{{ settings.get('chat', 2) }}" min="0" max="5"
+                    required>
+            </div>
+            <div class="form-group">
+                <label for="mail">Mail (m)</label>
+                <input type="number" id="mail" name="mail" value="{{ settings.get('mail', 2) }}" min="0" max="5"
+                    required>
+            </div>
+            <div class="form-group">
+                <label for="telegram">Telegram (#)</label>
+                <input type="number" id="telegram" name="telegram" value="{{ settings.get('telegram', 2) }}" min="0"
+                    max="5" required>
+            </div>
+            <div class="form-group">
+                <label for="userpref">UserPref (u)</label>
+                <input type="number" id="userpref" name="userpref" value="{{ settings.get('userpref', 2) }}" min="0"
+                    max="5" required>
+            </div>
+            <div class="form-group">
+                <label for="who">Who (w)</label>
+                <input type="number" id="who" name="who" value="{{ settings.get('who', 2) }}" min="0" max="5" required>
+            </div>
+            <div class="form-group">
+                <label for="hamlet">Hamlet (z)</label>
+                <input type="number" id="hamlet" name="hamlet" value="{{ settings.get('hamlet', 2) }}" min="0" max="5"
+                    required>
+            </div>
+        </div>
+
+        <div>
+            <h3>Text Settings</h3>
+            <div class="form-group">
+                <label for="login_message">Login Message</label>
+                <textarea id="login_message" name="login_message"
+                    rows="5">{{ settings.get('login_message', '') }}</textarea>
+            </div>
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label for="default_exploration_list">Default Exploration List (comma-separated)</label>
+                    <button type="button" id="fill-board-ids-btn" class="action-link-edit"
+                        style="margin-bottom: 0.5em;">Fill with all board IDs</button>
+                </div>
+                <textarea id="default_exploration_list" name="default_exploration_list"
+                    rows="5">{{ settings.get('default_exploration_list', '') }}</textarea>
+            </div>
+
+            <h3>Site Information</h3>
+            <div class="form-group">
+                <label for="server_name">Server Name</label>
+                <input type="text" id="server_name" name="server_name" value="{{ settings.get('server_name', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="operator_name">Operator Name</label>
+                <input type="text" id="operator_name" name="operator_name"
+                    value="{{ settings.get('operator_name', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_email">Contact Email</label>
+                <input type="email" id="contact_email" name="contact_email"
+                    value="{{ settings.get('contact_email', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_x_url">Contact X (Twitter) URL</label>
+                <input type="url" id="contact_x_url" name="contact_x_url"
+                    value="{{ settings.get('contact_x_url', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_threads_url">Contact Threads URL</label>
+                <input type="url" id="contact_threads_url" name="contact_threads_url"
+                    value="{{ settings.get('contact_threads_url', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_bluesky_url">Contact Bluesky URL</label>
+                <input type="url" id="contact_bluesky_url" name="contact_bluesky_url"
+                    value="{{ settings.get('contact_bluesky_url', '') }}">
+            </div>
+            <div class="form-group">
+                <label for="contact_mastodon_url">Contact Mastodon URL</label>
+                <input type="url" id="contact_mastodon_url" name="contact_mastodon_url"
+                    value="{{ settings.get('contact_mastodon_url', '') }}">
+            </div>
+
+
+            <h3>Other Settings</h3>
+            <div class="form-group">
+                <label for="online_signup_enabled">
+                    <input type="checkbox" id="online_signup_enabled" name="online_signup_enabled" value="1" {% if
+                        settings.get('online_signup_enabled') %}checked{% endif %}>
+                    Enable Online Signup
+                </label>
+                <small>Allows new users to register from the login screen (requires SysOp approval).</small>
+            </div>
+            <div class="form-group">
+                <label for="telegram_logging_enabled">
+                    <input type="checkbox" id="telegram_logging_enabled" name="telegram_logging_enabled" value="1" {% if
+                        settings.get('telegram_logging_enabled') %}checked{% endif %}>
+                    Enable Telegram Logging
+                </label>
+                <small>Logs all sent telegrams to <code>logs/telegrams/telegrams.log</code>.</small>
+            </div>
+
+            <h3>Plugin Settings</h3>
+            <div class="form-group">
+                <label for="plugin_execution_timeout">Plugin Execution Timeout (seconds)</label>
+                <input type="number" id="plugin_execution_timeout" name="plugin_execution_timeout"
+                    value="{{ settings.get('plugin_execution_timeout', 60) }}" min="5" max="300" required>
+                <small>The maximum time a plugin can run before being terminated. Prevents infinite loops.</small>
+            </div>
+
+            <h3>Log Settings</h3>
+            <div class="form-group">
+                <label for="log_retention_days">Access Log Retention (days)</label>
+                <input type="number" id="log_retention_days" name="log_retention_days"
+                    value="{{ settings.get('log_retention_days', 90) }}" min="0" max="3650" required>
+                <small>Days to keep access logs. Older logs will be deleted. Set to 0 to disable cleanup.</small>
+            </div>
+            <div class="form-group">
+                <label for="log_cleanup_cron">Log Cleanup Schedule (cron)</label>
+                <input type="text" id="log_cleanup_cron" name="log_cleanup_cron"
+                    value="{{ settings.get('log_cleanup_cron', '5 4 * * *') }}" required>
+                <small>The schedule for running the log cleanup job. Default is every day at 4:05 AM.</small>
+            </div>
+
+            <h3>Security Settings</h3>
+            <div class="form-group">
+                <label for="max_password_attempts">Maximum Password Attempts</label>
+                <input type="number" id="max_password_attempts" name="max_password_attempts"
+                    value="{{ settings.get('max_password_attempts', 3) }}" min="1" max="10" required>
+                <small>The maximum number of failed login attempts before the account is locked.</small>
+            </div>
+            <div class="form-group">
+                <label for="lockout_time_seconds">Account Lockout Time (seconds)</label>
+                <input type="number" id="lockout_time_seconds" name="lockout_time_seconds"
+                    value="{{ settings.get('lockout_time_seconds', 300) }}" min="60" max="3600" required>
+                <small>The time, in seconds, that an account is locked after too many failed login attempts.</small>
+            </div>
+            <div class="form-group">
+                <label for="block_proxies">
+                    <input type="checkbox" id="block_proxies" name="block_proxies" value="1" {% if
+                        settings.get('block_proxies') %}checked{% endif %}>
+                    Block Proxy/VPN/Tor Connections
+                </label>
+                <small>Blocks connections via proxy, VPN, or Tor using ip-api.com (may impact performance).</small>
+            </div>
+
+            <h3>Maintenance Mode</h3>
+            <div class="form-group">
+                <label for="maintenance_mode">
+                    <input type="checkbox" id="maintenance_mode" name="maintenance_mode" value="1" {% if
+                        settings.get('maintenance_mode') %}checked{% endif %}>
+                    Enable Maintenance Mode
+                </label>
+                <small>If enabled, only administrators (Level 5) can log in. All other users will be redirected to a
+            </div>
+
+            <h3>Webapp Settings</h3>
+            <div class="form-group">
+                <label for="max_concurrent_webapp_clients">Maximum Concurrent WebApp Clients</label>
+                <input type="number" id="max_concurrent_webapp_clients" name="max_concurrent_webapp_clients"
+                    value="{{ settings.get('max_concurrent_webapp_clients', 4) }}" min="0" max="100" required>
+                maintenance page.</small>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="form-actions" style="margin-top: 2em;">
+        <button type="submit" style="background-color: #28a745; color: white;">Save Changes</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Pythonから渡された変数をグローバルJS変数として定義
+    const allBoardIds = {{ all_board_ids | tojson }};
+</script>
+{% endblock %}

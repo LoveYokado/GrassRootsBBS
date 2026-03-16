@@ -1,0 +1,308 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ g.texts.get('log_viewer', {}).get('title', 'Log Viewer') }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+
+<script>document.addEventListener('DOMContentLoaded', function () {
+        // --- Error Log Filter ---
+        const filterButtons = document.querySelectorAll('#error-log-level-filter button');
+        const searchInput = document.getElementById('errorLogSearch');
+        const logRows = document.querySelectorAll('#error tbody tr');
+        let currentLevel = 'ALL';
+
+        function filterLogs() {
+            const keyword = searchInput.value.toLowerCase();
+            logRows.forEach(row => {
+                const logText = row.textContent.toLowerCase();
+                const levelMatch = currentLevel === 'ALL' || logText.includes(`[${currentLevel.toLowerCase()}]`);
+                const keywordMatch = logText.includes(keyword);
+
+                row.style.display = (levelMatch && keywordMatch) ? '' : 'none';
+            });
+        }
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                currentLevel = this.dataset.level;
+                filterLogs();
+            });
+        });
+
+        searchInput.addEventListener('keyup', filterLogs);
+    });</script>
+
+{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" id="logTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if tab == 'logs' %}active{% endif %}" id="access-tab"
+                    href="{{ url_for('admin.access_management', tab='logs') }}" role="tab" aria-controls="access"
+                    aria-selected="{{ 'true' if tab == 'logs' else 'false' }}">
+                    <i class="fas fa-list mr-1"></i> Access Logs
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if tab == 'error' %}active{% endif %}" id="error-tab" data-toggle="tab"
+                    href="#error" role="tab" aria-controls="error"
+                    aria-selected="{{ 'true' if tab == 'error' else 'false' }}">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> Error Logs
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if tab == 'audit' %}active{% endif %}" id="audit-tab"
+                    href="{{ url_for('admin.access_management', tab='audit') }}" role="tab" aria-controls="audit"
+                    aria-selected="{{ 'true' if tab == 'audit' else 'false' }}">
+                    <i class="fas fa-user-shield mr-1"></i> Audit Logs
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="tab-content" id="logTabsContent">
+        <div class="tab-pane fade {% if tab == 'logs' %}show active{% endif %}" id="access" role="tabpanel"
+            aria-labelledby="access-tab">
+            <div class="card-body">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-search mr-1"></i> Search Access Logs
+                    </div>
+                    <div class="card-body">
+                        <form method="get" action="{{ url_for('admin.access_management') }}">
+                            <input type="hidden" name="tab" value="logs">
+                            <div class="d-flex flex-wrap gap-3 align-items-end">
+                                <div class="form-group flex-grow-1">
+                                    <label for="ip">IP Address</label>
+                                    <input type="text" id="ip" name="ip" value="{{ search_params.ip or '' }}"
+                                        class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="user">Username</label>
+                                    <input type="text" id="user" name="user" value="{{ search_params.user or '' }}"
+                                        class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="display_name">Display Name</label>
+                                    <input type="text" id="display_name" name="display_name"
+                                        value="{{ search_params.display_name or '' }}" class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="event">Event Type</label>
+                                    <input type="text" id="event" name="event" value="{{ search_params.event or '' }}"
+                                        class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="message">Message</label>
+                                    <input type="text" id="message" name="message"
+                                        value="{{ search_params.message or '' }}" class="form-control">
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Search</button>
+                                    <a href="{{ url_for('admin.access_management', tab='logs') }}"
+                                        class="btn btn-secondary">Clear</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {% include 'admin/_pagination.html' %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th><a
+                                        href="{{ url_for('admin.access_management', sort_by='timestamp', order=next_order if sort_by == 'timestamp' else 'desc', ip=search_params.ip, user=search_params.user, event=search_params.event, tab='logs') }}">Timestamp
+                                        {% if sort_by == 'timestamp' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                        %}</a></th>
+                                <th><a
+                                        href="{{ url_for('admin.access_management', sort_by='ip_address', order=next_order if sort_by == 'ip_address' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event, tab='logs') }}">IP
+                                        Address
+                                        {% if sort_by == 'ip_address' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                        %}</a>
+                                </th>
+                                <th><a
+                                        href="{{ url_for('admin.access_management', sort_by='username', order=next_order if sort_by == 'username' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event, tab='logs') }}">User
+                                        {% if sort_by == 'username' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                        %}</a>
+                                </th>
+                                <th><a
+                                        href="{{ url_for('admin.access_management', sort_by='display_name', order=next_order if sort_by == 'display_name' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event, tab='logs') }}">Display
+                                        Name
+                                        {% if sort_by == 'display_name' %}{{ '▲' if order == 'asc' else '▼' }}{%
+                                        endif %}</a>
+                                </th>
+                                <th><a
+                                        href="{{ url_for('admin.access_management', sort_by='event_type', order=next_order if sort_by == 'event_type' else 'asc', ip=search_params.ip, user=search_params.user, event=search_params.event, tab='logs') }}">Event
+                                        Type
+                                        {% if sort_by == 'event_type' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                        %}</a></th>
+                                <th>Message</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td style="white-space: nowrap;">{{ log.timestamp | timestamp_to_datetime }}</td>
+                                <td>{{ log.ip_address }}</td>
+                                <td>{% if log.user_id and 'GUEST' not in (log.username or '')|upper %}<a
+                                        href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">{{
+                                        log.username or log.user_id }}</a>{% else %}{{ log.username or 'N/A'
+                                    }}{% endif %}</td>
+                                <td>{{ log.display_name or 'N/A' }}</td>
+                                <td>{{ log.event_type }}</td>
+                                <td style="word-break: break-all;">{{ log.message }}</td>
+                                <td style="white-space: nowrap;">
+                                    <a href="{{ url_for('admin.access_management', tab='bans', ip_address=log.ip_address) }}"
+                                        class="btn btn-sm btn-danger" title="Ban this IP">BAN</a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No access logs found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% include 'admin/_pagination.html' %}
+            </div>
+        </div>
+
+        <div class="tab-pane fade {% if tab == 'error' %}show active{% endif %}" id="error" role="tabpanel"
+            aria-labelledby="error-tab">
+            <div class="card-body">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-search mr-1"></i> Search Error Logs
+                    </div>
+                    <div class="card-body">
+                        <div id="error-log-level-filter" class="btn-group" role="group">
+                            <button type="button" class="btn btn-secondary active" data-level="ALL">All</button>
+                            <button type="button" class="btn btn-info" data-level="INFO">Info</button>
+                            <button type="button" class="btn btn-warning" data-level="WARNING">Warning</button>
+                            <button type="button" class="btn btn-danger" data-level="ERROR">Error</button>
+                            <button type="button" class="btn btn-dark" data-level="CRITICAL">Critical</button>
+                        </div>
+                        <input type="text" id="errorLogSearch" class="form-control mt-2"
+                            style="background-color: #000; color: #0f0; border-color: #444;"
+                            placeholder="Filter by keyword...">
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <tbody>
+                            {% for log in error_logs %}
+                            <tr>
+                                <td>
+                                    <pre
+                                        style="white-space: pre-wrap; word-break: break-all; color: #ffdddd; margin: 0;">{{ log }}</pre>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td class="text-center">No error logs found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade {% if tab == 'audit' %}show active{% endif %}" id="audit" role="tabpanel"
+            aria-labelledby="audit-tab">
+            <div class="card-body">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-search mr-1"></i> Search Audit Logs
+                    </div>
+                    <div class="card-body">
+                        <form method="get" action="{{ url_for('admin.access_management') }}">
+                            <input type="hidden" name="tab" value="audit">
+                            <div class="d-flex flex-wrap gap-3 align-items-end">
+                                <div class="form-group flex-grow-1">
+                                    <label for="audit_user">User</label>
+                                    <input type="text" id="audit_user" name="audit_user"
+                                        value="{{ search_params.audit_user or '' }}" class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="audit_ip">IP Address</label>
+                                    <input type="text" id="audit_ip" name="audit_ip"
+                                        value="{{ search_params.audit_ip or '' }}" class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="audit_action">Action</label>
+                                    <input type="text" id="audit_action" name="audit_action"
+                                        value="{{ search_params.audit_action or '' }}" class="form-control">
+                                </div>
+                                <div class="form-group flex-grow-1">
+                                    <label for="audit_keyword">Keyword in Details</label>
+                                    <input type="text" id="audit_keyword" name="audit_keyword"
+                                        value="{{ search_params.audit_keyword or '' }}" class="form-control">
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">Search</button>
+                                    <a href="{{ url_for('admin.access_management', tab='audit') }}"
+                                        class="btn btn-secondary">Clear</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% include 'admin/_pagination.html' %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User</th>
+                                <th>IP Address</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in audit_logs %}
+                            <tr>
+                                <td style="white-space: nowrap;">{{ log.timestamp }}</td>
+                                <td>
+                                    {% if log.user_id %}
+                                    <a href="{{ url_for('admin.edit_user', user_id=log.user_id) }}">{{ log.username or
+                                        log.user_id }}</a>
+                                    {% else %}
+                                    {{ log.username or 'N/A' }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ log.ip_address }}</td>
+                                <td><span class="badge badge-info">{{ log.action }}</span></td>
+                                <td>
+                                    <pre
+                                        style="white-space: pre-wrap; word-break: break-all; margin: 0; font-size: 0.8em; color: inherit;">{{ log.details | tojson(indent=2) }}</pre>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center">No audit logs found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% include 'admin/_pagination.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

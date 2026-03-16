@@ -1,0 +1,148 @@
+# このファイルを config.toml としてコピーし、あなたの環境に合わせて値を設定してください。
+# Copy this file to config.toml and set the values for your environment.
+
+[site_info]
+# サイト運営者名と、あなたのBBSの名前
+# Operator name and the name of your BBS.
+operator_name = "SYSOP"
+server_name = "My GR-BBS"
+
+[webapp]
+# BBSにアクセスする際のURL。PasskeyやPush通知で必要です。
+# The URL to access your BBS. Required for Passkey and Push notifications.
+ORIGIN = "http://localhost:5000"
+
+# Passkey (WebAuthn) の Relying Party Name として使用されるBBS名
+# BBS name used as the Relying Party Name for Passkey (WebAuthn).
+BBS_NAME = "GR-BBS"
+
+# 管理画面のパス
+ADMIN_PATH = "admin"
+# ログインページのロゴ画像のパス (static/からの相対パス)
+# Path to the logo image on the login page (relative to static/).
+LOGIN_PAGE_LOGO_PATH = "images/logo.png"
+
+# Passkeyで使われるドメイン名 (ポート番号は含めない)
+# Relying Party ID for Passkey (should not include the port).
+RP_ID = "localhost"
+
+# 添付ファイルのアップロード先ディレクトリ
+# Directory for attachment uploads.
+ATTACHMENT_UPLOAD_DIR = "data/attachments"
+
+[paths]
+# メニュー定義ファイルのパス
+# Paths to menu definition files.
+bbs_mode1_yaml = "setting/bbs_mode1.yaml"
+bbs_mode2_yaml = "setting/bbs_mode2.yaml"
+bbs_mode3_yaml = "setting/bbs_mode3.yaml"
+chatroom_yaml = "setting/chatroom.yaml"
+text_data_yaml = "setting/textdata.yaml"
+
+[security]
+# パスワードハッシュ化のストレッチング回数。高いほど安全ですが、処理が重くなります。
+# Number of rounds for password hashing. Higher is more secure but slower.
+PBKDF2_ROUNDS = 100000
+
+# ゲストID生成用のソルト。ランダムな文字列に変更してください。
+# Salt for generating guest IDs. Change this to a random string.
+GUEST_ID_SALT = "your_unique_random_string_here"
+
+# --- Proxy/VPN/Tor Blocking ---
+# trueに設定すると、ip-api.comを使用してプロキシやホスティング経由の接続をブロックします。
+# この機能は外部APIへの問い合わせを行うため、パフォーマンスに影響を与える可能性があります。
+block_proxies = false
+
+# IDの最小/最大文字数
+# Minimum/Maximum length for user IDs.
+ID_MIN_LENGTH = 3
+ID_MAX_LENGTH = 20
+
+# セッションクッキー名
+# Session cookie name.
+SESSION_COOKIE_NAME = "grbbs_session"
+
+# パスワードの最小/最大文字数
+# Minimum/Maximum length for passwords.
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 64
+
+[limits]
+# 電報の最大文字数
+# Maximum length of a telegram message.
+telegram_message_max_length = 100
+# メールの件名/本文の最大文字数
+# Maximum length for mail subject/body.
+mail_subject_max_length = 42
+mail_body_max_length = 8192
+# 掲示板のタイトル/本文の最大文字数
+# Maximum length for BBS title/body.
+bbs_title_max_length = 42
+bbs_body_max_length = 8192
+
+[push]
+VAPID_CLAIMS_EMAIL = "mailto:your_email@example.com"
+
+# VAPID公開鍵。`tools/generate_vapid_keys.py` を実行して生成し、貼り付けてください。
+# VAPID public key. Generate by running `tools/generate_vapid_keys.py` and paste it here.
+VAPID_PUBLIC_KEY = ""
+
+# 同じルームへの入室通知のクールダウン時間（秒）
+# Cooldown time in seconds for push notifications for the same room.
+NOTIFICATION_COOLDOWN_SECONDS = 60
+
+[ratelimit]
+# ログイン試行などに対するレートリミット設定
+# Rate limit settings for actions like login attempts.
+default_limits = "200 per day;50 per hour"
+
+[admin]
+# 管理画面へのIPアドレス制限
+# IP address restriction for the admin panel.
+ip_restriction_enabled = false
+ALLOWED_IPS = ["127.0.0.1", "::1"]
+
+[attachments]
+# 添付ファイルのグローバル設定
+# Global settings for file attachments.
+
+# 許可する拡張子（カンマ区切り）。空の場合は制限なし。
+# Allowed extensions (comma-separated). Empty means no restriction.
+allowed_extensions = "jpg,jpeg,png,gif,bmp,txt,zip"
+
+# 最大ファイルサイズ（MB）
+# Maximum file size in megabytes.
+max_size_mb = 5
+
+[clamav]
+# ClamAVによるウイルススキャン設定
+# Virus scanning settings with ClamAV.
+enabled = true
+host = "clamav" # Docker Compose内のサービス名
+port = 3310
+
+# ウイルスが検出されたファイルの隔離先ディレクトリ
+# Quarantine directory for infected files.
+quarantine_directory = "data/quarantine"
+
+[backup]
+# バックアップファイルの保存先ディレクトリ
+# Directory to store backup files.
+backup_directory = "data/backups"
+
+# バックアップ対象のディレクトリ（プロジェクトルートからの相対パス）
+# Directories to include in the backup (relative to project root).
+source_directories = ["data/attachments", "setting"]
+
+[bbs]
+socket_timeout_seconds = 25
+# 記事本文の折り返し幅
+# Wrap width for article bodies.
+article_wrap_width = 78
+# 返信本文の折り返し幅 (インデントを考慮)
+# Wrap width for reply bodies (considering indentation).
+reply_wrap_width = 76
+
+[server]
+# BBSの名称 (ログファイル名などに使用)
+BBS_NAME = "GR-BBS"

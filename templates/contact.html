@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+
+<head>
+    <meta charset="UTF-8">
+    <title>お問い合わせ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <style>
+        .static-container p,
+        .static-container small {
+            color: #99cc99;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="static-container" style="max-width: 600px;">
+        <h1>{{ util.get_text_by_key('contact_page.title', lang, 'Contact Us') }}</h1>
+        <form method="post">
+            <div class="form-group">
+                <label for="name">{{ util.get_text_by_key('contact_page.name_label', lang, 'Name') }}</label>
+                <input type="text" id="name" name="name" value="{{ session.get('username', '') }}" required
+                    class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="email">{{ util.get_text_by_key('contact_page.email_label', lang, 'Email Address') }}</label>
+                <input type="email" id="email" name="email" value="{{ user_email or '' }}" required
+                    class="form-control">
+                <small>{{ util.get_text_by_key('contact_page.sns_alt_text', lang, 'Alternatively, you can contact us
+                    via the SNS accounts below.') }}</small>
+            </div>
+            <div class="form-group">
+                <label for="subject">{{ util.get_text_by_key('contact_page.subject_label', lang, 'Subject') }}</label>
+                <input type="text" id="subject" name="subject" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="message">{{ util.get_text_by_key('contact_page.message_label', lang, 'Message') }}</label>
+                <textarea id="message" name="message" rows="5" required class="form-control"></textarea>
+            </div>
+            <button type="submit">{{ util.get_text_by_key('contact_page.submit_button', lang, 'Send') }}</button>
+        </form>
+        <p style="font-size: 0.8em; text-align: center; margin-top: 15px;">
+            {{ util.get_text_by_key('contact_page.agreement_prefix', lang, 'By submitting this form, you agree to our')
+            |
+            safe }} <a href="{{ url_for('web.privacy_policy') }}#contact-info">{{
+                util.get_text_by_key('contact_page.privacy_policy_link', lang, 'Privacy Policy') }}</a>.
+        </p>
+        {% if success_message %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                alert("{{ success_message }}");
+                window.location.href = "{{ url_for('web.login') }}";
+            });
+        </script>
+        {% endif %}
+        <div
+            style="text-align: center; margin-top: 20px; border-top: 1px solid rgba(0, 255, 0, 0.2); padding-top: 15px;">
+            <p>{{ util.get_text_by_key('contact_page.sns_footer_text', lang, 'You can also contact us via the following
+                social media.<br>(Please ensure you can receive direct messages.)') | safe }}</p>
+            {% if site_info.contact_x_url %}<a href="{{ site_info.contact_x_url }}" target="_blank"
+                rel="noopener noreferrer" style="margin: 0 10px;">X (Twitter)</a>{% endif %}
+            {% if site_info.contact_threads_url %}<a href="{{ site_info.contact_threads_url }}" target="_blank"
+                rel="noopener noreferrer" style="margin: 0 10px;">Threads</a>{% endif %}
+            {% if site_info.contact_bluesky_url %}<a href="{{ site_info.contact_bluesky_url }}" target="_blank"
+                rel="noopener noreferrer" style="margin: 0 10px;">Bluesky</a>{% endif %}
+            {% if site_info.contact_mastodon_url %}<a href="{{ site_info.contact_mastodon_url }}" target="_blank"
+                rel="noopener noreferrer" style="margin: 0 10px;">Mastodon</a>{% endif %}
+        </div>
+        <a href="{{ url_for('web.login') }}" style="display: block; text-align: center; margin-top: 20px;">{{-
+            util.get_text_by_key('contact_page.back_to_login', lang, 'Back to Login') -}}</a>
+    </div>
+</body>
+
+</html>

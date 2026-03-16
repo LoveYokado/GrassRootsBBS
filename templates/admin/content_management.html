@@ -1,0 +1,266 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<ul class="nav nav-tabs" id="contentManagementTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if tab == 'articles' %}active{% endif %}" id="articles-tab"
+            href="{{ url_for('admin.content_management', tab='articles') }}" role="tab" aria-controls="articles"
+            aria-selected="{{ 'true' if tab == 'articles' else 'false' }}">Article Management</a>
+    </li>
+    <li class="nav-item" role="presentation">
+        <a class="nav-link {% if tab == 'attachments' %}active{% endif %}" id="attachments-tab"
+            href="{{ url_for('admin.content_management', tab='attachments') }}" role="tab" aria-controls="attachments"
+            aria-selected="{{ 'true' if tab == 'attachments' else 'false' }}">Attachment Management</a>
+    </li>
+</ul>
+
+<div class="tab-content" id="contentManagementTabContent" style="padding-top: 20px;">
+    {# --- Articles Tab --- #}
+    <div class="tab-pane fade {% if tab == 'articles' %}show active{% endif %}" id="articles" role="tabpanel"
+        aria-labelledby="articles-tab">
+        <form method="get" action="{{ url_for('admin.content_management') }}">
+            <input type="hidden" name="tab" value="articles">
+            <div style="display: flex; gap: 1em; margin-bottom: 1em;">
+                <div class="form-group" style="flex-grow: 1;">
+                    <label for="q">Search by Keyword (Title/Body/ID)</label>
+                    <input type="text" id="q" name="q" value="{{ search_keyword or '' }}"
+                        placeholder="e.g., 'hello' or 'id:123'">
+                </div>
+                <div class="form-group" style="flex-grow: 1;">
+                    <label for="author">Search by Author</label>
+                    <input type="text" id="author" name="author" value="{{ search_author or '' }}">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" style="background-color: #007bff; color: white;">Search</button>
+                <a href="{{ url_for('admin.content_management', tab='articles') }}">Clear</a>
+            </div>
+        </form>
+
+        {% if request.args.get('q') or request.args.get('author') %}
+        <form method="post" action="{{ url_for('admin.bulk_action_articles') }}">
+            <h2 class="mt-4">Search Results</h2>
+            <div class="form-actions" style="margin-bottom: 1em;">
+                <button type="submit" name="action" value="delete"
+                    style="background-color: #dc3545; color: white;">Delete Selected</button>
+                <button type="submit" name="action" value="restore"
+                    style="background-color: #28a745; color: white;">Restore Selected</button>
+            </div>
+
+            {% include 'admin/_pagination.html' %}
+
+            <div class="table-responsive">
+                <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all-articles"></th>
+                            <th>Board</th>
+                            <th>No.</th>
+                            <th>Author</th>
+                            <th>Title</th>
+                            <th>Body (Snippet)</th>
+                            <th>Posted At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for article in articles %}
+                        <tr {% if article.is_deleted %}style="text-decoration: line-through; color: #aaa;" {% endif %}>
+                            <td><input type="checkbox" name="selected_articles" value="{{ article.id }}"
+                                    class="article-checkbox"></td>
+                            <td><a href="{{ url_for('web.index', shortcut=article.board_shortcut_id) }}"
+                                    target="_blank">{{
+                                    article.board_name }}</a></td>
+                            <td>{{ article.article_number }}</td>
+                            <td><a
+                                    href="{{ url_for('admin.content_management', tab='articles', author=article.author_display_name) }}">{{
+                                    article.author_display_name }}</a></td>
+                            <td>{{ article.title or '(No Title)' }}</td>
+                            <td style="word-break: break-all;">{{ (article.body or '') | truncate(80) }}</td>
+                            <td>{{ article.created_at|int|timestamp_to_datetime }}</td>
+                            <td>
+                                {% if article.is_deleted %}
+                                <a href="#" class="action-link-restore"
+                                    onclick="submitActionForm('{{ url_for('admin.delete_article', article_id=article.id) }}'); return false;">Undelete</a>
+                                {% else %}
+                                <a href="#" class="action-link-delete"
+                                    onclick="submitActionForm('{{ url_for('admin.delete_article', article_id=article.id) }}'); return false;">Delete</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8">No articles found for your search criteria.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% include 'admin/_pagination.html' %}
+        </form>
+        {% endif %}
+    </div>
+
+    {# --- Attachments Tab --- #}
+    <div class="tab-pane fade {% if tab == 'attachments' %}show active{% endif %}" id="attachments" role="tabpanel"
+        aria-labelledby="attachments-tab">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-file-alt mr-1"></i> Uploaded Files
+            </div>
+            <div class="card-body">
+                {% include 'admin/_pagination.html' %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th><a
+                                        href="{{ url_for('admin.content_management', tab='attachments', sort_by='created_at', order=next_order if sort_by == 'created_at' else 'desc', **search_params_for_per_page) }}">Timestamp
+                                        {% if sort_by == 'created_at' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                        %}</a></th>
+                                <th><a
+                                        href="{{ url_for('admin.content_management', tab='attachments', sort_by='attachment_originalname', order=next_order if sort_by == 'attachment_originalname' else 'asc', **search_params_for_per_page) }}">Original
+                                        Filename
+                                        {% if sort_by == 'attachment_originalname' %}{{ '▲' if order == 'asc' else '▼'
+                                        }}{% endif %}</a></th>
+                                <th><a
+                                        href="{{ url_for('admin.content_management', tab='attachments', sort_by='attachment_size', order=next_order if sort_by == 'attachment_size' else 'desc', **search_params_for_per_page) }}">Size
+                                        {% if sort_by == 'attachment_size' %}{{ '▲' if order == 'asc' else '▼' }}{%
+                                        endif %}</a></th>
+                                <th>Author</th>
+                                <th><a
+                                        href="{{ url_for('admin.content_management', tab='attachments', sort_by='board_name', order=next_order if sort_by == 'board_name' else 'asc', **search_params_for_per_page) }}">Board
+                                        {% if sort_by == 'board_name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif
+                                        %}</a></th>
+                                <th>Scan Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attachment in attachments %}
+                            <tr>
+                                <td>{{ util.format_timestamp(attachment.created_at) }}</td>
+                                <td>
+                                    {% set is_image = attachment.attachment_originalname.lower().endswith(('.png',
+                                    '.jpg', '.jpeg', '.gif', '.bmp')) %}
+                                    {% if is_image %}
+                                    <a href="{{ url_for('web.download_attachment', filename=attachment.attachment_filename) }}"
+                                        target="_blank"
+                                        title="View full image: {{ attachment.attachment_originalname }}">
+                                        <img src="{{ url_for('web.download_attachment', filename='thumbnails/' + attachment.attachment_filename) }}"
+                                            alt="Thumbnail"
+                                            style="width: 30px; height: auto; border-radius: 3px; margin-right: 10px; vertical-align: middle;">
+                                    </a>
+                                    {% endif %}
+                                    <div style="display: inline-block; vertical-align: middle;">
+                                        <a href="{{ url_for('web.download_attachment', filename=attachment.attachment_filename) }}"
+                                            title="Download: {{ attachment.attachment_originalname }}">
+                                            <i class="fas fa-download mr-1"></i>{{ attachment.attachment_originalname }}
+                                        </a>
+                                    </div>
+                                </td>
+                                <td>{{ util.format_file_size(attachment.attachment_size) }}</td>
+                                <td>{{ attachment.author_display_name }}</td>
+                                <td><a href="{{ url_for('admin.edit_board', board_id=attachment.board_id) }}"
+                                        title="Go to board settings">{{ attachment.board_name }}</a></td>
+                                <td>
+                                    {% if attachment.scan_status == 'safe' %}<span class="badge badge-success"
+                                        title="{{ attachment.scan_message }}"><i
+                                            class="fas fa-check-circle mr-1"></i>Safe</span>
+                                    {% elif attachment.scan_status == 'infected' %}<span class="badge badge-danger"
+                                        title="{{ attachment.scan_message }}"><i
+                                            class="fas fa-exclamation-triangle mr-1"></i>Infected</span>
+                                    {% else %}<span class="badge badge-secondary"
+                                        title="{{ attachment.scan_message }}"><i
+                                            class="fas fa-question-circle mr-1"></i>Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td><a href="{{ url_for('admin.content_management', tab='articles', q='id:' ~ attachment.id) }}"
+                                        class="action-link-view" title="View original post">View Post</a></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No attachments found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% include 'admin/_pagination.html' %}
+            </div>
+        </div>
+        <div class="card mt-4">
+            <div class="card-header">
+                <i class="fas fa-bug mr-1"></i> Quarantined Files
+                {% if quarantined_files %}<span class="badge badge-danger ml-1">{{ quarantined_files|length }}</span>{%
+                endif %}
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Original Filename</th>
+                                <th>Size</th>
+                                <th>Uploaded By</th>
+                                <th>Attempted Board</th>
+                                <th>Virus Signature</th>
+                                <th style="width: 10%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for file in quarantined_files %}
+                            <tr>
+                                <td>{{ util.format_timestamp(file.timestamp) }}</td>
+                                <td><i class="fas fa-file-excel text-danger mr-1"></i>{{ file.original_filename
+                                    }}<br><small class="text-muted">{{ file.unique_filename }}</small></td>
+                                <td>{{ util.format_file_size(file.size) }}</td>
+                                <td>{{ file.username or '(Unknown)' }}</td>
+                                <td>{{ file.board_name or '(N/A)' }}</td>
+                                <td><span class="badge badge-danger" title="{{ file.scan_result }}">{{
+                                        file.scan_result.split(' ')[0] }}</span></td>
+                                <td>
+                                    <form
+                                        action="{{ url_for('admin.delete_quarantined_file', filename=file.unique_filename) }}"
+                                        method="post" style="display:inline;">
+                                        <button type="submit" class="action-link-delete"
+                                            onclick="return confirm('Are you sure you want to permanently delete this quarantined file? This action cannot be undone.');">Delete
+                                            File</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No files in quarantine.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selectAllCheckbox = document.getElementById('select-all-articles');
+        selectAllCheckbox?.addEventListener('change', function () {
+            document.querySelectorAll('.article-checkbox').forEach(checkbox => checkbox.checked = this.checked);
+        });
+    });
+</script>
+{% endblock %}

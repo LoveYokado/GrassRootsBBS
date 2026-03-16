@@ -1,0 +1,3 @@
+name = "DB API テストプラグイン"
+description = "簡単なDB APIのテストプラグイン。公開範囲のユーザ情報やオンラインユーザ情報を取得する機能、データの保存や取得を行う機能を提供します。"
+entry_point = "plugins.db_test_plugin.main"

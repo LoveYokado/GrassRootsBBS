@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ util.get_text_by_key('terminal_ui.title', menu_mode) }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('web.manifest') }}">
+    <!-- PWA Theme Color -->
+    <meta name="theme-color" content="#000000">
+
+
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1m:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/terminal.css') }}">
+</head>
+
+<body>
+    <div class="monitor-chassis">
+        <div class="monitor-screen">
+            <div id="terminal"></div>
+            <div id="function-keys-container">
+                <div class="f-key-group" id="f-keys-left"></div>
+                <div class="f-key-group" id="f-keys-right"></div>
+            </div>
+        </div>
+        <div class="monitor-footer">
+            {{ util.get_text_by_key('terminal_ui.footer_brand', menu_mode) }}
+        </div>
+    </div>
+
+    <div id="mobile-bbs-controls">
+        <button class="mobile-btn" id="bbs-btn-end-write">^</button>
+        <button class="mobile-btn" id="bbs-btn-write">W</button>
+        <button class="mobile-btn" id="bbs-btn-y">Y</button>
+        <button class="mobile-btn" id="bbs-btn-n">N</button>
+        <button class="mobile-btn" id="bbs-btn-up">↑</button>
+        <button class="mobile-btn" id="bbs-btn-delete">*</button>
+        <button class="mobile-btn" id="bbs-btn-left">←</button>
+        <button class="mobile-btn" id="bbs-btn-read">Enter</button>
+        <button class="mobile-btn" id="bbs-btn-right">→</button>
+        <button class="mobile-btn" id="bbs-btn-help">?</button>
+        <button class="mobile-btn" id="bbs-btn-down">↓</button>
+        <button class="mobile-btn" id="bbs-btn-exit">E</button>
+    </div>
+
+    <div id="mobile-chat-controls">
+        <button class="mobile-btn" id="chat-btn-exit">Exit</button>
+        <button class="mobile-btn" id="chat-btn-telegram">Telegram</button>
+        <button class="mobile-btn" id="chat-btn-lock">Lock</button>
+        <button class="mobile-btn" id="chat-btn-unlock">Unlock</button>
+        <button class="mobile-btn" id="chat-btn-who">Who</button>
+        <button class="mobile-btn" id="chat-btn-roominfo">RoomInfo</button>
+    </div>
+
+    <div id="mobile-userpref-controls">
+        <button class="mobile-btn" id="userpref-btn-1">1</button>
+        <button class="mobile-btn" id="userpref-btn-2">2</button>
+        <button class="mobile-btn" id="userpref-btn-3">3</button>
+        <button class="mobile-btn" id="userpref-btn-4">4</button>
+        <button class="mobile-btn" id="userpref-btn-5">5</button>
+        <button class="mobile-btn" id="userpref-btn-6">6</button>
+        <button class="mobile-btn" id="userpref-btn-7">7</button>
+        <button class="mobile-btn" id="userpref-btn-8">8</button>
+        <button class="mobile-btn" id="userpref-btn-9">9</button>
+        <button class="mobile-btn" id="userpref-btn-help">?</button>
+        <button class="mobile-btn" id="userpref-btn-0">0</button>
+        <button class="mobile-btn" id="userpref-btn-backspace">←</button>
+        <button class="mobile-btn" id="userpref-btn-enter">Enter</button>
+    </div>
+
+    <div id="mobile-mail-controls">
+        <button class="mobile-btn" id="mail-btn-write">Write</button>
+        <button class="mobile-btn" id="mail-btn-read">Read</button>
+        <button class="mobile-btn" id="mail-btn-list">List</button>
+        <button class="mobile-btn" id="mail-btn-exit">Exit</button>
+    </div>
+
+    <div id="mobile-bbs-entry-controls">
+        <button class="mobile-btn" id="bbs-entry-btn-write">Write</button>
+        <button class="mobile-btn" id="bbs-entry-btn-read">Read</button>
+        <button class="mobile-btn" id="bbs-entry-btn-exit">Exit</button>
+    </div>
+
+    <div id="mobile-confirm-controls">
+        <button class="mobile-btn" id="confirm-btn-y">Yes</button>
+        <button class="mobile-btn" id="confirm-btn-n">No</button>
+    </div>
+
+    <div id="mobile-top-menu-controls">
+        <button class="mobile-btn" id="top-btn-bbs">BBS</button>
+        <button class="mobile-btn" id="top-btn-chat">Chat</button>
+        <button class="mobile-btn" id="top-btn-mail">Mail</button>
+        <button class="mobile-btn" id="top-btn-program">Program</button>
+        <button class="mobile-btn" id="top-btn-userpref">UserPref</button>
+        <button class="mobile-btn" id="top-btn-who">Who</button>
+        <button class="mobile-btn" id="top-btn-telegram">Telegram</button>
+        <button class="mobile-btn" id="top-btn-help">Help</button>
+        <button class="mobile-btn" id="top-btn-logoff">Logoff</button>
+    </div>
+
+    <div id="mobile-plugin-menu-controls">
+        <button class="mobile-btn" id="plugin-btn-1">1</button>
+        <button class="mobile-btn" id="plugin-btn-2">2</button>
+        <button class="mobile-btn" id="plugin-btn-3">3</button>
+        <button class="mobile-btn" id="plugin-btn-4">4</button>
+        <button class="mobile-btn" id="plugin-btn-5">5</button>
+        <button class="mobile-btn" id="plugin-btn-6">6</button>
+        <button class="mobile-btn" id="plugin-btn-7">7</button>
+        <button class="mobile-btn" id="plugin-btn-8">8</button>
+        <button class="mobile-btn" id="plugin-btn-9">9</button>
+        <button class="mobile-btn" id="plugin-btn-help">?</button>
+        <button class="mobile-btn" id="plugin-btn-0">0</button>
+        <button class="mobile-btn" id="plugin-btn-backspace">←</button>
+        <button class="mobile-btn" id="plugin-btn-enter">Enter</button>
+    </div>
+
+    <!-- BBSリストビューワー (F7キーで表示) -->
+    <div id="bbs-list-overlay" class="popup-overlay"></div>
+    <div id="bbs-list-window" class="popup-window">
+        <div class="popup-header">
+            <h2>Link List</h2>
+            <button id="bbs-list-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content bbs-list-container">
+            <div class="list-pane">
+                <h3>BBS Stations</h3>
+                <ul id="bbs-stations-list" style="list-style-type: none; padding: 0;"></ul>
+            </div>
+            <div class="detail-pane">
+                <h3 id="bbs-detail-name">Select a BBS from the list</h3>
+                <p id="bbs-detail-description" style="white-space: pre-wrap; flex-grow: 1;"></p>
+                <div style="display: flex; gap: 10px; margin-top: auto;">
+                    <button id="bbs-list-jump-btn" class="popup-content-button" style="flex-grow: 1;" disabled>Jump to
+                        BBS</button>
+                    <button id="bbs-list-submit-new-btn" class="popup-content-button">Submit New Link</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BBSリンク申請用ポップアップ -->
+    <div id="bbs-submission-overlay" class="popup-overlay"></div>
+    <div id="bbs-submission-window" class="popup-window">
+        <div class="popup-header">
+            <h2>Submit New BBS Link</h2>
+            <button id="bbs-submission-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content">
+            <input type="text" id="bbs-submission-name" placeholder="BBS Name" class="popup-window-input">
+            <input type="url" id="bbs-submission-url" placeholder="https://example.com" class="popup-window-input">
+            <textarea id="bbs-submission-description" placeholder="Description (optional)" class="popup-window-textarea"
+                style="height: 100px;"></textarea>
+            <button id="bbs-submission-submit-btn" class="popup-content-button">Submit for Approval</button>
+        </div>
+    </div>
+
+    <!-- Image Popup: 画像のみを表示するシンプルなポップアップ -->
+    <div id="image-popup-overlay" class="popup-overlay image-only-popup">
+        <img id="image-popup-img" src="" alt="Popup Image">
+    </div>
+
+
+    <!-- ハンバーガーメニュー用のサイドナビコンテナ -->
+    <div id="sidenav" class="sidenav">
+    </div>
+    <div id="line-editor-overlay" class="popup-overlay"></div>
+    <div id="line-editor-window" class="popup-window">
+        <button id="line-editor-close-btn" class="popup-close-btn">&times;</button>
+        <div class="popup-header">
+            <h2>{{ util.get_text_by_key('terminal_ui.line_editor_popup.title', menu_mode) }}</h2>
+        </div>
+        <div class="popup-content">
+            <label id="line-editor-prompt" for="line-editor-input"
+                style="display: block; margin-bottom: 5px; color: #504b38;"></label>
+            <input type="text" id="line-editor-input" maxlength="256">
+            <div>
+                <button id="line-editor-insert-btn">{{
+                    util.get_text_by_key('terminal_ui.line_editor_popup.insert_button', menu_mode) }}</button>
+                <button id="line-editor-cancel-btn">{{
+                    util.get_text_by_key('terminal_ui.line_editor_popup.cancel_button', menu_mode) }}</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="multiline-editor-overlay" class="popup-overlay"></div>
+    <div id="multiline-editor-window" class="popup-window">
+        <div class="popup-header">
+            <h2>{{ util.get_text_by_key('terminal_ui.multiline_editor_popup.title', menu_mode) }}</h2>
+            <button id="multiline-editor-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content">
+
+            <div id="ansi-controls">
+                <div class="control-group">
+                    <button class="ansi-btn" data-sequence="[1m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.bold_button', menu_mode) }}</button>
+                    <button class="ansi-btn" data-sequence="[5m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.blink_button', menu_mode) }}</button>
+                    <button class="ansi-btn" data-sequence="[4m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.underline_button', menu_mode)
+                        }}</button>
+                    <button class="ansi-btn" data-sequence="[7m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.reverse_button', menu_mode) }}</button>
+                    <button class="ansi-btn" data-sequence="[0m">{{
+                        util.get_text_by_key('terminal_ui.multiline_editor_popup.reset_button', menu_mode) }}</button>
+                </div>
+                <div class="control-group" id="ansi-color-buttons">
+                    <button class="ansi-btn" data-sequence="[30m" data-ansi-color-name="black"
+                        style="color: #000000;">Black</button>
+                    <button class="ansi-btn" data-sequence="[31m" data-ansi-color-name="red">Red</button>
+                    <button class="ansi-btn" data-sequence="[32m" data-ansi-color-name="green">Green</button>
+                    <button class="ansi-btn" data-sequence="[33m" data-ansi-color-name="yellow">Yellow</button>
+                    <button class="ansi-btn" data-sequence="[34m" data-ansi-color-name="blue">Blue</button>
+                    <button class="ansi-btn" data-sequence="[35m" data-ansi-color-name="magenta">Magenta</button>
+                    <button class="ansi-btn" data-sequence="[36m" data-ansi-color-name="cyan">Cyan</button>
+                    <button class="ansi-btn" data-sequence="[37m" data-ansi-color-name="white">White</button>
+                </div>
+            </div>
+            <textarea id="multiline-editor-input" class="popup-window-textarea" cols="80"></textarea>
+
+            <div>
+                <button id="multiline-editor-insert-btn">{{
+                    util.get_text_by_key('terminal_ui.multiline_editor_popup.insert_button', menu_mode) }}</button>
+                <button id="multiline-editor-cancel-btn">{{
+                    util.get_text_by_key('terminal_ui.multiline_editor_popup.cancel_button', menu_mode) }}</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ユーザー選択ポップアップ -->
+    <div id="user-selector-overlay" class="popup-overlay"></div>
+    <div id="user-selector-window" class="popup-window">
+        <div class="popup-header">
+            <h2 id="user-selector-title">Select User</h2>
+            <button id="user-selector-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content">
+            <input type="text" id="user-selector-search" class="popup-window-input" placeholder="Search users...">
+            <ul id="user-selector-list"
+                style="list-style-type: none; padding: 0; margin: 0; height: 300px; overflow-y: auto; background-color: #000; border-radius: 4px; border: 2px solid #555;">
+                <!-- User list will be populated here -->
+            </ul>
+            <div style="margin-top: 15px;">
+                <button id="user-selector-ok-btn" class="popup-content-button" disabled>OK</button>
+                <button id="user-selector-cancel-btn" class="popup-content-button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="log-viewer-overlay" class="popup-overlay"></div>
+    <div id="log-viewer-window" class="popup-window">
+        <div class="popup-header">
+            <h2>{{ util.get_text_by_key('terminal_ui.log_viewer_popup.title', menu_mode) }}</h2>
+            <button id="log-viewer-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content log-viewer-container">
+            <div class="file-list-pane">
+                <h3>{{ util.get_text_by_key('terminal_ui.log_viewer_popup.list_header', menu_mode) }}</h3>
+                <ul id="log-files-list" style="list-style-type: none; padding: 0;"></ul>
+            </div>
+            <div class="content-pane">
+                <textarea id="log-content-display" class="popup-window-textarea" readonly></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div id="popup-overlay" class="popup-overlay"></div>
+    <div id="popup-window" class="popup-window">
+        <div class="popup-header">
+            <h2>{{ util.get_text_by_key('terminal_ui.settings_popup.title', menu_mode) }}</h2>
+            <button id="popup-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div class="popup-content">
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="general-settings">{{
+                    util.get_text_by_key('terminal_ui.settings_popup.general_settings_tab', menu_mode) }}</button>
+                <button class="tab-button" data-tab="font-settings">フォント設定</button>
+                <button class="tab-button" data-tab="effect-settings">効果設定</button>
+                {% if user_level >= 5 %}
+                <button class="tab-button" data-tab="admin-settings">管理</button>
+                {% endif %}
+            </div>
+
+            <div id="general-settings" class="tab-content active">
+                <div id="pwa-install-section">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.pwa_install_header', menu_mode) }}</h3>
+                    <button id="pwa-install-btn" disabled>{{
+                        util.get_text_by_key('terminal_ui.settings_popup.pwa_install_button', menu_mode) }}</button>
+                    <p id="pwa-install-description">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.pwa_install_description', menu_mode) }}</p>
+                </div>
+                <hr>
+                <div id="push-notification-section">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.push_header', menu_mode) }}</h3>
+                    <button id="push-enable-btn">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.push_enable_button', menu_mode) }}</button>
+                    <button id="push-disable-btn">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.push_disable_button', menu_mode) }}</button>
+                    <p id="push-status"></p>
+                </div>
+
+            </div>
+            <div id="font-settings" class="tab-content">
+
+                <div id="font-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.font_header', menu_mode) }}</h3>
+                    <button data-font="M PLUS 1m">M PLUS 1m</button>
+                    <button data-font="M PLUS 1 Code">M PLUS 1 Code</button>
+                    <button data-font="IBM Plex Mono">IBM Plex Mono</button>
+                    <button data-font="DotGothic16">DotGothic16</button>
+                </div>
+                <div id="fontsize-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_header', menu_mode) }}</h3>
+                    <button data-size="8">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_small',
+                        menu_mode) }}</button>
+                    <button data-size="12">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_medium',
+                        menu_mode) }}</button>
+                    <button data-size="16">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_large',
+                        menu_mode) }}</button>
+                    <button data-size="20">{{ util.get_text_by_key('terminal_ui.settings_popup.fontsize_xlarge',
+                        menu_mode) }}</button>
+                </div>
+            </div>
+
+            <div id="effect-settings" class="tab-content">
+                <div id="theme-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.theme_header', menu_mode) }}</h3>
+                    <button data-theme="default">Default</button>
+                    <button data-theme="green">Green</button>
+                    <button data-theme="amber">Amber</button>
+                </div>
+                <div id="speed-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.speed_header', menu_mode) }}</h3>
+                    <button data-speed="full">Full</button>
+                    <button data-speed="9600">9600bps</button>
+                    <button data-speed="4800">4800bps</button>
+                    <button data-speed="2400">2400bps</button>
+                    <button data-speed="300">300bps</button>
+                </div>
+                <div id="effect-selector">
+                    <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.effects_header', menu_mode) }}</h3>
+                    <button class="effect-btn" data-effect="bezel">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.effect_bezel', menu_mode) }}</button>
+                    <button class="effect-btn" data-effect="blur">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.effect_glow', menu_mode) }}</button>
+                    <button class="effect-btn" data-effect="scanline">{{
+                        util.get_text_by_key('terminal_ui.settings_popup.effect_scanline', menu_mode) }}</button>
+                </div>
+            </div>
+
+            {% if user_level >= 5 %}
+            <div id="admin-settings" class="tab-content">
+                <h3>管理画面</h3>
+                <p>BBSの管理画面を開きます。</p>
+                <button id="admin-link-btn" class="popup-content-button">管理画面を開く</button>
+            </div>
+            {% endif %}
+
+
+            <div id="dip-switch-container">
+                <h3>{{ util.get_text_by_key('terminal_ui.settings_popup.dip_switch_header', menu_mode) }}</h3>
+                <div class="dip-switch-panel">
+
+                    <div class="dip-switch-bank">
+                        <!-- THEME -->
+                        <div class="dip-switch-group" data-group="theme">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-0" data-bit="0"><label
+                                        for="dip-theme-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-1" data-bit="1"><label
+                                        for="dip-theme-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-2" data-bit="2"><label
+                                        for="dip-theme-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-theme-3" data-bit="3"><label
+                                        for="dip-theme-3"></label></div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- FONT -->
+                        <div class="dip-switch-group" data-group="font">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-0" data-bit="0"><label
+                                        for="dip-font-0"></label>
+                                </div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-1" data-bit="1"><label
+                                        for="dip-font-1"></label>
+                                </div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-2" data-bit="2"><label
+                                        for="dip-font-2"></label>
+                                </div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-font-3" data-bit="3"><label
+                                        for="dip-font-3"></label>
+                                </div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- SPEED -->
+                        <div class="dip-switch-group" data-group="speed">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-0" data-bit="0"><label
+                                        for="dip-speed-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-1" data-bit="1"><label
+                                        for="dip-speed-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-2" data-bit="2"><label
+                                        for="dip-speed-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-speed-3" data-bit="3"><label
+                                        for="dip-speed-3"></label></div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- EFFECT -->
+                        <div class="dip-switch-group" data-group="effect">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-effect-0" data-bit="0"><label
+                                        for="dip-effect-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-effect-1" data-bit="1"><label
+                                        for="dip-effect-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-effect-2" data-bit="2"><label
+                                        for="dip-effect-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                        </div>
+                        <!-- FONTSIZE -->
+                        <div class="dip-switch-group" data-group="fontsize">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-0" data-bit="0"><label
+                                        for="dip-fontsize-0"></label></div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-1" data-bit="1"><label
+                                        for="dip-fontsize-1"></label></div>
+                                <span class="dip-switch-number">2</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-2" data-bit="2"><label
+                                        for="dip-fontsize-2"></label></div>
+                                <span class="dip-switch-number">3</span>
+                            </div>
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-fontsize-3" data-bit="3"><label
+                                        for="dip-fontsize-3"></label></div>
+                                <span class="dip-switch-number">4</span>
+                            </div>
+                        </div>
+                        <!-- PUSH -->
+                        <div class="dip-switch-group" data-group="push">
+                            <div class="dip-switch-unit">
+                                <div class="dip-switch"><input type="checkbox" id="dip-push-0" data-bit="0"><label
+                                        for="dip-push-0"></label>
+                                </div>
+                                <span class="dip-switch-number">1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="attachment-input" style="display: none;"> <!-- ファイル添付用の非表示input要素 -->
+    <input type="file" id="plugin-file-input" style="display: none;"> <!-- プラグインAPI用の非表示input要素 -->
+
+    <button id="hamburger-btn"><img src="{{ url_for('static', filename='icons/hmbg.svg') }}" alt="Menu"></button>
+    <button id="scroll-to-bottom-btn"><img src="{{ url_for('static', filename='icons/arrow.svg') }}"
+            alt="Scroll Down"></button>
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
+    <script>
+        // Pythonから渡された変数をグローバルJS変数として定義
+        const textData = {{ textData | tojson }};
+        const fkeyDefinitions = {{ fkey_definitions | tojson }};
+        const userLevel = {{ user_level | tojson }};
+        const URLS = {
+            logout: "{{ url_for('web.logout') }}",
+            passkeyRegisterOptions: "{{ url_for('web.passkey_register_options') }}",
+            passkeyVerifyRegistration: "{{ url_for('web.passkey_verify_registration') }}",
+            serviceWorker: "{{ url_for('web.service_worker') }}",
+            vapidPublicKey: "{{ url_for('web.vapid_public_key') }}",
+            admin: "{{ url_for('admin.dashboard') }}",
+            subscribe: "{{ url_for('web.subscribe') }}",
+            unsubscribe: "{{ url_for('web.unsubscribe') }}"
+        };
+        const PWA_URLS = URLS; // pwa.jsとの互換性のため
+    </script>
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const adminLinkBtn = document.getElementById('admin-link-btn');
+            if (adminLinkBtn) {
+                adminLinkBtn.addEventListener('click', () => window.open(URLS.admin, '_blank'));
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/terminal.js') }}"></script>
+
+</body>
+
+</html>

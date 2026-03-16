@@ -1,0 +1,125 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Create and manage full backups, including the database, attachments, and configuration files.</p>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-calendar-alt me-1"></i>
+        Schedule Settings
+    </div>
+    <div class="card-body">
+        <form method="post" action="{{ url_for('admin.backup_management') }}">
+            <div class="form-group">
+                <label for="scheduleEnabled">
+                    <input type="checkbox" id="scheduleEnabled" name="schedule_enabled" value="1" {% if
+                        schedule_settings.backup_schedule_enabled %}checked{% endif %}>
+                    Enable Automatic Backups
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="scheduleCron">Cron Schedule</label>
+                <input type="text" id="scheduleCron" name="schedule_cron"
+                    value="{{ schedule_settings.backup_schedule_cron or '0 3 * * *' }}"
+                    placeholder="e.g., 0 3 * * * (every day at 3 AM)">
+                <small>Uses standard cron format. See <a href="https://crontab.guru/" target="_blank"
+                        style="color: #87cefa;">crontab.guru</a> for help.</small>
+            </div>
+            <div class="form-group">
+                <label for="maxBackups">Number of Backups to Keep (0 for unlimited)</label>
+                <input type="number" id="maxBackups" name="max_backups" value="{{ schedule_settings.max_backups or 0 }}"
+                    min="0" max="999" placeholder="e.g., 7">
+                <small>Set to 0 to keep all backups (not recommended for long term).</small>
+            </div>
+            <div class="form-actions">
+                <button type="submit" name="action" value="save_schedule"
+                    style="background-color: #28a745; color: white;">Save Schedule</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div class="form-actions">
+    <form method="post" action="{{ url_for('admin.create_backup_route') }}" style="display: inline;"
+        onsubmit="return confirm('Create a new backup? This may take several minutes.');">
+        <button type="submit">Create New Backup</button>
+    </form>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-archive me-1"></i>
+        Existing Backups
+    </div>
+    <div class="card-body">
+        {% include 'admin/_pagination.html' %}
+
+        <div class="table-responsive">
+            <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Created At</th>
+                        <th>Size</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                    <tr>
+                        <td>{{ backup.filename }}</td>
+                        <td>{{ backup.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>{{ backup.size }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.download_backup', filename=backup.filename) }}">Download</a> |
+                            <form method="post" action="{{ url_for('admin.delete_backup', filename=backup.filename) }}"
+                                style="display: inline;"
+                                onsubmit="return confirm('Are you sure you want to delete the backup file \'{{ backup.filename }}\'? This action cannot be undone.');">
+                                <button type="submit" class="action-link-delete">Delete</button>
+                            </form> |
+                            <form method="post"
+                                action="{{ url_for('admin.restore_from_backup', filename=backup.filename) }}"
+                                style="display: inline;"
+                                onsubmit="return confirm('Are you sure you want to restore from backup \'{{ backup.filename }}\'?\n\nAll current data (users, boards, attachments) will be overwritten and lost.\n\nThis action cannot be undone.') && confirm('Final confirmation. Are you sure you want to proceed? The server will restart automatically after the restore.');">
+                                <button type="submit" class="action-link-restore">Restore</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4">No backups available.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% include 'admin/_pagination.html' %}
+    </div>
+</div>
+
+<div class="form-actions">
+    <form method="post" action="{{ url_for('admin.optimize_tables') }}"
+        onsubmit="return confirm('Optimize all database tables? This may take several minutes.');">
+        <button type="submit">Optimize Database Tables</button>
+    </form>
+</div>
+
+<div class="danger-zone">
+    <h2>Danger Zone</h2>
+    <p>This action is irreversible and will permanently delete ALL users, boards, articles, and attachments. Please be
+        absolutely sure before proceeding.</p>
+    <form method="post" action="{{ url_for('admin.wipe_all_data') }}" style="display: inline;"
+        onsubmit="return confirm('DANGER: This will permanently delete ALL data. Are you sure?') && prompt('To confirm, please type DELETE ALL DATA into the box below:') === 'DELETE ALL DATA';">
+        <button type="submit" class="danger-button">Wipe All Data</button>
+    </form>
+</div>
+{% endblock %}

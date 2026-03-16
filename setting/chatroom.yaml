@@ -1,0 +1,140 @@
+categories:
+- id: chat_free
+  number: 1
+  name: フリーチャット
+  description: '話題に限定はありません。
+
+    初心者の方からベテランまで、どなたでもお気軽にご参加ください。
+
+    '
+  type: child
+  items:
+  - id: chat_free1
+    number: 1
+    name: フリールーム１
+    description: どなたでもどうぞ！
+    type: room
+    lock: false
+    push: false
+    log: true
+  - id: chat_free2
+    number: 2
+    name: フリールーム２
+    description: まったりお話ししましょうよ。ね？
+    type: room
+    lock: true
+    push: true
+    log: true
+  - id: lonely_room
+    number: 3
+    name: 淋しいやつのための部屋
+    description: プッシュ通知を許可してる人に通知が送られます。きっと誰か来てくれる。と思う。
+    type: room
+    lock: true
+    push: true
+  - id: chat_deep_dive
+    number: 4
+    name: フリー深堀りトピック
+    description: 'フリーチャットルームの特定の話題を深く掘り下げる場所です。
+
+      議論が白熱しやすい内容はこちらへどうぞ。
+
+      '
+    type: child
+    items:
+    - id: chat_expert_discussion
+      number: 2
+      name: フリー専門議論
+      description: 'さらに専門的なフリーテーマを議論する場です。
+
+        特定の分野に精通した方向け。
+
+        '
+      items:
+      - id: expert_room_alpha
+        number: 1
+        name: アルファ専門室
+        lock: false
+        type: room
+      type: child
+    - id: chat_deep_a
+      number: 1
+      name: 深掘り部屋A
+      type: room
+      lock: false
+- id: chat_specialized
+  number: 2
+  name: 専門チャット
+  description: '特定のテーマに特化したチャットルームです。
+
+    専門的な知識や情報交換にご利用ください。
+
+    '
+  type: child
+  items:
+  - id: chat_military
+    number: 1
+    name: 軍事ルーム
+    type: room
+    lock: false
+  - id: chat_room_pc_related
+    number: 2
+    name: パソコン関連
+    description: 'パソコンに関する様々な話題を扱うカテゴリです。
+
+      ハードウェアからソフトウェアまで。
+
+      '
+    type: child
+    items:
+    - id: chat_pc_gen
+      number: 1
+      name: パソコン全般ルーム
+      type: room
+      lock: false
+    - id: chat_oldpc
+      number: 2
+      name: オールドPCルーム
+      type: room
+      lock: false
+    - id: chat_gaming
+      number: 3
+      name: ゲーミングPCルーム
+      lock: false
+      type: room
+    - id: chat_os
+      number: 4
+      name: OS別ルーム
+      description: 特定のOSに特化した議論はこちら。
+      type: child
+      items:
+      - id: chat_linux
+        number: 1
+        name: Linuxルーム
+        lock: false
+        type: room
+      - id: chat_win
+        number: 2
+        name: Windowsルーム
+        lock: false
+        type: room
+- id: testcat
+  name: tcat
+  type: child
+  items: []
+- id: troom
+  name: troom
+  type: room
+  push: false
+  lock: false
+global:
+- id: chat_fight
+  name: 喧嘩用ルーム
+  description: 議論が白熱した場合の避難所です。ここで好きにやってください。でも後腐れないように。最後は仲直りしましょう
+  lock: true
+  type: room
+- id: chat_news
+  name: 最新ニュースについて語る
+  description: 最新のニュースに関する情報交換や議論にご利用ください。
+  lock: false
+  type: room

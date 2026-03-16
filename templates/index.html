@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>掲示板一覧</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>掲示板一覧</h1>
+            <div class="user-info">
+                こんにちは, <strong>{{ username }}</strong> さん | <a href="/logout">ログアウト</a>
+            </div>
+        </div>
+        {% for category in categories %}
+        <div class="category">
+            <h2 class="category-title">{{ category.name }}</h2>
+            <ul class="board-list">
+                {% for item in category.items %}
+                {% if item.type == 'board' %}
+                <li class="board-item">
+                    <a href="/board/{{ item.id }}">{{ item.name }}</a>
+                    <p>{{ item.description }}</p>
+                </li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <p>表示できる掲示板がありません。</p>
+        {% endfor %}
+    </div>
+</body>
+
+</html>

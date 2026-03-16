@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ page_title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- ファビコン -->
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
+    <link rel="manifest" href="{{ url_for('web.manifest') }}">
+    <meta name="theme-color" content="#282c34">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GR-BBS">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1m:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+
+    {{ util.get_tracking_code() | safe }}
+</head>
+
+<body>
+    <div class="login-container">
+        {% if logo_path %}
+        <img src="{{ url_for('static', filename=logo_path) }}" alt="Logo" class="logo">
+        {% endif %}
+        <h1>{{ page_title }}</h1> {# nl2br フィルタを適用 #}
+        {% if message %}
+        <p class="message">{{ message | nl2br | safe }}</p>
+        {% endif %}
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+        <form id="login-form" method="post">
+            <input type="text" id="username" name="username"
+                placeholder="{{ util.get_text_by_key('login_page.username_placeholder', lang, 'Username') }}" required
+                autocomplete="username webauthn">
+            <input type="password" id="password" name="password"
+                placeholder="{{ util.get_text_by_key('login_page.password_placeholder', lang, 'Password (or leave blank for Passkey)') }}"
+                autocomplete="current-password">
+            <button type="submit" id="login-button">{{ util.get_text_by_key('login_page.login_button', lang, 'Login')
+                }}</button>
+        </form>
+        <div>
+            <button id="passkey-login-btn" class="passkey-button">{{
+                util.get_text_by_key('login_page.passkey_login_button',
+                lang, 'Login with Passkey') }}</button>
+        </div>
+        <div class="login-footer">
+            <a href="{{ url_for('web.privacy_policy') }}">{{ util.get_text_by_key('login_page.privacy_policy_link',
+                lang,
+                'Privacy Policy') }}</a>
+            <a href="{{ url_for('web.contact') }}">{{ util.get_text_by_key('login_page.contact_link', lang, 'Contact
+                Us')
+                }}</a>
+        </div>
+    </div>
+    <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
+    <script>
+        const PASSKEY_USERNAME = "{{ passkey_username_for_js or '' }}";
+        const LOGIN_URLS = {
+            passkeyLoginOptions: "{{ url_for('web.passkey_login_options') }}",
+            passkeyVerifyLogin: "{{ url_for('web.passkey_verify_login') }}",
+            index: "{{ url_for('web.index') }}"
+        };
+        const PWA_URLS = {
+            serviceWorker: "{{ url_for('web.service_worker') }}"
+        };
+    </script>
+    <!-- 外部JavaScriptファイルの読み込み -->
+    <script src="{{ url_for('static', filename='js/pwa.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+
+</html>

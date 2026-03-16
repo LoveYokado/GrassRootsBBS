@@ -1,0 +1,249 @@
+/*
+SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+SPDX-License-Identifier: MIT
+*/
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background-color: #282c34;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00cc00;
+}
+
+.login-container {
+  background-color: rgba(0, 20, 0, 0.75);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  border-radius: 10px;
+  width: 350px;
+  text-align: center;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  /* Safari用 */
+  padding: 30px;
+}
+
+.logo {
+  max-width: 80%;
+  height: auto;
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 5px rgba(0, 255, 0, 0.5));
+  /* ロゴにも少しにじみ効果 */
+}
+
+h1 {
+  margin-top: 0;
+  color: #00ff00;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.message,
+.error {
+  margin-bottom: 20px;
+}
+
+.error {
+  background-color: #330000;
+  border: 1px solid #880000;
+  color: #ff4444;
+  padding: 10px;
+  border-radius: 3px;
+  word-wrap: break-word;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"],
+textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  background-color: #000;
+  color: #00ff00;
+  border: 1px solid #005500;
+  border-radius: 4px;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: #00ff00;
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+}
+
+/* --- プレースホルダーの文字色 --- */
+::placeholder {
+  /* Chrome, Firefox, Opera, Safari 10.1+ */
+  color: #008800;
+  opacity: 1;
+}
+
+:-ms-input-placeholder {
+  /* Internet Explorer 10-11 */
+  color: #008800;
+}
+
+::-ms-input-placeholder {
+  color: #008800;
+}
+
+button {
+  background-color: #003300;
+  border: 1px solid #008800;
+  padding: 12px;
+  color: #00ff00;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 1em;
+  font-family: '"M PLUS 1m", "Courier New", monospace';
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #005500;
+  border-color: #00ff00;
+}
+
+button:active {
+  background-color: #002200;
+  transform: translateY(1px);
+}
+
+.passkey-button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.button-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.button-container button {
+  flex: 1;
+}
+
+.login-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(0, 255, 0, 0.2);
+  display: flex;
+  justify-content: space-around;
+  font-size: 0.9em;
+}
+
+.login-footer a {
+  color: #00aa00;
+  text-decoration: none;
+}
+
+.static-container {
+  background-color: rgba(0, 20, 0, 0.75);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  border-radius: 10px;
+  width: 90%;
+  max-width: 800px;
+  text-align: left;
+  padding: 30px;
+  color: #ccc;
+  margin: 2rem auto;
+}
+
+.static-container h1 {
+  color: #00ff00;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.static-container h2 {
+  color: #00ff00;
+  border-bottom: 1px solid #005500;
+  padding-bottom: 5px;
+  margin-top: 2rem;
+}
+
+.static-container a {
+  color: #00aa00;
+  text-decoration: none;
+}
+
+.static-container .lang-en {
+  color: #99cc99;
+  font-style: italic;
+}
+
+.static-container .japanese-section h2,
+.static-container .japanese-section p,
+.static-container .japanese-section li,
+.static-container .english-section p,
+.static-container .english-section li {
+  color: #99cc99;
+}
+
+.static-container .form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #00ff00;
+  font-weight: bold;
+}
+
+/* --- レスポンシブ対応 --- */
+@media screen and (max-width: 992px) {
+  body {
+    display: block;
+    padding: 2rem 1rem;
+  }
+
+  .login-container {
+    width: 90%;
+    max-width: 400px;
+    padding: 20px;
+    box-shadow: none;
+    margin: 0 auto;
+  }
+
+  .logo {
+    max-width: 60%;
+    margin-bottom: 15px;
+  }
+
+  h1 {
+    font-size: 1.5em;
+    margin-bottom: 15px;
+  }
+
+  .message,
+  .error {
+    margin-bottom: 15px;
+  }
+
+  input[type="text"],
+  input[type="password"] {
+    margin-bottom: 12px;
+  }
+}

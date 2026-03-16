@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}">
+
+
+<head>
+    <meta charset="UTF-8">
+    <title>{{ util.get_text_by_key('logout_page.title', lang, 'Logged Out') }} - GR-BBS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- ファビコン -->
+    <link rel="icon" href="{{ url_for('static', filename='icons/icon-32x32.png') }}" type="image/png">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1m:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/logout.css') }}">
+
+    {{ util.get_tracking_code() | safe }}
+</head>
+
+<body>
+    <pre>{{ util.get_text_by_key('logout_page.message', lang) }}<div class="prompt">{{
+            util.get_text_by_key('logout_page.prompt', lang) }}</div></pre>
+    <!-- PythonからJavaScriptに変数を渡すためのスクリプト -->
+    <script>
+        const LOGOUT_URLS = {
+            login: "{{ url_for('web.login') }}"
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/logout.js') }}"></script>
+</body>
+
+</html>

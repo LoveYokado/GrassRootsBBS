@@ -1,0 +1,527 @@
+/*
+SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
+SPDX-License-Identifier: MIT
+*/
+body {
+  font-family: sans-serif;
+  margin: 0;
+  background-color: #000000 !important;
+  color: #00ff00 !important;
+}
+
+.container,
+.container-fluid {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  color: #00ff00;
+}
+
+/* --- Layout & Sidebar --- */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 240px;
+  background-color: #1a1a1a;
+  border-right: 1px solid #444;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  overflow-y: auto;
+  transition: transform 0.3s ease-in-out;
+}
+
+.sidebar-header {
+  padding: 1.1rem 1.5rem;
+  border-bottom: 1px solid #444;
+}
+
+.sidebar-brand {
+  color: #00ff00;
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.sidebar-nav {
+  padding: 0;
+  list-style: none;
+}
+
+.sidebar-header,
+.sidebar-item {
+}
+
+.sidebar-header {
+  font-size: 0.8em;
+  color: #00ff00;
+  text-transform: uppercase;
+  font-weight: bold;
+  border: 1px solid #008800;
+  border-radius: 5px;
+  margin: 1rem 1rem 0.5rem 1rem;
+  padding: 0.5rem;
+  background-color: #003300;
+  text-align: center;
+}
+
+.sidebar-item.dashboard-link {
+  border-top: 1px solid #444;
+  border-bottom: 1px solid #444;
+}
+
+.sidebar-item {
+  padding: 0;
+}
+
+.sidebar-link {
+  display: block;
+  padding: 0.5rem 1.5rem;
+  color: #ccc;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.sidebar-link:hover {
+  background-color: #222;
+  color: #fff;
+  text-decoration: none;
+}
+
+.sidebar-item.active .sidebar-link {
+  background-color: #003300;
+  color: #00ff00;
+  font-weight: bold;
+}
+
+.sidebar-link .fa,
+.sidebar-link .fas {
+  margin-right: 0.75rem;
+}
+
+.main {
+  margin-left: 0;
+  transition: margin-left 0.3s ease-in-out;
+}
+
+body.sidebar-open .main {
+  margin-left: 240px;
+}
+
+.content {
+  padding: 2rem;
+}
+
+/* --- Navbar for Hamburger --- */
+.navbar {
+  background-color: #1a1a1a;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #444;
+}
+
+.hamburger-btn {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+}
+
+.hamburger-btn span {
+  display: block;
+  width: 25px;
+  height: 3px;
+  background-color: #00ff00;
+  margin: 5px 0;
+  transition: 0.3s;
+}
+
+.sidebar {
+  transform: translateX(-100%);
+}
+
+body.sidebar-open .sidebar {
+  transform: translateX(0);
+}
+
+/* --- レスポンシブ対応 --- */
+@media (max-width: 768px) {
+  /* モバイルではサイドバーを少し狭くする */
+  .sidebar {
+    width: 220px;
+  }
+
+  body.sidebar-open .main {
+    margin-left: 220px;
+  }
+}
+
+@media (min-width: 769px) {
+  /* デスクトップではサイドバーを常に表示 */
+  .sidebar {
+    transform: translateX(0);
+  }
+
+  .main {
+    margin-left: 240px;
+  }
+
+  .main .navbar {
+    display: none;
+  }
+}
+/* --- テーブル --- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #2a2a2a;
+  box-shadow: none;
+}
+
+.table th,
+.table td {
+  border: 1px solid #444;
+  padding: 12px;
+  text-align: left;
+  color: #ffffff;
+}
+
+th {
+  background-color: #555555;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+th a {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+th a:hover {
+  text-decoration: underline;
+}
+
+.table tr:nth-child(even) {
+  background-color: #333333;
+}
+
+td a {
+  color: #87cefa;
+  text-decoration: underline;
+}
+
+td a:hover {
+  color: #add8e6;
+  text-decoration: none;
+}
+
+/* --- バッジ --- */
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.4em;
+  font-size: 75%;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
+}
+
+.badge-success {
+  color: #fff;
+  background-color: #28a745;
+}
+
+.badge-warning {
+  color: #212529;
+  background-color: #ffc107;
+}
+
+.badge-danger {
+  color: #fff;
+  background-color: #dc3545;
+}
+
+.badge-info {
+  color: #fff;
+  background-color: #17a2b8;
+}
+
+/* --- フラッシュメッセージ --- */
+.flash-messages {
+  padding: 0;
+  margin-bottom: 1em;
+  list-style: none;
+}
+
+.flash-messages li {
+  padding: 10px;
+  border-radius: 3px;
+  color: #fff;
+  margin-bottom: 5px;
+}
+
+.alert-danger {
+  background-color: #dc3545;
+}
+
+.alert-warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.alert-success {
+  background-color: #28a745;
+}
+
+/* --- フォーム --- */
+.form-group {
+  margin-bottom: 1em;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+  color: #00ff00;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group input[type="number"],
+.form-group input[type="url"],
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #005500;
+  border-radius: 4px;
+  box-sizing: border-box;
+  background-color: #0d0d0d;
+  color: #00ff00;
+  font-family: monospace;
+}
+
+.form-group input[readonly] {
+  background-color: #222;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.form-actions button,
+.form-actions a {
+  padding: 10px 15px;
+  border: 1px solid #00ff00;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  background-color: #003300;
+  color: #00ff00;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+/* --- アクションリンク (ボタン風) --- */
+.action-link-delete,
+.action-link-restore,
+.action-link-warning,
+.action-link-edit {
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9em;
+  text-decoration: none;
+}
+
+.action-link-delete {
+  background-color: #dc3545;
+  color: white;
+  border: 1px solid #c82333;
+}
+
+.action-link-restore {
+  background-color: #28a745;
+  color: white;
+  border: 1px solid #218838;
+}
+
+.action-link-warning {
+  background-color: #ffc107;
+  color: #212529;
+  border: 1px solid #e0a800;
+}
+
+.action-link-edit {
+  display: inline-block;
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #0069d9;
+  margin-right: 5px;
+}
+
+/* --- カードとタブ --- */
+.card {
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 0;
+  color: #e0e0e0;
+}
+
+.card-header {
+  background-color: #333;
+  border-bottom: 1px solid #444;
+}
+
+.card-body {
+  padding: 1.25rem;
+  background-color: #2a2a2a;
+}
+
+.nav-tabs {
+  border-bottom: 1px solid #444;
+}
+
+.nav-tabs .nav-link {
+  border: 1px solid transparent;
+  color: #008800;
+  border-radius: 0;
+}
+
+.nav-tabs .nav-link:hover {
+  border-color: #555;
+  color: #00cc66;
+}
+
+.nav-tabs .nav-link.active {
+  color: #00ff00;
+  background-color: #3e3e3e;
+  border-color: #444 #444 #3e3e3e;
+  font-weight: bold;
+}
+
+.tab-content {
+  background-color: #2a2a2a;
+  border: none;
+  padding: 0;
+}
+
+.nav-tabs.card-header-tabs {
+  margin-bottom: -0.75rem;
+  border-bottom: 0;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5em 0;
+}
+
+.pagination-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.2em;
+}
+
+.page-link {
+  color: #00cc66;
+  text-decoration: none;
+  padding: 0.3em 0.6em;
+  margin: 0 0.1em;
+  border: 1px solid transparent;
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.page-link:hover {
+  background-color: #005500;
+  border-color: #00cc66;
+  color: #00ff99;
+}
+
+.page-link.current {
+  font-weight: bold;
+  color: #00ff00;
+  text-decoration: none;
+  animation: blinker 1.5s linear infinite;
+}
+
+.page-link.nav-link {
+  background-color: transparent;
+  color: #00ff00;
+  border: 1px solid #005500;
+}
+
+.page-link.nav-link:hover {
+  /* stylelint-disable-line no-duplicate-selectors */
+  background-color: #005500;
+  border-color: #00ff99;
+}
+
+/* Dashboard Specific Styles */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2em;
+  margin-bottom: 2em;
+}
+
+.main-panel,
+.side-panel {
+  background-color: #2a2a2a;
+  padding: 1.5em;
+  border: 1px solid #444;
+}
+
+.compact-stats p {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #444;
+  padding: 0.5em 0;
+  margin: 0;
+}
+
+.compact-stats p span:first-child {
+  color: #00ff00;
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5em;
+}
+
+.health-item h5 {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+}
+
+.progress-bar-container {
+  background-color: #111;
+  border: 1px solid #444;
+  height: 25px;
+  position: relative;
+}
+
+.progress-bar {
+  background-color: #008800;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: bold;
+  text-shadow: 1px 1px #000;
+  transition: width 0.5s ease-in-out;
+}

@@ -1,0 +1,88 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>List of currently connected users. You can sort by column headers or kick a user's session.</p>
+
+{% include 'admin/_pagination.html' %}
+
+<div class="table-responsive">
+    <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+        <thead>
+            <tr>
+                <th><a
+                        href="{{ url_for('admin.who_online', sort_by='display_name', order=next_order if sort_by == 'display_name' else 'asc') }}">ID
+                        {% if sort_by == 'display_name' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.who_online', sort_by='addr', order=next_order if sort_by == 'addr' else 'asc') }}">IP
+                        Address {% if sort_by == 'addr' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.who_online', sort_by='menu_mode', order=next_order if sort_by == 'menu_mode' else 'asc') }}">Mode
+                        {% if sort_by == 'menu_mode' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.who_online', sort_by='connect_time', order=next_order if sort_by == 'connect_time' else 'asc') }}">Connect
+                        Time {% if sort_by == 'connect_time' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th><a
+                        href="{{ url_for('admin.who_online', sort_by='duration_seconds', order=next_order if sort_by == 'duration_seconds' else 'asc') }}">Duration
+                        {% if sort_by == 'duration_seconds' %}{{ '▲' if order == 'asc' else '▼' }}{% endif %}</a></th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member in online_list %}
+            <tr>
+                <td>
+                    {% if member.user_id %}
+                    <a href="{{ url_for('admin.edit_user', user_id=member.user_id) }}">{{ member.display_name }}</a>
+                    {% else %}
+                    {{ member.display_name }}
+                    {% endif %}
+                </td>
+                <td>{{ member.addr[0] if member.addr else 'N/A' }}</td>
+                <td>{{ member.menu_mode }}</td>
+                <td>{{ member.connect_time|int|timestamp_to_datetime }}</td>
+                <td>{{ member.duration_str }}</td>
+                <td>
+                    {% if member.user_id != session.get('user_id') %}
+                    <form method="post" action="{{ url_for('admin.kick_user', sid=member.sid) }}"
+                        style="display: inline;"
+                        onsubmit="return confirm('Are you sure you want to kick user \'{{ member.display_name }}\'?');">
+                        <button type="submit" class="action-link-delete">Kick</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6">No users are currently online.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% include 'admin/_pagination.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // 5秒ごとにページを自動的にリロードする
+        setInterval(function () {
+            // ユーザーが何かを入力中の場合はリロードしない
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                return;
+            }
+            location.reload();
+        }, 5000); // 5000ミリ秒 = 5秒
+    });
+</script>
+{% endblock %}

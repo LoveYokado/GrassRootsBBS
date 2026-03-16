@@ -1,0 +1,83 @@
+services:
+  # BBSアプリケーション本体
+  grassrootsbbs:
+    # 開発時は build: . を有効にしてください
+    # build: .
+    image: loveyokado/grassrootsbbs:latest
+    container_name: grassrootsbbs-app
+    # user: "${UID:-1000}:${GID:-1000}"
+    # ホストの5000番ポートをコンテナの5000番ポートにマッピング
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./.env:/app/.env:ro
+      - ./setting:/app/setting
+      - ./data:/app/data
+      - ./plugins:/app/plugins
+      - ./logs:/app/logs
+      - ./private_key.pem:/app/private_key.pem:ro 
+    # 依存関係: dbとredisが起動してからこのサービスを起動する
+    depends_on:
+      db:
+        condition: service_healthy # dbのhealthcheckが成功するまで待機
+      redis:
+        condition: service_started # redisは起動するだけでOK
+    # .envファイルから環境変数を読み込む
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    # サービス間の通信用ネットワーク
+    networks:
+      - grbbs-net
+    # コンテナが停止した場合、手動で停止しない限り再起動する
+    restart: unless-stopped
+
+  clamav:
+    image: clamav/clamav:latest
+    container_name: grassrootsbbs-clamav
+    restart: always
+    networks:
+      - grbbs-net
+
+  # MariaDBデータベース
+  db:
+    image: mariadb:10.6
+    container_name: grassrootsbbs-db
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      # .envファイルで設定された値を使用。未設定の場合はデフォルト値を使用。
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-your_secret_root_password}
+      MYSQL_DATABASE: ${DB_NAME:-grbbs}
+      MYSQL_USER: ${DB_USER:-grbbs_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-your_secure_database_password}
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u${DB_USER}", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - grbbs-net
+    restart: unless-stopped
+
+  # Redis (セッション管理、キャッシュ用)
+  redis:
+    image: redis:alpine
+    container_name: grassrootsbbs-redis
+    volumes:
+      - redis_data:/data
+    networks:
+      - grbbs-net
+    restart: unless-stopped
+
+volumes:
+  # データベースのデータを永続化するための名前付きボリューム
+  db_data:
+  # Redisのデータを永続化するための名前付きボリューム
+  redis_data:
+
+networks:
+  # このdocker-composeファイル内のサービスが通信するためのカスタムネットワーク
+  grbbs-net:

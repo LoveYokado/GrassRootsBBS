@@ -1,0 +1,63 @@
+server {
+    listen 80;
+    listen [::]:80;
+    # TODO: 'example.com' をあなたのドメイン名に変更してください。
+    server_name example.com;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    # TODO: 'example.com' をあなたのドメイン名に変更してください。
+    server_name example.com;
+
+    # TODO: あなたの環境に合わせてログファイルのパスを指定してください。
+    access_log /var/log/nginx/grbbs.access.log;
+    error_log /var/log/nginx/grbbs.error.log warn;
+
+    # --- SSL/TLS 設定 ---
+    # TODO: Let's Encryptなどで取得したご自身の証明書へのパスを指定してください。
+    # ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+    #
+    # TODO: より強力なSSL/TLS設定を推奨します。
+    # 例: include /etc/nginx/options-ssl-nginx.conf;
+    #     ssl_dhparam /etc/nginx/ssl-dhparams.pem;
+
+    # --- セキュリティヘッダー ---
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-XSS-Protection "1; mode=block";
+    add_header X-Content-Type-Options nosniff;
+    # TODO: Content-Security-Policy はあなたのBBSの利用状況に合わせて調整が必要です。
+    # 'wss://example.com' の部分をあなたのドメインに変更してください。
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.socket.io; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' wss://example.com; frame-src 'none'; object-src 'none';";
+
+    # --- パフォーマンス設定 ---
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 70;
+    client_max_body_size 100M; # TODO: アップロードファイルサイズの上限を必要に応じて変更してください。
+
+    # --- アプリケーションへのプロキシ ---
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # WebSocket (Socket.IO) 用の専用ロケーションブロック
+    location /socket.io/ {
+        proxy_pass http://grassrootsbbs:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

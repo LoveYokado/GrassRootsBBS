@@ -1,0 +1,91 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<form method="get" action="{{ url_for('admin.article_search') }}">
+    <div style="display: flex; gap: 1em; margin-bottom: 1em;">
+        <div class="form-group" style="flex-grow: 1;">
+            <label for="q">Search by Keyword (Title/Body)</label>
+            <input type="text" id="q" name="q" value="{{ search_keyword or '' }}">
+        </div>
+        <div class="form-group" style="flex-grow: 1;">
+            <label for="author">Search by Author</label>
+            <input type="text" id="author" name="author" value="{{ search_author or '' }}">
+        </div>
+    </div>
+    <div class="form-actions">
+        <button type="submit" style="background-color: #007bff; color: white;">Search</button>
+    </div>
+</form>
+
+{% if request.args.get('q') or request.args.get('author') %}
+<form method="post" action="{{ url_for('admin.bulk_action_articles') }}">
+    <h2>Search Results</h2>
+    <div class="form-actions" style="margin-bottom: 1em;">
+        <button type="submit" name="action" value="delete" style="background-color: #dc3545; color: white;">Delete
+            Selected</button>
+        <button type="submit" name="action" value="restore" style="background-color: #28a745; color: white;">Restore
+            Selected</button>
+    </div>
+
+    {% include 'admin/_pagination.html' %}
+
+    <table class="table" style="margin-top: 1em; margin-bottom: 1em;">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="select-all-articles"></th>
+                <th>Board</th>
+                <th>No.</th>
+                <th>Author</th>
+                <th>Title</th>
+                <th>Body (Snippet)</th>
+                <th>Posted At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for article in articles %}
+            <tr {% if article.is_deleted %}style="text-decoration: line-through; color: #aaa;" {% endif %}>
+                <td><input type="checkbox" name="selected_articles" value="{{ article.id }}" class="article-checkbox">
+                </td>
+                <td><a href="{{ url_for('web.index', shortcut=article.board_shortcut_id) }}" target="_blank">{{
+                        article.board_name }}</a></td>
+                <td>{{ article.article_number }}</td>
+                <td><a href="{{ url_for('admin.article_search', author=article.author_display_name) }}">{{
+                        article.author_display_name }}</a></td>
+                <td>{{ article.title or '(No Title)' }}</td>
+                <td style="word-break: break-all;">{{ (article.body or '') | truncate(80) }}</td>
+                <td>{{ article.created_at|int|timestamp_to_datetime }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('admin.delete_article', article_id=article.id) }}"
+                        style="display: inline;"
+                        onsubmit="return confirm('Are you sure you want to {{ 'restore' if article.is_deleted else 'delete' }} this article?');">
+                        {% if article.is_deleted %}
+                        <button type="submit" class="action-link-restore">Undelete</button>
+                        {% else %}
+                        <button type="submit" class="action-link-delete">Delete</button>
+                        {% endif %}
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8">No articles found for your search criteria.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
+
+{% include 'admin/_pagination.html' %}
+
+{% endif %}
+
+{% endblock %}

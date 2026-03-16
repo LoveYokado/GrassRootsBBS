@@ -1,0 +1,83 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h1 class="mt-4">{{ title }}</h1>
+    <p>Block specific IP addresses or network ranges (CIDR notation) from accessing the BBS.</p>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-plus mr-1"></i> Add New Ban Rule
+        </div>
+        <div class="card-body">
+            <form method="post" action="{{ url_for('admin.ip_ban_list') }}">
+                <input type="hidden" name="action" value="add">
+                <div class="form-row align-items-end">
+                    <div class="col-md-4">
+                        <label for="ip_address">IP Address or CIDR</label>
+                        <input type="text" id="ip_address" name="ip_address" value="{{ ip_to_ban }}"
+                            class="form-control" placeholder="e.g., 192.0.2.1 or 192.0.2.0/24" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="reason">Reason (Optional)</label>
+                        <input type="text" id="reason" name="reason" class="form-control"
+                            placeholder="e.g., Spamming, abusive behavior">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-danger btn-block">Add Ban</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-list mr-1"></i> Current Ban List
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>IP Address / CIDR</th>
+                            <th>Reason</th>
+                            <th>Added By</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ban in bans %}
+                        <tr>
+                            <td><code>{{ ban.ip_address }}</code></td>
+                            <td>{{ ban.reason or 'N/A' }}</td>
+                            <td>{{ user_map.get(ban.added_by, 'Unknown') }}</td>
+                            <td style="white-space: nowrap;">{{ ban.created_at | timestamp_to_datetime }}</td>
+                            <td>
+                                <form method="post" action="{{ url_for('admin.ip_ban_list') }}"
+                                    onsubmit="return confirm('Are you sure you want to remove this ban?');">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="{{ ban.id }}">
+                                    <button type="submit" class="btn btn-sm btn-warning">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No IP addresses are currently banned.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Error{% endblock %} - GR-BBS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1m:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/error.css') }}">
+
+    {{ util.get_tracking_code() | safe }}
+</head>
+
+<body>
+    <div class="container">
+        <h1>{% block error_code %}Error{% endblock %}</h1>
+        <h2>{% block error_title %}An Error Occurred{% endblock %}</h2>
+        {% block error_message %}<p>Something went wrong on our end. We're looking into it.</p>{% endblock %}
+        <p>
+            {% if session.get('user_id') %}
+            <a href="{{ url_for('web.index') }}">Return to Terminal</a>
+            {% else %}
+            <a href="{{ url_for('web.login') }}">Return to Login</a>
+            {% endif %}
+        </p>
+    </div>
+</body>
+
+</html>

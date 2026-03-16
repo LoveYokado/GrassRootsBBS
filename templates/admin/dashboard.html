@@ -1,0 +1,345 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .card.is-wide {
+        grid-column: span 2;
+    }
+
+    @media (max-width: 767px) {
+        .card.is-wide {
+            grid-column: span 1;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<div class="dashboard-grid">
+    <div class="card is-wide" data-id="activity-chart">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Recent Activity</span>
+            <div class="btn-group btn-group-sm" role="group" id="activity-duration-toggle">
+                <button type="button" class="btn btn-secondary" data-duration="7">7 Days</button>
+                <button type="button" class="btn btn-secondary active" data-duration="30">1 Month</button>
+                <button type="button" class="btn btn-secondary" data-duration="180">6 Months</button>
+            </div>
+        </div>
+        <div class="card-body" style="position: relative; height:40vh;">
+            <canvas id="activityChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card is-wide" data-id="access-chart">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Recent Access</span>
+            <div class="btn-group btn-group-sm" role="group" id="access-duration-toggle">
+                <button type="button" class="btn btn-secondary" data-duration="7">7 Days</button>
+                <button type="button" class="btn btn-secondary active" data-duration="30">1 Month</button>
+                <button type="button" class="btn btn-secondary" data-duration="180">6 Months</button>
+            </div>
+        </div>
+        <div class="card-body" style="position: relative; height:40vh;">
+            <canvas id="accessChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card" data-id="statistics">
+        <div class="card-header">Statistics</div>
+        <div class="card-body compact-stats">
+            <p><span>Total Users:</span> <span>{{ stats.total_users }}</span></p>
+            <p><span>Total Boards:</span> <span>{{ stats.total_boards }}</span></p>
+            <p><span>Total Articles:</span> <span>{{ stats.total_articles }}</span></p>
+            <p><span><a href="{{ url_for('admin.who_online') }}" style="color: #87cefa;">Who's Online:</a></span>
+                <span>{{ stats.online_users }}</span>
+            </p>
+        </div>
+    </div>
+
+    <div class="card" data-id="broadcast">
+        <div class="card-header">{{ g.texts.get('broadcast', {}).get('title', 'Broadcast Message') }}</div>
+        <div class="card-body">
+            <p>{{ g.texts.get('broadcast', {}).get('description', 'Send a message to all online users.') }}</p>
+            <form action="{{ url_for('admin.broadcast') }}" method="post" style="margin-top: 1em;">
+                <div class="form-group">
+                    <textarea name="message" class="form-control" rows="3"
+                        placeholder="{{ g.texts.get('broadcast', {}).get('placeholder', 'Enter your message...') }}"></textarea>
+                </div>
+                <div class="form-actions" style="margin-top: 1em;">
+                    <button type="submit">{{ g.texts.get('broadcast', {}).get('send_button', 'Send Broadcast')
+                        }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card" data-id="system-health">
+        <div class="card-header">
+            <i class="fas fa-heartbeat me-1"></i>
+            System Health
+        </div>
+        <div class="card-body" id="system-health-container">
+            <div class="health-grid">
+                <div class="health-item">
+                    <h5>CPU Usage</h5>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: {{ system_health.cpu_percent }}%;">
+                            <span>{{ "%.1f"|format(system_health.cpu_percent) }}%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="health-item">
+                    <h5>Memory Usage</h5>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: {{ system_health.memory_percent }}%;">
+                            <span>{{ "%.1f"|format(system_health.memory_percent) }}%</span>
+                        </div>
+                    </div>
+                    <small>{{ system_health.memory_used_gb }}GB / {{ system_health.memory_total_gb }}GB</small>
+                </div>
+                <div class="health-item">
+                    <h5>Disk Usage</h5>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: {{ system_health.disk_percent }}%;">
+                            <span>{{ "%.1f"|format(system_health.disk_percent) }}%</span>
+                        </div>
+                    </div>
+                    <small>{{ system_health.disk_used_gb }}GB / {{ system_health.disk_total_gb }}GB</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card danger-zone" data-id="restart-server">
+        <div class="card-header">{{ g.texts.get('system_actions', {}).get('restart_server_title', 'Restart Server') }}
+        </div>
+        <div class="card-body">
+            <p>{{ g.texts.get('system_actions', {}).get('restart_server_description', 'Restart the server to apply
+                configuration changes or plugin updates. The service will be unavailable for a few seconds during the
+                restart.') }}</p>
+            <form action="{{ url_for('admin.restart_server') }}" method="post"
+                onsubmit="return confirm('Are you sure you want to restart the server?');">
+                <button type="submit" class="danger-button">{{ g.texts.get('system_actions', {}).get('restart_button',
+                    'Restart Server') }}</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const chartData = {{ chart_data | tojson
+    }};
+    let activityChart;
+
+    function createOrUpdateActivityChart(data) {
+        const ctx = document.getElementById('activityChart').getContext('2d');
+        if (activityChart) {
+            activityChart.data.labels = data.labels;
+            activityChart.data.datasets[0].data = data.user_registrations;
+            activityChart.data.datasets[1].data = data.article_posts;
+            activityChart.update();
+        } else {
+            activityChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: '{{ g.texts.get("dashboard", {}).get("chart_new_users", "New Users") }}',
+                            data: data.user_registrations,
+                            borderColor: '#00ff00',
+                            backgroundColor: 'rgba(0, 255, 0, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: '{{ g.texts.get("dashboard", {}).get("chart_new_articles", "New Articles") }}',
+                            data: data.article_posts,
+                            borderColor: '#87cefa',
+                            backgroundColor: 'rgba(135, 206, 250, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#ccc' } },
+                        y: { ticks: { color: '#ccc' } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#ccc'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Initial chart creation
+    createOrUpdateActivityChart(chartData);
+
+    // --- Duration Toggle for Activity Chart ---
+    document.getElementById('activity-duration-toggle').addEventListener('click', function (e) {
+        if (e.target.tagName === 'BUTTON') {
+            const duration = e.target.dataset.duration;
+
+            // Update active button state
+            this.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+
+            // Fetch new data and update chart
+            fetch(`{{ url_for('admin.dashboard') }}?duration=${duration}`)
+                .then(response => response.json())
+                .then(newChartData => {
+                    createOrUpdateActivityChart(newChartData);
+                })
+                .catch(error => console.error('Error fetching chart data:', error));
+        }
+    });
+
+    // --- Access Chart ---
+    let accessChart;
+    function createOrUpdateAccessChart(data) {
+        const accessCtx = document.getElementById('accessChart').getContext('2d');
+        const datasets = [
+            {
+                label: 'Total Access',
+                data: data.access_counts.total,
+                borderColor: 'rgba(135, 206, 250, 1)', // Light Blue
+                backgroundColor: 'rgba(135, 206, 250, 0.5)',
+                type: 'bar',
+                order: 1
+            },
+            {
+                label: 'Member Access',
+                data: data.access_counts.member,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                type: 'line',
+                fill: false,
+                tension: 0.3,
+                order: 0
+            },
+            {
+                label: 'Guest Access',
+                data: data.access_counts.guest,
+                borderColor: 'rgba(75, 192, 75, 1)', // Green
+                backgroundColor: 'rgba(75, 192, 75, 0.2)',
+                type: 'line',
+                fill: false,
+                tension: 0.3,
+                order: 0
+            },
+            {
+                label: 'Login Failures',
+                data: data.access_counts.login_failure,
+                borderColor: 'rgba(255, 206, 86, 1)', // Yellow
+                backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                fill: false,
+                hidden: true
+            },
+            {
+                label: 'Banned Access',
+                data: data.access_counts.banned,
+                borderColor: 'rgba(255, 159, 64, 1)', // Orange
+                backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                fill: false,
+                hidden: true
+            },
+            {
+                label: 'Proxy/Tor Blocked',
+                data: data.access_counts.proxy,
+                borderColor: 'rgba(255, 99, 132, 1)', // Red
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                fill: false,
+                hidden: true
+            }
+        ];
+
+        if (accessChart) {
+            accessChart.data.labels = data.labels;
+            accessChart.data.datasets.forEach((dataset, index) => {
+                dataset.data = datasets[index].data;
+            });
+            accessChart.update();
+        } else {
+            accessChart = new Chart(accessCtx, {
+                type: 'bar',
+                data: { labels: data.labels, datasets: datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#ccc' } },
+                        y: { ticks: { color: '#ccc' } }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#ccc' }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    createOrUpdateAccessChart(chartData);
+
+    document.getElementById('access-duration-toggle').addEventListener('click', function (e) {
+        if (e.target.tagName === 'BUTTON') {
+            const duration = e.target.dataset.duration;
+            this.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+            e.target.classList.add('active');
+            fetch(`{{ url_for('admin.dashboard') }}?duration=${duration}`)
+                .then(response => response.json())
+                .then(newChartData => createOrUpdateAccessChart(newChartData));
+        }
+    });
+
+    // --- SortableJS ---
+    const grid = document.querySelector('.dashboard-grid');
+    new Sortable(grid, {
+        animation: 150,
+        ghostClass: 'blue-background-class',
+        onEnd: function () {
+            const order = Array.from(grid.children).map(item => item.dataset.id);
+            localStorage.setItem('dashboardOrder', JSON.stringify(order));
+        }
+    });
+
+    // --- Restore Order on Load ---
+    const savedOrder = localStorage.getItem('dashboardOrder');
+    if (savedOrder) {
+        const order = JSON.parse(savedOrder);
+        const items = new Map(
+            Array.from(grid.children).map(item => [item.dataset.id, item])
+        );
+        order.forEach(id => {
+            const item = items.get(id);
+            if (item) grid.appendChild(item);
+        });
+    }
+    });
+</script>
+{% endblock %}

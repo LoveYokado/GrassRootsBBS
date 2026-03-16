@@ -1,0 +1,4 @@
+name = "プロフィール帳"
+description = "定型の質問に答えるだけで、簡単に自己紹介ページを作成・閲覧できるプラグインです。"
+entry_point = "plugins.user_profile.main"
+timeout = "none"

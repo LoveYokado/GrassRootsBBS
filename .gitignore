@@ -1,0 +1,16 @@
+__pycache__/
+.trashbox/
+.venv/
+data/bbs.db
+data/attachments/*
+data/backups/*
+data/quarantine/*
+logs/
+setting/config.toml
+setting/trackingdata.txt
+static/manifest.json
+.env
+.vscode/
+docker-compose.yml
+private_key.pem
+public_key.pem
