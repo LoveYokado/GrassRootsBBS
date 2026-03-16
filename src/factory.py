@@ -133,6 +133,28 @@ def create_app():
     with db_init_lock:
         if not db_initialized:
             database.init_app(app)
+
+            # --- マイグレーションチェック ---
+            try:
+                # 'version' カラムが存在するかチェック
+                database.execute_query(
+                    "SELECT version FROM server_pref LIMIT 1")
+            except Exception as e:
+                # "Unknown column" エラーを想定
+                if '1054' in str(e):
+                    logging.warning(
+                        "データベーススキーマが古いです。'version' カラムのマイグレーションを適用します。")
+                    try:
+                        database.execute_query(
+                            "ALTER TABLE server_pref ADD COLUMN version VARCHAR(20) DEFAULT '1.05'")
+                        database.execute_query(
+                            "UPDATE server_pref SET version = '1.05' WHERE id = 1 AND version IS NULL")
+                        logging.info(
+                            "'server_pref' テーブルに 'version' カラムを正常に追加しました。")
+                    except Exception as migration_e:
+                        logging.error(f"マイグレーションの適用に失敗しました: {migration_e}")
+            # --- マイグレーション終了 ---
+
             if not database.check_database_initialized():
                 util.initialize_database_and_sysop()
             plugin_manager.load_plugins()

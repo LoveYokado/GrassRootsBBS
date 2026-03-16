@@ -1,19 +1,21 @@
 services:
   # BBSアプリケーション本体
   grassrootsbbs:
-    build: .
+    # 開発時は build: . を有効にしてください
+    # build: .
+    image: your-dockerhub-username/grassroots-bbs:latest
     container_name: grassrootsbbs-app
     # user: "${UID:-1000}:${GID:-1000}"
     # ホストの5000番ポートをコンテナの5000番ポートにマッピング
     ports:
       - "5000:5000"
     volumes:
-      - ./src:/app/src
+      - ./.env:/app/.env:ro
       - ./setting:/app/setting
       - ./data:/app/data
       - ./plugins:/app/plugins
       - ./logs:/app/logs
-      - ./private_key.pem:/app/private_key.pem:ro # 秘密鍵を読み取り専用でマウント
+      - ./private_key.pem:/app/private_key.pem:ro 
     # 依存関係: dbとredisが起動してからこのサービスを起動する
     depends_on:
       db:

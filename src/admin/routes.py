@@ -216,6 +216,11 @@ def load_admin_texts():
     menu_mode = session.get('menu_mode', '3')
     g.texts = _process_texts_for_mode(util.load_master_text_data(), menu_mode)
 
+    # --- バージョン情報を取得 ---
+    server_prefs = database.read_server_pref()
+    g.app_version = server_prefs.get(
+        'version', 'N/A') if server_prefs else 'N/A'
+
     # --- ナビゲーション構造の定義 ---
     # 各項目のテキストは g.texts から動的に取得
     nav_texts = g.texts.get('nav', {})
@@ -1746,7 +1751,8 @@ def bbs_management():
                     util.save_bbs_config(bbs_config)
                     util.log_audit_event(
                         action='ADD_BBS_MENU_ITEM',
-                        details={'parent_id': parent_id, 'item_id': new_id, 'item_type': new_type}
+                        details={'parent_id': parent_id,
+                                 'item_id': new_id, 'item_type': new_type}
                     )
                     flash('BBS menu item added successfully.', 'success')
 
@@ -1758,12 +1764,12 @@ def bbs_management():
                 if item:
                     name = request.form.get('name', '').strip()
                     description = request.form.get('description', '').strip()
-                    
+
                     if name:
                         item['name'] = name
                     elif 'name' in item:
                         del item['name']
-                    
+
                     if description:
                         item['description'] = description
                     elif 'description' in item:
@@ -1772,7 +1778,8 @@ def bbs_management():
                     util.save_bbs_config(bbs_config)
                     util.log_audit_event(
                         action='EDIT_BBS_MENU_ITEM',
-                        details={'item_id': item_id, 'new_name': name, 'new_description': description}
+                        details={'item_id': item_id, 'new_name': name,
+                                 'new_description': description}
                     )
                     flash('BBS menu item updated successfully.', 'success')
                 else:
@@ -1783,7 +1790,7 @@ def bbs_management():
                 item_id = request.form.get('id')
                 item, parent, index = find_item_and_parent(
                     bbs_config.get('categories', []), item_id)
-                
+
                 target_list = None
                 if item:
                     if parent:
@@ -1796,11 +1803,13 @@ def bbs_management():
                     util.save_bbs_config(bbs_config)
                     util.log_audit_event(
                         action='DELETE_BBS_MENU_ITEM',
-                        details={'item_id': item_id, 'parent_id': parent.get('id') if parent else 'root_categories'}
+                        details={'item_id': item_id, 'parent_id': parent.get(
+                            'id') if parent else 'root_categories'}
                     )
                     flash('BBS menu item deleted successfully.', 'success')
                 else:
-                    flash(f"Item '{item_id}' not found for deletion.", 'danger')
+                    flash(
+                        f"Item '{item_id}' not found for deletion.", 'danger')
 
         except Exception as e:
             flash(f"An error occurred: {e}", 'danger')
@@ -1872,8 +1881,7 @@ def bbs_management():
         if all_boards:
             board_id_map = {board['shortcut_id']: board['id']
                             for board in all_boards}
-            board_info_map = {board['shortcut_id']
-                : board for board in all_boards}
+            board_info_map = {board['shortcut_id']: board for board in all_boards}
 
         def enrich_items_with_db_info(items):
             if not isinstance(items, list):

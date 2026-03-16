@@ -1718,7 +1718,8 @@ class DatabaseInitializer:
                     bbs_reply_wrap_width INT DEFAULT 76,
                     maintenance_mode BOOLEAN DEFAULT 0,
                     max_concurrent_webapp_clients INT DEFAULT 4,
-                    max_backups INT DEFAULT 0
+                    max_backups INT DEFAULT 0,
+                    version VARCHAR(20) DEFAULT '1.05'
                 )
                 """,
                 """
