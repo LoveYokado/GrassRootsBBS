@@ -3,7 +3,7 @@ services:
   grassrootsbbs:
     # 開発時は build: . を有効にしてください
     # build: .
-    image: your-dockerhub-username/grassroots-bbs:latest
+    image: loveyokado/grassrootsbbs:latest
     container_name: grassrootsbbs-app
     # user: "${UID:-1000}:${GID:-1000}"
     # ホストの5000番ポートをコンテナの5000番ポートにマッピング
