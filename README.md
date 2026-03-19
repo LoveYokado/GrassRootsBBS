@@ -221,3 +221,9 @@ sudo certbot certonly --standalone -d your_domain --email your_email@example.com
 ```
 
 証明書が取得できたら、`nginx.conf` の `ssl_certificate` と `ssl_certificate_key` のパスが正しいか確認してください。
+
+## License
+
+このプロジェクトは **GNU General Public License v2.0 (GPLv2)** の下でライセンスされています。
+
+Copyright (c) 2026 LoveYokado. Licensed under GPLv2.

@@ -1,5 +1,5 @@
-// SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
-// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2025-2026 LoveYokado
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 document.addEventListener('DOMContentLoaded', function () {
     const hamburgerBtn = document.getElementById('sidebar-toggle');

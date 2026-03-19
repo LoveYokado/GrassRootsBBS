@@ -210,3 +210,9 @@ sudo certbot certonly --standalone -d your_domain --email your_email@example.com
 ```
 
 Once obtained, ensure the `ssl_certificate` and `ssl_certificate_key` paths in `nginx.conf` are correct.
+
+## License
+
+This project is licensed under the **GNU General Public License v2.0 (GPLv2)**.
+
+Copyright (c) 2026 LoveYokado. Licensed under GPLv2.
