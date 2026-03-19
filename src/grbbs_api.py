@@ -5,8 +5,8 @@ import json
 import os
 from PIL import Image
 
-# SPDX-FileCopyrightText: 2025 mid.yuki(LoveYokado)
-# SPDX-License-Identifier: MIT
+# SPDX-FileCopyrightText: 2025-2026 LoveYokado
+# SPDX-License-Identifier: GPL-2.0-or-later
 
 """GR-BBS プラグインAPIモジュール。
 
